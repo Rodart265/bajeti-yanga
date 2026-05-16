@@ -69,6 +69,55 @@ body.dark .pb{background:#2C2C2C}
 body.dark .bhint{background:linear-gradient(135deg,#2A2010,#231A08)}
 body.dark .bulk-bar{background:#1A1A1A}
 body.dark .bulk-inp{background:#2A2A2A;border-color:#3A3A3A;color:#E0E0E0}
+
+/* ── Topbar notif button ── */
+.notif-btn{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.22);color:#fff;font-size:.9rem;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+/* ── Slim hero ── */
+.hero-slim{background:linear-gradient(145deg,var(--p1),#5E1291 50%,#3D0E7A);border-radius:var(--cr);padding:14px 16px 12px;margin-bottom:11px;box-shadow:0 6px 24px rgba(123,31,162,.28);position:relative;overflow:hidden}
+.hero-slim::before{content:'';position:absolute;right:-20px;top:-20px;width:100px;height:100px;background:rgba(255,255,255,.05);border-radius:50%;pointer-events:none}
+.hs-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hs-lbl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.55)}
+.hs-bal{font-family:'Syne',sans-serif;font-size:1.55rem;font-weight:800;color:#fff;line-height:1;margin-top:2px}
+.hs-bal.danger{color:#FF8A80}
+.hs-pct{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hs-pct b{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:#fff}
+.hs-pct span{font-size:.48rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.3px}
+.hs-bar-wrap{height:5px;background:rgba(255,255,255,.14);border-radius:5px;overflow:hidden;margin-bottom:10px}
+.hs-bar{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.hs-cols{display:flex;gap:0}
+.hs-col{flex:1;text-align:center;padding:7px 4px;background:rgba(0,0,0,.16);border-radius:10px}
+.hs-col:not(:last-child){margin-right:6px}
+.hs-cl{font-size:.52rem;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.2px;margin-bottom:2px}
+.hs-cv{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;color:#fff;white-space:nowrap}
+.hs-cv.gc{color:#69F0AE}
+.hs-cv.rc{color:#FF8A80}
+/* ── Stat chips ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:11px}
+.stat-chip{border-radius:12px;padding:9px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.stat-chip .sc-val{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800}
+.stat-chip .sc-lbl{font-size:.53rem;font-weight:700;text-transform:uppercase;letter-spacing:.2px;opacity:.75}
+/* ── Trash ── */
+.trash-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.trash-item:last-child{border-bottom:none}
+.trash-ico{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.trash-info{flex:1;min-width:0}
+.trash-name{font-weight:700;font-size:.83rem}
+.trash-meta{font-size:.66rem;color:var(--mid);margin-top:1px}
+.trash-amt{font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem}
+/* ── Bill tracker ── */
+.bill-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.bill-item:last-child{border-bottom:none}
+.bill-ico{width:36px;height:36px;border-radius:11px;background:#EDE7F6;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.bill-info{flex:1;min-width:0}
+.bill-name{font-weight:700;font-size:.84rem}
+.bill-due{font-size:.65rem;color:var(--mid);margin-top:1px}
+.bill-due.urgent{color:var(--r1);font-weight:700}
+.bill-amt{font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;color:var(--p1)}
+.bill-acts{display:flex;gap:5px;flex-shrink:0}
+/* ── Export buttons ── */
+.export-row{display:flex;gap:8px;margin-bottom:10px}
+.export-row .export-btn{flex:1;padding:11px;font-size:.8rem}
+body.dark .stat-chip{filter:brightness(.9)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--mist);font-family:'General Sans',sans-serif;color:var(--ink)}
 .hide{display:none!important}
@@ -597,6 +646,51 @@ body.dark .chat-chip{background:#1E1E1E;border-color:#2C2C2C}
 </div>
 
 <!-- APP -->
+<!-- ── PRIVACY POLICY SCREEN ── -->
+<div id="scr-privacy" style="display:none;position:fixed;inset:0;background:#F0EBF8;z-index:9999;overflow-y:auto;padding:0">
+  <div style="max-width:480px;margin:0 auto;padding:32px 20px 40px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,#7B1FA2,#4A148C);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:12px">🏠</div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#3D0E7A">Nyumba Budget</h1>
+      <p style="font-size:.78rem;color:#666;margin-top:4px">Before you continue, please review our Privacy Policy</p>
+    </div>
+    <div id="pp-preview" style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(123,31,162,.1);margin-bottom:16px">
+      <h3 style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#3D0E7A;margin-bottom:10px">🔒 Your Privacy Matters</h3>
+      <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:8px">Nyumba Budget stores your household financial data securely using <strong>Google Firebase</strong>, protected by industry-standard encryption.</p>
+      <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:8px">We <strong>never sell</strong> your data to third parties. AI features use the <strong>Gemini API</strong> — your spending summaries are sent temporarily to generate responses and are not stored by Google.</p>
+      <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:12px">Your data belongs to your household only, accessible via your household code and authenticated account.</p>
+      <button onclick="toggleFullPolicy()" style="background:none;border:1.5px solid #7B1FA2;color:#7B1FA2;font-family:'Syne',sans-serif;font-weight:700;font-size:.78rem;padding:8px 16px;border-radius:10px;cursor:pointer;width:100%">📄 Read Full Privacy Policy</button>
+    </div>
+    <div id="pp-full" style="display:none;background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(123,31,162,.1);margin-bottom:16px;max-height:320px;overflow-y:auto">
+      <h3 style="font-family:'Syne',sans-serif;font-weight:800;color:#3D0E7A;margin-bottom:10px">Privacy Policy — Nyumba Budget</h3>
+      <p style="font-size:.75rem;color:#888;margin-bottom:12px">Last updated: May 2026 · Rodart Creatives</p>
+      <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">1. Data We Collect</h4>
+      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality. No names are required.</p>
+      <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">2. How We Use Your Data</h4>
+      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">Your data is used exclusively to provide the budgeting features of this app. Financial summaries are processed temporarily by the Gemini AI API to generate budget insights — this data is not stored by Google beyond the request.</p>
+      <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">3. Data Storage & Security</h4>
+      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can read or write your data. Data is encrypted in transit (HTTPS) and at rest.</p>
+      <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">4. Data Sharing</h4>
+      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">We do not sell, rent, or share your personal data with advertisers or third parties. Data is shared only within your household members who have your household code.</p>
+      <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">5. Your Rights</h4>
+      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">You may delete your account and all associated data at any time by contacting us. You can export your data as CSV from the Settings screen.</p>
+      <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">6. Contact</h4>
+      <p style="font-size:.78rem;color:#555;line-height:1.6">Questions? Email us at <strong>kabangorodrick6@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.</p>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;background:#fff;border-radius:12px;padding:14px">
+      <input type="checkbox" id="pp-agree" style="width:18px;height:18px;margin-top:2px;accent-color:#7B1FA2;flex-shrink:0">
+      <label for="pp-agree" style="font-size:.8rem;color:#444;line-height:1.5;cursor:pointer">I have read and agree to the <strong>Privacy Policy</strong> and consent to my household financial data being stored securely on Firebase.</label>
+    </div>
+    <button onclick="agreePrivacy()" id="pp-agree-btn" style="width:100%;padding:15px;background:linear-gradient(135deg,#7B1FA2,#4A148C);color:#fff;border:none;border-radius:14px;font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 4px 18px rgba(123,31,162,.35)">Continue to App →</button>
+    <p style="text-align:center;font-size:.7rem;color:#999;margin-top:12px">Nyumba Budget v4.0 · © 2026 Rodart Creatives · Malawi 🇲🇼</p>
+  </div>
+</div>
+
+<!-- ── INSTALL FAB ── -->
+<div id="install-fab" onclick="triggerInstall()" style="display:none;position:fixed;bottom:90px;right:16px;z-index:888;background:linear-gradient(135deg,#7B1FA2,#4A148C);color:#fff;border-radius:50px;padding:10px 16px;align-items:center;gap:7px;box-shadow:0 4px 20px rgba(123,31,162,.45);cursor:pointer;font-family:'Syne',sans-serif;font-weight:800;font-size:.78rem">
+  <span style="font-size:1.1rem">⬇️</span> Install App
+</div>
+
 <div id="app" class="hide">
   <div id="topbar">
     <div class="tbi">
@@ -606,8 +700,7 @@ body.dark .chat-chip{background:#1E1E1E;border-color:#2C2C2C}
       </div>
       <div class="tb-right">
         <div class="sync-dot off" id="sync-dot"></div>
-        <div class="upill" onclick="openSwitch()"><div class="uav" id="cur-av"></div><span class="unm" id="cur-nm"></span><span style="color:rgba(255,255,255,.5);font-size:.62rem;margin-left:2px">&#9662;</span></div>
-        <button class="lbtn" onclick="toggleLang()" id="lbtn">CW</button>
+        <div class="upill" onclick="openSwitch()"><span class="unm" id="cur-nm"></span><span style="color:rgba(255,255,255,.5);font-size:.62rem;margin-left:3px">&#9662;</span></div>
       </div>
     </div>
   </div>
@@ -1090,12 +1183,8 @@ function applyLang(){
 }
 function updatePill(){
   const u=actU(); if(!u)return;
-  const av=g('cur-av'),nm=g('cur-nm');
-  if(av){
-    const photo=curUser&&curUser.photoURL;
-    if(photo){av.style.background='none';av.innerHTML='<img src="'+photo+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.parentElement.innerHTML=actU().name[0];this.parentElement.style.background=actU().color">';}
-    else{av.innerHTML='';av.textContent=u.name[0];av.style.background=u.color;}
-  }
+  // Avatar removed from topbar — only update name pill now
+  const nm=g('cur-nm');
   if(nm)nm.textContent=u.name;
   const apt=g('apt'),aps=g('aps');
   if(apt)apt.textContent=tx().appTitle;
@@ -1455,7 +1544,7 @@ function rStg(){
   h+='</div>';
   // AI Chat
   h+='<div class="set-card"><div class="set-hdr">🤖 '+(lang==='en'?'AI Assistant':'Mchitidwe wa AI')+'</div>';
-  h+='<div class="set-row tap" onclick="go(\'chat\')"><div class="set-ico-lbl"><div class="set-ico" style="background:linear-gradient(135deg,#EDE7F6,#E8EAF6);color:var(--p1)">💬</div><div><div class="set-lbl">'+(lang==='en'?'Nyumba AI Chat':'Kukambirana ndi AI')+'</div><div class="set-sub">'+(lang==='en'?'Ask about your spending, budgets & goals':'Fumizani mafunso pa ndalama zanu')+'</div></div></div><span style="color:var(--p1);font-size:1.1rem">›</span></div>';
+  h+='<div class="set-row tap" onclick="go(\'chat\')"><div class="set-ico-lbl"><div class="set-ico" style="background:linear-gradient(135deg,#EDE7F6,#E8EAF6);color:var(--p1)">💬</div><div><div class="set-lbl">'+(lang==='en'?'Bajeti AI Chat':'Kukambirana ndi AI')+'</div><div class="set-sub">'+(lang==='en'?'Ask about your spending, budgets & goals':'Fumizani mafunso pa ndalama zanu')+'</div></div></div><span style="color:var(--p1);font-size:1.1rem">›</span></div>';
   h+='</div>';
   // Help
   h+='<div class="set-card"><div class="set-hdr">💬 '+(lang==='en'?'Help & Support':'Thandizo')+'</div>';
@@ -1521,24 +1610,120 @@ if(localStorage.getItem('nb_dark')==='1') document.body.classList.add('dark');
 const lbtnEl=g('lbtn'); if(lbtnEl)lbtnEl.textContent=lang==='en'?'CW':'EN';
 if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
 
-// ── PWA ──
-(function(){
-  var mf={name:'Nyumba Budget',short_name:'Nyumba',description:'Household Finance Tracker for Malawi',start_url:'/nyumba-bajeti/',scope:'/nyumba-bajeti/',display:'standalone',orientation:'portrait',background_color:'#F0EBF8',theme_color:'#7B1FA2',categories:['finance','utilities'],icons:[{src:'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="%237B1FA2"/><text y="420" x="56" font-size="380">&#127968;</text></svg>',sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'},{src:'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="%237B1FA2"/><text y="420" x="56" font-size="380">&#127968;</text></svg>',sizes:'192x192',type:'image/svg+xml',purpose:'any'}]};
-  try{var b=new Blob([JSON.stringify(mf)],{type:'application/json'}),u=URL.createObjectURL(b),l=document.createElement('link');l.rel='manifest';l.href=u;document.head.appendChild(l);}catch(e){}
-  if('serviceWorker' in navigator){
-    var sw='const V="nyumba-v310";self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(V).then(c=>c.addAll(["./"]).catch(()=>{})))});self.addEventListener("activate",e=>{e.waitUntil(clients.claim())});self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(nr=>{var c=nr.clone();caches.open(V).then(cc=>cc.put(e.request,c));return nr;}).catch(()=>caches.match("./"))))});';
-    try{var sb=new Blob([sw],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(sb),{scope:'/nyumba-bajeti/'}).catch(()=>{});}catch(e){}
+// ── Privacy Policy Gate ──
+function checkPrivacy(){
+  if(!localStorage.getItem('nb_privacy_agreed')){
+    document.getElementById('scr-privacy').style.display='block';
+    // Block everything else
+    ['scr-auth','scr-setup','scr-pin'].forEach(id=>{const el=g(id);if(el)el.style.display='none';});
+    g('app').classList.add('hide');
+    return false;
   }
+  return true;
+}
+function agreePrivacy(){
+  if(!document.getElementById('pp-agree').checked){
+    alert('Please tick the checkbox to agree to the Privacy Policy before continuing.');
+    return;
+  }
+  localStorage.setItem('nb_privacy_agreed','1');
+  document.getElementById('scr-privacy').style.display='none';
+  bootApp();
+}
+function toggleFullPolicy(){
+  var el=document.getElementById('pp-full');
+  var btn=document.querySelector('#pp-preview button');
+  if(el.style.display==='none'){el.style.display='block';if(btn)btn.textContent='▲ Hide Policy';}
+  else{el.style.display='none';if(btn)btn.textContent='📄 Read Full Privacy Policy';}
+}
+
+// ── PWA — proper installable manifest with PNG icons ──
+(function(){
+  // Generate PNG icon via canvas (required for Chrome installability — SVG icons are rejected)
+  function makeIcon(size){
+    try{
+      var c=document.createElement('canvas');c.width=size;c.height=size;
+      var ctx=c.getContext('2d');
+      var r=size*0.18;
+      ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(size-r,0);ctx.quadraticCurveTo(size,0,size,r);
+      ctx.lineTo(size,size-r);ctx.quadraticCurveTo(size,size,size-r,size);
+      ctx.lineTo(r,size);ctx.quadraticCurveTo(0,size,0,size-r);
+      ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
+      var g2=ctx.createLinearGradient(0,0,size,size);g2.addColorStop(0,'#7B1FA2');g2.addColorStop(1,'#4A148C');
+      ctx.fillStyle=g2;ctx.fill();
+      ctx.font='bold '+(size*0.55)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🏠',size/2,size*0.54);
+      return c.toDataURL('image/png');
+    }catch(e){return null;}
+  }
+  var ic512=makeIcon(512),ic192=makeIcon(192),ic96=makeIcon(96);
+  var icons=[];
+  if(ic512)icons.push({src:ic512,sizes:'512x512',type:'image/png',purpose:'any maskable'});
+  if(ic192)icons.push({src:ic192,sizes:'192x192',type:'image/png',purpose:'any'});
+  if(ic96)icons.push({src:ic96,sizes:'96x96',type:'image/png',purpose:'any'});
+
+  var mf={
+    name:'Nyumba Budget',short_name:'Nyumba',
+    description:'Household Finance Tracker for Malawi',
+    start_url:'https://rodart265.github.io/nyumba-bajeti/',
+    scope:'https://rodart265.github.io/nyumba-bajeti/',
+    display:'standalone',orientation:'portrait',
+    background_color:'#F0EBF8',theme_color:'#7B1FA2',
+    categories:['finance','utilities'],
+    prefer_related_applications:false,
+    icons:icons
+  };
+  try{
+    var b=new Blob([JSON.stringify(mf)],{type:'application/json'}),u=URL.createObjectURL(b),l=document.createElement('link');
+    l.rel='manifest';l.href=u;document.head.appendChild(l);
+  }catch(e){}
+
+  // ── Service Worker ──
+  if('serviceWorker' in navigator){
+    var sw=`const V="nyumba-v400";
+const URLS=["https://rodart265.github.io/nyumba-bajeti/"];
+self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(V).then(c=>c.addAll(URLS).catch(()=>{})));});
+self.addEventListener("activate",e=>{e.waitUntil(Promise.all([clients.claim(),caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k))))]));});
+self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(nr=>{var c=nr.clone();caches.open(V).then(cc=>cc.put(e.request,c));return nr;}).catch(()=>caches.match(URLS[0]))));});`;
+    try{var sb=new Blob([sw],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(sb),{scope:'https://rodart265.github.io/nyumba-bajeti/'}).catch(()=>{});}catch(e){}
+  }
+
+  // ── In-app Install prompt ──
+  window._deferredInstall=null;
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();
+    window._deferredInstall=e;
+    var btn=document.getElementById('install-fab');
+    if(btn){btn.style.display='flex';}
+  });
+  window.addEventListener('appinstalled',function(){
+    window._deferredInstall=null;
+    var btn=document.getElementById('install-fab');
+    if(btn){btn.style.display='none';}
+    if(typeof toast==='function')toast('App installed! 🎉','s');
+  });
 })();
 
-bootApp();
+function triggerInstall(){
+  if(window._deferredInstall){
+    window._deferredInstall.prompt();
+    window._deferredInstall.userChoice.then(function(r){
+      if(r.outcome==='accepted'){window._deferredInstall=null;}
+    });
+  }
+}
+
+// Boot only if privacy already agreed
+if(checkPrivacy()){
+  bootApp();
+}
 
 // ═══════════════════════════════════════════════
 // CHAT — AI Budget Assistant (Using Gemini API)
 // ═══════════════════════════════════════════════
 
 // ── Chat state ──
-let chatHistory = JSON.parse(sessionStorage.getItem('nb_chat')||'[]');
+let chatHistory = JSON.parse(sessionStorage.getItem('nb_chat')||'[]'); // synced to Firestore
 let chatBusy = false;
 
 const CHAT_SUGGESTIONS    = ['How am I doing this month?','Where am I overspending?','Can I afford my savings goals?','Give me tips to cut costs'];
@@ -1555,7 +1740,7 @@ function renderBubbles(){
   if(!chatHistory.length){
     const suggs=lang==='cw'?CHAT_SUGGESTIONS_CW:CHAT_SUGGESTIONS;
     const u=actU();
-    el.innerHTML='<div class="chat-empty"><div class="chat-empty-ico">💬</div><div class="chat-empty-ttl">'+(lang==='cw'?'Moni, '+u.name+'!':'Hey, '+u.name+'! 👋')+'</div><div class="chat-empty-sub">'+(lang==='cw'?'Ndine Nyumba AI. Fumizani mafunso onse pa ndalama zanu.':'I\'m Nyumba AI. Ask me anything about your household budget.')+'</div><div class="chat-suggest">'+suggs.map(s=>'<div class="chat-chip" onclick="chipSend(this)">'+s+'</div>').join('')+'</div></div>';
+    el.innerHTML='<div class="chat-empty"><div class="chat-empty-ico">💬</div><div class="chat-empty-ttl">'+(lang==='cw'?'Moni, '+u.name+'!':'Hey, '+u.name+'! 👋')+'</div><div class="chat-empty-sub">'+(lang==='cw'?'Ndine Bajeti AI. Fumizani mafunso onse pa ndalama zanu.':'I\'m Bajeti AI. Ask me anything about your household budget.')+'</div><div class="chat-suggest">'+suggs.map(s=>'<div class="chat-chip" onclick="chipSend(this)">'+s+'</div>').join('')+'</div></div>';
     return;
   }
   el.innerHTML=chatHistory.map(m=>{
@@ -1588,7 +1773,7 @@ function buildCtx(){
   const me=actU();
   const authName=curUser&&(curUser.displayName||curUser.email)||me.name;
   
-  return `You are Nyumba AI, a warm, personal household budget assistant for a Malawian family using the Nyumba Budget app.
+  return `You are Bajeti AI, a warm, personal household budget assistant for a Malawian family using the Nyumba Budget app.
 You are talking to ${authName} (household member name: ${me.name}).
 The household has ${lCfg.users.length} member(s): ${lCfg.users.map(u=>u.name).join(', ')}.
 Always address the user by their first name (${me.name.split(' ')[0]}) naturally in conversation.
@@ -1625,12 +1810,8 @@ async function sendChat(){
   if(msgsEl){const t=document.createElement('div');t.className='bubble ai typing';t.id='typing-ind';t.innerHTML='<span>●</span><span>●</span><span>●</span>';msgsEl.appendChild(t);msgsEl.scrollTop=msgsEl.scrollHeight;}
   
   try {
-    // ---- API KEY CONFIGURATION ----
-    const apiKey = 'AIzaSyBZiy10K0iGsVBEW2fNkHkLp684S8Dxu_4';
-    
-    // gemini-2.5-flash: current stable free-tier model (1500 RPD, 15 RPM)
-    const modelName = "gemini-2.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    // ── Cloudflare Worker proxy — API key never exposed in browser ──
+    const url = "https://nyumba-ai.YOUR-SUBDOMAIN.workers.dev/chat" /* ← STEP: replace YOUR-SUBDOMAIN with your Cloudflare username after deploying the Worker */;
 
     // Map history to Gemini format (user/model)
     const geminiMessages = chatHistory.map(m => ({
@@ -1728,9 +1909,7 @@ async function processMagicLog() {
   Text: "${input}"`;
   
   try {
-    const apiKey = "AIzaSyBZiy10K0iGsVBEW2fNkHkLp684S8Dxu_4";
-    const modelName = "gemini-2.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const url = "https://nyumba-ai.YOUR-SUBDOMAIN.workers.dev/chat" /* ← STEP: replace YOUR-SUBDOMAIN with your Cloudflare username after deploying the Worker */;
     const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } };
     
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -1783,9 +1962,7 @@ async function generateAiSummary() {
   btn.disabled = true; btn.innerHTML = '<span>⏳</span> Analyzing...';
   
   try {
-    const apiKey = "AIzaSyBZiy10K0iGsVBEW2fNkHkLp684S8Dxu_4";
-    const modelName = "gemini-2.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const url = "https://nyumba-ai.YOUR-SUBDOMAIN.workers.dev/chat" /* ← STEP: replace YOUR-SUBDOMAIN with your Cloudflare username after deploying the Worker */;
     
     const prompt = `Based on the following budget data, provide a very brief (2-3 sentences) personalized financial review. Focus on their biggest expense this month and whether they are on track. Language must be ${lang === 'cw' ? 'Chichewa' : 'English'}. Data: ${buildCtx()}`;
     
