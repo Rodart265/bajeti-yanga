@@ -11,6 +11,7 @@
 <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.2.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -547,6 +548,24 @@ body.dark .chat-input:focus{background:rgba(50,50,50,.95)}
 body.dark .bubble.ai{background:#1E1E1E;border-color:#2C2C2C;color:#E0E0E0}
 body.dark .chat-chip{background:#1E1E1E;border-color:#3A3A3A;color:#CE93D8}
 body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
+
+/* ── Insights sub-tabs ── */
+.ins-tabs{display:flex;gap:6px;padding:14px 14px 6px;position:sticky;top:0;z-index:10;background:var(--bg)}
+.ins-tab{flex:1;padding:9px 10px;border-radius:12px;border:1.5px solid var(--border);background:var(--white);font-size:.78rem;font-weight:700;color:var(--mid);cursor:pointer;transition:all .18s;text-align:center}
+.ins-tab.on{background:var(--p1);color:#fff;border-color:var(--p1);box-shadow:0 3px 12px rgba(123,31,162,.3)}
+body.dark .ins-tab{background:#1E1E1E;border-color:#333;color:#aaa}
+body.dark .ins-tab.on{background:var(--p1);color:#fff}
+
+/* ── Chat action sheet (+ button menu) ── */
+.chat-action-sheet{position:absolute;bottom:68px;left:10px;background:var(--white);border:1.5px solid var(--border);border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden;z-index:100;min-width:210px;animation:sheetUp .22s cubic-bezier(.175,.885,.32,1.275) forwards}
+@keyframes sheetUp{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}
+.chat-action-row{display:flex;align-items:center;gap:12px;padding:13px 16px;font-size:.85rem;font-weight:600;color:var(--ink);cursor:pointer;transition:background .12s}
+.chat-action-row:not(:last-child){border-bottom:1px solid var(--border)}
+.chat-action-row:active{background:var(--mist)}
+.chat-action-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+body.dark .chat-action-sheet{background:#1E1E1E;border-color:#333}
+body.dark .chat-action-row{color:#E0E0E0}
+body.dark .chat-action-row:active{background:#2A2A2A}
 .magic-btn{background:linear-gradient(135deg,#FFF9C4,#FFF176);color:#F57F17;border:1px solid #FBC02D;padding:10px 15px;border-radius:12px;font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;width:100%;box-shadow:0 4px 12px rgba(245,127,23,.15)}
 .magic-btn:active{transform:scale(.98)}
 .ai-summary-box{background:linear-gradient(135deg,#F3E5F5,#EDE7F6);border:1px solid #CE93D8;border-radius:14px;padding:14px;margin-bottom:12px;font-size:.82rem;line-height:1.5;color:var(--p1)}
@@ -598,9 +617,17 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
 
 <!-- AUTH -->
 <div id="scr-auth" class="screen hide">
-  <div class="auth-logo">🏠</div>
+  <div class="auth-logo">
+    <svg width="72" height="72" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.18)"/>
+      <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/>
+      <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/>
+      <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
+      <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
+    </svg>
+  </div>
   <div class="auth-title">Bajeti Yanga</div>
-  <div class="auth-sub" id="auth-sub">My Budget — Know where every kwacha goes</div>
+  <div class="auth-sub" id="auth-sub">Know where your Kwacha goes</div>
   <div class="auth-card">
     <div class="auth-tabs">
       <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Sign In</button>
@@ -688,7 +715,14 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
 
 <!-- SETUP -->
 <div id="scr-setup" class="screen hide">
-  <div class="setup-logo-wrap">🏠</div>
+  <div class="setup-logo-wrap">
+    <svg width="48" height="48" viewBox="0 0 52 52" fill="none">
+      <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/>
+      <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/>
+      <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
+      <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
+    </svg>
+  </div>
   <div class="setup-title">Bajeti Yanga</div>
   <div class="setup-sub">Track household spending together.<br>Create or join a household to get started.</div>
   <div class="setup-card">
@@ -745,7 +779,7 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
     <div id="pp-preview" style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(123,31,162,.1);margin-bottom:16px">
       <h3 style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#3D0E7A;margin-bottom:10px">🔒 Your Privacy Matters</h3>
       <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:8px">Bajeti Yanga stores your household financial data securely using <strong>Google Firebase</strong>, protected by industry-standard encryption.</p>
-      <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:8px">We <strong>never sell</strong> your data to third parties. AI features use the <strong>Gemini API</strong> — your spending summaries are sent temporarily to generate responses and are not stored by Google.</p>
+      <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:8px">We <strong>never sell</strong> your data to third parties. AI features process your spending summaries temporarily to generate responses — this data is not stored or shared.</p>
       <p style="font-size:.8rem;color:#444;line-height:1.6;margin-bottom:12px">Your data belongs to your household only, accessible via your household code and authenticated account.</p>
       <button onclick="toggleFullPolicy()" style="background:none;border:1.5px solid #7B1FA2;color:#7B1FA2;font-family:'Syne',sans-serif;font-weight:700;font-size:.78rem;padding:8px 16px;border-radius:10px;cursor:pointer;width:100%">📄 Read Full Privacy Policy</button>
     </div>
@@ -755,7 +789,7 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
       <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">1. Data We Collect</h4>
       <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality. No names are required.</p>
       <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">2. How We Use Your Data</h4>
-      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">Your data is used exclusively to provide the budgeting features of this app. Financial summaries are processed temporarily by the Gemini AI API to generate budget insights — this data is not stored by Google beyond the request.</p>
+      <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">Your data is used exclusively to provide the budgeting features of this app. Financial summaries are processed temporarily by Bajeti AI to generate budget insights — this data is not retained beyond the request.</p>
       <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">3. Data Storage & Security</h4>
       <p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:10px">All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can read or write your data. Data is encrypted in transit (HTTPS) and at rest.</p>
       <h4 style="font-size:.82rem;font-weight:700;margin-bottom:5px;color:#333">4. Data Sharing</h4>
@@ -783,8 +817,15 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
   <div id="topbar">
     <div class="tbi">
       <div class="tb-brand">
-        <div class="tb-ico">&#127968;</div>
-        <div><div class="tb-h1" id="apt">Bajeti Yanga</div><div class="tb-sub" id="aps">Household Tracker</div></div>
+        <div class="tb-ico">
+          <svg width="22" height="22" viewBox="0 0 52 52" fill="none">
+            <rect x="4" y="30" width="9" height="14" rx="2.5" fill="rgba(255,255,255,0.45)"/>
+            <rect x="17" y="20" width="9" height="24" rx="2.5" fill="rgba(255,255,255,0.7)"/>
+            <rect x="30" y="10" width="9" height="34" rx="2.5" fill="#fff"/>
+            <polygon points="30,15 34.5,6 39,15" fill="#00E5FF"/>
+          </svg>
+        </div>
+        <div><div class="tb-h1" id="apt">Bajeti Yanga</div><div class="tb-sub" id="aps">Know where your Kwacha goes</div></div>
       </div>
       <div class="tb-right">
         <div class="sync-dot off" id="sync-dot"></div>
@@ -796,8 +837,7 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
   <nav id="nav">
     <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home"><i class="ni fi fi-rr-home"></i><span class="nl" id="nl-h">Home</span></button>
     <button class="nb" onclick="go(&quot;log&quot;)" id="nb-log"><i class="ni fi fi-rr-square-plus"></i><span class="nl" id="nl-l">Log</span></button>
-    <button class="nb" onclick="go(&quot;hist&quot;)" id="nb-hist"><i class="ni fi fi-rr-receipt"></i><span class="nl" id="nl-hi">History</span></button>
-    <button class="nb" onclick="go(&quot;sum&quot;)" id="nb-sum"><i class="ni fi fi-rr-chart-pie-alt"></i><span class="nl" id="nl-s">Summary</span></button>
+    <button class="nb" onclick="go(&quot;insights&quot;)" id="nb-insights"><i class="ni fi fi-rr-chart-pie-alt"></i><span class="nl" id="nl-ins">Insights</span></button>
     <button class="nb" onclick="go(&quot;chat&quot;)" id="nb-chat"><i class="ni fi fi-rr-comment-alt"></i><span class="nl" id="nl-ch">Chat</span></button>
     <button class="nb" onclick="go(&quot;stg&quot;)" id="nb-stg"><i class="ni fi fi-rr-settings"></i><span class="nl" id="nl-st">Settings</span></button>
   </nav>
@@ -818,10 +858,10 @@ body.dark .chat-hero-ico{background:rgba(206,147,216,.1)}
 
 const TX = {
   en:{
-    appTitle:'Bajeti Yanga',appSub:'My Budget -- Know where every kwacha goes',
+    appTitle:'Bajeti Yanga',appSub:'Know where your Kwacha goes',
     home:'Home',log:'Log',hist:'History',sum:'Summary',mgr:'Manage',stg:'Settings',
     cap:'Monthly Cap',spent:'Spent',left:'Left',income:'Income',expense:'Expense',
-    recent:'Recent',viewAll:'View All',noPurchases:'No entries yet.',tapLog:'Tap + to add one.',
+    recent:'Recent Transactions',viewAll:'View All',noPurchases:'No entries yet.',tapLog:'Tap + to add one.',
     logTitle:'Log Entry',selItem:'Select Item',selUser:'Who?',
     date:'Date',time:'Time',qty:'Qty',unit:'Unit',amount:'Amount (MK)',notes:'Notes',
     save:'Save',saved:'Saved',allEntries:'All Entries',all:'All',editP:'Edit',del:'Delete',
@@ -849,33 +889,33 @@ const TX = {
   },
   cw:{
     appTitle:'Bajeti Yanga',appSub:'Dziwani komwe ndalama zanu zimapita',
-    home:'Pakhomo',log:'Lowetsani',hist:'Mbiri',sum:'Chidule',mgr:'Sinthani',stg:'Zikhazikiko',
-    cap:'Ndalama ya Mwezi',spent:'Zogwiritsa',left:'Zotsalazo',income:'Ndalama Zolowa',expense:'Zotumizidwa',
-    recent:'Zomalizika',viewAll:'Onani Zonse',noPurchases:'Palibe cholemba chilichonse.',tapLog:'Dina + kuchita cholowetsa.',
-    logTitle:'Lemba Zomwe Mwagula',selItem:'Sankhani Chinthu',selUser:'Ndani akugula?',
-    date:'Tsiku',time:'Nthawi',qty:'Kuchuluka',unit:'Kuyezera',amount:'Ndalama (MK)',notes:'Zilembo',
-    save:'Sungani',saved:'Yasungidwa Bwino',allEntries:'Zolemba Zonse',all:'Zonse',editP:'Sinthani',del:'Chotsani',
-    confirmDel:'Mukufuna kuchotsa ichi?',deleted:'Chachotsedwa',updated:'Chasinthidwa Bwino',
-    sumTitle:'Chidule cha Mwezi',budget:'Bajeti',ok:'Chabwino',near:'Pafupi Kumalizika',over:'Yapitilira Bajeti',none:'--',total:'KACHIWERENGERO CHONSE',
-    overallCap:'Ndalama Yonse ya Mwezi (MK)',members:'Anthu Opanga Nyumbayi',
+    home:'Pakhomo',log:'Lowetsani',hist:'Mbiri',sum:'Chidule',mgr:'Sinthani',stg:'Khonzani',
+    cap:'Ndalama ya Mwezi',spent:'Zogwira ntchito',left:'Zotsala',income:'Ndalama Zolowa',expense:'Zogula',
+    recent:'Zatsopano',viewAll:'Onani Zonse',noPurchases:'Palibe cholemba chilichonse.',tapLog:'Dinani + kuti mulowetse.',
+    logTitle:'Lembani Zomwe Mwagula',selItem:'Sankhani Chinthu',selUser:'Ndani akugula?',
+    date:'Tsiku',time:'Nthawi',qty:'Kuchuluka',unit:'Mulingo',amount:'Ndalama (MK)',notes:'Zolemba',
+    save:'Sungani',saved:'Yasungidwa',allEntries:'Zolemba Zonse',all:'Zonse',editP:'Sinthani',del:'Fufutani',
+    confirmDel:'Mukufuna kufufuta ichi?',deleted:'Chachotsedwa',updated:'Chasinthidwa',
+    sumTitle:'Chidule cha Mwezi',budget:'Bajeti',ok:'Chabwino',near:'Pafupi Kumalizika',over:'Yapitilira Bajeti',none:'--',total:'CHIWERENGERO CHONSE',
+    overallCap:'Ndalama Yonse ya Mwezi (MK)',members:'Anthu a Nyumbayi',
     editUser:'Sinthani Zambiri za Munthuyu',addMember:'Onjezani Munthu Watsopano',memberName:'Dzina',
-    itemsLbl:'Zinthu ndi Bajeti Zawo',addItem:'Onjezani Chinthu Chatsopano',
+    itemsLbl:'Zinthu ndi Bajeti Zawo',addItem:'Onjezerani Chinthu Chatsopano',
     iname:'Dzina la chinthu',ibudget:'Bajeti (MK)',add:'Onjezani',mbudget:'Bajeti ya Mwezi (MK)',cancel:'Siyani',
-    itemAdded:'Chinthu chaonjezedwa bwino',budgetUpdated:'Bajeti yasinthidwa bwino',itemDeleted:'Chinthu chachotsedwa',nameUpdated:'Dzinalo lasinthidwa',
-    confirmDelItem:'Mukufuna kuchotsa chinthucho?',confirmDelMember:'Mukufuna kuchotsa munthuyu?',
+    itemAdded:'Chinthu chaonjezeledwa',budgetUpdated:'Bajeti yasinthidwa',itemDeleted:'Chinthu chachotsedwa',nameUpdated:'Dzina lasinthidwa',
+    confirmDelItem:'Mukufuna kuchotsa chinthu?',confirmDelMember:'Mukufuna kuchotsa munthuyu?',
     switchUser:'Sinthani Wogwiritsa',householdCode:'Kodi ya Nyumba',
-    copyCode:'Kopya',shareWA:'WhatsApp',codeCopied:'Kodi yakopedwa!',
+    copyCode:'Kopelani',shareWA:'WhatsApp',codeCopied:'Kodi yakopedwa!',
     logout:'Tulukani pa Pulogalamuyi',confirmLogout:'Mukufuna kutuluka?',
-    sortCat:'Mtundu wa Zinthu',sortAZ:'Dongosola A-Z',sortOver:'Zapitilira Bajeti',sortSpend:'Zogwiritsa Kwambiri',
+    sortCat:'Mtundu wa Zinthu',sortAZ:'Dongosolo A-Z',sortOver:'Zapitilira Bajeti',sortSpend:'Zogwiritsa Kwambiri',
     searchPurchases:'Fufuzani pa zolemba...',quickPick:'Sankhani Msanga',
     goals:'Ndalama Zosungidwa',addGoal:'Onjezani Cholinga Chatsopano',goalName:'Dzina la cholinga',
-    goalTarget:'Ndalama Yofuna Kusungira (MK)',goalSaved:'Ndalama Yosungidwa Kale (MK)',topup:'Onjezani',noGoals:'Mulibe zolinga zolemba.',
+    goalTarget:'Ndalama Yofuna Kusungira (MK)',goalSaved:'Ndalama Yosungidwa (MK)',topup:'Onjezani',noGoals:'Mulibe zolinga zolemba.',
     pinSetup:'Ikani PIN ya manambala 4 kuteteza pulogalamuyi',pinChange:'Sinthani PIN',pinRemove:'Chotsani PIN',
-    pinOff:'PIN yachotsedwa',pinOn:'PIN yapangidwa',exportCSV:'Tungulani pa CSV',
+    pinOff:'PIN yachotsedwa',pinOn:'PIN yapangidwa',exportCSV:'Tsitsani CSV',
     recurring:'Cholembedwa Nthawi Zonse',recurrYes:'Lemba nthawi zonse mwezi uliwonse',
-    units:['kg','g','malikita','ml','zobiriwira','mapaketi','magwirizana','mabegi','mabotolo','mabara'],
-    months:['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Aug','Sep','Oct','Nov','Des'],
-    cats:{Food:'Chakudya',Household:'Zanyumba',Transport:'Mayendedwe',Personal:'Zanu Wekha',Other:'Zina'},itemNames:{'Diapers':'Matewera','Fuel':'Mafuta','Money Sent':'Ndalama Zotumizidwa','School Fees':'Ndalama za Sukulu','Rent':'Lenti'}
+    units:['kg','g','malita','ml','mapisi','mapaketi','mabandulo','matumba','mabotolo','mabar'],
+    months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Des'],
+    cats:{Food:'Chakudya',Household:'Zapakhomo',Transport:'Mayendedwe',Personal:'Zamwini',Other:'Zina'},itemNames:{'Diapers':'Matewera','Fuel':'Mafuta','Money Sent':'Ndalama Zotumizidwa','School Fees':'Ndalama za Sukulu','Rent':'Lenti'}
   }
 };
 
@@ -955,7 +995,19 @@ const catOf   = name => { for(const[c,a] of Object.entries(ITEM_CATS)){if(a.incl
 
 function curM()  { const d=new Date(); return {m:d.getMonth(),y:d.getFullYear()}; }
 function vmObj() { return viewMonth||curM(); }
-function isTM(s) { if(!s)return false; const parts=s.split('-'); if(parts.length<2)return false; const m=parseInt(parts[1],10)-1,y=parseInt(parts[0],10); const v=vmObj(); return m===v.m&&y===v.y; }
+function isTM(s){
+  if(!s)return false;
+  try{
+    // Handle both YYYY-MM-DD and YYYY-MM-DDTHH:MM formats
+    const clean = String(s).split('T')[0].trim();
+    const parts = clean.split('-');
+    if(parts.length < 3) return false;
+    const y = parseInt(parts[0],10), m = parseInt(parts[1],10)-1;
+    if(isNaN(y)||isNaN(m)) return false;
+    const v = vmObj();
+    return m===v.m && y===v.y;
+  }catch(e){ return false; }
+}
 function isCurM(){ const v=vmObj(),c=curM(); return v.m===c.m&&v.y===c.y; }
 function mName() { const v=vmObj(); return tx().months[v.m]+' '+v.y; }
 function prevM() { const v=vmObj(); viewMonth=v.m===0?{m:11,y:v.y-1}:{m:v.m-1,y:v.y}; render(); }
@@ -1242,10 +1294,13 @@ function backPh(){ show('a-ph-s1');hide('a-ph-s2'); confResult=null; if(rcapV){r
 // 7. FIREBASE / HOUSEHOLD
 // ===============================================
 
+let _authUnsubscribe = null;
 function bootApp(){
   if(authReg)return;
   authReg=true;
-  auth.onAuthStateChanged(user=>{
+  // Unsubscribe any previous listener before attaching a new one
+  if(_authUnsubscribe){ _authUnsubscribe(); _authUnsubscribe=null; }
+  _authUnsubscribe = auth.onAuthStateChanged(user=>{
     if(user){
       curUser=user;
       db.collection('users').doc(user.uid).get()
@@ -1287,7 +1342,12 @@ function joinHH(){
       if(!doc.exists){setDot('off');setupErr('Household not found. Check the code.');return;}
       const saves=[];
       if(curUser)saves.push(db.collection('users').doc(curUser.uid).set({householdId:code,displayName:curUser.displayName||curUser.email||'User'},{merge:true}));
-      return Promise.all(saves).then(()=>{ localStorage.setItem('nb_household',code); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Joined!'); });
+      return Promise.all(saves).then(()=>{
+        localStorage.setItem('nb_household',code);
+        // Fix: ensure nb_uid is set so actU() returns a valid member
+        if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+        hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Joined!');
+      });
     })
     .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
 }
@@ -1339,7 +1399,8 @@ function delPx(id){ if(!hhId)return; setDot('spin'); db.collection('households')
 function logout(){
   if(!confirm(tx().confirmLogout))return;
   if(unsub)unsub();
-  if(curUser&&hhId)db.collection('users').doc(curUser.uid).update({householdId:firebase.firestore.FieldValue.delete()}).catch(()=>{});
+  // Only clear local state — do NOT delete householdId from Firestore
+  // so the user can log back in and rejoin their household
   localStorage.removeItem('nb_household'); localStorage.removeItem('nb_uid');
   hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[];
   auth.signOut().catch(()=>{}); toast('Signed out','i');
@@ -1349,15 +1410,15 @@ function logout(){
 // 8. NAV, LANG, RENDER
 // ===============================================
 
-function go(t){ tab=t; srchQ=''; logType='expense'; document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); const nb=g('nb-'+t); if(nb)nb.classList.add('on'); render(); const v=g('view'); if(v)v.scrollTop=0; }
-function render(){ ({home:rHome,log:rLog,hist:rHist,sum:rSum,stg:rStg,chat:rChat})[tab](); }
+function go(t){ tab=t; srchQ=''; logType='expense'; document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); const nb=g('nb-'+t)||(t==='hist'||t==='sum'?g('nb-insights'):null); if(nb)nb.classList.add('on'); render(); const v=g('view'); if(v)v.scrollTop=0; }
+function render(){ ({home:rHome,log:rLog,hist:rHist,sum:rSum,insights:rInsights,stg:rStg,chat:rChat})[tab]?.(); }
 function toggleLang(){ lang=lang==='en'?'cw':'en'; localStorage.setItem('nb_lang',lang); const btn=g('lbtn'); if(btn)btn.textContent=lang==='en'?'CW':'EN'; applyLang(); render(); }
 function applyLang(){
   const t=tx();
   const apt=g('apt'); if(apt)apt.textContent=t.appTitle;
   const aps=g('aps'); if(aps)aps.textContent=t.appSub;
   const _ab=g('auth-sub'); if(_ab)_ab.textContent=t.appSub;
-  [['nl-h',t.home],['nl-l',t.log],['nl-hi',t.hist],['nl-s',t.sum],['nl-ch',lang==='cw'?'Kambidwa':'Chat'],['nl-st',lang==='cw'?'Mbiri':'Profile']].forEach(([id,v])=>{const el=g(id);if(el)el.textContent=v;});
+  [['nl-h',t.home],['nl-l',t.log],['nl-ins',lang==='cw'?'Zochitika':'Insights'],['nl-ch',lang==='cw'?'Bajeti AI':'Bajeti '],['nl-st',lang==='cw'?'Akaunti':'Profile']].forEach(([id,v])=>{const el=g(id);if(el)el.textContent=v;});
   updatePill();
 }
 function updatePill(){
@@ -1402,7 +1463,7 @@ function rHome(){
   h+='<div class="h2-col"><div class="h2-cl">Entries</div><div class="h2-cv">'+cnt+'</div></div>';
   h+='</div></div>';
   h+='<div class="chips"><div class="chip cP"><div class="chip-lbl">Purchases</div><div class="chip-val">'+cnt+'</div><div class="chip-sub">this month</div></div><div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">Over Budget</div><div class="chip-val">'+over+'</div><div class="chip-sub">items</div></div><div class="chip cO"><div class="chip-lbl">Near Limit</div><div class="chip-val">'+near+'</div><div class="chip-sub">items</div></div><div class="chip cG"><div class="chip-lbl">On Track</div><div class="chip-val">'+ok+'</div><div class="chip-sub">items</div></div></div>';
-  h+='<div class="card"><div class="ch"><h2>'+t.recent+'</h2><button class="btnG" onclick="go(\'hist\')" style="padding:5px 10px;font-size:.72rem">'+t.viewAll+'</button></div><div class="cb" style="padding:4px 15px 12px">';
+  h+='<div class="card"><div class="ch"><h2>'+t.recent+'</h2><button class="btnG" onclick="insTab=\'hist\';go(\'insights\')" style="padding:5px 10px;font-size:.72rem">'+t.viewAll+'</button></div><div class="cb" style="padding:4px 15px 12px">';
   if(recent.length){
         recent.forEach(p=>{
       const u=uById(p.userId),isI=p.type==='income';
@@ -1415,7 +1476,7 @@ function rHome(){
         +'<span class="prwho" style="background:'+u.color+'">'+u.name+'</span></div></div>'
         +'<div class="pramt '+(isI?'inc':'')+'">'+(isI?'+':'')+MK(p.amount)+'</div></div>';
     });
-  } else { h+='<div class="empty"><div class="ei">&#128722;</div><p>'+t.noPurchases+'<br>'+t.tapLog+'</p></div>'; }
+  } else { h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div><p><strong>'+(lang==='cw'?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Dina + kuchita cholowetsa.':'Tap + to log your first expense.')+'</span></p></div>'; }
   h+='</div></div></div>';
   g('view').innerHTML=h;
   if(logType==='income'){const ot=document.getElementById('inc-t-ot');if(ot){ot.classList.add('on');}}
@@ -1505,7 +1566,7 @@ function rHist(){
   h+='<div class="hist-filter">';
   h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all">&#128203; '+(lang==='cw'?'Zonse':'All')+'</button>';
   h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc">&#128200; '+(lang==='cw'?'Ndalama Zolowa':'Income')+'</button>';
-  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp">&#128201; '+(lang==='cw'?'Zotumizidwa':'Expenses')+'</button>';
+  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp">&#128201; '+(lang==='cw'?'Zogula':'Expenses')+'</button>';
   h+='</div>';
 
   // User filter tags
@@ -1535,7 +1596,7 @@ function rHist(){
       h+='</div></div></div>';
     });
   } else {
-    h+='<div class="empty"><div class="ei">&#128203;</div><p>'+t.noPurchases+'</p></div>';
+    h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><p><strong>'+(lang==='cw'?'Palibe zolemba.':'No entries this month.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Yambani kulemba.':'Start tracking your spending.')+'</span></p></div>';
   }
   h+='</div>';
   g('view').innerHTML=h;
@@ -1655,7 +1716,7 @@ function rSum(){
       h+='<div style="height:100%;width:'+pct+'%;background:'+clr+';border-radius:5px;transition:width .6s cubic-bezier(.4,0,.2,1)"></div></div></div>';
     });
     h+='</div></div>';
-  } else { h+='<div class="empty" style="padding:10px"><div class="ei">&#129693;</div><p>'+(lang==='cw'?'Palibe zolemba.':'No spending data yet.')+'</p></div>'; }
+  } else { h+='<div class="empty" style="padding:10px"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><p><strong>'+(lang==='cw'?'Palibe zolemba.':'No spending data yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">Log a few expenses to see your insights.</span></p></div>'; }
   h+='</div></div>';
   // Budget bars
   h+='<div class="card" style="overflow:hidden"><div class="ch"><h2>&#128202; '+t.sumTitle+'</h2></div>';
@@ -1683,9 +1744,29 @@ function rSum(){
   g('view').innerHTML=h;
 }
 
-// ===============================================
-// 13. MANAGE
-// ===============================================
+// ── Insights (merged History + Summary) ──
+let insTab='summary'; // default sub-tab
+function rInsights(){
+  const isCW=lang==='cw';
+  const tabs=[
+    {k:'summary',lbl:isCW?'📊 Chidule':'📊 Summary'},
+    {k:'hist',   lbl:isCW?'📋 Mbiri':'📋 History'}
+  ];
+  const tabBar='<div class="ins-tabs">'+tabs.map(t=>'<button class="ins-tab'+(insTab===t.k?' on':'')+'" onclick="insTab=\''+t.k+'\';rInsights()">'+t.lbl+'</button>').join('')+'</div>';
+  if(insTab==='hist'){
+    // Render history inline with tabbar prepended
+    rHist();
+    const v=g('view');
+    if(v) v.innerHTML=tabBar+v.innerHTML;
+  } else {
+    // Render summary inline with tabbar prepended
+    rSum();
+    const v=g('view');
+    if(v) v.innerHTML=tabBar+v.innerHTML;
+  }
+}
+
+
 
 function rMGI(it,i){
   const sp=iSpent(it.name),st=statOf(sp,it.budget),pct=Math.min(sp/it.budget,1)*100;
@@ -1747,7 +1828,7 @@ function rMgr(){
       h+='</div></div>';
     });
   } else {
-    h+='<div class="empty" style="padding:10px 0"><div class="ei">&#128197;</div><p>No bills tracked yet.<br>Add your rent, ESCOM, water bills.</p></div>';
+    h+='<div class="empty" style="padding:10px 0"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p><strong>No bills tracked yet.</strong><br><span style="font-size:.75rem;color:var(--mid)">Add rent, ESCOM, water — never miss a due date.</span></p></div>';
   }
   h+='</div></div>';
 
@@ -1773,13 +1854,13 @@ function saveBill(){
   if(!cfg.bills)cfg.bills=[];
   cfg.bills.push({name:nm,amount:amt,dueDate:due,icon:ic});
   cfg.bills.sort(function(a,b){return a.dueDate.localeCompare(b.dueDate);});
-  saveCfg(cfg); closeM('mv-u'); toast('Bill added!'); rSum();
+  saveCfg(cfg); closeM('mv-u'); toast('Bill added!'); rMgr();
 }
 
 function delBill(i){
   if(!confirm('Remove this bill?'))return;
   var cfg=JSON.parse(JSON.stringify(lCfg));
-  cfg.bills.splice(i,1); saveCfg(cfg); toast('Removed'); rSum();
+  cfg.bills.splice(i,1); saveCfg(cfg); toast('Removed'); rMgr();
 }
 
 function setSort(s){ sortMode=s; rMgr(); }
@@ -1801,7 +1882,24 @@ function svEB(){ const i=parseInt(val('eb-i')),v=parseFloat(val('eb-v')); if(!v|
 function openAddGoal(){ const t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#127919; '+t.addGoal+'</h3><div class="fsec"><label class="fl">'+t.goalName+'</label><input type="text" class="fi" id="g-nm" placeholder="e.g. New TV, School Fees..."></div><div class="fsec"><label class="fl">'+t.goalTarget+'</label><input type="number" class="fi" id="g-tg" inputmode="numeric" placeholder="e.g. 150000"></div><div class="fsec"><label class="fl">'+t.goalSaved+' (optional)</label><input type="number" class="fi" id="g-sv" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveGoal()">&#128190; '+t.add+'</button></div>'; openM('mv-gl'); }
 function saveGoal(){ const nm=val('g-nm').trim(),tg=parseFloat(val('g-tg')),sv=parseFloat(val('g-sv'))||0; if(!nm){toast(lang==='cw'?'Lowetsani dzina la cholinga':'Enter a goal name','e');return;} if(!tg||isNaN(tg)||tg<=0||tg>99999999){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Enter a valid target amount','e');return;} if(sv<0||sv>tg){toast(lang==='cw'?'Ndalama yosungidwa yachuluka':'Saved amount cannot exceed target','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); if(!cfg.goals)cfg.goals=[]; cfg.goals.push({name:nm,target:tg,saved:sv}); saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); rMgr(); }
 function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8593; '+t.topup+': '+gl.name+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')">&#128190; '+t.topup+'</button></div>'; openM('mv-gl'); }
-function topUpGoal(i){ const amt=parseFloat(val('tu-amt')); if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.goals[i].saved=Math.min(cfg.goals[i].saved+amt,cfg.goals[i].target); saveCfg(cfg); closeM('mv-gl'); toast('Goal updated!'); rMgr(); }
+function topUpGoal(i){
+  const amt=parseFloat(val('tu-amt'));
+  if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
+  const cfg=JSON.parse(JSON.stringify(lCfg));
+  const gl=cfg.goals[i];
+  const remaining=gl.target-gl.saved;
+  const actual=Math.min(amt,remaining);
+  gl.saved=Math.min(gl.saved+amt,gl.target);
+  saveCfg(cfg); closeM('mv-gl');
+  if(gl.saved>=gl.target){
+    toast('🎉 Goal complete! '+gl.name+' reached!');
+  } else if(actual<amt){
+    toast('Added '+MK(actual)+' — goal is now complete!');
+  } else {
+    toast('Goal updated! '+MK(actual)+' added.');
+  }
+  rMgr();
+}
 function doWithdraw(i){
   const amt=parseFloat(val('wd-amt')); if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
   if(amt>lCfg.goals[i].saved){toast(lang==='cw'?'Yapitilira zomwe mwasungira':'Exceeds saved amount','e');return;}
@@ -1840,14 +1938,14 @@ function rStg(){
   h+='<div class="stg-grp">';
   h+='<div class="stg-row" onclick="toggleLang()"><div class="stg-row-ico" style="background:#EDE7F6">&#127757;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chiyankhulo':'Language')+'</div></div><div class="stg-row-right"><span class="stg-row-val">'+(lang==='en'?'English':'Chichewa')+'</span><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#E8EAF6">'+(isDark?'☀️':'&#127769;')+'</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mdima':'Dark Mode')+'</div></div><label class="toggle-sw" style="margin:0"><input type="checkbox" '+(isDark?'checked':'')+' onchange="tgDark(this.checked)"><div class="toggle-tr"></div></label></div>';
-  h+='<div class="stg-row" onclick="openNotifs()"><div class="stg-row-ico" style="background:#FFF3E0">&#128276;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zachenjezo':'Notifications')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openNotifs()"><div class="stg-row-ico" style="background:#FFF3E0">&#128276;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zidziwitso':'Notifications')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
   // -- Household --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Nyumba':'Household')+'</span>';
   h+='<div class="stg-grp">';
   // Members
-  h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="members"><div class="stg-row-ico" style="background:#E3F2FD">&#128101;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Anthu Opanga Nyumbayi':'Members')+'</div><div class="stg-row-sub">'+lCfg.users.length+' '+(lang==='cw'?'anthu':'members')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="members"><div class="stg-row-ico" style="background:#E3F2FD">&#128101;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ma membala':'Members')+'</div><div class="stg-row-sub">'+lCfg.users.length+' '+(lang==='cw'?'anthu':'members')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Items & Budgets
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="items"><div class="stg-row-ico" style="background:#E8F5E9">&#128230;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets')+'</div><div class="stg-row-sub">'+lCfg.items.length+' '+(lang==='cw'?'zinthu':'items')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Goals
@@ -1868,17 +1966,17 @@ function rStg(){
   }
   // Biometrics
   if(hasBio()){
-    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:#E8F5E9">&#128070;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chizindikiro cha Mawoni':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito':'Enabled -- tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:#2E7D32;font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:#E8F5E9">&#128070;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito':'Enabled -- tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:#2E7D32;font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
   } else {
-    h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:#EDE7F6">&#128070;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chizindikiro cha Mawoni':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chikanka kapena nkhope kukutsa':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:#EDE7F6">&#128070;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chikanka kapena nkhope kukutsa':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
-  if(cu&&cu.email)h+='<div class="stg-row" onclick="doPwReset()"><div class="stg-row-ico" style="background:#EDE7F6">&#128273;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Sinthani Chinsinsi':'Change Password')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tumizani link ku '+cu.email:'Send reset link to '+cu.email)+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  if(cu&&cu.email)h+='<div class="stg-row" onclick="doPwReset()"><div class="stg-row-ico" style="background:#EDE7F6">&#128273;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Sinthani mawu a Chinsinsi':'Change Password')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tumizani link ku '+cu.email:'Send reset link to '+cu.email)+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
   // -- Data --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Deta':'Data')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:#E8F5E9">&#128196;</div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tungulani deta yanu':'Download your data as CSV')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:#E8F5E9">&#128196;</div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tsitsani deta yanu':'Download your data as CSV')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:#FCE4EC">&#128209;</div><div class="stg-row-body"><div class="stg-row-lbl">Export PDF &#128142;</div><div class="stg-row-sub">'+(lang==='cw'?'Lunzani mwachithunzi kusamutsira':'Printable report -- Premium')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:#FFEBEE">&#128465;️</div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--r1)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Data isungidwa kwa masiku 30':'Data kept for 30 days -- restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--r1)">›</span></div></div>';
   h+='</div>';
@@ -1907,7 +2005,7 @@ function rStg(){
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5">&#127968;</div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version 5.0 -- © Rodart Creatives</div></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5">&#127968;</div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version 9.0 -- © Rodart Creatives</div></div></div>';
   h+='</div>';
 
   h+='<button class="stg-logout" onclick="logout()">&#128682; '+t.logout+'</button>';
@@ -1916,7 +2014,21 @@ function rStg(){
 }
 
 function openPrivacyPolicy(){
-  document.getElementById('scr-privacy').style.display='block';
+  // Show privacy policy in a modal sheet — not the full gate screen
+  // The gate screen is only for first-time users who haven't agreed yet
+  let h='<div class="dh"></div><h3 style="font-family:Syne,sans-serif;margin-bottom:12px">Privacy Policy</h3>';
+  h+='<div style="font-size:.75rem;color:var(--mid);line-height:1.7;max-height:60vh;overflow-y:auto;padding-right:4px">';
+  h+='<p style="margin-bottom:10px"><strong>Bajeti Yanga</strong> is a household budgeting app. We take your privacy seriously.</p>';
+  h+='<p style="margin-bottom:8px"><strong>What we collect:</strong> Your transactions, budget settings, savings goals, and bill data — all stored securely in your household\'s private Firestore database.</p>';
+  h+='<p style="margin-bottom:8px"><strong>Authentication:</strong> We use Firebase Authentication (email/password or Google Sign-In) to secure your account.</p>';
+  h+='<p style="margin-bottom:8px"><strong>AI features:</strong> When you use Bajeti AI or Magic Log, your financial summary is sent to our AI service to generate responses. This data is not stored or used to train any model.</p>';
+  h+='<p style="margin-bottom:8px"><strong>Data sharing:</strong> We do not sell or share your personal or financial data with any third parties.</p>';
+  h+='<p style="margin-bottom:8px"><strong>Your data:</strong> You can delete your household data at any time from Settings → Danger Zone.</p>';
+  h+='<p style="margin-bottom:8px"><strong>Contact:</strong> For any privacy questions, contact the app administrator.</p>';
+  h+='</div>';
+  h+='<button class="btnG" style="width:100%;margin-top:16px" onclick="closeM(\'mv-u\')">Close</button>';
+  g('mb-u').innerHTML=h;
+  openM('mv-u');
 }
 
 
@@ -2087,23 +2199,63 @@ function toggleFullPolicy(){
     try{
       var c=document.createElement('canvas');c.width=size;c.height=size;
       var ctx=c.getContext('2d');
+      // Rounded square background
       var r=size*0.18;
       ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(size-r,0);ctx.quadraticCurveTo(size,0,size,r);
       ctx.lineTo(size,size-r);ctx.quadraticCurveTo(size,size,size-r,size);
       ctx.lineTo(r,size);ctx.quadraticCurveTo(0,size,0,size-r);
       ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
-      var g2=ctx.createLinearGradient(0,0,size,size);g2.addColorStop(0,'#7B1FA2');g2.addColorStop(1,'#4A148C');
+      var g2=ctx.createLinearGradient(0,0,size,size);
+      g2.addColorStop(0,'#7B1FA2');g2.addColorStop(1,'#4A148C');
       ctx.fillStyle=g2;ctx.fill();
-      // Draw 'BY' text as icon (cleaner than emoji on homescreen)
-      ctx.fillStyle='rgba(255,255,255,0.15)';
-      ctx.beginPath();ctx.arc(size/2,size*0.52,size*0.3,0,Math.PI*2);ctx.fill();
-      ctx.font='bold '+(size*0.32)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillStyle='#fff';
-      ctx.fillText('BY',size/2,size*0.5);
-      // Small tagline
-      ctx.font=(size*0.1)+'px sans-serif';
-      ctx.fillStyle='rgba(255,255,255,0.7)';
-      ctx.fillText('BAJETI',size/2,size*0.76);
+
+      // Rising bars (Concept D)
+      var pad=size*0.15;
+      var bw=size*0.17; // bar width
+      var br=size*0.05; // bar corner radius
+      var baseY=size-pad;
+
+      function roundedRect(x,y,w,h,radius,color){
+        ctx.beginPath();
+        ctx.moveTo(x+radius,y);
+        ctx.lineTo(x+w-radius,y);
+        ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
+        ctx.lineTo(x+w,y+h-radius);
+        ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
+        ctx.lineTo(x+radius,y+h);
+        ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
+        ctx.lineTo(x,y+radius);
+        ctx.quadraticCurveTo(x,y,x+radius,y);
+        ctx.closePath();
+        ctx.fillStyle=color;
+        ctx.fill();
+      }
+
+      // Bar 1 - short, left, semi-transparent
+      var b1h=size*0.2;
+      roundedRect(pad, baseY-b1h, bw, b1h, br, 'rgba(255,255,255,0.4)');
+
+      // Bar 2 - medium, center
+      var b2h=size*0.35;
+      var b2x=pad+bw+size*0.06;
+      roundedRect(b2x, baseY-b2h, bw, b2h, br, 'rgba(255,255,255,0.65)');
+
+      // Bar 3 - tall, right, full white
+      var b3h=size*0.52;
+      var b3x=b2x+bw+size*0.06;
+      roundedRect(b3x, baseY-b3h, bw, b3h, br, '#ffffff');
+
+      // Cyan arrow tip on bar 3
+      var arrowTip=baseY-b3h;
+      var arrowW=bw;
+      ctx.beginPath();
+      ctx.moveTo(b3x, arrowTip+size*0.07);
+      ctx.lineTo(b3x+arrowW/2, arrowTip-size*0.07);
+      ctx.lineTo(b3x+arrowW, arrowTip+size*0.07);
+      ctx.closePath();
+      ctx.fillStyle='#00E5FF';
+      ctx.fill();
+
       return c.toDataURL('image/png');
     }catch(e){return null;}
   }
@@ -2129,14 +2281,26 @@ function toggleFullPolicy(){
     l.rel='manifest';l.href=u;document.head.appendChild(l);
   }catch(e){}
 
-  // -- Service Worker --
+  // -- Service Worker -- fixed scope: blob URL can't match page scope
+  // Use a relative path SW via a script tag injection instead
   if('serviceWorker' in navigator){
-    var sw=`const V="bajeti-v500";
-const URLS=["https://rodart265.github.io/nyumba-bajeti/"];
+    const swCode=`const V="bajeti-v900";
+const URLS=["/nyumba-bajeti/","/nyumba-bajeti/index.html"];
 self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(V).then(c=>c.addAll(URLS).catch(()=>{})));});
 self.addEventListener("activate",e=>{e.waitUntil(Promise.all([clients.claim(),caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k))))]));});
-self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(nr=>{var c=nr.clone();caches.open(V).then(cc=>cc.put(e.request,c));return nr;}).catch(()=>caches.match(URLS[0]))));});`;
-    try{var sb=new Blob([sw],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(sb),{scope:'https://rodart265.github.io/nyumba-bajeti/'}).catch(()=>{});}catch(e){}
+self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(nr=>{try{var c=nr.clone();caches.open(V).then(cc=>cc.put(e.request,c));}catch(x){}return nr;}).catch(()=>caches.match(URLS[0]))));});`;
+    try{
+      // Use a same-origin script tag to register the SW properly
+      const blob=new Blob([swCode],{type:'application/javascript'});
+      const swUrl=URL.createObjectURL(blob);
+      // Only register when on the actual hosted page, skip on file:// to avoid scope errors
+      if(location.protocol!=='file:'){
+        navigator.serviceWorker.register(swUrl,{scope:location.pathname.replace(/\/[^/]*$/,'/')+'.'}).catch(()=>{
+          // Fallback: try without explicit scope
+          navigator.serviceWorker.register(swUrl).catch(()=>{});
+        });
+      }
+    }catch(e){}
   }
 
   // -- In-app Install prompt --
@@ -2167,25 +2331,30 @@ function triggerInstall(){
 // Boot only if privacy already agreed
 
 // ===============================================
-// PREMIUM / TRIAL SYSTEM
+// PREMIUM / TRIAL SYSTEM — Firestore-based
 // ===============================================
 const TRIAL_DAYS = 14;
 const PREMIUM_FEATURES = ['charts','export_pdf','bill_tracker','copy_month','unlimited_ai','trash'];
 
-// Admin households are always premium (add your household ID after creating it)
-const ADMIN_HOUSEHOLDS = ['Banja-8092'];
+// Premium is now stored as isPremium:true on the Firestore household document.
+// To activate premium for a household:
+//   1. Go to Firebase Console → Firestore
+//   2. Open households → [your-household-id]
+//   3. Add field: isPremium = true (boolean)
+//   4. Optionally add: premiumExpiry = "2026-12-31" (string) to set an end date
+// No code changes needed — it reads live from Firestore via lCfg.
 
 function getPremiumStatus(){
-  if(hhId && ADMIN_HOUSEHOLDS.includes(hhId)) return {isPremium:true, isTrial:false, isAdmin:true, daysLeft:null};
   const cfg = lCfg;
+  // Check Firestore-stored premium flag (set manually or via payment webhook)
   if(cfg.isPremium){
-    // Check expiry date if set
     if(cfg.premiumExpiry){
       const expired = new Date(cfg.premiumExpiry) < new Date();
-      if(expired) return {isPremium:false, isTrial:false, daysLeft:0};
+      if(expired) return {isPremium:false, isTrial:false, isExpired:true, daysLeft:0};
     }
-    return {isPremium:true, isTrial:false, daysLeft:null};
+    return {isPremium:true, isTrial:false, isAdmin:false, daysLeft:null};
   }
+  // Trial period fallback
   const started = cfg.trialStarted || null;
   if(!started) return {isPremium:false, isTrial:false, daysLeft:0};
   const daysUsed = Math.floor((Date.now() - new Date(started).getTime()) / 86400000);
@@ -2397,23 +2566,96 @@ if(checkPrivacy()){
 
 
 // ===============================================
-// CHAT -- AI Budget Assistant (Using Gemini API)
+// CHAT -- Bajeti AI Budget Assistant
 // ===============================================
 
 // -- Chat state --
-let chatHistory = JSON.parse(sessionStorage.getItem('nb_chat')||'[]'); // synced to Firestore
+let chatHistory = JSON.parse(sessionStorage.getItem('nb_chat')||'[]');
 let chatBusy = false;
 
+function getAiUsageToday(){
+  const key='nb_ai_'+today();
+  // Clear old keys
+  Object.keys(localStorage).filter(k=>k.startsWith('nb_ai_')&&k!==key).forEach(k=>localStorage.removeItem(k));
+  return parseInt(localStorage.getItem(key)||'0');
+}
+function incAiUsageToday(){
+  const key='nb_ai_'+today();
+  localStorage.setItem(key,String(getAiUsageToday()+1));
+}
+
 const CHAT_SUGGESTIONS    = ['How am I doing this month?','Where am I overspending?','Can I afford my savings goals?','Give me tips to cut costs'];
-const CHAT_SUGGESTIONS_CW = ['Ndikuyenda bwanji mwezi uno?','Ndikulipira chiani koposa?','Ndingakwanitse zolinga zanga?','Ndipatseni malingaliro osaonjezerako'];
+const CHAT_SUGGESTIONS_CW = ['Ndikuyenda bwanji mwezi uno?','Ndikuononga kwambiri ndalama zambiri kuti?','Ndingakwanitse zolinga zanga?','Ndipatseni malangizo ochepetsera kuononga ndalama'];
 
 function rChat(){
-  const aiKey = 'nb_ai_date_'+today();
-  if(sessionStorage.getItem(aiKey)!=='1'){ sessionStorage.setItem('nb_ai_today','0'); sessionStorage.setItem(aiKey,'1'); }
   const isCW=lang==='cw';
-  const placeholder=isCW?'Fumizani funso pa bajeti yanu...':'Ask anything about your budget...';
-  g('view').innerHTML='<div style="display:flex;flex-direction:column;height:calc(100dvh - 116px);padding:0;overflow:hidden"><div class="chat-wrap"><div class="chat-msgs" id="chat-msgs"></div><div class="chat-footer"><button class="chat-attach-btn" onclick="openMagicLog()" title="Magic Log / Scan">&#10133;</button><textarea class="chat-input" id="chat-inp" rows="1" placeholder="'+placeholder+'" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea><button class="chat-send" id="chat-send" onclick="sendChat()">&#9658;</button></div></div></div>';
+  const placeholder=isCW?'Funsani funso pa bajeti yanu...':'Ask anything about your budget...';
+  const sendIcon='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="#fff"/></svg>';
+  const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>';
+  g('view').innerHTML=
+    '<div style="position:relative;display:flex;flex-direction:column;height:calc(100dvh - 116px);padding:0;overflow:hidden">'
+    +'<div class="chat-wrap"><div class="chat-msgs" id="chat-msgs"></div>'
+    +'<div class="chat-footer" style="position:relative">'
+    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="More options" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:38px;height:38px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35);transition:transform .1s">'+attachIcon+'</button>'
+    +'<textarea class="chat-input" id="chat-inp" rows="1" placeholder="'+placeholder+'" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>'
+    +'<button class="chat-send" id="chat-send" onclick="sendChat()">'+sendIcon+'</button>'
+    +'</div></div></div>';
   renderBubbles();
+}
+
+function toggleChatSheet(e){
+  e.stopPropagation();
+  const existing=document.querySelector('.chat-action-sheet');
+  if(existing){existing.remove();return;}
+  const isCW=lang==='cw';
+  const sheet=document.createElement('div');
+  sheet.className='chat-action-sheet';
+  sheet.innerHTML=
+    '<div class="chat-action-row" onclick="sheet_magicLog()">'
+      +'<div class="chat-action-ico" style="background:#F3E5F5">✨</div>'
+      +'<div><div style="font-weight:700">'+(isCW?'Lowetsani mwamsanga':'Magic Log')+'</div>'
+      +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Lowetsani malongosoledwa':'Paste text, AI extracts items')+'</div></div>'
+    +'</div>'
+    +'<div class="chat-action-row" onclick="sheet_scan()">'
+      +'<div class="chat-action-ico" style="background:#E8F5E9">📷</div>'
+      +'<div><div style="font-weight:700">'+(isCW?'Skanani Risiti':'Scan Receipt')+'</div>'
+      +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Gwirizanitsani kamera':'Photo → AI reads items')+'</div></div>'
+    +'</div>'
+    +'<div class="chat-action-row" onclick="sheet_summary()">'
+      +'<div class="chat-action-ico" style="background:#E3F2FD">📊</div>'
+      +'<div><div style="font-weight:700">'+(isCW?'Chidule cha AI':'AI Summary')+'</div>'
+      +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Onani ndalama zanu':'Get your financial review')+'</div></div>'
+    +'</div>';
+  const footer=document.querySelector('.chat-footer');
+  footer.style.position='relative';
+  footer.appendChild(sheet);
+  document.addEventListener('click',()=>sheet.remove(),{once:true});
+}
+function sheet_magicLog(){document.querySelector('.chat-action-sheet')?.remove();openMagicLog();}
+function sheet_scan(){
+  document.querySelector('.chat-action-sheet')?.remove();
+  // Open Magic Log which contains the scan receipt option
+  // Then auto-trigger the camera input after modal opens
+  openMagicLog();
+  setTimeout(()=>{
+    const camBtn=g('receipt-cam');
+    if(camBtn) camBtn.click();
+  },300);
+}
+function sheet_summary(){
+  document.querySelector('.chat-action-sheet')?.remove();
+  // Navigate to insights tab and trigger AI summary there
+  // Or generate inline in chat as a message
+  const status=getPremiumStatus();
+  if(!status.isPremium && !status.isTrial){
+    showUpgradePrompt('unlimited_ai',status);
+    return;
+  }
+  const prompt=lang==='cw'
+    ? 'Ndipatseni chidule cha m\'malo mwanga mwa ndalama uno mwezi.'
+    : 'Give me a brief AI financial review of my spending this month.';
+  const inp=g('chat-inp');
+  if(inp){ inp.value=prompt; sendChat(); }
 }
 
 function renderBubbles(){
@@ -2431,17 +2673,18 @@ function renderBubbles(){
       +'<div class="chat-chips-grid">'+suggs.map(s=>'<div class="chat-chip" onclick="chipSend(this)">'+s+'</div>').join('')+'</div>';
     return;
   }
-  // Render bubbles with wrap + timestamp (from code.html)
+  // Render bubbles with wrap + real timestamp
   el.innerHTML=chatHistory.map(m=>{
     const isU=m.role==='user';
     const safe=m.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
       .replace(/^[-•] (.+)/gm,'<li>$1</li>')
       .replace(/\n/g,'<br>');
-    const ts=isU?'You':'Bajeti AI';
+    const ts=m.ts ? new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+    const label=isU?'You':'Bajeti AI';
     return '<div class="bubble-wrap '+(isU?'user':'ai')+'">'
       +'<div class="bubble '+(isU?'user':'ai')+'">'+safe+'</div>'
-      +'<span class="bubble-ts">'+ts+' • just now</span>'
+      +'<span class="bubble-ts">'+label+(ts?' • '+ts:'')+'</span>'
     +'</div>';
   }).join('');
   setTimeout(()=>{el.scrollTop=el.scrollHeight;},30);
@@ -2489,16 +2732,16 @@ Last 10 transactions: ${JSON.stringify(recent)}`;
 
 async function sendChat(){
   if(chatBusy)return;
-  // Check free tier AI limit
+  // Check free tier AI limit (persists across tab closes via localStorage)
   const status=getPremiumStatus();
   if(!status.isPremium){
-    const used=parseInt(sessionStorage.getItem('nb_ai_today')||'0');
+    const used=getAiUsageToday();
     if(used>=10){
       toast('Daily AI limit reached (10/day). Upgrade for unlimited!','e');
       showUpgradePrompt('unlimited_ai',status);
       return;
     }
-    sessionStorage.setItem('nb_ai_today',String(used+1));
+    incAiUsageToday();
   }
   const inp=g('chat-inp'), sendBtn=g('chat-send');
   const msg=(inp?inp.value.trim():''); if(!msg)return;
@@ -2507,7 +2750,7 @@ async function sendChat(){
   if(inp){inp.value='';inp.style.height='auto';inp.disabled=true;}
   if(sendBtn)sendBtn.disabled=true;
   
-  chatHistory.push({role:'user',text:msg});
+  chatHistory.push({role:'user',text:msg,ts:Date.now()});
   sessionStorage.setItem('nb_chat',JSON.stringify(chatHistory.slice(-30)));
   renderBubbles();
   
@@ -2559,20 +2802,19 @@ async function sendChat(){
 
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || (lang==='cw'?'Pepani, kuna vuto. Yesaninso.':'Sorry, something went wrong. Please try again.');
     
-    chatHistory.push({role:'assistant',text:reply});
+    chatHistory.push({role:'assistant',text:reply,ts:Date.now()});
     sessionStorage.setItem('nb_chat',JSON.stringify(chatHistory.slice(-30)));
     
   } catch(err) {
     let errorMsg = lang==='cw'?'Pepani, kuna vuto la intaneti. Yesaninso.':'Sorry, there was a connection error. Please try again.';
     
-    // Helper message specifically for local downloads missing the key
     if (err.message && (err.message.includes("unregistered callers") || err.message.includes("API key not valid"))) {
         errorMsg = "⚠️ API Key Missing! Please edit the downloaded HTML file and paste your API key inside the sendChat() function at the bottom.";
     } else if (err.message) {
         errorMsg = '⚠️ ' + err.message;
     }
     
-    chatHistory.push({role:'assistant',text:errorMsg});
+    chatHistory.push({role:'assistant',text:errorMsg,ts:Date.now()});
   }
   
   const td=g('typing-ind'); if(td)td.remove();
@@ -2676,7 +2918,9 @@ async function processMagicLog() {
     if (data.error) throw new Error(data.error.message);
     
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    pendingMagicTxs = JSON.parse(resultText);
+    // Strip markdown code fences that Gemini often wraps around JSON responses
+    const cleanText = resultText.replace(/```json|```/g,'').trim();
+    pendingMagicTxs = JSON.parse(cleanText);
     
     if (!Array.isArray(pendingMagicTxs) || pendingMagicTxs.length === 0) throw new Error("No transactions found");
     
@@ -2711,7 +2955,7 @@ function saveMagicTxs() {
   });
   closeM('mv-magic');
   toast('Transactions Saved!', 's');
-  go('hist');
+  insTab='hist'; go('insights');
 }
 
 // -- AI Smart Summary --
@@ -2759,6 +3003,41 @@ function delMemberd(el){ delMember(parseInt(el.dataset.i)); }
 function openEBd(el){ openEB(parseInt(el.dataset.i)); }
 function topUpGoald(el){ openTopUp(parseInt(el.dataset.i)); }
 function delGoald(el){ delGoal(parseInt(el.dataset.i)); }
+
+// Initialize Lucide icons after every render
+function initIcons(){
+  try{ if(window.lucide) lucide.createIcons(); }catch(e){}
+}
+const _origRender = typeof render==='function' ? render : null;
+if(_origRender){
+  render = function(){
+    _origRender();
+    setTimeout(initIcons, 0);
+  };
+}
+
+// Inject PWA manifest with Concept D icon
+(function injectManifest(){
+  try{
+    const manifest={
+      name:'Bajeti Yanga',short_name:'Bajeti',
+      description:'Know where your Kwacha goes',
+      start_url:'./',display:'standalone',
+      background_color:'#4A148C',theme_color:'#7B1FA2',
+      orientation:'portrait',
+      icons:[{src:'',sizes:'192x192',type:'image/png'},{src:'',sizes:'512x512',type:'image/png'}]
+    };
+    var i192=makeIcon(192), i512=makeIcon(512);
+    if(i192&&i512){
+      manifest.icons[0].src=i192; manifest.icons[1].src=i512;
+      var blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+      var url=URL.createObjectURL(blob);
+      var lnk=document.querySelector('link[rel="manifest"]');
+      if(!lnk){lnk=document.createElement('link');lnk.rel='manifest';document.head.appendChild(lnk);}
+      lnk.href=url;
+    }
+  }catch(e){}
+})();
 
 </script>
 </body>
