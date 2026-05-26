@@ -10,7 +10,12 @@
 <title>Bajeti Yanga v9.1.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
+<script>
+  document.currentScript.previousElementSibling.addEventListener('load', function(){
+    if(window.lucide){ lucide.createIcons(); }
+  });
+</script>
 <style>
 /* Lucide icon helper — mirrors fi spacing patterns */
 .li{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
