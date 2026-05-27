@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.1.2</title>
+<title>Bajeti Yanga v9.1.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
@@ -1057,7 +1057,7 @@ const DEF_USERS = [
   {id:'u1',name:'Person 1',color:'#7B1FA2'},
   {id:'u2',name:'Person 2',color:'#E91E63'}
 ];
-const DEF_CFG = {items:DEF_ITEMS,users:DEF_USERS,overallBudget:400000,goals:[]};
+const DEF_CFG = {items:DEF_ITEMS,users:DEF_USERS,overallBudget:400000,goals:[],salaryDay:0};
 
 const ITEM_ICONS = {
   'Tomatoes':'&#127813;','Onions':'&#129477;','Maize Flour (Ufa)':'&#127805;','Cooking Oil':'&#128738;',
@@ -1095,7 +1095,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Fuel','Rent','Diapers','Money Sent','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.1.3';
+const APP_VERSION = '9.1.4';
 
 // ===============================================
 // 2. STATE -- only after all consts
@@ -1123,21 +1123,57 @@ const tx      = () => TX[lang];
 const today   = () => new Date().toISOString().split('T')[0];
 const nowTime = () => { const d=new Date(); return d.toTimeString().slice(0,5); };
 const ico     = name => ITEM_ICONS[name] || '<i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i>';
-const catOf   = name => { for(const[c,a] of Object.entries(ITEM_CATS)){if(a.includes(name))return c;} return 'Other'; };
+const catOf = name => {
+  const item = lCfg&&lCfg.items ? lCfg.items.find(it=>it.name===name) : null;
+  if(item&&item.cat&&['Food','Household','Personal','Transport','Other'].includes(item.cat)) return item.cat;
+  for(const[c,a] of Object.entries(ITEM_CATS)){ if(a.includes(name)) return c; }
+  return 'Other';
+};
 
 function curM()  { const d=new Date(); return {m:d.getMonth(),y:d.getFullYear()}; }
 function vmObj() { return viewMonth||curM(); }
+
+// ── Budget Period ──
+// lCfg.salaryDay (1–28): when set, the budget month runs from
+// salaryDay of prev month to (salaryDay−1) of current viewed month.
+// e.g. salaryDay=25: period = Apr 25 – May 24 when viewing May.
+// All totals, caps, summary, insights, member counts use isTM() so they all respect this.
+function getBudgetPeriod(){
+  const sd = lCfg && lCfg.salaryDay ? parseInt(lCfg.salaryDay,10) : 0;
+  const v = vmObj();
+  if(!sd || sd<1 || sd>28){
+    // Standard: whole calendar month
+    return { startY:v.y, startM:v.m, startD:1,
+             endY:v.y, endM:v.m, endD:new Date(v.y, v.m+1, 0).getDate() };
+  }
+  // Period starts on salaryDay of the previous month relative to viewed month
+  let startM=v.m-1, startY=v.y;
+  if(startM<0){ startM=11; startY=v.y-1; }
+  // Period ends on (salaryDay−1) of viewed month; if salaryDay=1, ends last day of prev month
+  const endD = sd===1 ? new Date(v.y, v.m, 0).getDate() : sd-1;
+  const endM = sd===1 ? (v.m-1<0?11:v.m-1) : v.m;
+  const endY = sd===1 && v.m===0 ? v.y-1 : v.y;
+  return { startY, startM, startD:sd, endY, endM, endD };
+}
+function budgetPeriodLabel(){
+  const p=getBudgetPeriod(), mn=tx().months;
+  if(!lCfg||!lCfg.salaryDay) return mn[p.startM]+' '+p.startY;
+  return p.startD+' '+mn[p.startM]+' – '+p.endD+' '+mn[p.endM]+' '+p.endY;
+}
 function isTM(s){
   if(!s)return false;
   try{
-    // Handle both YYYY-MM-DD and YYYY-MM-DDTHH:MM formats
-    const clean = String(s).split('T')[0].trim();
-    const parts = clean.split('-');
-    if(parts.length < 3) return false;
-    const y = parseInt(parts[0],10), m = parseInt(parts[1],10)-1;
-    if(isNaN(y)||isNaN(m)) return false;
-    const v = vmObj();
-    return m===v.m && y===v.y;
+    const clean=String(s).split('T')[0].trim();
+    const parts=clean.split('-');
+    if(parts.length<3) return false;
+    const dy=parseInt(parts[0],10), dm=parseInt(parts[1],10)-1, dd=parseInt(parts[2],10);
+    if(isNaN(dy)||isNaN(dm)||isNaN(dd)) return false;
+    const p=getBudgetPeriod();
+    // Compare as YYYYMMDD integers for fast range check
+    const date=dy*10000+dm*100+dd;
+    const start=p.startY*10000+p.startM*100+p.startD;
+    const end=p.endY*10000+p.endM*100+p.endD;
+    return date>=start && date<=end;
   }catch(e){ return false; }
 }
 function isCurM(){ const v=vmObj(),c=curM(); return v.m===c.m&&v.y===c.y; }
@@ -1193,9 +1229,25 @@ function showPIN() {
 }
 function hidePIN() { hide('scr-pin'); }
 function updDots() { for(let i=0;i<4;i++){const el=g('pd'+i);if(el)el.classList.toggle('on',i<pinEntry.length);} }
-async function hashPIN(pin){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pin+'nb_salt_bajeti'));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+async function hashPIN(pin, saltHex){
+  const saltBytes = saltHex
+    ? Uint8Array.from(saltHex.match(/.{2}/g).map(h=>parseInt(h,16)))
+    : crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt:saltBytes,iterations:100000,hash:'SHA-256'}, keyMaterial, 256);
+  const hashHex = Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const saltStr = Array.from(saltBytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return {hash:hashHex, salt:saltStr};
+}
+async function verifyPIN(entered, storedRaw){
+  if(storedRaw.includes(':')){
+    const [salt, hash] = storedRaw.split(':');
+    const result = await hashPIN(entered, salt);
+    return result.hash === hash;
+  }
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(entered+'nb_salt_bajeti'));
+  const legacyHash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return legacyHash === storedRaw;
 }
 function pinK(k) {
   if(k==='C') pinEntry='';
@@ -1207,18 +1259,17 @@ function pinK(k) {
       const stored=String(localStorage.getItem('nb_pin')||'').trim();
       const entered=String(pinEntry).trim();
       if(pinMode==='check'){
-        const enteredHash=await hashPIN(entered);
-        const match=stored.length===64?enteredHash===stored:entered===stored;
+        const match = await verifyPIN(entered, stored);
         if(match){
-          if(stored.length!==64){ localStorage.setItem('nb_pin',enteredHash); }
+          if(!stored.includes(':')){ const r=await hashPIN(entered); localStorage.setItem('nb_pin',r.salt+':'+r.hash); }
           hidePIN(); bootApp();
         } else { pinEntry=''; updDots(); toast('Wrong PIN','e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
       } else if(pinMode==='confirm'){
         if(entered===String(pinTmp).trim()){
-          const h=await hashPIN(entered);
-          localStorage.setItem('nb_pin',h);
+          const result=await hashPIN(entered);
+          localStorage.setItem('nb_pin',result.salt+':'+result.hash);
           hidePIN(); toast(tx().pinOn); pinMode='check'; go('stg');
         } else {
           pinEntry=''; pinMode='set'; showPIN(); toast('PINs did not match','e');
@@ -1228,27 +1279,56 @@ function pinK(k) {
   }
 }
 function pinFgt(){
-  appConfirm(
-    '<div style="text-align:center;padding:4px 0 8px">'
-    +'<div style="width:48px;height:48px;border-radius:14px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
-    +'<i data-lucide="log-out" style="width:24px;height:24px;color:#E65100"></i></div>'
-    +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">This will sign you out. You can set a new PIN after logging back in.</div></div>',
-    function(){
-      localStorage.removeItem('nb_pin'); hidePIN(); auth.signOut().catch(()=>{});
-      localStorage.removeItem('nb_household'); localStorage.removeItem('nb_uid');
-      hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[]; show('scr-auth');
-    }, 'Sign Out', true
-  );
+  const box=g('mb-confirm');
+  const isCW=lang==='cw';
+  const ph=isCW?'Mawu achinsinsi':'Account password';
+  const ttl=isCW?'Munaiwala PIN?':'Forgot your PIN?';
+  const sub=isCW?'Lowetsani mawu achinsinsi kuti mutsimikizire, ndiyeno muike PIN yatsopano.':'Enter your account password to verify your identity, then set a new PIN.';
+  const cancel=isCW?'Siyani':'Cancel';
+  const verify=isCW?'Tsimikizani':'Verify & Reset';
+  box.innerHTML='<div style="text-align:center;padding:6px 0 10px">'
+    +'<div style="width:52px;height:52px;border-radius:16px;background:#EDE7F6;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
+    +'<i data-lucide="key" style="width:26px;height:26px;color:#7B1FA2"></i></div>'
+    +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+ttl+'</div>'
+    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+sub+'</div>'
+    +'<input type="password" class="fi" id="pin-fgt-pw" placeholder="'+ph+'" style="margin-bottom:10px">'
+    +'<div id="pin-fgt-err" style="display:none;font-size:.75rem;color:#C62828;margin-bottom:8px;text-align:left"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+cancel+'</button>'
+    +'<button class="btnM" style="flex:2" onclick="pinFgtVerify()">'
+    +'<i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'
+    +verify+'</button>'
+    +'</div>';
+  if(window.lucide)lucide.createIcons({nodes:[box]});
+  openM('mv-confirm');
+  setTimeout(function(){ var pw=g('pin-fgt-pw'); if(pw)pw.focus(); },300);
+}
+async function pinFgtVerify(){
+  const pw=(g('pin-fgt-pw')||{}).value||'';
+  const errEl=g('pin-fgt-err');
+  if(!pw){ if(errEl){errEl.style.display='block';errEl.textContent='Please enter your password.';} return; }
+  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast('Cannot verify — please sign in again','e'); return; }
+  try{
+    const cred=firebase.auth.EmailAuthProvider.credential(curUser.email,pw);
+    await curUser.reauthenticateWithCredential(cred);
+    localStorage.removeItem('nb_pin');
+    closeM('mv-confirm'); hidePIN();
+    toast('Verified — set a new PIN','s');
+    setTimeout(()=>{ pinMode='set'; showPIN(); },400);
+  }catch(e){
+    if(errEl){
+      errEl.style.display='block';
+      errEl.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Incorrect password. Try again.':'Verification failed: '+(e.message||e.code);
+    }
+  }
 }
 function openSetPIN(){ pinMode='set'; showPIN(); }
 
-// -- Biometrics --
-function hasBio(){ return !!localStorage.getItem('nb_bio_enabled'); }
-
-// -- Local biometric unlock using Web Authentication UserVerification
-// Works on file:// by using a simple local credential token approach:
-// Instead of server-bound passkeys, we use crypto.subtle to generate a
-// device-local HMAC key stored in localStorage and verify via biometric prompt
+// -- Biometrics v2: proper WebAuthn create/get flow --
+// Requires HTTPS or localhost. On plain file:// the ceremony will fail and the user is told clearly.
+// This is a device screen-lock only — Firebase Auth is the real identity layer.
+function hasBio(){ return !!localStorage.getItem('nb_bio_credId'); }
 
 async function _bioAvailable(){
   try{
@@ -1256,94 +1336,73 @@ async function _bioAvailable(){
     return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
   }catch(e){ return false; }
 }
+function _b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+function _fromB64url(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); }
 
 async function registerBio(){
   const avail = await _bioAvailable();
-  if(!avail){
-    toast('No biometric sensor found on this device','e');
-    return;
-  }
+  if(!avail){ toast('No biometric sensor found on this device','e'); return; }
+  const isSecure = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+  if(!isSecure){ toast('Biometrics needs HTTPS. Host the app on a secure URL to enable fingerprint unlock.','e'); return; }
   try{
-    // Generate a random token and store it — biometric prompt confirms identity
-    const token = crypto.getRandomValues(new Uint8Array(32));
-    const tokenB64 = btoa(String.fromCharCode(...token));
-    // Use SubtleCrypto to derive a key from the token (local only, no server)
-    const key = await crypto.subtle.importKey('raw', token, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
-    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode('bajeti-bio-v1'));
-    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
-    localStorage.setItem('nb_bio_enabled','1');
-    localStorage.setItem('nb_bio_token', tokenB64);
-    localStorage.setItem('nb_bio_sig', sigB64);
-    toast('Biometrics enabled','s');
+    const uid = curUser ? curUser.uid : 'local';
+    const cred = await navigator.credentials.create({
+      publicKey:{
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp:{ name:'Bajeti Yanga', id: location.hostname },
+        user:{ id: new TextEncoder().encode(uid), name:(curUser&&curUser.email)||'user', displayName:'Bajeti Yanga' },
+        pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+        authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required', residentKey:'discouraged' },
+        timeout:60000, attestation:'none'
+      }
+    });
+    localStorage.setItem('nb_bio_credId', _b64url(cred.rawId));
+    localStorage.removeItem('nb_bio_enabled');
+    localStorage.removeItem('nb_bio_token');
+    localStorage.removeItem('nb_bio_sig');
+    toast('Fingerprint registered ✓','s');
     go('stg');
   }catch(e){
-    toast('Setup failed: '+e.message,'e');
+    if(e.name==='NotAllowedError') toast('Registration cancelled','e');
+    else toast('Setup failed: '+(e.message||e.name),'e');
   }
 }
 
 async function checkBio(){
   try{
-    const avail = await _bioAvailable();
-    if(!avail){ localStorage.removeItem('nb_bio_enabled'); return false; }
-    const tokenB64 = localStorage.getItem('nb_bio_token');
-    const storedSig = localStorage.getItem('nb_bio_sig');
-    if(!tokenB64||!storedSig) return false;
-    // Trigger biometric prompt via credentials API (works on Android without HTTPS for user verification)
-    // Use a silent challenge — if device has biometrics it prompts user
-    const token = Uint8Array.from(atob(tokenB64), c=>c.charCodeAt(0));
-    const key = await crypto.subtle.importKey('raw', token, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
-    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode('bajeti-bio-v1'));
-    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
-    // Verify signature matches stored
-    if(sigB64 !== storedSig){ localStorage.removeItem('nb_bio_enabled'); return false; }
-    // Now trigger the actual biometric prompt using conditional mediation
-    if(window.PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable){
-      // Device has the capability — trigger fingerprint via credentials.get with user verification
-      const challenge = crypto.getRandomValues(new Uint8Array(32));
-      try{
-        await navigator.credentials.get({
-          publicKey:{
-            challenge,
-            userVerification:'required',
-            timeout:30000,
-            rpId: undefined,
-            allowCredentials:[]
-          }
-        });
-      }catch(e2){
-        // NotAllowedError = user cancelled; SecurityError on file:// is expected
-        // For file:// we fall back to confirming via PIN fallback gracefully
-        if(e2.name==='SecurityError'||e2.name==='NotSupportedError'){
-          // Biometric hardware confirmed available via isUserVerifyingPlatformAuthenticatorAvailable
-          // but file:// blocks the ceremony. Show informative toast.
-          toast('Biometrics ready — host on HTTPS for full fingerprint unlock','i');
-          return true; // token verified locally — allow access
-        }
-        if(e2.name==='NotAllowedError') return false;
+    const credId = localStorage.getItem('nb_bio_credId');
+    if(!credId) return false;
+    if(!await _bioAvailable()){ localStorage.removeItem('nb_bio_credId'); return false; }
+    const isSecure = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+    if(!isSecure) return false;
+    await navigator.credentials.get({
+      publicKey:{
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rpId: location.hostname,
+        allowCredentials:[{ type:'public-key', id:_fromB64url(credId), transports:['internal'] }],
+        userVerification:'required', timeout:30000
       }
-    }
+    });
     return true;
-  }catch(e){
-    return false;
-  }
+  }catch(e){ return false; }
 }
 
 async function tryBioUnlock(){
-  toast('Checking biometrics...','i');
-  const ok=await checkBio();
-  if(ok){hidePIN();bootApp();toast('Welcome back!','s');}
-  else{toast('Biometric check failed — use PIN','e');}
+  if(!curUser||!hhId){ toast('Session not ready — enter PIN','e'); return; }
+  toast('Waiting for fingerprint...','i');
+  const ok = await checkBio();
+  if(ok){ hidePIN(); bootApp(); toast('Welcome back!','s'); }
+  else{ toast('Biometric failed — use your PIN','e'); }
 }
 
 async function triggerBio(){
-  const ok=await checkBio();
-  if(ok){hidePIN();bootApp();}
+  if(!curUser||!hhId) return;
+  const ok = await checkBio();
+  if(ok){ hidePIN(); bootApp(); }
 }
 
 function removeBio(){
-  localStorage.removeItem('nb_bio_enabled');
-  localStorage.removeItem('nb_bio_token');
-  localStorage.removeItem('nb_bio_sig');
+  ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig'].forEach(k=>localStorage.removeItem(k));
   toast('Biometrics removed','i');
   go('stg');
 }
@@ -1395,7 +1454,7 @@ function _confirmDeleteAccount(){
       localStorage.removeItem('nb_household');
       localStorage.removeItem('nb_uid');
       localStorage.removeItem('nb_pin');
-      localStorage.removeItem('nb_bio_cred');
+      ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig','nb_bio_cred'].forEach(k=>localStorage.removeItem(k));
       hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[];
       show('scr-auth');
     },2000);
@@ -1678,7 +1737,7 @@ function connectHH(code){
         return (b.date||'').localeCompare(a.date||'');
       });
       setDot(''); render();
-    }, err=>{
+      checkAndAddRecurring();
       if(field&&(err.code==='failed-precondition'||err.code==='unimplemented')){
         // Index not ready or field missing, try without ordering
         if(unsub) unsub();
@@ -1727,6 +1786,33 @@ function logout(){
 // ===============================================
 
 function go(t){ tab=t; srchQ=''; logType='expense'; document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); const nb=g('nb-'+t)||(t==='hist'||t==='sum'?g('nb-insights'):null); if(nb)nb.classList.add('on'); render(); const v=g('view'); if(v)v.scrollTop=0; }
+// ── Recurring items: auto-add on new budget period ──
+function checkAndAddRecurring(){
+  if(!hhId||!lPx||!lCfg) return;
+  const KEY='nb_recur_last_'+(hhId||'anon');
+  const p=getBudgetPeriod();
+  const periodStart=p.startY+'-'+String(p.startM+1).padStart(2,'0')+'-'+String(p.startD).padStart(2,'0');
+  if(localStorage.getItem(KEY)===periodStart) return; // already ran this period
+  if(today()<periodStart) return; // period hasn't started yet
+  // Find recurring expense entries NOT in current period (from previous)
+  const prevRecurring=lPx.filter(px=>px.recurring&&px.type!=='income'&&!isTM(px.date));
+  if(!prevRecurring.length){ localStorage.setItem(KEY,periodStart); return; }
+  // One entry per unique item name (most recent)
+  const seen=new Set(), toAdd=[];
+  prevRecurring.forEach(px=>{ if(!seen.has(px.item)){ seen.add(px.item); toAdd.push(px); } });
+  // Skip any already added this period
+  const actuallyAdd=toAdd.filter(px=>!lPx.some(e=>e.item===px.item&&e.recurring&&isTM(e.date)));
+  if(!actuallyAdd.length){ localStorage.setItem(KEY,periodStart); return; }
+  let ts=Date.now();
+  const uid=actU().id;
+  actuallyAdd.forEach(px=>{
+    addPx({item:px.item,date:today(),timestamp:ts++,amount:Number(px.amount)||0,
+           qty:px.qty||'',unit:px.unit||'',notes:'(auto-recurring)',userId:uid,type:'expense',recurring:true});
+  });
+  localStorage.setItem(KEY,periodStart);
+  toast(actuallyAdd.length+' recurring item'+(actuallyAdd.length>1?'s':'')+' added for this period 🔄','s');
+}
+
 function render(){ ({home:rHome,log:rLog,hist:rHist,sum:rSum,insights:rInsights,stg:rStg,chat:rChat})[tab]?.(); }
 function toggleLang(){ lang=lang==='en'?'cw':'en'; localStorage.setItem('nb_lang',lang); const btn=g('lbtn'); if(btn)btn.textContent=lang==='en'?'CW':'EN'; applyLang(); render(); }
 function applyLang(){
@@ -1762,6 +1848,7 @@ function rHome(){
   let h='<div class="page">';
   h+=getTrialBanner();
   h+='<div class="mnav"><button class="mnbtn" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
+  if(lCfg&&lCfg.salaryDay) h+='<div style="text-align:center;margin:-4px 0 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:.66rem;font-weight:700;color:var(--p1);background:var(--p1)18;padding:3px 10px;border-radius:20px;letter-spacing:.1px"><i data-lucide="calendar-check" style="width:11px;height:11px"></i>'+budgetPeriodLabel()+'</span></div>';
   h+='<div class="hero2">';
   h+='<div class="h2-top">';
   h+='<div class="h2-ring"><svg viewBox="0 0 80 80" width="78" height="78" style="transform:rotate(-90deg)"><circle fill="none" stroke="rgba(255,255,255,.14)" stroke-width="8" cx="40" cy="40" r="32"/><circle fill="none" stroke="'+stroke+'" stroke-width="8" stroke-linecap="round" cx="40" cy="40" r="32" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
@@ -1786,8 +1873,8 @@ function rHome(){
       const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item)]||'#7B1FA2');
       h+='<div class="pri">'
         +'<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>'
-        +'<div class="prinfo"><div class="prname">'+p.item+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>'
-        +(p.notes?'<div class="prnote">'+p.notes+'</div>':'')
+        +'<div class="prinfo"><div class="prname">'+esc(p.item)+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>'
+        +(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'')
         +'<div class="prmeta"><span class="prdate">'+p.date+'</span>'
         +'<span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span></div></div>'
         +'<div class="pramt '+(isI?'inc':'exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
@@ -1848,6 +1935,7 @@ function saveP(){
   const ts=new Date(dStr+'T'+tStr).getTime();
   if(logType==='expense'){
     if(selItem===null){toast(t.selItem,'e');return;}
+    if(!lCfg.items[selItem]){toast('Item no longer exists — please re-select','e');selItem=null;rLog();return;}
     addPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
   } else {
     addPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});
@@ -2177,7 +2265,7 @@ function rMgr(){
   const items=lCfg.items;
   if(sortMode==='cat'){['Food','Household','Personal','Transport','Other'].forEach(cat=>{const ci=items.map((it,i)=>({...it,i})).filter(it=>catOf(it.name)===cat);if(!ci.length)return;h+='<div class="cat-hdr"><span style="color:'+CAT_COLORS[cat]+'">'+(t.cats[cat]||cat)+'</span></div>';ci.forEach(it=>h+=rMGI(it,it.i));});}
   else{let sorted=items.map((it,i)=>({...it,i,sp:iSpent(it.name)}));if(sortMode==='az')sorted.sort((a,b)=>a.name.localeCompare(b.name));else if(sortMode==='over')sorted.sort((a,b)=>(b.sp/b.budget)-(a.sp/a.budget));else if(sortMode==='spend')sorted.sort((a,b)=>b.sp-a.sp);sorted.forEach(it=>h+=rMGI(it,it.i));}
-  h+='<div class="addform"><h3>&#10133; '+t.addItem+'</h3><input type="text" class="fi" id="ni-n" placeholder="'+t.iname+'" style="margin-bottom:9px"><div style="display:flex;gap:7px"><input type="number" class="fi" id="ni-b" placeholder="'+t.ibudget+'" inputmode="numeric" style="flex:1"><button class="btnM" onclick="addIt()" style="width:auto;padding:9px 18px;font-size:.82rem">'+t.add+'</button></div></div></div>';
+  h+='<div class="addform"><h3>&#10133; '+t.addItem+'</h3><input type="text" class="fi" id="ni-n" placeholder="'+t.iname+'" style="margin-bottom:9px"><select class="fi" id="ni-cat" style="margin-bottom:9px"><option value="Food">'+(lang==='cw'?'Chakudya':'Food')+'</option><option value="Household">'+(lang==='cw'?'Zapakhomo':'Household')+'</option><option value="Personal">'+(lang==='cw'?'Zamwini':'Personal')+'</option><option value="Transport">'+(lang==='cw'?'Mayendedwe':'Transport')+'</option><option value="Other" selected>'+(lang==='cw'?'Zina':'Other')+'</option></select><div style="display:flex;gap:7px"><input type="number" class="fi" id="ni-b" placeholder="'+t.ibudget+'" inputmode="numeric" style="flex:1"><button class="btnM" onclick="addIt()" style="width:auto;padding:9px 18px;font-size:.82rem">'+t.add+'</button></div></div></div>';
   h+='</div>';
 
   // -- Bill Tracker (Premium) --
@@ -2246,7 +2334,17 @@ function delBill(i){
 
 function setSort(s){ sortMode=s; rMgr(); }
 function updOB(v){ const n=parseFloat(v); if(!n||isNaN(n)||n<=0||n>99999999){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Enter a valid budget','e');return;} saveCfg({...lCfg,overallBudget:n}); }
-function addIt(){ const t=tx(),n=val('ni-n').trim(),b=parseFloat(val('ni-b')); if(!n){toast(lang==='cw'?'Lowetsani dzina':'Enter a name','e');return;} if(!b||isNaN(b)||b<=0||b>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} if(lCfg.items.find(it=>it.name.toLowerCase()===n.toLowerCase())){toast(lang==='cw'?'Chinthu chimenechi chilipo kale':'Item already exists','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.push({name:n,budget:b}); saveCfg(cfg); toast(t.itemAdded); rMgr(); }
+function updSalaryDay(v){
+  if(v===''||v===null||v===undefined||v==='0'){
+    saveCfg({...lCfg,salaryDay:0});
+    toast('Reset to calendar month','s'); render(); return;
+  }
+  const n=parseInt(v,10);
+  if(isNaN(n)||n<1||n>28){ toast('Enter a day between 1 and 28','e'); return; }
+  saveCfg({...lCfg,salaryDay:n});
+  toast('Salary period set: '+budgetPeriodLabel(),'s'); render();
+}
+function addIt(){ const t=tx(),n=val('ni-n').trim(),b=parseFloat(val('ni-b')),cat=val('ni-cat')||'Other'; if(!n){toast(lang==='cw'?'Lowetsani dzina':'Enter a name','e');return;} if(!b||isNaN(b)||b<=0||b>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} if(lCfg.items.find(it=>it.name.toLowerCase()===n.toLowerCase())){toast(lang==='cw'?'Chinthu chimenechi chilipo kale':'Item already exists','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.push({name:n,budget:b,cat:cat}); saveCfg(cfg); toast(t.itemAdded); rMgr(); }
 function delIt(i){ appConfirm(tx().confirmDelItem+' "'+lCfg.items[i].name+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); rMgr(); }, 'Delete', true) }
 function openAddM(){
   const t=tx();
@@ -2270,17 +2368,11 @@ function topUpGoal(i){
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
   const cfg=JSON.parse(JSON.stringify(lCfg));
   const gl=cfg.goals[i];
-  const remaining=gl.target-gl.saved;
-  const actual=Math.min(amt,remaining);
+  const actual=Math.min(amt, gl.target-gl.saved);
   gl.saved=Math.min(gl.saved+amt,gl.target);
   saveCfg(cfg); closeM('mv-gl');
-  if(gl.saved>=gl.target){
-    toast('Goal complete! '+gl.name+' reached! \u2713','s');
-  } else if(actual<amt){
-    toast('Added '+MK(actual)+' — goal is now complete!');
-  } else {
-    toast('Goal updated! '+MK(actual)+' added.');
-  }
+  if(gl.saved>=gl.target) toast('🎉 Goal complete! '+gl.name+' reached!','s');
+  else toast('Goal updated! '+MK(actual)+' added.','s');
   rMgr();
 }
 function openWithdraw(i){
@@ -2346,6 +2438,25 @@ function rStg(){
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="goals"><div class="stg-row-ico" style="background:#FFF3E0"><i data-lucide="target" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Zosungidwa':'Savings Goals')+'</div><div class="stg-row-sub">'+((lCfg.goals&&lCfg.goals.length)||0)+' '+(lang==='cw'?'zolinga':'goals')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Overall budget
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5">&#128176;</div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Yonse ya Mwezi':'Monthly Budget Cap')+'</div></div><div class="stg-row-right"><input type="number" style="width:90px;text-align:right;border:1.5px solid var(--border);border-radius:8px;padding:4px 7px;font-size:.78rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:700" value="'+lCfg.overallBudget+'" inputmode="numeric" onchange="updOB(this.value)"></div></div>';
+  // Salary Day / Budget Period
+  const _sd=lCfg.salaryDay||'';
+  const _periodActive=!!_sd;
+  h+='<div class="stg-row no-tap" style="flex-direction:column;align-items:stretch;gap:0">'
+    +'<div style="display:flex;align-items:center;gap:11px;padding:0">'
+    +'<div class="stg-row-ico" style="background:#E3F2FD;flex-shrink:0"><i data-lucide="calendar-check" style="color:#1565C0"></i></div>'
+    +'<div class="stg-row-body" style="flex:1">'
+    +'<div class="stg-row-lbl">'+(lang==='cw'?'Tsiku la Malipiro (Salary Day)':'Salary Day')+'</div>'
+    +'<div class="stg-row-sub" style="font-size:.68rem;color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?'Period: '+budgetPeriodLabel():(lang==='cw'?'Yosakhazikitsidwa — wogwiritsa ntchito mwezi wathunthu':'Not set — using calendar month'))+'</div>'
+    +'</div>'
+    +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:56px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:8px;padding:5px 6px;font-size:.88rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="numeric" onchange="updSalaryDay(this.value)">'
+    +'</div>'
+    +(_periodActive?'<div style="margin:8px 0 4px 52px;font-size:.72rem;background:var(--mist);border-radius:9px;padding:7px 11px;color:var(--mid);line-height:1.6">'
+    +'<span style="font-weight:700;color:var(--ink)">Active budget period:</span><br>'
+    +'📅 <strong>'+budgetPeriodLabel()+'</strong><br>'
+    +'All totals, budget caps, summary and insights track this window — not the calendar month.<br>'
+    +'<button onclick="updSalaryDay(\'\')" style="margin-top:6px;background:none;border:1.5px solid var(--border);border-radius:7px;padding:3px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid)">✕ Reset to calendar month</button>'
+    +'</div>':'')
+    +'</div>';
   // Household Code
   if(hhId)h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#E8EAF6"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="cpCode()" style="padding:4px 9px;font-size:.65rem"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i></button><button class="hc-btn hc-wa" onclick="waCode()" style="font-size:.65rem"><i data-lucide="send" style="color:#25D366"></i></button></div></div>';
   h+='</div>';
@@ -2633,6 +2744,7 @@ function openNotifs(){
 }
 function setIncType(el,idx){const wrap=el.closest('.type-tog');if(!wrap)return;wrap.querySelectorAll('button').forEach((b,i)=>{b.classList.toggle('on',i===idx);});wrap.setAttribute('data-inc',idx===1?'recurring':'once');}
 function setHF(el){histFilter=el.dataset.f||'all';rHist();}
+function setHT(el){histTime=el.dataset.t||'month';rHist();}
 function openSwitch(){
   const t=tx();
   g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:13px;border:2.5px solid '+(actU().id===u.id?u.color:'var(--border)')+';background:'+(actU().id===u.id?u.color+'18':'var(--white)')+';cursor:pointer" onclick="swU(\''+u.id+'\')">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+u.color+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.68rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+u.color+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
@@ -3197,8 +3309,13 @@ let activeChatId = null;    // null = single-chat (free), string = conversation 
 let chatBusy = false;
 
 function chatStorageKey(){ return 'nb_chat_'+(hhId||'anon'); }
-function convosStorageKey(){ return 'nb_convos_'+(hhId||'anon'); }
+// Firestore-backed usage counters (source of truth — not localStorage)
+const FREE_MAX_CONVOS = 3;
+const FREE_DAILY_MSGS = 10;
 
+function chatStorageKey(){ return 'nb_chat_'+(hhId||'anon'); }
+
+// Cache-only: localStorage is display cache, Firestore is truth
 function loadChatHistory(){
   try{ chatHistory = JSON.parse(localStorage.getItem(chatStorageKey())||'[]'); }catch(e){ chatHistory=[]; }
 }
@@ -3206,64 +3323,164 @@ function saveChatHistory(){
   localStorage.setItem(chatStorageKey(), JSON.stringify(chatHistory.slice(-50)));
 }
 
-// -- Conversations (premium) --
-function loadConversations(){
-  try{ chatConversations = JSON.parse(localStorage.getItem(convosStorageKey())||'[]'); }catch(e){ chatConversations=[]; }
+// ── Firestore usage helpers ──
+function hhUsageRef(){ return db.collection('households').doc(hhId).collection('_usage').doc('ai'); }
+
+async function getHHUsage(){
+  if(!hhId) return {msgCount:0, msgDate:'', convoCount:0};
+  try{
+    const snap = await hhUsageRef().get();
+    return snap.exists ? snap.data() : {msgCount:0, msgDate:'', convoCount:0};
+  }catch(e){ return {msgCount:0, msgDate:'', convoCount:0}; }
 }
-function saveConversations(){
-  // cap each conversation at 50 messages; keep max 20 conversations
-  const trimmed = chatConversations.map(c=>({...c,messages:c.messages.slice(-50)}));
-  localStorage.setItem(convosStorageKey(), JSON.stringify(trimmed.slice(-20)));
+
+async function getAiUsageTodayFS(){
+  const data = await getHHUsage();
+  const todayStr = today();
+  if(data.msgDate === todayStr) return data.msgCount || 0;
+  return 0; // new day
 }
-function newConversation(){
-  const id = 'cv_'+Date.now();
+
+async function incAiUsageTodayFS(){
+  if(!hhId) return;
+  const todayStr = today();
+  const data = await getHHUsage();
+  const base = data.msgDate === todayStr ? (data.msgCount||0) : 0;
+  await hhUsageRef().set({
+    msgCount: base + 1,
+    msgDate: todayStr,
+    convoCount: data.convoCount || 0
+  }, {merge:true}).catch(()=>{});
+}
+
+async function getConvoCountFS(){
+  const data = await getHHUsage();
+  return data.convoCount || 0;
+}
+
+async function incConvoCountFS(){
+  if(!hhId) return;
+  const data = await getHHUsage();
+  await hhUsageRef().set({
+    convoCount: (data.convoCount||0) + 1,
+    msgCount: data.msgCount || 0,
+    msgDate: data.msgDate || ''
+  }, {merge:true}).catch(()=>{});
+}
+
+async function decConvoCountFS(){
+  if(!hhId) return;
+  const data = await getHHUsage();
+  const n = Math.max(0, (data.convoCount||0) - 1);
+  await hhUsageRef().set({convoCount:n}, {merge:true}).catch(()=>{});
+}
+
+// ── Conversations stored in Firestore ──
+function convosRef(){ return db.collection('households').doc(hhId).collection('_conversations'); }
+
+async function loadConversations(){
+  if(!hhId){ chatConversations=[]; return; }
+  try{
+    const snap = await convosRef().orderBy('createdAt','desc').limit(20).get();
+    chatConversations = snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){ chatConversations=[]; }
+}
+
+async function saveConversationToFS(convo){
+  if(!hhId) return;
+  const data = {
+    title: convo.title || 'New chat',
+    createdAt: convo.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    messages: (convo.messages||[]).slice(-50)
+  };
+  await convosRef().doc(convo.id).set(data, {merge:true}).catch(()=>{});
+}
+
+async function newConversation(){
+  const isPrem = hasPremiumFeature('chat_conversations');
+  if(!isPrem){
+    const count = await getConvoCountFS();
+    if(count >= FREE_MAX_CONVOS){
+      showConvoLimitWall(count);
+      return null;
+    }
+  }
+  const id = 'cv_'+Date.now()+'_'+(Math.random().toString(36).slice(2,7));
   const convo = {id, title:'New chat', createdAt:Date.now(), messages:[]};
   chatConversations.unshift(convo);
   activeChatId = id;
   chatHistory = [];
-  saveConversations();
+  if(!isPrem) await incConvoCountFS();
+  await saveConversationToFS(convo);
   return convo;
 }
+
 function activeConversation(){
   if(!activeChatId) return null;
   return chatConversations.find(c=>c.id===activeChatId)||null;
 }
-function syncActiveConvo(){
+
+async function syncActiveConvo(){
   if(!activeChatId) return;
   const convo = activeConversation();
   if(!convo) return;
   convo.messages = chatHistory.slice(-50);
-  // Auto-title from first user message
   if(convo.title==='New chat'||!convo.title){
     const first = chatHistory.find(m=>m.role==='user');
     if(first) convo.title = first.text.slice(0,40)+(first.text.length>40?'…':'');
   }
-  saveConversations();
+  await saveConversationToFS(convo);
 }
-function deleteConversation(id){
+
+async function deleteConversation(id){
+  const isPrem = hasPremiumFeature('chat_conversations');
   chatConversations = chatConversations.filter(c=>c.id!==id);
   if(activeChatId===id){
     activeChatId=null; chatHistory=[];
-    if(chatConversations.length){ activeChatId=chatConversations[0].id; chatHistory=chatConversations[0].messages.slice(); }
+    if(chatConversations.length){ activeChatId=chatConversations[0].id; chatHistory=(chatConversations[0].messages||[]).slice(); }
   }
-  saveConversations();
+  if(hhId){
+    await convosRef().doc(id).delete().catch(()=>{});
+    if(!isPrem) await decConvoCountFS();
+  }
 }
+
 function loadConversationById(id){
   const convo = chatConversations.find(c=>c.id===id);
   if(!convo) return;
   activeChatId = id;
-  chatHistory = convo.messages.slice();
+  chatHistory = (convo.messages||[]).slice();
 }
 
+// Legacy localStorage AI usage — kept only as fallback display; Firestore is truth
 function getAiUsageToday(){
   const key='nb_ai_'+today();
-  // Clear old keys
-  Object.keys(localStorage).filter(k=>k.startsWith('nb_ai_')&&k!==key).forEach(k=>localStorage.removeItem(k));
   return parseInt(localStorage.getItem(key)||'0');
 }
 function incAiUsageToday(){
   const key='nb_ai_'+today();
   localStorage.setItem(key,String(getAiUsageToday()+1));
+}
+
+// Show paywall when free user hits conversation limit
+function showConvoLimitWall(count){
+  let h='<div class="dh"></div>';
+  h+='<div style="text-align:center;padding:10px 0 16px">';
+  h+='<div style="font-size:2.2rem;margin-bottom:8px">💬</div>';
+  h+='<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:6px">Conversation Limit Reached</h3>';
+  h+='<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">Free accounts can save up to <strong>'+FREE_MAX_CONVOS+' conversations</strong>. You have '+count+'/'+FREE_MAX_CONVOS+' used.</div>';
+  h+='<div style="background:var(--mist);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:.76rem;color:var(--mid);text-align:left">';
+  h+='To start a new conversation, either:<br>';
+  h+='<strong style="color:var(--ink)">• Delete</strong> an existing conversation<br>';
+  h+='<strong style="color:var(--p1)">• Upgrade to Premium</strong> for unlimited conversations';
+  h+='</div>';
+  h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(\'mv-u\');showPremiumPage()">💎 Upgrade for Unlimited Chats</button>';
+  h+='<button onclick="closeM(\'mv-u\');openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">Manage Existing Chats</button>';
+  h+='</div>';
+  g('mb-u').innerHTML=h;
+  if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
+  openM('mv-u');
 }
 
 const CHAT_SUGGESTIONS    = ['How am I doing this month?','Where am I overspending?','Can I afford my savings goals?','Give me tips to cut costs'];
