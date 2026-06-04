@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.1.4</title>
+<title>Bajeti Yanga v9.2.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
@@ -148,6 +148,7 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 #scr-setup{background:linear-gradient(155deg,#4A148C,#7B1FA2 55%,#880E4F)}
 #scr-welcome{background:linear-gradient(155deg,#4A148C,#7B1FA2 55%,#880E4F)}
 #scr-pin{background:linear-gradient(155deg,#4A148C,#7B1FA2);z-index:1000}
+#scr-verify{background:linear-gradient(155deg,#4A148C,#7B1FA2 55%,#880E4F)}
 .auth-logo{font-size:3.2rem;margin-bottom:8px}.auth-logo svg{width:clamp(48px,12vw,72px);height:clamp(48px,12vw,72px)}
 .auth-title{font-family:Syne,sans-serif;font-size:clamp(1.3rem,5vw,1.75rem);font-weight:800;color:#fff;margin-bottom:4px;text-align:center}
 .auth-sub{font-size:.82rem;color:rgba(255,255,255,.7);margin-bottom:22px;text-align:center}
@@ -616,9 +617,8 @@ body.dark .ins-tab.on{background:var(--p1);color:#fff}
 .chat-new-btn{border:1.5px solid var(--p1);background:none;color:var(--p1);border-radius:10px;padding:5px 11px;font-size:.72rem;font-weight:700;cursor:pointer;flex-shrink:0}
 .chat-new-btn:active{background:var(--p1);color:#fff}
 .bubble-wrap{display:flex;flex-direction:column;gap:3px;position:relative}
-.bubble-del-btn{position:absolute;top:2px;right:-28px;width:22px;height:22px;border-radius:50%;border:none;background:none;color:var(--mid);cursor:pointer;display:none;font-size:.75rem;align-items:center;justify-content:center}
-.bubble-wrap.user .bubble-del-btn{right:auto;left:-28px}
-.bubble-wrap:hover .bubble-del-btn,.bubble-wrap.long-pressed .bubble-del-btn{display:flex}
+.bubble-del-btn{position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;border:none;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.18);color:var(--mid);cursor:pointer;display:flex;font-size:.65rem;align-items:center;justify-content:center;opacity:0.75;z-index:2}
+.bubble-wrap.user .bubble-del-btn{right:auto;left:-8px}
 .bubble-del-btn:active{background:#FFEBEE;color:var(--r1)}
 .ai-action-card{background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1.5px solid #43A047;border-radius:14px;padding:12px 14px;margin-top:6px;display:flex;flex-direction:column;gap:8px}
 .ai-action-card .aac-title{font-size:.78rem;font-weight:800;color:#1B5E20;display:flex;align-items:center;gap:6px}
@@ -699,10 +699,10 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </svg>
   </div>
   <div class="auth-title">Bajeti Yanga</div>
-  <div class="auth-sub" id="auth-sub">Finally know where your money goes 💜</div>
+  <div class="auth-sub" id="auth-sub">Finally know where your money goes. </div>
   <div class="auth-card">
     <div class="auth-tabs">
-      <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Welcome Back</button>
+      <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Continue Tracking</button>
       <button class="auth-tab" id="at-reg" onclick="aTab(&quot;register&quot;)">Start Tracking</button>
     </div>
     <div id="a-err" class="a-err"></div>
@@ -878,6 +878,39 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     <i data-lucide="refresh-cw" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i>Switch Household
   </button>
   <p class="auth-copy" style="margin-top:24px;color:rgba(255,255,255,.4)">&#169; Rodart Creatives. All Rights Reserved.</p>
+</div>
+
+<!-- EMAIL VERIFICATION -->
+<div id="scr-verify" class="screen hide">
+  <div class="auth-logo">
+    <svg width="72" height="72" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.18)"/>
+      <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/>
+      <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/>
+      <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
+      <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
+    </svg>
+  </div>
+  <div class="auth-title">Check Your Email</div>
+  <div class="auth-sub" id="verify-sub">We sent a verification link to your email</div>
+  <div class="auth-card" style="text-align:center">
+    <div style="font-size:3rem;margin-bottom:12px">📧</div>
+    <div id="verify-email-display" style="font-size:.82rem;color:rgba(255,255,255,.85);font-weight:700;margin-bottom:6px;word-break:break-all;"></div>
+    <p style="font-size:.76rem;color:rgba(255,255,255,.65);margin-bottom:20px;line-height:1.6">Click the link in that email to verify your account. Check your spam folder if you do not see it.</p>
+    <button class="a-btn" onclick="checkVerification()" style="margin-bottom:10px">
+      <i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i>
+      I Have Verified — Continue
+    </button>
+    <button id="resend-btn" class="g-btn" onclick="resendVerification()" style="margin-bottom:14px">
+      <i data-lucide="send" style="width:14px;height:14px;margin-right:6px"></i>
+      Resend Verification Email
+    </button>
+    <div id="verify-msg" style="font-size:.75rem;color:rgba(255,255,255,.7);min-height:20px;margin-bottom:10px"></div>
+    <button onclick="backToLogin()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:.72rem;font-weight:600;cursor:pointer;text-decoration:underline;font-family:Hanken Grotesk,sans-serif">
+      Back to Login
+    </button>
+  </div>
+  <p class="auth-copy">&#169; Rodart Creatives. All Rights Reserved.</p>
 </div>
 
 <!-- PIN -->
@@ -1095,7 +1128,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Fuel','Rent','Diapers','Money Sent','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.1.4';
+const APP_VERSION = '9.2.4';
 
 // ===============================================
 // 2. STATE -- only after all consts
@@ -1106,7 +1139,7 @@ let curUser = null, hhId = null, unsub = null, authReg = false;
 let lCfg = JSON.parse(JSON.stringify(DEF_CFG));
 let lPx = [];
 let lHHDoc = {};
-let tab = 'home', selItem = null, fUser = 'all';
+let tab = 'home', selItem = null, fUser = 'all', logSrch = '';
 let sortMode = 'cat', srchQ = '', logType = 'expense', histFilter = 'all', histTime = 'month';
 let viewMonth = null;
 let pinEntry = '', pinMode = 'check', pinTmp = '';
@@ -1188,7 +1221,6 @@ function actU()      { return lCfg.users.find(u=>u.id===localStorage.getItem('nb
 function uById(id)   { return lCfg.users.find(u=>u.id===id)||lCfg.users[0]; }
 function statOf(sp,bg){ if(!sp)return'none'; const r=sp/bg; return r>=1?'over':r>=.8?'near':'ok'; }
 function randCode(){
-  // 8 chars from a-z0-9 (excluding confusing chars: 0,o,1,l,i) = ~2.8 trillion possibilities
   const chars='abcdefghjkmnpqrstuvwxyz23456789';
   const bytes=crypto.getRandomValues(new Uint8Array(8));
   return Array.from(bytes).map(b=>chars[b%chars.length]).join('');
@@ -1535,8 +1567,21 @@ function doEmailAuth(){
     if(pass!==p2){ showAErr('Passwords do not match.'); if(btn){btn.disabled=false;btn.textContent='Start Tracking';} return; }
     if(pass.length<6){ showAErr('Password must be at least 6 characters.'); if(btn){btn.disabled=false;btn.textContent='Start Tracking';} return; }
     auth.createUserWithEmailAndPassword(email,pass)
-      .then(cred=>{ if(nm)return cred.user.updateProfile({displayName:nm}); })
-      .then(()=>{ if(btn){btn.disabled=false;btn.textContent='Start Tracking';} })
+      .then(cred=>{
+        const user=cred.user;
+        const updates=[];
+        if(nm) updates.push(user.updateProfile({displayName:nm}));
+        updates.push(user.sendEmailVerification());
+        return Promise.all(updates).then(()=>user);
+      })
+      .then(user=>{
+        // Sign out immediately — user must verify before proceeding
+        return auth.signOut().then(()=>user);
+      })
+      .then(user=>{
+        if(btn){btn.disabled=false;btn.textContent='Start Tracking';}
+        showVerifyScreen(email);
+      })
       .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent='Start Tracking';} });
   } else {
     auth.signInWithEmailAndPassword(email,pass)
@@ -1551,6 +1596,84 @@ function doFgt(){
   auth.sendPasswordResetEmail(em)
     .then(()=>{ const ok=g('fgt-ok');if(ok)ok.classList.add('on'); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} })
     .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} });
+}
+
+// ── Email Verification Screen ──
+let _resendCooldown = 0;
+
+function showVerifyScreen(email){
+  const emailEl=g('verify-email-display');
+  const subEl=g('verify-sub');
+  if(emailEl) emailEl.textContent=email||'your email';
+  if(subEl) subEl.textContent='We sent a verification link to your email';
+  const msgEl=g('verify-msg'); if(msgEl) msgEl.textContent='';
+  hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome');
+  g('app').classList.add('hide');
+  show('scr-verify');
+  if(window.lucide) lucide.createIcons({nodes:[g('scr-verify')]});
+}
+
+function checkVerification(){
+  const btn=document.querySelector('#scr-verify .a-btn');
+  if(btn){btn.disabled=true;btn.textContent='Checking...';}
+  const msgEl=g('verify-msg');
+  // Must sign in fresh to get updated emailVerified status
+  const user=auth.currentUser;
+  if(!user){
+    // User not signed in — ask them to log in again
+    if(msgEl) msgEl.textContent='Please log in to continue.';
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified — Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+    backToLogin();
+    return;
+  }
+  user.reload().then(()=>{
+    if(auth.currentUser && auth.currentUser.emailVerified){
+      if(msgEl) msgEl.textContent='';
+      hide('scr-verify');
+      // Proceed through normal boot flow
+      authReg=false;
+      bootApp();
+    } else {
+      if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent='Email not verified yet. Check your inbox and click the link, then try again.';}
+      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified — Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+    }
+  }).catch(()=>{
+    if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent='Could not check. Check your internet connection.';}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified — Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+  });
+}
+
+function resendVerification(){
+  const now=Date.now();
+  if(now < _resendCooldown){
+    const secs=Math.ceil((_resendCooldown-now)/1000);
+    const msgEl=g('verify-msg');
+    if(msgEl){msgEl.style.color='rgba(255,255,255,.65)';msgEl.textContent='Please wait '+secs+' seconds before resending.';}
+    return;
+  }
+  const user=auth.currentUser;
+  if(!user){ backToLogin(); return; }
+  const btn=g('resend-btn');
+  if(btn){btn.disabled=true;}
+  user.sendEmailVerification()
+    .then(()=>{
+      _resendCooldown=Date.now()+60000; // 60 second cooldown
+      const msgEl=g('verify-msg');
+      if(msgEl){msgEl.style.color='#C8E6C9';msgEl.textContent='Verification email sent! Check your inbox.';}
+      if(btn){btn.disabled=false;}
+    })
+    .catch(e=>{
+      const msgEl=g('verify-msg');
+      if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent=fmtAErr(e.code);}
+      if(btn){btn.disabled=false;}
+    });
+}
+
+function backToLogin(){
+  auth.signOut().catch(()=>{});
+  hide('scr-verify');
+  show('scr-auth');
+  aTab('login');
 }
 function doGoogle(){
   if(!auth){toast('Not ready','e');return;}
@@ -1641,6 +1764,14 @@ function bootApp(){
   _authUnsubscribe = auth.onAuthStateChanged(user=>{
     if(user){
       curUser=user;
+      // Gate: if email user has not verified yet, show verify screen
+      const isEmailProvider = user.providerData && user.providerData.length > 0 && user.providerData[0].providerId === 'password';
+      if(isEmailProvider && !user.emailVerified){
+        hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome');
+        g('app').classList.add('hide');
+        showVerifyScreen(user.email||'');
+        return;
+      }
       db.collection('users').doc(user.uid).get()
         .then(doc=>{
           if(doc.exists&&doc.data().householdId){
@@ -1672,40 +1803,81 @@ function bootApp(){
 function setupErr(msg){ const el=g('setup-err'); if(!el)return; el.textContent=msg; el.classList.toggle('on',!!msg); }
 
 function createHHSolo(){
-  const code=randCode(); setDot('spin'); setupErr('');
-  const soloCfg=injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG)));
-  // Solo: only one member with user's display name
-  const nm=(curUser&&(curUser.displayName||curUser.email||'').split('@')[0])||'Me';
-  soloCfg.users=[{id:'u1',name:nm,color:'#7B1FA2'}];
-  soloCfg.solo=true;
-  db.collection('households').doc(code)
-    .set({config:soloCfg,createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser?curUser.uid:null,solo:true})
-    .then(()=>{ if(curUser)return db.collection('users').doc(curUser.uid).set({householdId:code,displayName:curUser.displayName||curUser.email||'Me'},{merge:true}); })
-    .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Welcome! You\'re all set 🎉','s'); })
-    .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+  if(!curUser){setupErr('Not signed in.');return;}
+  setDot('spin'); setupErr('');
+  // Check household limit — max 2
+  db.collection('users').doc(curUser.uid).get().then(uDoc=>{
+    const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
+    if(ownedHH.length >= 2){
+      setDot('off');
+      setupErr('You already have 2 households (the maximum). Delete one before creating a new one.');
+      return;
+    }
+    const code=randCode();
+    const soloCfg=injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG)));
+    const nm=(curUser&&(curUser.displayName||curUser.email||'').split('@')[0])||'Me';
+    soloCfg.users=[{id:'u1',name:nm,color:'#7B1FA2'}];
+    soloCfg.solo=true;
+    db.collection('households').doc(code)
+      .set({config:soloCfg,createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser.uid,solo:true,memberUids:[curUser.uid]})
+      .then(()=>{
+        return db.collection('users').doc(curUser.uid).set({
+          householdId:code,
+          displayName:curUser.displayName||curUser.email||'Me',
+          ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
+        },{merge:true});
+      })
+      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Welcome! You\'re all set 🎉','s'); })
+      .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
 }
 
 function createHH(){
-  const code=randCode(); setDot('spin'); setupErr('');
-  db.collection('households').doc(code)
-    .set({config:injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG))),createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser?curUser.uid:null})
-    .then(()=>{ if(curUser)return db.collection('users').doc(curUser.uid).set({householdId:code,displayName:curUser.displayName||curUser.email||'User'},{merge:true}); })
-    .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Household created!'); })
-    .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+  if(!curUser){setupErr('Not signed in.');return;}
+  setDot('spin'); setupErr('');
+  // Check household limit — max 2
+  db.collection('users').doc(curUser.uid).get().then(uDoc=>{
+    const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
+    if(ownedHH.length >= 2){
+      setDot('off');
+      setupErr('You already have 2 households (the maximum). Delete one before creating a new one.');
+      return;
+    }
+    const code=randCode();
+    db.collection('households').doc(code)
+      .set({config:injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG))),createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser.uid,memberUids:[curUser.uid]})
+      .then(()=>{
+        return db.collection('users').doc(curUser.uid).set({
+          householdId:code,
+          displayName:curUser.displayName||curUser.email||'User',
+          ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
+        },{merge:true});
+      })
+      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Household created!'); })
+      .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
 }
 
 function joinHH(){
   const code=val('join-code').trim().toLowerCase();
   if(!code){setupErr('Enter a household code.');return;}
+  if(!curUser){setupErr('Not signed in.');return;}
   setDot('spin'); setupErr('');
   db.collection('households').doc(code).get()
     .then(doc=>{
       if(!doc.exists){setDot('off');setupErr('Household not found. Check the code.');return;}
+      // Check join code expiry
+      const hhData=doc.data();
+      if(hhData.joinCodeExpiry && Date.now() > hhData.joinCodeExpiry){
+        setDot('off');
+        setupErr('This household code has expired. Ask the owner to share a new one.');
+        return;
+      }
       const saves=[];
-      if(curUser)saves.push(db.collection('users').doc(curUser.uid).set({householdId:code,displayName:curUser.displayName||curUser.email||'User'},{merge:true}));
+      saves.push(db.collection('users').doc(curUser.uid).set({householdId:code,displayName:curUser.displayName||curUser.email||'User'},{merge:true}));
+      saves.push(db.collection('households').doc(code).update({memberUids:firebase.firestore.FieldValue.arrayUnion(curUser.uid)}));
       return Promise.all(saves).then(()=>{
         localStorage.setItem('nb_household',code);
-        // Fix: ensure nb_uid is set so actU() returns a valid member
         if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
         hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Joined!');
       });
@@ -1914,8 +2086,22 @@ function rLog(){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+name+'</div>';}).join('');
     if(picks)h+='<div class="fsec"><label class="fl">&#9889; '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
     h+='<div class="fsec"><label class="fl">'+t.selItem+'</label>'
-      +'<input type="text" class="fi" id="log-srch" placeholder="Search items..." oninput="filterLogItems(this.value)" style="margin-bottom:8px;font-size:.84rem">'
-      +'<div class="igrid" id="log-igrid">'+lCfg.items.map((it,i)=>'<div class="ic'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'" data-name="'+it.name.toLowerCase()+'"><div class="ic-ico">'+ico(it.name)+'</div><div class="ic-nm">'+it.name+'</div></div>').join('')+'</div></div>';
+      +'<input type="text" class="fi" id="log-srch" placeholder="Search items..." oninput="filterLogItems(this.value)" value="'+esc(logSrch)+'" style="margin-bottom:8px;font-size:.84rem">'
+      +'<div class="igrid" id="log-igrid">'+lCfg.items.map((it,i)=>'<div class="ic'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'" data-name="'+it.name.toLowerCase()+'"><div class="ic-ico">'+ico(it.name)+'</div><div class="ic-nm">'+it.name+'</div></div>').join('')+'<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" data-name="custom" style="border-style:dashed"><div class="ic-ico">&#9998;</div><div class="ic-nm">'+(lang==='cw'?'Chinthu China':'Custom')+'</div></div>'+'</div></div>';
+    if(selItem==='custom'){
+      h+='<div class="fsec" style="background:var(--mist);border-radius:12px;padding:12px;margin-bottom:4px">'
+        +'<label class="fl" style="margin-bottom:6px">&#9998; '+(lang==='cw'?'Dzina la Chinthu':'Item Name')+'</label>'
+        +'<input type="text" class="fi" id="custom-item-name" placeholder="e.g. Medicine, Bus fare..." style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
+        +'<label class="fl" style="margin-bottom:6px">'+(lang==='cw'?'Gulu':'Category')+'</label>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="custom-cat-grid">'
+        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="padding:4px 10px;border-radius:8px;border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+ct.label+'</button>').join('')
+        +'</div>'
+        +'<label style="display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;color:var(--mid);cursor:pointer">'
+        +'<input type="checkbox" id="custom-save-perm" onchange="g(\'custom-budget-row\').style.display=this.checked?\'block\':\'none\'" style="width:16px;height:16px;accent-color:var(--p1)">'
+        +(lang==='cw'?'Sungani mu mndandanda wanga':'Save to my items list')+'</label>'
+        +'<div id="custom-budget-row" style="display:none;margin-top:8px"><input type="number" class="fi" id="custom-budget" placeholder="Monthly budget (MK)" inputmode="numeric"></div>'
+        +'</div>';
+    }
     if(hint){const sp=iSpent(hint.name);h+='<div class="bhint"><div class="bh"><div class="bhl">'+t.budget+'</div><div class="bhv">'+MK(hint.budget)+'</div></div><div class="bh"><div class="bhl">'+t.spent+'</div><div class="bhv">'+MK(sp)+'</div></div><div class="bh"><div class="bhl">'+t.left+'</div><div class="bhv" style="color:'+(hint.budget-sp<0?'#B71C1C':'inherit')+'">'+MK(hint.budget-sp)+'</div></div></div>';}
   } else {
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Mtundu wa Ndalama':'Income Type')+'</label><div class="type-tog" style="margin-bottom:8px"><button class="tt inc" id="inc-t-ot" onclick="setIncType(this,0)"><i data-lucide="receipt" style="margin-right:3px"></i> '+(lang==='cw'?'Kamodzi Basi':'One Time')+'</button><button class="tt inc" id="inc-t-rc" onclick="setIncType(this,1)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+(lang==='cw'?'Nthawi Zonse':'Recurring')+'</button></div></div>';
@@ -1930,14 +2116,15 @@ function rLog(){
   g('view').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('view')]});
 }
-function setLT(t){ logType=t; selItem=null; rLog(); }
+  if(logSrch) filterLogItems(logSrch);
+function setLT(t){ logType=t; selItem=null; logSrch=''; rLog(); }
 function setU(id){ localStorage.setItem('nb_uid',id); updatePill(); rLog(); }
 function pickI(i){ selItem=i; rLog(); }
 function filterLogItems(q){
+  logSrch=q;
   const grid=document.getElementById('log-igrid'); if(!grid)return;
   const term=q.toLowerCase().trim();
   grid.querySelectorAll('.ic').forEach(el=>{
-    // show all when empty, filter when typing
     el.style.display=(!term||el.dataset.name.includes(term))?'':'none';
   });
 }
@@ -1949,6 +2136,19 @@ function saveP(){
   const ts=new Date(dStr+'T'+tStr).getTime();
   if(logType==='expense'){
     if(selItem===null){toast(t.selItem,'e');return;}
+    if(selItem==='custom'){
+      const cName=(val('custom-item-name')||'').trim();
+      if(!cName){toast(lang==='cw'?'Lowetsani dzina':'Enter item name','e');return;}
+      if((g('custom-save-perm')||{}).checked){
+        const cB=parseFloat(val('custom-budget')||'0');
+        const cfg2=JSON.parse(JSON.stringify(lCfg));
+        if(cB>0&&!cfg2.items.find(it=>it.name.toLowerCase()===(cName||'').toLowerCase())){
+          cfg2.items.push({name:cName,budget:cB,cat:customCat}); saveCfg(cfg2);
+        }
+      }
+      addPx({item:cName,date:dStr,timestamp:ts,amount:a,qty:val('fq')||'',unit:val('fu')||'',notes:val('fn')||'',userId:actU().id,type:'expense',cat:customCat,recurring:(g('frc')||{}).checked||false});
+      selItem=null; customCat='Other'; toast(t.saved); rLog(); return;
+    }
     if(!lCfg.items[selItem]){toast('Item no longer exists — please re-select','e');selItem=null;rLog();return;}
     addPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
   } else {
@@ -2527,7 +2727,7 @@ function rStg(){
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version 9.1.3 — © Rodart Creatives</div></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' — © Rodart Creatives</div></div></div>';
   h+='</div>';
 
   h+='<button class="stg-logout" onclick="logout()"><i data-lucide="log-out" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i> '+t.logout+'</button>';
@@ -2709,7 +2909,7 @@ function doExportPDF(){
     + '<div class="section"><h2>&#127922; Spending by Category</h2>'+catRows+'</div>'
     + '<div class="section"><h2><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> Spending by Member</h2>'+memberRows+'</div>'
     + '<div class="section"><h2><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> All Transactions ('+rows_count+')</h2><table class="tx-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Amount</th><th>Member</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-    + '<div class="footer">Bajeti Yanga v9.1.4. 0&mdash; &copy; 2026 Rodart Creatives &bull; Made in Malawi &#127474;&#127484;</div></body></html>';
+    + '<div class="footer">Bajeti Yanga v'+APP_VERSION+'&mdash; &copy; 2026 Rodart Creatives &bull; Made in Malawi &#127474;&#127484;</div></body></html>';
     const w=window.open('','_blank');
     if(w){
       w.document.write(fullHtml); w.document.close();
@@ -3324,8 +3524,12 @@ let activeChatId = null;
 let chatBusy = false;
 
 // Firestore-backed usage counters (source of truth — not localStorage)
-const FREE_MAX_CONVOS = 3;
-const FREE_DAILY_MSGS = 10;
+const FREE_MAX_CONVOS=3;
+const FREE_DAILY_MSGS=10;
+const FREE_DAILY_MAGIC=5;
+const FREE_DAILY_SCAN=5;
+const FREE_DAILY_SUMM=5;
+let _aiInFlight=false;
 
 function chatStorageKey(){ return 'nb_chat_'+(hhId||'anon'); }
 
@@ -3339,132 +3543,22 @@ function saveChatHistory(){
 
 // ── Firestore usage helpers ──
 function hhUsageRef(){ return db.collection('households').doc(hhId).collection('_usage').doc('ai'); }
-
 async function getHHUsage(){
-  if(!hhId) return {msgCount:0, msgDate:'', convoCount:0};
-  try{
-    const snap = await hhUsageRef().get();
-    return snap.exists ? snap.data() : {msgCount:0, msgDate:'', convoCount:0};
-  }catch(e){ return {msgCount:0, msgDate:'', convoCount:0}; }
+  if(!hhId) return {msgCount:0,msgDate:'',convoCount:0,magicCount:0,scanCount:0,summCount:0};
+  try{ const s=await hhUsageRef().get(); return s.exists?s.data():{msgCount:0,msgDate:'',convoCount:0,magicCount:0,scanCount:0,summCount:0}; }
+  catch(e){ return {msgCount:0,msgDate:'',convoCount:0,magicCount:0,scanCount:0,summCount:0}; }
 }
-
-async function getAiUsageTodayFS(){
-  const data = await getHHUsage();
-  const todayStr = today();
-  if(data.msgDate === todayStr) return data.msgCount || 0;
-  return 0; // new day
+async function getAiUsageTodayFS(feature){
+  const d=await getHHUsage(); if(d.msgDate!==today()) return 0;
+  return d[{msg:'msgCount',magic:'magicCount',scan:'scanCount',summ:'summCount'}[feature||'msg']]||0;
 }
-
-async function incAiUsageTodayFS(){
+async function incAiUsageTodayFS(feature){
   if(!hhId) return;
-  const todayStr = today();
-  const data = await getHHUsage();
-  const base = data.msgDate === todayStr ? (data.msgCount||0) : 0;
-  await hhUsageRef().set({
-    msgCount: base + 1,
-    msgDate: todayStr,
-    convoCount: data.convoCount || 0
-  }, {merge:true}).catch(()=>{});
-}
-
-async function getConvoCountFS(){
-  const data = await getHHUsage();
-  return data.convoCount || 0;
-}
-
-async function incConvoCountFS(){
-  if(!hhId) return;
-  const data = await getHHUsage();
-  await hhUsageRef().set({
-    convoCount: (data.convoCount||0) + 1,
-    msgCount: data.msgCount || 0,
-    msgDate: data.msgDate || ''
-  }, {merge:true}).catch(()=>{});
-}
-
-async function decConvoCountFS(){
-  if(!hhId) return;
-  const data = await getHHUsage();
-  const n = Math.max(0, (data.convoCount||0) - 1);
-  await hhUsageRef().set({convoCount:n}, {merge:true}).catch(()=>{});
-}
-
-// ── Conversations stored in Firestore ──
-function convosRef(){ return db.collection('households').doc(hhId).collection('_conversations'); }
-
-async function loadConversations(){
-  if(!hhId){ chatConversations=[]; return; }
-  try{
-    const snap = await convosRef().orderBy('createdAt','desc').limit(20).get();
-    chatConversations = snap.docs.map(d=>({id:d.id,...d.data()}));
-  }catch(e){ chatConversations=[]; }
-}
-
-async function saveConversationToFS(convo){
-  if(!hhId) return;
-  const data = {
-    title: convo.title || 'New chat',
-    createdAt: convo.createdAt || Date.now(),
-    updatedAt: Date.now(),
-    messages: (convo.messages||[]).slice(-50)
-  };
-  await convosRef().doc(convo.id).set(data, {merge:true}).catch(()=>{});
-}
-
-async function newConversation(){
-  const isPrem = hasPremiumFeature('chat_conversations');
-  if(!isPrem){
-    const count = await getConvoCountFS();
-    if(count >= FREE_MAX_CONVOS){
-      showConvoLimitWall(count);
-      return null;
-    }
-  }
-  const id = 'cv_'+Date.now()+'_'+(Math.random().toString(36).slice(2,7));
-  const convo = {id, title:'New chat', createdAt:Date.now(), messages:[]};
-  chatConversations.unshift(convo);
-  activeChatId = id;
-  chatHistory = [];
-  if(!isPrem) await incConvoCountFS();
-  await saveConversationToFS(convo);
-  return convo;
-}
-
-function activeConversation(){
-  if(!activeChatId) return null;
-  return chatConversations.find(c=>c.id===activeChatId)||null;
-}
-
-async function syncActiveConvo(){
-  if(!activeChatId) return;
-  const convo = activeConversation();
-  if(!convo) return;
-  convo.messages = chatHistory.slice(-50);
-  if(convo.title==='New chat'||!convo.title){
-    const first = chatHistory.find(m=>m.role==='user');
-    if(first) convo.title = first.text.slice(0,40)+(first.text.length>40?'…':'');
-  }
-  await saveConversationToFS(convo);
-}
-
-async function deleteConversation(id){
-  const isPrem = hasPremiumFeature('chat_conversations');
-  chatConversations = chatConversations.filter(c=>c.id!==id);
-  if(activeChatId===id){
-    activeChatId=null; chatHistory=[];
-    if(chatConversations.length){ activeChatId=chatConversations[0].id; chatHistory=(chatConversations[0].messages||[]).slice(); }
-  }
-  if(hhId){
-    await convosRef().doc(id).delete().catch(()=>{});
-    if(!isPrem) await decConvoCountFS();
-  }
-}
-
-function loadConversationById(id){
-  const convo = chatConversations.find(c=>c.id===id);
-  if(!convo) return;
-  activeChatId = id;
-  chatHistory = (convo.messages||[]).slice();
+  const d=await getHHUsage(); const isT=d.msgDate===today();
+  const key={msg:'msgCount',magic:'magicCount',scan:'scanCount',summ:'summCount'}[feature||'msg'];
+  const upd={msgDate:today(),convoCount:d.convoCount||0,[key]:(isT?(d[key]||0):0)+1};
+  if(!isT){upd.msgCount=0;upd.magicCount=0;upd.scanCount=0;upd.summCount=0;upd[key]=1;}
+  await hhUsageRef().set(upd,{merge:true}).catch(()=>{});
 }
 
 // Legacy localStorage AI usage — kept only as fallback display; Firestore is truth
@@ -3530,10 +3624,15 @@ function rChat(){
     +'</div></div></div>';
   // Render immediately with whatever is in memory — prevents blank flash
   renderBubbles();
-  // Refresh from Firestore in background
-  const _isPrem=hasPremiumFeature('chat_conversations');
+  // Restore the last active conversation from localStorage then sync with Firestore
+  const _isPrem = hasPremiumFeature('chat_conversations');
+  const savedConvoId = localStorage.getItem('nb_active_convo');
   loadConversations().then(()=>{
-    if(!activeChatId && chatConversations.length===0){
+    if(savedConvoId && chatConversations.find(c=>c.id===savedConvoId)){
+      // Restore the exact conversation the user was last in
+      loadConversationById(savedConvoId);
+      renderBubbles();
+    } else if(!activeChatId && chatConversations.length===0){
       newConversation().then(()=>renderBubbles());
     } else if(!activeChatId && chatConversations.length>0){
       loadConversationById(chatConversations[0].id);
@@ -3634,25 +3733,21 @@ function renderBubbles(){
   const el=g('chat-msgs'); if(!el)return;
   const isPrem = hasPremiumFeature('chat_conversations');
 
-  // Show conversations header for all users (both free and premium use Firestore convos)
+  // Always show conversations header so user can always switch or start new chat
   const existingHdr = el.parentElement ? el.parentElement.querySelector('.chat-convo-header') : null;
   if(existingHdr) existingHdr.remove();
-  if(chatConversations.length > 0 && activeChatId){
-    const convo = activeConversation();
-    const hdr = document.createElement('div');
-    hdr.className='chat-convo-header';
-    // Free users: show X/3 usage indicator; premium: just "Unlimited"
-    const usageTag = isPrem
-      ? '<span style="font-size:.65rem;color:var(--g1);font-weight:700;padding:2px 7px;background:#E8F5E9;border-radius:8px">∞ Unlimited</span>'
-      : '<span id="convo-count-indicator" style="font-size:.65rem;color:var(--mid);font-weight:700;padding:2px 7px;background:var(--mist);border-radius:8px">…/'+FREE_MAX_CONVOS+' chats</span>';
-    hdr.innerHTML='<button onclick="openConvoList()" style="background:none;border:none;cursor:pointer;color:var(--p1);padding:2px 6px;border-radius:6px;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px"><i data-lucide="list" style="width:13px;height:13px"></i> Chats</button>'
-      +'<div class="chat-convo-header-title">'+(convo?esc(convo.title):'Chat')+'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px">'+usageTag+'<button class="chat-new-btn" onclick="startNewConversation()">+ New</button></div>';
-    el.parentElement.insertBefore(hdr, el);
-    if(window.lucide) lucide.createIcons({nodes:[hdr]});
-    // Populate usage count for free users
-    if(!isPrem) getConvoCountFS().then(count=>{ const ind=g('convo-count-indicator'); if(ind)ind.textContent=count+'/'+FREE_MAX_CONVOS+' chats'; });
-  }
+  const convo = activeChatId ? activeConversation() : null;
+  const hdr = document.createElement('div');
+  hdr.className='chat-convo-header';
+  const usageTag = isPrem
+    ? '<span style="font-size:.65rem;color:var(--g1);font-weight:700;padding:2px 7px;background:#E8F5E9;border-radius:8px">∞ Unlimited</span>'
+    : '<span id="convo-count-indicator" style="font-size:.65rem;color:var(--mid);font-weight:700;padding:2px 7px;background:var(--mist);border-radius:8px">…/'+FREE_MAX_CONVOS+' chats</span>';
+  hdr.innerHTML='<button onclick="openConvoList()" style="background:none;border:none;cursor:pointer;color:var(--p1);padding:2px 6px;border-radius:6px;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px"><i data-lucide="list" style="width:13px;height:13px"></i> Chats</button>'
+    +'<div class="chat-convo-header-title">'+(convo?esc(convo.title):'Chat')+'</div>'
+    +'<div style="display:flex;align-items:center;gap:6px">'+usageTag+'<button class="chat-new-btn" onclick="startNewConversation()">+ New</button></div>';
+  el.parentElement.insertBefore(hdr, el);
+  if(window.lucide) lucide.createIcons({nodes:[hdr]});
+  if(!isPrem) getConvoCountFS().then(count=>{ const ind=g('convo-count-indicator'); if(ind)ind.textContent=count+'/'+FREE_MAX_CONVOS+' chats'; });
 
   if(!chatHistory.length){
     const isCW=lang==='cw';
@@ -3704,6 +3799,31 @@ function renderBubbles(){
     const label=isU?'You':'Bajeti AI';
     // Delete button
     const delBtn='<button class="bubble-del-btn" onclick="deleteMessage('+idx+')" title="Delete message">✕</button>';
+
+    // Date separator logic
+    let dateSep='';
+    const msgDate=m.ts?new Date(m.ts):null;
+    const prevMsg=idx>0?chatHistory[idx-1]:null;
+    const prevDate=prevMsg&&prevMsg.ts?new Date(prevMsg.ts):null;
+    const isNewDay=!prevDate||(msgDate&&(
+      msgDate.getFullYear()!==prevDate.getFullYear()||
+      msgDate.getMonth()!==prevDate.getMonth()||
+      msgDate.getDate()!==prevDate.getDate()
+    ));
+    if(msgDate&&isNewDay){
+      const now=new Date();
+      const yesterday=new Date(now); yesterday.setDate(now.getDate()-1);
+      let label='';
+      if(msgDate.toDateString()===now.toDateString()) label='Today';
+      else if(msgDate.toDateString()===yesterday.toDateString()) label='Yesterday';
+      else label=msgDate.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short',year:msgDate.getFullYear()!==now.getFullYear()?'numeric':undefined});
+      dateSep='<div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px;padding:0 4px">'
+        +'<div style="flex:1;height:1px;background:var(--border)"></div>'
+        +'<span style="font-size:.68rem;font-weight:700;color:var(--mid);white-space:nowrap;padding:2px 8px;background:var(--mist);border-radius:10px">'+label+'</span>'
+        +'<div style="flex:1;height:1px;background:var(--border)"></div>'
+        +'</div>';
+    }
+
     // Action card (for AI messages with pending add actions)
     let actionCard='';
     if(!isU && m.pendingAction && m.pendingAction.type==='add'){
@@ -3724,7 +3844,7 @@ function renderBubbles(){
         +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">Cancel</button></div>'
         +'</div>';
     }
-    return '<div class="bubble-wrap '+(isU?'user':'ai')+'" ontouchstart="bubbleLongPress(this)" ontouchend="bubbleLongPressEnd(this)">'
+    return dateSep+'<div class="bubble-wrap '+(isU?'user':'ai')+'" ontouchstart="bubbleLongPress(this)" ontouchend="bubbleLongPressEnd(this)">'
       +delBtn
       +'<div class="bubble '+(isU?'user':'ai')+'">'+safe+'</div>'
       +(actionCard?'<div style="max-width:84%;align-self:'+(isU?'flex-end':'flex-start')+'">'+actionCard+'</div>':'')
@@ -3782,6 +3902,105 @@ function dismissAiAction(msgIdx){
   renderBubbles();
 }
 
+// ── Conversations stored in Firestore ──
+function convosRef(){ return db.collection('households').doc(hhId).collection('_conversations'); }
+
+async function loadConversations(){
+  if(!hhId){ chatConversations=[]; return; }
+  try{
+    const snap = await convosRef().orderBy('createdAt','desc').limit(20).get();
+    chatConversations = snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){ chatConversations=[]; }
+}
+
+async function saveConversationToFS(convo){
+  if(!hhId) return;
+  const data = {
+    title: convo.title || 'New chat',
+    createdAt: convo.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    messages: (convo.messages||[]).slice(-50)
+  };
+  await convosRef().doc(convo.id).set(data, {merge:true}).catch(()=>{});
+}
+
+async function newConversation(){
+  const isPrem = hasPremiumFeature('chat_conversations');
+  if(!isPrem){
+    const count = await getConvoCountFS();
+    if(count >= FREE_MAX_CONVOS){ showConvoLimitWall(count); return null; }
+  }
+  const id = 'cv_'+Date.now()+'_'+(Math.random().toString(36).slice(2,7));
+  const convo = {id, title:'New chat', createdAt:Date.now(), messages:[]};
+  chatConversations.unshift(convo);
+  activeChatId = id;
+  chatHistory = [];
+  if(!isPrem) await incConvoCountFS();
+  await saveConversationToFS(convo);
+  return convo;
+}
+
+function activeConversation(){
+  if(!activeChatId) return null;
+  return chatConversations.find(c=>c.id===activeChatId)||null;
+}
+
+async function syncActiveConvo(){
+  if(!activeChatId) return;
+  const convo = activeConversation();
+  if(!convo) return;
+  convo.messages = chatHistory.slice(-50);
+  if(convo.title==='New chat'||!convo.title){
+    const first = chatHistory.find(m=>m.role==='user');
+    if(first) convo.title = first.text.slice(0,40)+(first.text.length>40?'…':'');
+  }
+  await saveConversationToFS(convo);
+}
+
+async function deleteConversation(id){
+  const isPrem = hasPremiumFeature('chat_conversations');
+  chatConversations = chatConversations.filter(c=>c.id!==id);
+  if(activeChatId===id){
+    activeChatId=null; chatHistory=[];
+    if(chatConversations.length){ activeChatId=chatConversations[0].id; chatHistory=(chatConversations[0].messages||[]).slice(); }
+  }
+  if(hhId){
+    await convosRef().doc(id).delete().catch(()=>{});
+    if(!isPrem) await decConvoCountFS();
+  }
+}
+
+function loadConversationById(id){
+  const convo = chatConversations.find(c=>c.id===id);
+  if(!convo) return;
+  activeChatId = id;
+  chatHistory = (convo.messages||[]).slice();
+}
+
+async function getConvoCountFS(){
+  const data = await getHHUsage();
+  return data.convoCount || 0;
+}
+
+async function incConvoCountFS(){
+  if(!hhId) return;
+  const data = await getHHUsage();
+  await hhUsageRef().set({
+    convoCount: (data.convoCount||0) + 1,
+    msgCount: data.msgCount || 0,
+    msgDate: data.msgDate || '',
+    magicCount: data.magicCount || 0,
+    scanCount: data.scanCount || 0,
+    summCount: data.summCount || 0
+  }, {merge:true}).catch(()=>{});
+}
+
+async function decConvoCountFS(){
+  if(!hhId) return;
+  const data = await getHHUsage();
+  await hhUsageRef().set({convoCount: Math.max(0,(data.convoCount||0)-1)}, {merge:true}).catch(()=>{});
+}
+
 // -- Multiple conversations (all users, Firestore-backed) --
 async function startNewConversation(){
   const convo = await newConversation(); // handles limit check internally
@@ -3836,7 +4055,7 @@ async function deleteConvoFromList(id){
 }
 
 function chipSend(el){ const inp=g('chat-inp'); if(!inp)return; inp.value=el.textContent; autoResize(inp); sendChat(); }
-function chatKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
+function chatKey(e){ if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();sendChat();} }
 function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,110)+'px'; }
 function clearChat(){
   if(activeChatId){
@@ -3905,10 +4124,11 @@ Last 15 transactions (with IDs): ${JSON.stringify(recentWithIds)}`;
 
 async function sendChat(){
   if(chatBusy)return;
+  if(_aiInFlight){toast('Please wait','e');return;}
   // Check free tier AI limit from Firestore (device-switch safe)
   const status=getPremiumStatus();
   if(!status.isPremium){
-    const used = await getAiUsageTodayFS();
+    const used = await getAiUsageTodayFS('msg');
     if(used >= FREE_DAILY_MSGS){
       toast('Daily AI limit reached ('+FREE_DAILY_MSGS+'/day). Upgrade for unlimited!','e');
       showUpgradePrompt('unlimited_ai',status);
@@ -3918,7 +4138,7 @@ async function sendChat(){
   const inp=g('chat-inp'), sendBtn=g('chat-send');
   const msg=(inp?inp.value.trim():''); if(!msg)return;
   
-  chatBusy=true;
+  chatBusy=true; _aiInFlight=true;
   if(inp){inp.value='';inp.style.height='auto';inp.disabled=true;}
   if(sendBtn)sendBtn.disabled=true;
   
@@ -3955,7 +4175,7 @@ async function sendChat(){
       try {
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Bajeti-Secret': 'BY-2025-SEC-8f4k2p9m' },
           body: JSON.stringify(payload)
         });
         const resData = await res.json();
@@ -3980,7 +4200,7 @@ async function sendChat(){
     
     // Only count successful responses against the daily limit
     if(!getPremiumStatus().isPremium){
-      incAiUsageTodayFS(); // Firestore-backed, device-switch safe
+      incAiUsageTodayFS('msg'); // Firestore-backed, device-switch safe
       incAiUsageToday();   // localStorage cache for instant UI updates
     }
 
@@ -4005,13 +4225,13 @@ async function sendChat(){
   }
   
   const td=g('typing-ind'); if(td)td.remove();
-  chatBusy=false;
+  chatBusy=false; _aiInFlight=false;
   // Re-fetch these since user may have navigated away during async call
   const inpNow=g('chat-inp'), sendBtnNow=g('chat-send');
   if(inpNow)inpNow.disabled=false;
   if(sendBtnNow)sendBtnNow.disabled=false;
   if(g('chat-msgs'))renderBubbles();
-  if(inpNow)inpNow.focus();
+  // Do not auto-focus input — prevents keyboard popping up on tablet after every response
 }
 
 // -- Magic Log (Extract Transactions) --
@@ -4064,7 +4284,7 @@ async function scanReceiptFromChat(input){
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'},body:JSON.stringify(payload)});
       const data=await res.json();
       if(data.error)throw new Error(data.error.message);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
@@ -4100,6 +4320,9 @@ async function scanReceiptFromChat(input){
 
 async function scanReceipt(input){
   if(!input.files||!input.files[0])return;
+  if(_aiInFlight){toast('Please wait','e');return;}
+  const _ss=getPremiumStatus();if(!_ss.isPremium){const _su=await getAiUsageTodayFS('scan');if(_su>=FREE_DAILY_SCAN){toast('Receipt scan limit ('+FREE_DAILY_SCAN+'/day) reached','e');return;}}
+  _aiInFlight=true;
   const file=input.files[0];
   const resultsEl=g('magic-results');
   if(resultsEl)resultsEl.innerHTML='<div style="text-align:center;padding:12px;color:var(--mid);font-size:.8rem"><i data-lucide="camera" style="margin-right:4px;vertical-align:middle;color:#1565C0"></i> Reading receipt with AI...</div>';
@@ -4113,37 +4336,70 @@ async function scanReceipt(input){
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'},body:JSON.stringify(payload)});
       const data=await res.json();
       if(data.error)throw new Error(data.error.message);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
       const clean=resultText.replace(/```json|```/g,'').trim();
       pendingMagicTxs=JSON.parse(clean);
       if(!Array.isArray(pendingMagicTxs)||!pendingMagicTxs.length)throw new Error('No items found');
-      let resHtml='<div style="background:var(--mist);padding:10px;border-radius:10px">';
-      resHtml+='<div style="font-size:.72rem;font-weight:700;color:var(--p1);margin-bottom:6px">&#10024; Found '+pendingMagicTxs.length+' item(s):</div>';
-      pendingMagicTxs.forEach(function(tx){
-      resHtml+='<div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:5px;border-bottom:1px solid var(--border);padding-bottom:5px"><span><b>'+esc(String(tx.item||''))+'</b></span><span style="color:var(--r1);font-weight:700">MK '+esc(String(Number(tx.amount)||0))+'</span></div>';
-      });
-      resHtml+='</div>';
-      if(resultsEl)resultsEl.innerHTML=resHtml;
+      pendingMagicTxs=pendingMagicTxs.map(tx=>({...tx,cat:catOf(String(tx.item||''))||'Other'}));
+      if(resultsEl)resultsEl.innerHTML=renderMagicResults();
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save All '+pendingMagicTxs.length+' Items'; if(window.lucide)lucide.createIcons({nodes:[btn]}); btn.setAttribute('onclick','saveMagicTxs()');}
+      if(!getPremiumStatus().isPremium) incAiUsageTodayFS('scan');
+      _aiInFlight=false;
       toast('Receipt scanned!','s');
     }catch(err){
       if(resultsEl)resultsEl.innerHTML='';
       if(btn){btn.disabled=false;btn.innerHTML='&#10024; Extract';}
-      toast('Could not read receipt. Try typing it manually.','e');
+      _aiInFlight=false;
+      toast('Could not read receipt.','e');
     }
   };
   reader.readAsDataURL(file);
 }
 
 
-let pendingMagicTxs = [];
+const CAT_OPTS=[{key:'Food',label:'🍅 Food'},{key:'Household',label:'🏠 Household'},{key:'Personal',label:'👤 Personal'},{key:'Transport',label:'🚌 Transport'},{key:'Other',label:'📦 Other'}];
+let pendingMagicTxs=[];
+let customCat='Other';
+
+function renderMagicResults(){
+  const total=pendingMagicTxs.length;
+  const confirmed=pendingMagicTxs.filter(tx=>(lCfg.items.find(it=>it.name===tx.item))||(tx.cat&&tx.cat!=='Other')).length;
+  const needPick=pendingMagicTxs.some(tx=>!lCfg.items.find(it=>it.name===tx.item));
+  let h='';
+  if(needPick){const pct=Math.round(confirmed/total*100);h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--mist);border-radius:10px"><div style="flex:1;height:6px;background:var(--border);border-radius:3px"><div style="height:6px;background:var(--p1);border-radius:3px;width:'+pct+'%;transition:width .3s"></div></div><span style="font-size:.7rem;font-weight:700;color:var(--mid);white-space:nowrap">'+confirmed+'/'+total+' done</span></div>';}
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  pendingMagicTxs.forEach((tx,idx)=>{
+    const isKnown=!!lCfg.items.find(it=>it.name===tx.item);
+    const ok=isKnown||(tx.cat&&tx.cat!=='Other');
+    h+='<div data-magic-row="'+idx+'" style="background:'+(ok?'rgba(123,31,162,.04)':'var(--white)')+';border:1.5px solid '+(ok?'var(--p1)':'var(--border)')+';border-radius:13px;padding:11px 13px">'
+     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:'+(isKnown?'0':'9px')+'">'
+     +'<div style="flex:1;min-width:0">'
+     +'<div style="font-size:.88rem;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px">'+esc(String(tx.item||''))+'</div>'
+     +(isKnown?'<div style="font-size:.66rem;color:var(--p1);font-weight:700">✓ In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.66rem;color:var(--mid);font-weight:600">Pick a category</div>')
+     +'</div>'
+     +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">'
+     +'<span style="font-size:.84rem;font-weight:800;color:'+(tx.type==='income'?'var(--g1)':'var(--r1)')+'">MK '+Number(tx.amount||0).toLocaleString()+'</span>'
+     +(ok?'<span style="color:var(--p1)">✓</span>':'')+'</div></div>';
+    if(!isKnown){
+      h+='<div style="display:flex;flex-wrap:wrap;gap:5px">';
+      CAT_OPTS.forEach(ct=>{const sel=tx.cat===ct.key;h+='<button data-cat="'+ct.key+'" onclick="setMagicTxCat('+idx+',\''+ct.key+'\')" style="padding:4px 10px;border-radius:8px;border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+ct.label+'</button>';});
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+function setMagicTxCat(idx,cat){if(!pendingMagicTxs[idx])return;pendingMagicTxs[idx].cat=cat;const el=g('magic-results');if(el)el.innerHTML=renderMagicResults();}
 async function processMagicLog() {
-  const input = val('magic-input').trim();
-  if (!input) { toast('Please enter some text', 'e'); return; }
-  const btn = g('magic-btn-process');
+  const input=val('magic-input').trim();
+  if(!input){toast('Please enter some text','e');return;}
+  if(_aiInFlight){toast('Please wait','e');return;}
+  const _ms=getPremiumStatus(); if(!_ms.isPremium){const _mu=await getAiUsageTodayFS('magic'); if(_mu>=FREE_DAILY_MAGIC){toast('Magic Log limit ('+FREE_DAILY_MAGIC+'/day) reached','e');return;}}
+  _aiInFlight=true;
+  const btn=g('magic-btn-process');
   btn.disabled = true; btn.innerHTML = '<i data-lucide="refresh-cw" style="margin-right:4px"></i>...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
   
   const prompt = `Extract transactions from this text. 
@@ -4159,7 +4415,7 @@ async function processMagicLog() {
     const url = "https://nyumba-ai.kabangorodrick6.workers.dev/chat";
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
     
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Bajeti-Secret': 'BY-2025-SEC-8f4k2p9m' }, body: JSON.stringify(payload) });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
     
@@ -4168,21 +4424,23 @@ async function processMagicLog() {
     const cleanText = resultText.replace(/```json|```/g,'').trim();
     pendingMagicTxs = JSON.parse(cleanText);
     
-    if (!Array.isArray(pendingMagicTxs) || pendingMagicTxs.length === 0) throw new Error("No transactions found");
-    
-    let resHtml = '<div style="background:var(--mist); padding:10px; border-radius:10px;">';
-    pendingMagicTxs.forEach((tx) => {
-       resHtml += '<div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px; border-bottom:1px solid var(--border); padding-bottom:5px;"><span><b>'+esc(String(tx.item||''))+'</b> ('+esc(tx.type==='income'?'income':'expense')+')</span><span style="color:'+(tx.type==='income'?'var(--g1)':'var(--r1)')+'">MK '+esc(String(Number(tx.amount)||0))+'</span></div>';
-    });
-    resHtml += '</div>';
-    g('magic-results').innerHTML = resHtml;
-      if(window.lucide)lucide.createIcons({nodes:[g('magic-results')]});
+    if(!Array.isArray(pendingMagicTxs)||!pendingMagicTxs.length) throw new Error('No transactions found');
+    // Tag each extracted item with a category — known items get auto-category, unknown get 'Other' as default
+    pendingMagicTxs = pendingMagicTxs.map(tx => ({
+      ...tx,
+      cat: catOf(String(tx.item||'')) || 'Other'
+    }));
+
+    g('magic-results').innerHTML = renderMagicResults();
+    if(window.lucide)lucide.createIcons({nodes:[g('magic-results')]});
     btn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save All'; if(window.lucide)lucide.createIcons({nodes:[btn]});
-    btn.setAttribute('onclick', 'saveMagicTxs()');
-    btn.disabled = false;
-  } catch (err) {
-    toast('Extraction failed. Try rephrasing.', 'e');
-    btn.disabled = false; btn.innerHTML = '<i data-lucide="wand-2" style="margin-right:4px"></i> Extract Again'; if(window.lucide)lucide.createIcons({nodes:[btn]});
+    btn.setAttribute('onclick','saveMagicTxs()');
+    btn.disabled=false;
+    if(!getPremiumStatus().isPremium) incAiUsageTodayFS('magic');
+    _aiInFlight=false;
+  } catch(err){
+    toast('Extraction failed.','e');
+    btn.disabled=false; btn.innerHTML='<i data-lucide="wand-2" style="margin-right:4px"></i> Extract Again'; if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
 
@@ -4190,17 +4448,18 @@ function saveMagicTxs() {
   const dStr = today();
   let ts = new Date().getTime();
   pendingMagicTxs.forEach(tx => {
-     const amt = Number(tx.amount) || 0;
-     if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(String(tx.item||'')),'e'); return; }
-     addPx({
-       item: String(tx.item || 'Other').slice(0,100),
-       date: dStr,
-       timestamp: ts++,
-       amount: amt,
-       notes: 'Added via Magic Log ✨',
-       userId: actU().id,
-       type: tx.type === 'income' ? 'income' : 'expense'
-     });
+    const amt = Number(tx.amount) || 0;
+    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(String(tx.item||'')),'e'); return; }
+    addPx({
+      item: String(tx.item || 'Other').slice(0,100),
+      date: dStr,
+      timestamp: ts++,
+      amount: amt,
+      cat: tx.cat || 'Other',
+      notes: 'Added via Magic Log ✨',
+      userId: actU().id,
+      type: tx.type === 'income' ? 'income' : 'expense'
+    });
   });
   closeM('mv-magic');
   toast('Transactions Saved!', 's');
@@ -4209,29 +4468,25 @@ function saveMagicTxs() {
 
 // -- AI Smart Summary --
 async function generateAiSummary() {
-  const btn = g('ai-sum-btn');
-  const box = g('ai-sum-box');
-  btn.disabled = true; btn.innerHTML = '<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
-  
-  try {
-    const url = "https://nyumba-ai.kabangorodrick6.workers.dev/chat";
-    
-    
-    const prompt = `Based on the following budget data, provide a very brief (2-3 sentences) personalized financial review. Focus on their biggest expense this month and whether they are on track. Language must be ${lang === 'cw' ? 'Chichewa' : 'English'}. Data: ${buildCtx()}`;
-    
-    const payload = { contents: [{ parts: [{ text: prompt }] }] };
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    box.innerHTML = '<div class="ai-summary-box"><b><i data-lucide="zap" style="margin-right:4px; if(window.lucide)lucide.createIcons({nodes:[box]});color:var(--p1)"></i> AI Insight:</b><br>'+esc(reply||'')+'</div>';
-    box.classList.remove('hide');
-    btn.style.display = 'none'; // hide button after success
-  } catch (err) {
-    toast('AI Analysis failed', 'e');
-    btn.disabled = false; btn.innerHTML = '<i data-lucide="zap" style="margin-right:4px"></i> Try Again'; if(window.lucide)lucide.createIcons({nodes:[btn]});
+  if(_aiInFlight){toast('Please wait','e');return;}
+  const _s=getPremiumStatus();
+  if(!_s.isPremium){ const _u=await getAiUsageTodayFS('summ'); if(_u>=FREE_DAILY_SUMM){toast('AI Summary limit ('+FREE_DAILY_SUMM+'/day) reached','e');return;} }
+  _aiInFlight=true;
+  const btn=g('ai-sum-btn'),box=g('ai-sum-box');
+  btn.disabled=true; btn.innerHTML='<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
+  try{
+    const res=await fetch("https://nyumba-ai.kabangorodrick6.workers.dev/chat",{method:'POST',
+      headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'},
+      body:JSON.stringify({contents:[{parts:[{text:`Provide a 2-3 sentence financial review. Language: ${lang==='cw'?'Chichewa':'English'}. Data: ${buildCtx()}`}]}]})});
+    const data=await res.json(); if(data.error)throw new Error(data.error.message);
+    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!_s.isPremium) incAiUsageTodayFS('summ');
+    box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> AI Insight:</b><br>'+esc(reply||'')+'</div>';
+    if(window.lucide)lucide.createIcons({nodes:[box]});
+    box.classList.remove('hide'); btn.style.display='none'; _aiInFlight=false;
+  }catch(err){
+    toast('AI Analysis failed.','e');
+    btn.disabled=false; btn.innerHTML='<i data-lucide="zap" style="margin-right:4px"></i> Try Again'; if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
 
@@ -4242,6 +4497,24 @@ function openEPd(el){ openEP(el.dataset.pid); }
 function doDelD(el){ doDel(el.dataset.pid); }
 function restoreTrashD(el){ restoreTrash(el.dataset.pid); }
 function pickID(el){ pickI(parseInt(el.dataset.i)); }
+function pickCustom(){ selItem='custom'; customCat='Other'; rLog(); setTimeout(()=>{const n=g('custom-item-name');if(n)n.focus();},200); }
+function pickCustomCat(cat){
+  customCat=cat;
+  const grid=g('custom-cat-grid'); if(!grid)return;
+  grid.querySelectorAll('button[data-cat]').forEach(b=>{const s=b.dataset.cat===cat; b.style.borderColor=s?'var(--p1)':'var(--border)'; b.style.background=s?'var(--p1)':'var(--white)'; b.style.color=s?'#fff':'var(--mid)';});
+}
+function autoDetectCustomCat(name){
+  const n=(name||'').toLowerCase();
+  const map=[
+    {cat:'Food',keys:['rice','maize','ufa','tomato','onion','oil','sugar','salt','bread','meat','fish','chicken','nsima','flour','milk','egg','beans','grocery','food']},
+    {cat:'Transport',keys:['bus','taxi','minibus','petrol','fuel','fare','transport','ticket','car','tyre']},
+    {cat:'Household',keys:['soap','washing','detergent','bleach','toilet','paper','broom','rent','electric','water','airtime','data','wifi','internet','prepaid','bill']},
+    {cat:'Personal',keys:['medicine','clinic','hospital','doctor','school','fees','uniform','book','pen','hair','barber','salon','clothes','shoes','phone']},
+  ];
+  let det='Other';
+  for(const e of map){if(e.keys.some(k=>n.includes(k))){det=e.cat;break;}}
+  customCat=det; pickCustomCat(det);
+}
 function dismissNameNotif(){ var n=document.querySelector('.name-notif'); if(n)n.remove(); }
 function delBillD(el){ delBill(parseInt(el.dataset.bi)); }
 function swUD(el){ swU(el.dataset.uid); }
