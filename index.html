@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#7B1FA2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.2.4</title>
+<title>Bajeti Yanga v9.3.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
@@ -140,6 +140,7 @@ body.dark .stat-chip{filter:brightness(.9)}
 .name-notif-btns{display:flex;gap:8px}
 .name-notif-btns button{flex:1;padding:8px;border:none;border-radius:10px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer}
 @keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken Grotesk,sans-serif;color:var(--ink)}
 .hide{display:none!important}
@@ -217,10 +218,12 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 /* Setup blur orb decoration */
 #scr-setup::before{content:'';position:absolute;top:-20%;left:-15%;width:130%;height:65%;background:radial-gradient(ellipse,rgba(206,147,216,.22) 0%,transparent 70%);pointer-events:none;z-index:0}
 #scr-setup>*{position:relative;z-index:1}
-.pin-logo{width:64px;height:64px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.25);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
-.pin-title{font-family:Syne,sans-serif;font-size:1.45rem;font-weight:800;color:#fff;margin-bottom:5px;text-align:center}
-.pin-sub{font-size:.82rem;color:rgba(255,255,255,.65);margin-bottom:28px;text-align:center;line-height:1.4}
-.pin-dots{display:flex;gap:16px;margin-bottom:32px}
+.pin-header{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.pin-logo{width:50px;height:50px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.25);border-radius:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.pin-title{font-family:Syne,sans-serif;font-size:1.45rem;font-weight:800;color:#fff;margin:0;text-align:left}
+.pin-sub{font-size:.82rem;color:rgba(255,255,255,.65);margin-bottom:22px;text-align:center;line-height:1.4}
+.pin-dots{display:flex;gap:16px;margin-bottom:26px}
+@media(max-height:600px){.pin-header{margin-bottom:4px}.pin-sub{margin-bottom:14px}.pin-dots{margin-bottom:16px}.pin-grid .pk{height:54px}.pin-grid{gap:7px}}
 .pd{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);transition:all .2s;box-shadow:0 0 0 0 rgba(255,255,255,0)}
 .pd.on{background:#fff;border-color:#fff;box-shadow:0 0 12px rgba(255,255,255,.35)}
 .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px}
@@ -497,11 +500,50 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .ov.open .mb{transform:translateY(0)}
 .mb h3{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.97rem;color:var(--ink);margin-bottom:13px}
 .dh{width:32px;height:4px;background:#DDD;border-radius:4px;margin:0 auto 16px}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(18px);padding:10px 18px;border-radius:24px;font-weight:700;font-size:.81rem;z-index:9999;opacity:0;transition:all .27s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(18px);padding:10px 18px;border-radius:24px;font-weight:700;font-size:.81rem;z-index:9999;opacity:0;transition:all .27s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.18)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.s{background:var(--g1);color:#fff}
 .toast.e{background:var(--r1);color:#fff}
 .toast.i{background:var(--p1);color:#fff}
+
+/* ── Trend Chart ── */
+.trend-chart-wrap{padding:16px;overflow:hidden}
+.trend-bar-row{display:flex;align-items:flex-end;gap:4px;height:120px;margin-bottom:8px}
+.trend-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.trend-bar-inner{width:100%;border-radius:6px 6px 0 0;min-height:4px;transition:height .6s cubic-bezier(.4,0,.2,1);position:relative;cursor:pointer}
+.trend-bar-inner:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#1A1A2E;color:#fff;font-size:.62rem;font-weight:700;padding:3px 7px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:10}
+.trend-bar-lbl{font-size:.58rem;font-weight:700;color:var(--mid);text-align:center}
+.trend-bar-amt{font-size:.56rem;font-weight:800;color:var(--ink);text-align:center;white-space:nowrap}
+.trend-legend{display:flex;gap:12px;justify-content:center;margin-top:4px}
+.trend-leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.trend-leg-lbl{font-size:.67rem;font-weight:700;color:var(--mid)}
+
+/* ── Spending streak chip ── */
+.streak-chip{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:14px;padding:11px 14px;margin-bottom:11px;border:1.5px solid #A5D6A7}
+.streak-ico{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.streak-main{flex:1}
+.streak-ttl{font-weight:800;font-size:.84rem;color:#1B5E20}
+.streak-sub{font-size:.67rem;color:#2E7D32;margin-top:1px}
+body.dark .streak-chip{background:linear-gradient(135deg,#0D2818,#0A2010);border-color:#1B5E20}
+body.dark .streak-ttl{color:#81C784}
+body.dark .streak-sub{color:#4CAF50}
+
+/* ── QR Code modal ── */
+.qr-wrap{background:var(--white);border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.qr-wrap canvas,.qr-wrap svg{border-radius:8px}
+
+/* ── Improved month nav for history ── */
+.hist-mnav{display:flex;align-items:center;justify-content:space-between;background:var(--white);border-radius:12px;padding:9px 13px;margin-bottom:11px;box-shadow:var(--sh)}
+
+/* ── Budget diff badge ── */
+.bdiff-badge{display:inline-flex;align-items:center;gap:3px;font-size:.63rem;font-weight:700;padding:2px 7px;border-radius:9px}
+.bdiff-up{background:#E8F5E9;color:#1B5E20}
+.bdiff-dn{background:#FFEBEE;color:#B71C1C}
+.bdiff-eq{background:#F5F5F5;color:#757575}
+
+/* ── Skip to content ── */
+.skip-link{position:absolute;top:-100px;left:0;z-index:10000;background:var(--p1);color:#fff;padding:8px 14px;border-radius:0 0 8px 0;font-weight:700;font-size:.82rem;text-decoration:none}
+.skip-link:focus{top:0}
 .empty{text-align:center;padding:26px 16px;color:var(--mid)}
 .empty .ei{font-size:2.6rem;margin-bottom:8px}
 .empty p{font-size:.82rem;line-height:1.5}
@@ -699,10 +741,10 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </svg>
   </div>
   <div class="auth-title">Bajeti Yanga</div>
-  <div class="auth-sub" id="auth-sub">Finally know where your money goes. </div>
+  <div class="auth-sub" id="auth-sub">Finally know where your money goes 💜</div>
   <div class="auth-card">
     <div class="auth-tabs">
-      <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Continue Tracking</button>
+      <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Welcome Back</button>
       <button class="auth-tab" id="at-reg" onclick="aTab(&quot;register&quot;)">Start Tracking</button>
     </div>
     <div id="a-err" class="a-err"></div>
@@ -915,15 +957,17 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 
 <!-- PIN -->
 <div id="scr-pin" class="screen hide">
-  <div class="pin-logo">
-    <svg width="34" height="34" viewBox="0 0 52 52" fill="none">
-      <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/>
-      <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/>
-      <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
-      <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
-    </svg>
+  <div class="pin-header">
+    <div class="pin-logo">
+      <svg width="28" height="28" viewBox="0 0 52 52" fill="none">
+        <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/>
+        <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/>
+        <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
+        <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
+      </svg>
+    </div>
+    <div class="pin-title">Bajeti Yanga</div>
   </div>
-  <div class="pin-title">Bajeti Yanga</div>
   <div class="pin-sub" id="pin-sub">Enter your PIN to continue</div>
   <div class="pin-dots">
     <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
@@ -961,6 +1005,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
   <i data-lucide="download" style="font-size:1rem"></i> Install App
 </div>
 
+<a class="skip-link" href="#view">Skip to main content</a>
 <div id="app" class="hide">
   <div id="topbar">
     <div class="tbi">
@@ -982,12 +1027,12 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </div>
   </div>
   <div id="view"><div class="loading"><div class="spinner"></div>Loading...</div></div>
-  <nav id="nav">
-    <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
-    <button class="nb" onclick="go(&quot;log&quot;)" id="nb-log"><i data-lucide="plus-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-l">Log</span></button>
-    <button class="nb" onclick="go(&quot;insights&quot;)" id="nb-insights"><i data-lucide="pie-chart" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ins">Insights</span></button>
-    <button class="nb" onclick="go(&quot;chat&quot;)" id="nb-chat"><i data-lucide="message-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ch">Chat</span></button>
-    <button class="nb" onclick="go(&quot;stg&quot;)" id="nb-stg"><i data-lucide="settings" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-st">Settings</span></button>
+  <nav id="nav" role="navigation" aria-label="Main navigation">
+    <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home" aria-label="Home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
+    <button class="nb" onclick="go(&quot;log&quot;)" id="nb-log" aria-label="Log transaction"><i data-lucide="plus-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-l">Log</span></button>
+    <button class="nb" onclick="go(&quot;insights&quot;)" id="nb-insights" aria-label="Insights and history"><i data-lucide="pie-chart" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ins">Insights</span></button>
+    <button class="nb" onclick="go(&quot;chat&quot;)" id="nb-chat" aria-label="Bajeti AI chat"><i data-lucide="message-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ch">Chat</span></button>
+    <button class="nb" onclick="go(&quot;stg&quot;)" id="nb-stg" aria-label="Settings and profile"><i data-lucide="settings" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-st">Settings</span></button>
   </nav>
 </div>
 
@@ -1128,7 +1173,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Fuel','Rent','Diapers','Money Sent','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.2.4';
+const APP_VERSION = '9.3.5';
 
 // ===============================================
 // 2. STATE -- only after all consts
@@ -1144,6 +1189,25 @@ let sortMode = 'cat', srchQ = '', logType = 'expense', histFilter = 'all', histT
 let viewMonth = null;
 let pinEntry = '', pinMode = 'check', pinTmp = '';
 let confResult = null, rcapV = null;
+let unsubHH = null; // Household document listener - separate from purchases listener
+
+// ── Performance: memoized totals ──
+// Invalidated whenever lPx or viewMonth changes
+let _memoKey = '', _memoSp = 0, _memoIn = 0, _memoByItem = {};
+function _invalidateMemo(){ _memoKey = ''; }
+function _ensureMemo(){
+  const key = (hhId||'')+'|'+(viewMonth?viewMonth.m+'-'+viewMonth.y:'')+lPx.length;
+  if(key === _memoKey) return;
+  _memoKey = key;
+  _memoSp = 0; _memoIn = 0; _memoByItem = {};
+  lPx.forEach(p=>{
+    if(p.deleted) return;
+    if(!isTM(p.date)) return;
+    const a = Number(p.amount)||0;
+    if(p.type==='income'){ _memoIn+=a; }
+    else { _memoSp+=a; _memoByItem[p.item]=(_memoByItem[p.item]||0)+a; }
+  });
+}
 
 // ===============================================
 // 3. PURE HELPERS
@@ -1155,12 +1219,37 @@ const MKs = n => { n=Math.round(n||0); if(n>=1e6)return 'MK '+(n/1e6).toFixed(1)
 const tx      = () => TX[lang];
 const today   = () => new Date().toISOString().split('T')[0];
 const nowTime = () => { const d=new Date(); return d.toTimeString().slice(0,5); };
+// Format ISO date string to DD/MM/YYYY for display (Malawian locale convention)
+function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s; }
+// Returns true if the stored item name is a reserved category label (data quality flag)
+function isBadItemName(n){ return ['other','ena','food','transport','household','personal','unknown','other income','zina'].includes(String(n||'').toLowerCase().trim()); }
 const ico     = name => ITEM_ICONS[name] || '<i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i>';
-const catOf = name => {
+const catOf = (name, explicitCat) => {
+  // 1. Highest priority: the transaction's own stored category (set by the user
+  //    when creating a custom item, or by Magic Log/receipt scan extraction).
+  //    Previously this was ignored entirely -- catOf() only ever looked at
+  //    lCfg.items, so a transaction's own p.cat field was never read on render,
+  //    causing custom-categorized items to silently show as "Other" forever.
+  if(explicitCat && ['Food','Household','Personal','Transport','Other'].includes(explicitCat) && explicitCat!=='Other'){
+    return explicitCat;
+  }
+  // 2. lCfg.items definition (budget item's own assigned category)
   const item = lCfg&&lCfg.items ? lCfg.items.find(it=>it.name===name) : null;
   if(item&&item.cat&&['Food','Household','Personal','Transport','Other'].includes(item.cat)) return item.cat;
+  // 3. Built-in category map
   for(const[c,a] of Object.entries(ITEM_CATS)){ if(a.includes(name)) return c; }
-  return 'Other';
+  // 4. Keyword-based fallback for custom/AI-extracted items
+  const n=(name||'').toLowerCase();
+  if(['plug','socket','cable','wire','switch','extension','bulb','battery','torch','charger','adaptor','adapter','power bank','powerbank'].some(k=>n.includes(k))) return 'Household';
+  if(['airtime','bundles','bundle','recharge','data','wifi','internet','dstv','gotv','prepaid','electricity token','token'].some(k=>n.includes(k))) return 'Household';
+  if(['rent','water bill','electricity bill','refuse','garbage','rates'].some(k=>n.includes(k))) return 'Household';
+  if(['fertilizer','fertiliser','npk','urea','dap','can','seeds','maize seed','hybrid seed','pesticide','herbicide','insecticide','chemicals'].some(k=>n.includes(k))) return 'Food';
+  if(['vegetables','veggies','tomatoes','onions','rape','mustard','cabbage','pumpkin','sweet potato','cassava','groundnuts','soya'].some(k=>n.includes(k))) return 'Food';
+  if(['tablets','syrup','medicine','panadol','amoxicillin','antibiotic','malaria','ors','deworming','clinic fee','hospital fee','consultation'].some(k=>n.includes(k))) return 'Personal';
+  if(['chitenje','chitengi','wrapper','blouse','dress','shirt','trousers','skirt','uniform','shoes','sandals','slippers','clothes','clothing'].some(k=>n.includes(k))) return 'Personal';
+  if(['haircut','salon','barbing','braiding','weave','makeup','lotion','cream','vaseline','perfume','deodorant'].some(k=>n.includes(k))) return 'Personal';
+  if(['minibus','motor bike','boda','bicycle','tyre','tube','fuel','petrol','diesel','oil change','vehicle','car wash','parking'].some(k=>n.includes(k))) return 'Transport';
+  return explicitCat || 'Other';
 };
 
 function curM()  { const d=new Date(); return {m:d.getMonth(),y:d.getFullYear()}; }
@@ -1172,9 +1261,10 @@ function vmObj() { return viewMonth||curM(); }
 // e.g. salaryDay=25: period = Apr 25 – May 24 when viewing May.
 // All totals, caps, summary, insights, member counts use isTM() so they all respect this.
 function getBudgetPeriod(){
-  const sd = lCfg && lCfg.salaryDay ? parseInt(lCfg.salaryDay,10) : 0;
+  let sd = lCfg && lCfg.salaryDay ? parseInt(lCfg.salaryDay,10) : 0;
+  sd = Math.min(Math.max(sd, 0), 28); // hard clamp — UI allows 1-28 but Firestore may hold legacy values
   const v = vmObj();
-  if(!sd || sd<1 || sd>28){
+  if(!sd || sd<1){
     // Standard: whole calendar month
     return { startY:v.y, startM:v.m, startD:1,
              endY:v.y, endM:v.m, endD:new Date(v.y, v.m+1, 0).getDate() };
@@ -1201,22 +1291,22 @@ function isTM(s){
     if(parts.length<3) return false;
     const dy=parseInt(parts[0],10), dm=parseInt(parts[1],10)-1, dd=parseInt(parts[2],10);
     if(isNaN(dy)||isNaN(dm)||isNaN(dd)) return false;
-    const p=getBudgetPeriod();
-    // Compare as YYYYMMDD integers for fast range check
-    const date=dy*10000+dm*100+dd;
-    const start=p.startY*10000+p.startM*100+p.startD;
-    const end=p.endY*10000+p.endM*100+p.endD;
+    // Use Date objects so year-boundary salary-day periods compare correctly
+    const date =new Date(dy, dm, dd);
+    const p    =getBudgetPeriod();
+    const start=new Date(p.startY, p.startM, p.startD);
+    const end  =new Date(p.endY,   p.endM,   p.endD);
     return date>=start && date<=end;
   }catch(e){ return false; }
 }
 function isCurM(){ const v=vmObj(),c=curM(); return v.m===c.m&&v.y===c.y; }
 function mName() { const v=vmObj(); return tx().months[v.m]+' '+v.y; }
-function prevM() { const v=vmObj(); viewMonth=v.m===0?{m:11,y:v.y-1}:{m:v.m-1,y:v.y}; render(); }
-function nextM() { if(isCurM())return; const v=vmObj(); viewMonth=v.m===11?{m:0,y:v.y+1}:{m:v.m+1,y:v.y}; render(); }
+function prevM() { const v=vmObj(); viewMonth=v.m===0?{m:11,y:v.y-1}:{m:v.m-1,y:v.y}; _invalidateMemo(); render(); }
+function nextM() { if(isCurM())return; const v=vmObj(); viewMonth=v.m===11?{m:0,y:v.y+1}:{m:v.m+1,y:v.y}; _invalidateMemo(); render(); }
 
-function iSpent(name){ return lPx.filter(p=>p.item===name&&p.type!=='income'&&isTM(p.date)).reduce((s,p)=>s+Number(p.amount),0); }
-function totSp()     { return lPx.filter(p=>p.type!=='income'&&isTM(p.date)).reduce((s,p)=>s+Number(p.amount),0); }
-function totIn()     { return lPx.filter(p=>p.type==='income'&&isTM(p.date)).reduce((s,p)=>s+Number(p.amount),0); }
+function iSpent(name){ _ensureMemo(); return _memoByItem[name]||0; }
+function totSp()     { _ensureMemo(); return _memoSp; }
+function totIn()     { _ensureMemo(); return _memoIn; }
 function actU()      { return lCfg.users.find(u=>u.id===localStorage.getItem('nb_uid'))||lCfg.users[0]; }
 function uById(id)   { return lCfg.users.find(u=>u.id===id)||lCfg.users[0]; }
 function statOf(sp,bg){ if(!sp)return'none'; const r=sp/bg; return r>=1?'over':r>=.8?'near':'ok'; }
@@ -1416,26 +1506,42 @@ async function checkBio(){
       publicKey:{
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         rpId: location.hostname,
-        allowCredentials:[{ type:'public-key', id:_fromB64url(credId), transports:['internal'] }],
+        allowCredentials:[{ type:'public-key', id:_fromB64url(credId) }],
         userVerification:'required', timeout:30000
       }
     });
     return true;
-  }catch(e){ return false; }
+  }catch(e){
+    if(e.name!=='NotAllowedError'){
+      // NotAllowedError = user cancelled/dismissed — expected. Anything else is worth logging.
+      console.warn('[checkBio] Unexpected WebAuthn error:', e.name, e.message);
+    }
+    return false;
+  }
 }
 
 async function tryBioUnlock(){
-  if(!curUser||!hhId){ toast('Session not ready — enter PIN','e'); return; }
+  if(!curUser){ toast('Please wait, loading...','e'); return; }
+  const hid = hhId || _pendingHid;
+  if(!hid){ toast('Session not ready — enter PIN','e'); return; }
   toast('Waiting for fingerprint...','i');
   const ok = await checkBio();
-  if(ok){ hidePIN(); bootApp(); toast('Welcome back!','s'); }
-  else{ toast('Biometric failed — use your PIN','e'); }
+  if(ok){
+    hidePIN();
+    if(!hhId){ hhId=hid; connectHH(hid); }
+    toast('Welcome back!','s');
+  } else { toast('Biometric failed — use your PIN','e'); }
 }
 
 async function triggerBio(){
-  if(!curUser||!hhId) return;
+  if(!curUser) return;
+  const hid = hhId || _pendingHid;
+  if(!hid) return;
   const ok = await checkBio();
-  if(ok){ hidePIN(); bootApp(); }
+  if(ok){
+    hidePIN();
+    if(!hhId){ hhId=hid; connectHH(hid); } else { bootApp(); }
+  }
 }
 
 function removeBio(){
@@ -1447,22 +1553,23 @@ function removeBio(){
 // -- Delete Account --
 function openDeleteAccount(){
   if(!curUser){toast('Not signed in','e');return;}
-  const firstName = curUser.displayName ? curUser.displayName.split(' ')[0] : 'your account';
+  const isCWdel = lang === 'cw';
+  const firstName = curUser.displayName ? curUser.displayName.split(' ')[0] : (isCWdel ? 'akaunti yanu' : 'your account');
   // Step 1 — warning modal
   const box = g('mb-confirm');
   box.innerHTML = ''
     +'<div style="text-align:center;padding:10px 0 6px">'
     +'<div style="width:56px;height:56px;border-radius:18px;background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
     +'<i data-lucide="trash-2" style="width:28px;height:28px;color:#C62828"></i></div>'
-    +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;color:#C62828;margin-bottom:8px">Delete Account?</div>'
-    +'<div style="font-size:.82rem;color:var(--mid);line-height:1.6;margin-bottom:4px">You are about to delete <strong style=\"color:var(--ink)\">'+firstName+' account</strong> and all household data.</div>'
+    +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;color:#C62828;margin-bottom:8px">'+(isCWdel?'Muchotse Akaunti?':'Delete Account?')+'</div>'
+    +'<div style="font-size:.82rem;color:var(--mid);line-height:1.6;margin-bottom:4px">'+(isCWdel?'Mukufuna kuchotsa akaunti ya <strong style="color:var(--ink)">'+firstName+'</strong> ndi data yonse ya nyumba.':'You are about to delete <strong style="color:var(--ink)">'+firstName+' account</strong> and all household data.')+'</div>'
     +'<div style="background:#FFF3E0;border:1.5px solid #FFB74D;border-radius:10px;padding:9px 12px;margin:10px 0;font-size:.76rem;color:#E65100;line-height:1.6;text-align:left">'
     +'<i data-lucide="alert-triangle" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"></i>'
-    +'Your data is kept for <strong>30 days</strong>. Log back in within 30 days to restore it. After that, it is gone permanently.'
+    +(isCWdel?'Data yanu isungidwa kwa <strong>masiku 30</strong>. Lowani m\'pulogalamuyi mkati mwa masiku 30 kuti muibweze. Atatha, imatha kwathunthu.':'Your data is kept for <strong>30 days</strong>. Log back in within 30 days to restore it. After that, it is gone permanently.')
     +'</div></div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
-    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">Cancel</button>'
-    +'<button style="flex:1;background:linear-gradient(135deg,#C62828,#E53935);color:#fff;border:none;border-radius:12px;padding:12px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(198,40,40,.3)" onclick="closeM(\'mv-confirm\');_confirmDeleteAccount()">Delete Account</button>'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCWdel?'Lekani':'Cancel')+'</button>'
+    +'<button style="flex:1;background:linear-gradient(135deg,#C62828,#E53935);color:#fff;border:none;border-radius:12px;padding:12px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(198,40,40,.3)" onclick="closeM(\'mv-confirm\');_confirmDeleteAccount()">'+(isCWdel?'Chotsani Akaunti':'Delete Account')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
   openM('mv-confirm');
@@ -1477,14 +1584,16 @@ function _confirmDeleteAccount(){
       deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
       deletedBy:uid,
       restoreBefore:new Date(Date.now()+30*24*60*60*1000).toISOString()
-    }).catch(()=>{}));
+    }));
   }
   promises.push(db.collection('users').doc(uid).update({
     deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
-    pendingDeletion:true
-  }).catch(()=>{}));
+    pendingDeletion:true,
+    // Remove this household from ownedHouseholds so the count stays accurate
+    ownedHouseholds:hhId?firebase.firestore.FieldValue.arrayRemove(hhId):firebase.firestore.FieldValue.delete()
+  }));
   Promise.all(promises).then(()=>{
-    toast('Account scheduled for deletion. You have 30 days to restore it.','i');
+    toast(lang==='cw'?'Akaunti ikuthetsedwa. Muli ndi masiku 30 kuti muibweze.':'Account scheduled for deletion. You have 30 days to restore it.','i');
     setTimeout(()=>{
       chatHistory=[];
       curUser.delete().catch(()=>{ auth.signOut().catch(()=>{}); });
@@ -1495,7 +1604,7 @@ function _confirmDeleteAccount(){
       hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[];
       show('scr-auth');
     },2000);
-  }).catch(()=>toast('Error -- try again','e'));
+  }).catch(()=>toast('Could not schedule deletion — check your connection and try again.','e'));
 }
 function removePIN(){ localStorage.removeItem('nb_pin'); toast(tx().pinOff); go('stg'); }
 
@@ -1808,9 +1917,9 @@ function createHHSolo(){
   // Check household limit — max 2
   db.collection('users').doc(curUser.uid).get().then(uDoc=>{
     const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
-    if(ownedHH.length >= 2){
+    if(ownedHH.length >= 5){
       setDot('off');
-      setupErr('You already have 2 households (the maximum). Delete one before creating a new one.');
+      setupErr('You already have 5 households (the maximum). Delete one before creating a new one.');
       return;
     }
     const code=randCode();
@@ -1838,9 +1947,9 @@ function createHH(){
   // Check household limit — max 2
   db.collection('users').doc(curUser.uid).get().then(uDoc=>{
     const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
-    if(ownedHH.length >= 2){
+    if(ownedHH.length >= 5){
       setDot('off');
-      setupErr('You already have 2 households (the maximum). Delete one before creating a new one.');
+      setupErr('You already have 5 households (the maximum). Delete one before creating a new one.');
       return;
     }
     const code=randCode();
@@ -1866,38 +1975,86 @@ function joinHH(){
   db.collection('households').doc(code).get()
     .then(doc=>{
       if(!doc.exists){setDot('off');setupErr('Household not found. Check the code.');return;}
-      // Check join code expiry
       const hhData=doc.data();
       if(hhData.joinCodeExpiry && Date.now() > hhData.joinCodeExpiry){
         setDot('off');
         setupErr('This household code has expired. Ask the owner to share a new one.');
         return;
       }
-      const saves=[];
-      saves.push(db.collection('users').doc(curUser.uid).set({householdId:code,displayName:curUser.displayName||curUser.email||'User'},{merge:true}));
-      saves.push(db.collection('households').doc(code).update({memberUids:firebase.firestore.FieldValue.arrayUnion(curUser.uid)}));
-      return Promise.all(saves).then(()=>{
-        localStorage.setItem('nb_household',code);
-        if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
-        hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Joined!');
-      });
+      // Step 1: update own user doc first (always permitted by rules)
+      return db.collection('users').doc(curUser.uid)
+        .set({householdId:code,displayName:curUser.displayName||curUser.email||'User'},{merge:true})
+        .then(()=>{
+          // Step 2: try direct memberUids update
+          return db.collection('households').doc(code)
+            .update({memberUids:firebase.firestore.FieldValue.arrayUnion(curUser.uid)});
+        })
+        .then(()=>{
+          localStorage.setItem('nb_household',code);
+          if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+          hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Joined!','s');
+        })
+        .catch(e=>{
+          if(e.code==='permission-denied'||(e.message&&e.message.indexOf('permissions')>-1)){
+            // FIRESTORE RULE NEEDED — add this rule for households/{hhId} allow update:
+            //   || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+            //      && request.resource.data.memberUids.toSet()
+            //           .difference(resource.data.memberUids.toSet())==[request.auth.uid].toSet())
+            // Fallback: write a joinRequest — owner will auto-process on next open
+            return db.collection('households').doc(code).collection('joinRequests')
+              .doc(curUser.uid).set({
+                uid:curUser.uid,
+                displayName:curUser.displayName||curUser.email||'User',
+                requestedAt:firebase.firestore.FieldValue.serverTimestamp()
+              })
+              .then(()=>{
+                localStorage.setItem('nb_household',code);
+                if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+                hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code);
+                toast('Join request sent — owner will approve shortly','i');
+              })
+              .catch(e2=>{ setDot('off'); setupErr('Cannot join: '+e2.message); });
+          }
+          setDot('off'); setupErr('Error: '+e.message);
+        });
     })
     .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
 }
 
 function connectHH(code){
   hhId=code; loadChatHistory(); setDot('spin');
-  db.collection('households').doc(code).onSnapshot(doc=>{
+  // Unsubscribe previous household document listener to prevent memory leak
+  if(unsubHH){ unsubHH(); unsubHH=null; }
+  unsubHH=db.collection('households').doc(code).onSnapshot(doc=>{
     if(doc.exists){ const d=doc.data();
       lHHDoc = d; // FIX 3: capture full doc so isPremium at root level is visible
       lCfg=d.config||JSON.parse(JSON.stringify(DEF_CFG)); if(!lCfg.goals)lCfg.goals=[];
+      // Auto-process pending join requests if current user is the household owner
+      if(curUser&&d.owner===curUser.uid){
+        db.collection('households').doc(code).collection('joinRequests').get().then(jSnap=>{
+          if(jSnap.empty)return;
+          const uids=jSnap.docs.map(jd=>jd.data().uid).filter(Boolean);
+          if(!uids.length)return;
+          const jBatch=db.batch();
+          jSnap.docs.forEach(jd=>jBatch.delete(jd.ref));
+          jBatch.update(db.collection('households').doc(code),{memberUids:firebase.firestore.FieldValue.arrayUnion(...uids)});
+          jBatch.commit().then(()=>toast(uids.length+' new member'+(uids.length>1?'s':'')+' joined!','s'));
+        }).catch(()=>{});
+      }
       let _mg=false;
       DEF_ITEMS.filter(di=>di.name!=='Paraffin').forEach(di=>{if(!lCfg.items.find(it=>it.name===di.name)){lCfg.items.push(di);_mg=true;}});
       const _pi=lCfg.items.findIndex(it=>it.name==='Paraffin');
       if(_pi>-1){lCfg.items.splice(_pi,1);_mg=true;}
       if(_mg)saveCfg(lCfg);
       setDot(''); updatePill(); render(); }
-  },()=>setDot('off'));
+  }, err=>{
+    setDot('off');
+    console.warn('[connectHH] Household snapshot error:', err.code);
+    toast(lang==='cw'
+      ? 'Kulumikizana kwathyolewa: '+(err.code||'error')+'. Yesaninso.'
+      : 'Sync lost: '+(err.code||'unknown')+'. Check connection and refresh.',
+    'e');
+  });
   if(unsub)unsub();
   // Try ordering by createdAt (works for all versions of data)
   // If that fails (no index), fall back to unordered and sort client-side
@@ -1913,24 +2070,33 @@ function connectHH(code){
         if(ta&&tb) return tb-ta;
         return (b.date||'').localeCompare(a.date||'');
       });
+      _invalidateMemo(); // Clear performance cache when data changes
       setDot(''); render();
-      checkAndAddRecurring();
+      clearTimeout(window._recurTimer);
+      window._recurTimer = setTimeout(checkAndAddRecurring, 2500);
     }, err=>{
       if(field&&(err.code==='failed-precondition'||err.code==='unimplemented')){
         // Index not ready or field missing, try without ordering
         if(unsub) unsub();
         unsub=tryConnect(null);
-      } else { setDot('off'); }
+      } else { toast('Connection lost: '+(err&&err.code||'unknown'),'e'); setDot('off'); }
     });
   };
   unsub=tryConnect('createdAt');
   applyLang();
 }
 
-function saveCfg(cfg){ if(!cfg.goals)cfg.goals=[]; lCfg=cfg; if(hhId){setDot('spin');db.collection('households').doc(hhId).update({config:cfg}).then(()=>setDot('')).catch(()=>setDot('off'));} }
-function addPx(p){ if(!hhId){toast('Not connected','e');return;} setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(()=>{toast('Sync error','e');setDot('off');}); }
-function updPx(id,data){ if(!hhId)return; setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(()=>setDot('off')); }
-function delPx(id){ if(!hhId)return; setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(()=>setDot('off')); }
+function saveCfg(cfg){ if(!cfg.goals)cfg.goals=[]; lCfg=cfg; if(hhId){setDot('spin');db.collection('households').doc(hhId).update({config:cfg}).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error'),'e');setDot('off');});} }
+function addPx(p){
+  if(!hhId){toast('Not connected','e');return;}
+  const amt=Number(p.amount);
+  if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Please enter a valid amount','e');return;}
+  const itemName=String(p.item||'').trim();
+  if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return;}
+  setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied — check Firestore rules':'Sync error: '+(e&&e.code||'unknown'); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
+}
+function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
+function delPx(id){ if(!hhId)return; setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
 
 
 function appConfirm(msg, onOk, okLabel, danger){
@@ -1963,7 +2129,16 @@ function logout(){
 // 8. NAV, LANG, RENDER
 // ===============================================
 
-function go(t){ tab=t; srchQ=''; logType='expense'; document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); const nb=g('nb-'+t)||(t==='hist'||t==='sum'?g('nb-insights'):null); if(nb)nb.classList.add('on'); render(); const v=g('view'); if(v)v.scrollTop=0; }
+function go(t){ 
+  tab=t; srchQ=''; logType='expense'; 
+  // Reset month view when navigating to Home so users always see current month
+  if(t==='home'){ viewMonth=null; _invalidateMemo(); }
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); 
+  const nb=g('nb-'+t)||(t==='hist'||t==='sum'?g('nb-insights'):null); 
+  if(nb)nb.classList.add('on'); 
+  render(); 
+  const v=g('view'); if(v)v.scrollTop=0; 
+}
 // ── Recurring items: auto-add on new budget period ──
 function checkAndAddRecurring(){
   if(!hhId||!lPx||!lCfg) return;
@@ -1988,7 +2163,10 @@ function checkAndAddRecurring(){
            qty:px.qty||'',unit:px.unit||'',notes:'(auto-recurring)',userId:uid,type:'expense',recurring:true});
   });
   localStorage.setItem(KEY,periodStart);
-  toast(actuallyAdd.length+' recurring item'+(actuallyAdd.length>1?'s':'')+' added for this period 🔄','s');
+  toast(lang==='cw'
+    ? actuallyAdd.length+' zinthu zofanananso zaonjezedwa kwa nthawi ino 🔄'
+    : actuallyAdd.length+' recurring item'+(actuallyAdd.length>1?'s':'')+' added for this period 🔄',
+  's');
 }
 
 function render(){
@@ -2018,29 +2196,148 @@ function updatePill(){
   if(aps)aps.textContent=tx().appSub;
 }
 
-// ===============================================
-// 9. HOME
-// ===============================================
+// ── 6-Month Spending Trend ──
+function getLast6MonthsData(){
+  const now=new Date();
+  const months=[];
+  for(let i=5;i>=0;i--){
+    let m=now.getMonth()-i, y=now.getFullYear();
+    if(m<0){m+=12;y--;}
+    const prefix=y+'-'+String(m+1).padStart(2,'0');
+    const monthPx=lPx.filter(p=>p.date&&p.date.startsWith(prefix)&&!p.deleted);
+    const sp=monthPx.filter(p=>p.type!=='income').reduce((s,p)=>s+Number(p.amount||0),0);
+    const inc=monthPx.filter(p=>p.type==='income').reduce((s,p)=>s+Number(p.amount||0),0);
+    months.push({label:tx().months[m],month:m,year:y,spent:sp,income:inc,prefix});
+  }
+  return months;
+}
 
+function getSpendingStreak(){
+  const bg=lCfg.overallBudget;
+  if(!bg||!lPx.length) return 0;
+  const weeklyBudget=bg/4.33;
+  let streak=0;
+  const now=new Date();
+  for(let w=0;w<12;w++){
+    const wEnd=new Date(now); wEnd.setDate(now.getDate()-w*7);
+    const wStart=new Date(wEnd); wStart.setDate(wEnd.getDate()-7);
+    const wStr1=wStart.toISOString().split('T')[0];
+    const wStr2=wEnd.toISOString().split('T')[0];
+    const wSpent=lPx.filter(function(p){return p.date&&p.date>=wStr1&&p.date<=wStr2&&p.type!=='income'&&!p.deleted;})
+      .reduce(function(s,p){return s+Number(p.amount||0);},0);
+    if(wSpent<weeklyBudget&&wSpent>0) streak++;
+    else if(w>0) break;
+    else if(wSpent===0&&w===0) continue;
+  }
+  return streak;
+}
+
+function renderTrendChart(months){
+  if(!months||!months.length) return '';
+  const isCW=lang==='cw';
+  // Use max of both spent AND income to scale the chart
+  const maxVal=Math.max.apply(null,months.map(function(m){return Math.max(m.spent,m.income||0);}));
+  if(maxVal<=0) return '';
+  const now=new Date();
+  const bg=lCfg.overallBudget||0;
+  const BAR_H=104; // chart column height in px
+  let h='<div class="card" style="overflow:hidden">';
+  h+='<div class="ch">';
+  h+='<h2><i data-lucide="trending-up" style="width:16px;height:16px;margin-right:6px;color:var(--p1)"></i>';
+  h+=(isCW?'Kuona kwa Miyezi 6':'6-Month Overview')+'</h2>';
+  // Inline legend — Spent + Income
+  h+='<div style="display:flex;gap:8px;align-items:center">';
+  h+='<span style="display:inline-flex;align-items:center;gap:3px;font-size:.58rem;font-weight:700;color:var(--mid)">';
+  h+='<span style="width:8px;height:8px;border-radius:2px;background:var(--p1);display:inline-block"></span>'+(isCW?'Zogula':'Spent')+'</span>';
+  h+='<span style="display:inline-flex;align-items:center;gap:3px;font-size:.58rem;font-weight:700;color:var(--mid)">';
+  h+='<span style="width:8px;height:8px;border-radius:2px;background:#2E7D32;display:inline-block"></span>'+(isCW?'Malipiro':'Income')+'</span>';
+  h+='</div></div>';
+  h+='<div style="padding:12px 14px 10px">';
+  // Chart area with budget reference line
+  h+='<div style="position:relative;height:'+BAR_H+'px;margin-bottom:8px">';
+  // Dashed budget reference line
+  if(bg>0){
+    const budgetLineH=Math.min(Math.round(bg/maxVal*BAR_H),BAR_H-4);
+    h+='<div style="position:absolute;left:0;right:0;bottom:'+budgetLineH+'px;border-top:1.5px dashed rgba(123,31,162,.35);z-index:1;pointer-events:none">';
+    h+='<span style="position:absolute;right:0;top:-9px;font-size:.5rem;font-weight:800;color:var(--p1);opacity:.7;background:var(--surface);padding:0 3px;border-radius:3px">'+(isCW?'Bajeti':'Budget')+'</span>';
+    h+='</div>';
+  }
+  // Bars row
+  h+='<div style="display:flex;align-items:flex-end;gap:3px;height:'+BAR_H+'px;position:relative;z-index:2">';
+  months.forEach(function(m){
+    const isThis=m.month===now.getMonth()&&m.year===now.getFullYear();
+    const isOver=bg>0&&m.spent>bg;
+    const spH=maxVal>0?Math.max(Math.round(m.spent/maxVal*BAR_H),m.spent>0?3:0):0;
+    const incH=maxVal>0?Math.max(Math.round((m.income||0)/maxVal*BAR_H),(m.income||0)>0?3:0):0;
+    const spColor=isThis?(isOver?'linear-gradient(180deg,#FF5252,#C62828)':'linear-gradient(180deg,var(--p2),var(--p1))'):(isOver?'rgba(198,40,40,.4)':'rgba(123,31,162,.22)');
+    const spShadow=isThis&&!isOver?';box-shadow:0 2px 8px rgba(123,31,162,.35)':'';
+    const incColor=isThis?'#2E7D32':'rgba(46,125,50,.3)';
+    // Each month column: tappable, navigates to that month in History
+    const monthLabel=tx().months[m.month];
+    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="viewMonth={m:'+m.month+',y:'+m.year+'};go(&quot;insights&quot;);insTab=&quot;hist&quot;">';
+    h+='<div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:1px;position:relative">';
+    // Amount label above current month spend bar only
+    if(isThis&&m.spent>0){
+      h+='<div style="position:absolute;bottom:calc(100% + 2px);left:0;right:0;text-align:center;font-size:.5rem;font-weight:800;color:var(--p1);white-space:nowrap">'+MKs(m.spent)+'</div>';
+    }
+    // Spend bar (takes ~60% of column width)
+    h+='<div style="flex:3;height:'+spH+'px;background:'+spColor+';border-radius:4px 4px 2px 2px'+spShadow+'"></div>';
+    // Income bar (takes ~40% of column width — only shown when income exists)
+    if(m.income>0){
+      h+='<div style="flex:2;height:'+incH+'px;background:'+incColor+';border-radius:4px 4px 2px 2px"></div>';
+    } else {
+      h+='<div style="flex:2"></div>';
+    }
+    h+='</div>';
+    h+='<div style="font-size:.58rem;font-weight:700;color:'+(isThis?'var(--p1)':'var(--mid)')+'">'+(isThis?'<strong>':'')+monthLabel+(isThis?'</strong>':'')+'</div>';
+    h+='</div>';
+  });
+  h+='</div></div>'; // close bars row + relative wrapper
+  // Footer: month-over-month change badge + current month projection
+  h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+  const last=months[5],prev=months[4];
+  if(last&&prev&&prev.spent>0){
+    const chg=Math.round((last.spent-prev.spent)/prev.spent*100);
+    const up=chg>0;
+    h+='<div class="bdiff-badge '+(up?'bdiff-dn':'bdiff-up')+'">'+(up?'&uarr;':'&darr;')+Math.abs(chg)+'% vs last mo</div>';
+  } else {
+    h+='<div style="font-size:.63rem;color:var(--mid)"><i data-lucide="bar-chart-2" style="width:11px;height:11px;margin-right:3px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Gawani pa mwezi':'Monthly trend')+'</div>';
+  }
+  // End-of-month spending projection for current month
+  if(last&&last.spent>0&&bg>0){
+    const todayD=new Date();
+    const daysInMonth=new Date(todayD.getFullYear(),todayD.getMonth()+1,0).getDate();
+    const daysPassed=todayD.getDate();
+    if(daysPassed<daysInMonth&&daysPassed>0){
+      const projected=Math.round(last.spent/daysPassed*daysInMonth);
+      const projOver=projected>bg;
+      h+='<div style="font-size:.6rem;font-weight:800;color:'+(projOver?'#C62828':'#2E7D32')+'">&#8594; '+MKs(projected)+' proj.</div>';
+    }
+  }
+  h+='</div></div></div>';
+  return h;
+}
 function rHome(){
   const t=tx(), sp=totSp(), inc=totIn(), bg=lCfg.overallBudget, rem=bg-sp, pct=Math.min(sp/bg,1);
   const circ=2*Math.PI*32, off=circ*(1-pct), stroke=pct>=1?'#FF5252':pct>=.8?'#FFD54F':'#69F0AE';
-  const recent=lPx.filter(p=>isTM(p.date)).slice(0,5);
+  const recent=lPx.filter(p=>isTM(p.date)&&!p.deleted).slice(0,5);
   const over=lCfg.items.filter(it=>iSpent(it.name)>it.budget).length;
   const near=lCfg.items.filter(it=>{const r=iSpent(it.name)/it.budget;return r>=.8&&r<1;}).length;
   const ok=lCfg.items.filter(it=>{const s=iSpent(it.name);return s>0&&s<it.budget*.8;}).length;
-  const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income').length;
+  const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income'&&!p.deleted).length;
+  const streak=getSpendingStreak();
+  const isCW=lang==='cw';
   let h='<div class="page">';
   h+=getTrialBanner();
-  h+='<div class="mnav"><button class="mnbtn" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
-  if(lCfg&&lCfg.salaryDay) h+='<div style="text-align:center;margin:-4px 0 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:.66rem;font-weight:700;color:var(--p1);background:var(--p1)18;padding:3px 10px;border-radius:20px;letter-spacing:.1px"><i data-lucide="calendar-check" style="width:11px;height:11px"></i>'+budgetPeriodLabel()+'</span></div>';
+  h+='<div class="mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
+  if(lCfg&&lCfg.salaryDay) h+='<div style="text-align:center;margin:-4px 0 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:.66rem;font-weight:700;color:var(--p1);background:rgba(123,31,162,.1);padding:3px 10px;border-radius:20px;letter-spacing:.1px"><i data-lucide="calendar-check" style="width:11px;height:11px"></i>'+budgetPeriodLabel()+'</span></div>';
   h+='<div class="hero2">';
   h+='<div class="h2-top">';
   h+='<div class="h2-ring"><svg viewBox="0 0 80 80" width="78" height="78" style="transform:rotate(-90deg)"><circle fill="none" stroke="rgba(255,255,255,.14)" stroke-width="8" cx="40" cy="40" r="32"/><circle fill="none" stroke="'+stroke+'" stroke-width="8" stroke-linecap="round" cx="40" cy="40" r="32" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
   h+='<div class="h2-rlbl"><b>'+Math.round(pct*100)+'%</b><span>used</span></div></div>';
   h+='<div class="h2-main">';
   h+='<div class="h2-lbl">'+t.left+' this month</div>';
-  h+='<div class="h2-bal'+(rem<0?' danger':'')+'">'+(rem<0?'- '+MKs(-rem):MKs(rem))+'</div>';
+  h+='<div class="h2-bal'+(rem<0?' danger':'')+'">'+( rem<0?'- '+MKs(-rem):MKs(rem))+'</div>';
   h+='<div class="h2-sub">of '+MKs(bg)+' monthly budget</div>';
   h+='</div></div>';
   h+='<div class="h2-cols">';
@@ -2050,37 +2347,98 @@ function rHome(){
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">Entries</div><div class="h2-cv">'+cnt+'</div></div>';
   h+='</div></div>';
-  h+='<div class="chips"><div class="chip cP"><div class="chip-lbl">Purchases</div><div class="chip-val">'+cnt+'</div><div class="chip-sub">this month</div></div><div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">Over Budget</div><div class="chip-val">'+over+'</div><div class="chip-sub">items</div></div><div class="chip cO"><div class="chip-lbl">Near Limit</div><div class="chip-val">'+near+'</div><div class="chip-sub">items</div></div><div class="chip cG"><div class="chip-lbl">On Track</div><div class="chip-val">'+ok+'</div><div class="chip-sub">items</div></div></div>';
-  h+='<div class="card"><div class="ch"><h2>'+t.recent+'</h2><button class="btnG" onclick="insTab=\'hist\';go(\'insights\')" style="padding:5px 10px;font-size:.72rem">'+t.viewAll+'</button></div><div class="cb" style="padding:4px 15px 12px">';
+  if(streak>=2){
+    const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
+    const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';
+    const streakMsg=streak>=8?(isCW?'Masabata '+streak+' opitilira bajeti!':streak+' weeks strong!')
+      :streak>=4?(isCW?'Bwino kwambiri! Masabata '+streak:('Great work! '+streak+' wks under budget'))
+      :(isCW?'Masabata 2 opitilira bajeti!':'2 weeks under budget!');
+    h+='<div class="streak-chip"><div class="streak-ico" style="width:36px;height:36px;border-radius:10px;background:'+streakColor+'1A;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+streakIcon+'" style="width:18px;height:18px;color:'+streakColor+'"></i></div><div class="streak-main"><div class="streak-ttl">'+(isCW?'Cholowetsa Bajeti':'Budget Streak')+'</div><div class="streak-sub">'+streakMsg+'</div></div></div>';
+  }
+  h+='<div class="chips"><div class="chip cP"><div class="chip-lbl">'+(isCW?'Zogulidwa':'Purchases')+'</div><div class="chip-val">'+cnt+'</div><div class="chip-sub">'+(isCW?'mwezi uno':'this month')+'</div></div>';
+  h+='<div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yavuka':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">items</div></div>';
+  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">items</div></div>';
+  h+='<div class="chip cG"><div class="chip-lbl">'+(isCW?'Zabwino':'On Track')+'</div><div class="chip-val">'+ok+'</div><div class="chip-sub">items</div></div></div>';
+  h+=renderTrendChart(getLast6MonthsData());
+  h+='<div class="card"><div class="ch"><h2>'+t.recent+'</h2><button class="btnG" onclick="insTab=&quot;hist&quot;;go(&quot;insights&quot;)" style="padding:5px 10px;font-size:.72rem">'+t.viewAll+'</button></div><div class="cb" style="padding:4px 15px 12px">';
   if(recent.length){
-        recent.forEach(p=>{
+    recent.forEach(p=>{
       const u=uById(p.userId),isI=p.type==='income';
-      const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item)]||'#7B1FA2');
-      h+='<div class="pri">'
-        +'<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>'
-        +'<div class="prinfo"><div class="prname">'+esc(p.item)+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>'
-        +(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'')
-        +'<div class="prmeta"><span class="prdate">'+p.date+'</span>'
-        +'<span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span></div></div>'
-        +'<div class="pramt '+(isI?'inc':'exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
+      const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
+      h+='<div class="pri">';
+      h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
+      h+='<div class="prinfo"><div class="prname">'+esc(p.item)+(isBadItemName(p.item)?' <span title="This entry needs a proper name" style="color:#E65100;font-size:.8em">⚠️</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
+      h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
+      h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
+      h+='<span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span></div></div>';
+      h+='<div class="pramt '+(isI?'inc':'exp')+'">'+(isI?'+ ':'- ')+MK(p.amount)+'</div></div>';
     });
-  } else { h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div><p><strong>'+(lang==='cw'?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span></p></div>'; }
+  } else {
+    h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>';
+    h+='<p><strong>'+(isCW?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span></p></div>';
+  }
   h+='</div></div></div>';
   g('view').innerHTML=h;
-  if(logType==='income'){const ot=document.getElementById('inc-t-ot');if(ot){ot.classList.add('on');}}
 }
-function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(hhId);toast(tx().codeCopied,'i');} }
+function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(hhId).then(()=>toast(tx().codeCopied,'i')).catch(()=>toast(tx().codeCopied,'i'));} }
 function waCode(){ if(hhId)window.open('https://wa.me/?text='+encodeURIComponent('Join my Bajeti Yanga!\nCode: '+hhId+'\n\nOpen the app and tap Join Household.'),'_blank'); }
 
-// ===============================================
-// 10. LOG
-// ===============================================
+// ── QR Code generator (no library needed — uses a minimal pure-JS QR encoder) ──
+function openQRCode(){
+  if(!hhId){ toast('No household code','e'); return; }
+  const isCW=lang==='cw';
+  const joinUrl='https://rodart265.github.io/bajeti-yanga/?join='+hhId;
+  let h='<div class="dh"></div>';
+  h+='<h3><i data-lucide="qr-code" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Kodi ya QR':'QR Code')+'</h3>';
+  h+='<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px;line-height:1.5">';
+  h+=(isCW?'Gwiritsani ntchito QR code kuti musonkhanitsa anthu a nyumba yanu msanga.':'Let others scan this QR code to join your household instantly.')+'</p>';
+  h+='<div style="display:flex;justify-content:center;margin-bottom:16px">';
+  h+='<div style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 24px rgba(123,31,162,.15);border:2px solid var(--border)">';
+  h+='<canvas id="qr-canvas" width="200" height="200" style="display:block;border-radius:8px"></canvas>';
+  h+='</div></div>';
+  h+='<div style="background:var(--mist);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
+  h+='<div><div style="font-size:.66rem;font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Kodi ya Nyumba':'Household Code')+'</div>';
+  h+='<div style="font-family:monospace;font-weight:800;font-size:1.1rem;color:var(--ink);letter-spacing:2px">'+hhId+'</div></div>';
+  h+='<button onclick="cpCode()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:5px">';
+  h+='<i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Koperani':'Copy')+'</button>';
+  h+='</div>';
+  h+='<button onclick="waCode();closeM(&quot;mv-u&quot;)" style="width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:12px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">';
+  h+='<i data-lucide="send" style="width:14px;height:14px"></i> '+(isCW?'Tumizani pa WhatsApp':'Share via WhatsApp')+'</button>';
+  h+='<button onclick="closeM(&quot;mv-u&quot;)" class="btnG" style="width:100%">'+(isCW?'Lekani':'Close')+'</button>';
+  g('mb-u').innerHTML=h;
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
+  openM('mv-u');
+  setTimeout(function(){ drawQRCode('qr-canvas', joinUrl); }, 80);
+}
 
+function drawQRCode(canvasId, text){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=function(){ ctx.drawImage(img,0,0,W,H); };
+  img.onerror=function(){
+    ctx.fillStyle='#7B1FA2';
+    ctx.font='bold 13px monospace';
+    ctx.textAlign='center';
+    ctx.fillText('Household Code:', W/2, 80);
+    ctx.font='bold 18px monospace';
+    const code=text.split('?join=')[1]||text;
+    ctx.fillText(code, W/2, 110);
+    ctx.font='12px sans-serif';
+    ctx.fillStyle='#607D8B';
+    ctx.fillText('(offline - copy code above)', W/2, 140);
+  };
+  img.src='https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl='+encodeURIComponent(text)+'&choe=UTF-8&chld=M|2';
+}
 function rLog(){
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
   h+='<button class="magic-btn" onclick="openMagicLog()"><i data-lucide="wand-2" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(lang==='cw'?'Koperani SMS (Airtel/Mpamba) kapena Lembani':'Magic Log (Paste SMS or Type)')+'</button>';
-  h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(\'expense\')"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(\'income\')"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
+  h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" onclick="setU(\''+u.id+'\')">'+'<div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+name+'</div>';}).join('');
@@ -2107,10 +2465,10 @@ function rLog(){
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Mtundu wa Ndalama':'Income Type')+'</label><div class="type-tog" style="margin-bottom:8px"><button class="tt inc" id="inc-t-ot" onclick="setIncType(this,0)"><i data-lucide="receipt" style="margin-right:3px"></i> '+(lang==='cw'?'Kamodzi Basi':'One Time')+'</button><button class="tt inc" id="inc-t-rc" onclick="setIncType(this,1)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+(lang==='cw'?'Nthawi Zonse':'Recurring')+'</button></div></div>';
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Gwero la Ndalama':'Source')+'</label><select class="fs" id="inc-src"><option value="Salary/Income">Salary / Income</option><option value="Business Income">Business Income</option><option value="Farm Income">Farm Income</option><option value="Other Income">Other Income</option></select></div>';
   }
-  h+='<div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="fa" placeholder="0" inputmode="numeric"></div>';
+  h+='<div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="fa" placeholder="0" inputmode="numeric" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}"></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="fd" value="'+today()+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ft" value="'+nowTime()+'"></div></div>';
   if(logType==='expense'){const _hn=selItem!==null?(lCfg.items[selItem]||{}).name:'';if(!NO_QTY_ITEMS.includes(_hn))h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="fq" placeholder="1" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="fu">'+t.units.map(u=>'<option>'+u+'</option>').join('')+'</select></div></div>';}
-  h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="fn" placeholder="e.g. Bought at Chipiku..."></div>';
+  h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="fn" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}" placeholder="e.g. Bought at Chipiku..."></div>';
   if(logType==='expense')h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><input type="checkbox" id="frc" style="width:17px;height:17px;accent-color:var(--p1)"><label for="frc" style="font-size:.78rem;font-weight:600;color:var(--mid)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.recurrYes+'</label></div>';
   h+='<button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div></div></div>';
   g('view').innerHTML=h;
@@ -2162,74 +2520,108 @@ function saveP(){
 // ===============================================
 
 function rHist(){
-  var t=tx();
+  var t=tx(), isCW=lang==='cw';
   var sqEsc=srchQ.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var list=lPx.filter(function(p){return !p.deleted;});
-  list=list.filter(function(p){return isInTimeRange(p.date);});
+  if(histTime==='month'){
+    list=list.filter(function(p){return isTM(p.date);});
+  } else {
+    list=list.filter(function(p){return isInTimeRange(p.date);});
+  }
   if(histFilter==='inc') list=list.filter(function(p){return p.type==='income';});
   else if(histFilter==='exp') list=list.filter(function(p){return p.type!=='income';});
   if(fUser!=='all') list=list.filter(function(p){return p.userId===fUser;});
   if(srchQ) list=list.filter(function(p){return (p.item+' '+(p.notes||'')).toLowerCase().includes(srchQ.toLowerCase());});
+  var listInc=list.filter(function(p){return p.type==='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
+  var listExp=list.filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
 
   var h='<div class="page">';
 
+  // Month navigation when in month mode
+  if(histTime==='month'){
+    h+='<div class="hist-mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button>';
+    h+='<span class="mnlbl"><i data-lucide="calendar-days" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span>';
+    h+='<button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
+  }
+
   // Action buttons row
   h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
-  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> Copy Last Month <i data-lucide="gem" style="margin-right:3px;vertical-align:middle;color:var(--p1)"></i></button>';
-  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Trash <i data-lucide="gem" style="margin-right:3px;vertical-align:middle;color:var(--p1)"></i></button>';
+  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Koperani':'Copy Last Month')+' <i data-lucide="gem" style="width:10px;height:10px;vertical-align:middle;color:var(--p1)"></i></button>';
+  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Bisera':'Trash')+' <i data-lucide="gem" style="width:10px;height:10px;vertical-align:middle;color:var(--p1)"></i></button>';
   h+='</div>';
 
+  // Running totals strip
+  if(list.length>0){
+    h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
+    if(listInc>0) h+='<div style="flex:1;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:10px;padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#1B5E20">Income</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#2E7D32">+'+MKs(listInc)+'</div></div>';
+    if(listExp>0) h+='<div style="flex:1;background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-radius:10px;padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#B71C1C">Spent</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#C62828">'+MKs(listExp)+'</div></div>';
+    h+='<div style="flex:1;background:var(--mist);border-radius:10px;padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">Entries</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
+    h+='</div>';
+  }
+
   // Search
-  h+='<div class="srch-wrap"><input type="text" placeholder="'+t.searchPurchases+'" value="'+sqEsc+'" oninput="doSrch(this.value)"></div>';
+  h+='<div class="srch-wrap"><input type="text" placeholder="'+t.searchPurchases+'" value="'+sqEsc+'" oninput="doSrch(this.value)" aria-label="Search transactions"></div>';
 
   // Time range tabs
   h+='<div class="hist-filter" style="margin-bottom:6px">';
-  h+='<button class="hf'+(histTime==='week'?' on':'')+'" onclick="setHT(this)" data-t="week"><i data-lucide="calendar" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(lang==='cw'?'Sabata':'Week')+'</button>';
-  h+='<button class="hf'+(histTime==='month'?' on':'')+'" onclick="setHT(this)" data-t="month"><i data-lucide="calendar-days" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(lang==='cw'?'Mwezi':'Month')+'</button>';
-  h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year"><i data-lucide="calendar-range" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(lang==='cw'?'Chaka':'Year')+'</button>';
-  h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(lang==='cw'?'Zonse':'All')+'</button>';
+  h+='<button class="hf'+(histTime==='week'?' on':'')+'" onclick="setHT(this)" data-t="week"><i data-lucide="calendar" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Sabata':'Week')+'</button>';
+  h+='<button class="hf'+(histTime==='month'?' on':'')+'" onclick="setHT(this)" data-t="month"><i data-lucide="calendar-days" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Mwezi':'Month')+'</button>';
+  h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year"><i data-lucide="calendar-range" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Chaka':'Year')+'</button>';
+  h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='</div>';
-  // Type filter tabs
   h+='<div class="hist-filter">';
-  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(lang==='cw'?'Zonse':'All')+'</button>';
-  h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(lang==='cw'?'Ndalama Zolowa':'Income')+'</button>';
-  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(lang==='cw'?'Zogula':'Expenses')+'</button>';
+  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Zonse':'All')+'</button>';
+  h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zolowa':'Income')+'</button>';
+  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zogula':'Expenses')+'</button>';
   h+='</div>';
 
   // User filter tags
   h+='<div class="ftags">';
-  h+='<div class="ftag'+(fUser==="all"?" on":"")+'" onclick="setF(&quot;all&quot;)">'+t.all+'</div>';
+  h+='<div class="ftag'+(fUser==="all"?" on":"")+'\" onclick="setF(&quot;all&quot;)">'+t.all+'</div>';
   lCfg.users.forEach(function(u){
     var on=fUser===u.id;
     h+='<div class="ftag'+(on?' on':'')+' ftag-u" onclick="setFU(this)" data-uid="'+u.id+'" style="'+(on?'background:'+u.color+';border-color:'+u.color:'')+'">'+esc(u.name)+'</div>';
   });
   h+='</div>';
 
-  // List
+  // List grouped by date
   if(list.length){
-    list.forEach(function(p){
-      var u=uById(p.userId), isI=p.type==='income';
-      var cc2=isI?'#1B5E20':(CAT_COLORS[catOf(p.item)]||'#7B1FA2');
-      h+='<div class="pli'+(isI?' income-e':'')+'">';
-      h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
-      h+='<div class="plb"><div class="pltop"><div class="plname">'+esc(p.item)+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
-      h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
-      if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
-      h+='<div class="plrow2"><span style="font-size:.64rem;color:var(--mid)">'+p.date+'</span>';
-      h+='<span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span></div>';
-      h+='<div class="plact">';
-      h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+p.id+'">&#9998; '+t.editP+'</button>';
-      h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+p.id+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
-      h+='</div></div></div>';
+    var byDate={};
+    list.forEach(function(p){if(!byDate[p.date])byDate[p.date]=[];byDate[p.date].push(p);});
+    Object.keys(byDate).sort().reverse().forEach(function(date){
+      var dayExp=byDate[date].filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 2px 4px;border-bottom:1.5px solid var(--border);margin-bottom:4px">';
+      h+='<span style="font-size:.66rem;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px">'+fmtDate(date)+'</span>';
+      if(dayExp>0)h+='<span style="font-size:.67rem;font-weight:700;color:var(--r1)">− '+MKs(dayExp)+'</span>';
+      h+='</div>';
+      byDate[date].forEach(function(p){
+        var u=uById(p.userId), isI=p.type==='income';
+        var cc2=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
+        var catLabel=catOf(p.item,p.cat);
+        var badName=isBadItemName(p.item);
+        h+='<div class="pli'+(isI?' income-e':'')+'">';
+        h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
+        h+='<div class="plb"><div class="pltop">';
+        h+='<div class="plname">'+esc(p.item)+(badName?' <span title="This entry needs a proper name" style="color:#E65100;font-size:.75em">⚠️</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.58rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
+        h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
+        if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
+        h+='<div class="plrow2"><span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
+        h+='<div class="plact">';
+        h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+p.id+'">&#9998; '+t.editP+'</button>';
+        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+p.id+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
+        h+='</div></div></div>';
+      });
     });
   } else {
-    h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><p><strong>'+(lang==='cw'?'Palibe zolemba.':'No entries this month.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Yambani kulemba.':'Start tracking your spending.')+'</span></p></div>';
+    h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><p><strong>'+(isCW?'Palibe zolemba.':'No entries found.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Yambani kulemba.':'Try a different filter or time range.')+'</span></p></div>';
   }
   h+='</div>';
   g('view').innerHTML=h;
 }
 
-function doSrch(v){ srchQ=v; rHist(); }
+function doSrch(v){ srchQ=v; _doSrchDebounced(); }
+let _srchTimer=null;
+function _doSrchDebounced(){ clearTimeout(_srchTimer); _srchTimer=setTimeout(()=>rHist(),180); }
 function isInTimeRange(dateStr){
   if(histTime==='all') return true;
   const d=new Date(dateStr), now=new Date();
@@ -2276,7 +2668,7 @@ function openTrash(){
         const u=uById(p.userId);
         const daysLeft=p.deletedAt?Math.max(0,30-Math.floor((Date.now()-new Date(p.deletedAt).getTime())/86400000)):30;
         h+='<div class="trash-item">';
-        h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item)])||'#7B1FA2')+'1A">'+ico(p.item)+'</div>';
+        h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item,p.cat)])||'#7B1FA2')+'1A">'+ico(p.item)+'</div>';
         h+='<div class="trash-info"><div class="trash-name">'+esc(p.item)+'</div>';
         h+='<div class="trash-meta">'+p.date+' · '+esc(u.name)+' · '+daysLeft+'d left in trash</div></div>';
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
@@ -2307,7 +2699,7 @@ function openEP(id){
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+p.date+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+pt+'"></div></div>';
   if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+(p.notes||'').replace(/"/g,'&quot;')+'"></div>';
-  h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-ep\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>';
+  h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>';
   g('mb-ep').innerHTML=h; initIcons(); openM('mv-ep');
 }
 function epU(el,uid){ g('ep-uid').value=uid; el.closest('.usel').querySelectorAll('.usb').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
@@ -2403,7 +2795,7 @@ function rSum(){
     h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2></div><div class="cb">';
     lCfg.goals.forEach((gl,i)=>{
       const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target,mn=goalMonthlyNeed(gl),ml=goalMonthsLeft(gl.deadline);
-      h+='<div class="goal-card" onclick="go(\'mgr\')" style="cursor:pointer'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
+      h+='<div class="goal-card" onclick="go(&quot;mgr&quot;)" style="cursor:pointer'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
       h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+gl.name+'</div><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div></div>';
       h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
       h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
@@ -2446,7 +2838,7 @@ function rMGI(it,i){
   const bcls=st==='over'?'bover':st==='near'?'bnear':st==='ok'?'bok':'bnone';
   const t=tx(),btxt=st==='over'?t.over:st==='near'?t.near:st==='ok'?t.ok:t.none;
   const cc=CAT_COLORS[catOf(it.name)]||'#607D8B';
-  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+it.name+'</span><span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB('+i+')">&#9998;</button><button class="bsm bd" onclick="delIt('+i+'">&#128465;</button></div></div>';
+  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+it.name+'</span><span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB('+i+')">&#9998;</button><button class="bsm bd" onclick="delIt('+i+')">&#128465;</button></div></div>';
 }
 
 function goalMonthsLeft(dl){ if(!dl)return null; const n=new Date(),d=new Date(dl+'T00:00:00'); const m=(d.getFullYear()-n.getFullYear())*12+(d.getMonth()-n.getMonth()); return Math.max(m,0); }
@@ -2465,7 +2857,7 @@ function rMgr(){
     h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div>';
     if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')">&#8593; '+t.topup+'</button>';
     if(!done&&gl.saved>0)h+='<button class="bsm bd" style="padding:3px 8px;font-size:.63rem;background:#FBE9E7;color:#B71C1C;border-color:#FFCCBC" onclick="openWithdraw('+i+')">&#8595; '+(lang==='cw'?'Chotsani':'Withdraw')+'</button>';
-    h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+'">&#128465;</button></div></div>';
+    h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+')">&#128465;</button></div></div>';
     h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
     h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
     if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.65rem;color:#E65100;font-weight:700;background:#FFF3E0;border-radius:7px;padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+' needed'+(ml!==null?' · '+ml+(lang==='cw'?' miyezi':'mths left'):'')+'</div>';
@@ -2475,7 +2867,7 @@ function rMgr(){
   else{h+='<div class="empty" style="padding:10px 0"><p>'+t.noGoals+'</p></div>';}
   h+='</div></div>';
   h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.itemsLbl+'</h2></div>';
-  h+='<div class="sort-bar"><div class="sb'+(sortMode==='cat'?' on':'')+'" onclick="setSort(\'cat\')">&#128193; '+t.sortCat+'</div><div class="sb'+(sortMode==='az'?' on':'')+'" onclick="setSort(\'az\')">'+t.sortAZ+'</div><div class="sb'+(sortMode==='over'?' on':'')+'" onclick="setSort(\'over\')">&#128308; '+t.sortOver+'</div><div class="sb'+(sortMode==='spend'?' on':'')+'" onclick="setSort(\'spend\')">&#128176; '+t.sortSpend+'</div></div>';
+  h+='<div class="sort-bar"><div class="sb'+(sortMode==='cat'?' on':'')+'" onclick="setSort(&quot;cat&quot;)">&#128193; '+t.sortCat+'</div><div class="sb'+(sortMode==='az'?' on':'')+'" onclick="setSort(&quot;az&quot;)">'+t.sortAZ+'</div><div class="sb'+(sortMode==='over'?' on':'')+'" onclick="setSort(&quot;over&quot;)">&#128308; '+t.sortOver+'</div><div class="sb'+(sortMode==='spend'?' on':'')+'" onclick="setSort(&quot;spend&quot;)">&#128176; '+t.sortSpend+'</div></div>';
   const items=lCfg.items;
   if(sortMode==='cat'){['Food','Household','Personal','Transport','Other'].forEach(cat=>{const ci=items.map((it,i)=>({...it,i})).filter(it=>catOf(it.name)===cat);if(!ci.length)return;h+='<div class="cat-hdr"><span style="color:'+CAT_COLORS[cat]+'">'+(t.cats[cat]||cat)+'</span></div>';ci.forEach(it=>h+=rMGI(it,it.i));});}
   else{let sorted=items.map((it,i)=>({...it,i,sp:iSpent(it.name)}));if(sortMode==='az')sorted.sort((a,b)=>a.name.localeCompare(b.name));else if(sortMode==='over')sorted.sort((a,b)=>(b.sp/b.budget)-(a.sp/a.budget));else if(sortMode==='spend')sorted.sort((a,b)=>b.sp-a.sp);sorted.forEach(it=>h+=rMGI(it,it.i));}
@@ -2493,7 +2885,7 @@ function rMgr(){
       const urgent = diff<=3;
       h+='<div class="bill-item">';
       h+='<div class="bill-ico">'+b.icon+'</div>';
-      h+='<div class="bill-info"><div class="bill-name">'+b.name+'</div>';
+      h+='<div class="bill-info"><div class="bill-name">'+esc(b.name)+'</div>';
       h+='<div class="bill-due'+(urgent?' urgent':'')+'">Due: '+b.dueDate+(diff===0?' -- Today!':(diff<0?' -- Overdue!':(diff<=3?' -- '+diff+'d left':'')))+'</div></div>';
       h+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
       h+='<div class="bill-amt">'+MK(b.amount)+'</div>';
@@ -2538,7 +2930,7 @@ function delBill(i){
     '<div style="text-align:center;padding:4px 0 8px">'
     +'<div style="width:48px;height:48px;border-radius:14px;background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
     +'<i data-lucide="trash-2" style="width:24px;height:24px;color:#C62828"></i></div>'
-    +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">Remove <strong style="color:var(--ink)">'+label+'</strong> from your bill tracker?</div></div>',
+    +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">Remove <strong style="color:var(--ink)">'+esc(label)+'</strong> from your bill tracker?</div></div>',
     function(){
       var cfg=JSON.parse(JSON.stringify(lCfg));
       cfg.bills.splice(i,1); saveCfg(cfg); toast('Bill removed','i'); rMgr();
@@ -2572,11 +2964,43 @@ function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); rMgr(); }
 function delMember(i){ appConfirm(tx().confirmDelMember, function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.splice(i,1); saveCfg(cfg); toast(tx().deleted); rMgr(); }, 'Remove', true) }
-function openEB(i){ const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+it.name+'</h3><input type="hidden" id="eb-i" value="'+i+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
+function openEB(i){ const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+it.name+'</h3><input type="hidden" id="eb-i" value="'+i+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
 function svEB(){ const i=parseInt(val('eb-i')),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg));cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); rMgr(); }
-function openAddGoal(){ const t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.addGoal+'</h3><div class="fsec"><label class="fl">'+t.goalName+'</label><input type="text" class="fi" id="g-nm" placeholder="e.g. New TV, School Fees..."></div><div class="fsec"><label class="fl">'+t.goalTarget+'</label><input type="number" class="fi" id="g-tg" inputmode="numeric" placeholder="e.g. 150000"></div><div class="fsec"><label class="fl">'+t.goalSaved+' (optional)</label><input type="number" class="fi" id="g-sv" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveGoal()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
-function saveGoal(){ const nm=val('g-nm').trim(),tg=parseFloat(val('g-tg')),sv=parseFloat(val('g-sv'))||0; if(!nm){toast(lang==='cw'?'Lowetsani dzina la cholinga':'Enter a goal name','e');return;} if(!tg||isNaN(tg)||tg<=0||tg>99999999){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Enter a valid target amount','e');return;} if(sv<0||sv>tg){toast(lang==='cw'?'Ndalama yosungidwa yachuluka':'Saved amount cannot exceed target','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); if(!cfg.goals)cfg.goals=[]; cfg.goals.push({name:nm,target:tg,saved:sv}); saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); rMgr(); }
-function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8593; '+t.topup+': '+gl.name+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function openAddGoal(){
+  const t=tx(), isCW=lang==='cw';
+  const minDate=new Date(); minDate.setDate(minDate.getDate()+7);
+  const minDateStr=minDate.toISOString().split('T')[0];
+  let h='<div class="dh"></div>';
+  h+='<h3><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.addGoal+'</h3>';
+  h+='<div class="fsec"><label class="fl" for="g-nm">'+t.goalName+'</label>';
+  h+='<input type="text" class="fi" id="g-nm" placeholder="e.g. New TV, School Fees..."></div>';
+  h+='<div class="fsec"><label class="fl" for="g-tg">'+t.goalTarget+'</label>';
+  h+='<input type="number" class="fi" id="g-tg" inputmode="numeric" placeholder="e.g. 150000"></div>';
+  h+='<div class="fsec"><label class="fl" for="g-sv">'+t.goalSaved+' (optional)</label>';
+  h+='<input type="number" class="fi" id="g-sv" inputmode="numeric" placeholder="0"></div>';
+  h+='<div class="fsec"><label class="fl" for="g-dl">'+(isCW?'Tsiku lofika (osankha)':'Target Deadline (optional)')+'</label>';
+  h+='<input type="date" class="fi" id="g-dl" min="'+minDateStr+'"></div>';
+  h+='<div style="display:flex;gap:8px">';
+  h+='<button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+t.cancel+'</button>';
+  h+='<button class="btnM" style="flex:2" onclick="saveGoal()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
+  g('mb-gl').innerHTML=h;
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-gl')]});
+  openM('mv-gl');
+}
+function saveGoal(){
+  const nm=val('g-nm').trim(), tg=parseFloat(val('g-tg')), sv=parseFloat(val('g-sv'))||0, dl=val('g-dl')||'';
+  const isCW=lang==='cw';
+  if(!nm){toast(isCW?'Lowetsani dzina la cholinga':'Enter a goal name','e');return;}
+  if(!tg||isNaN(tg)||tg<=0||tg>99999999){toast(isCW?'Lowetsani ndalama yabwino':'Enter a valid target amount','e');return;}
+  if(sv<0||sv>tg){toast(isCW?'Ndalama yosungidwa yachuluka':'Saved amount cannot exceed target','e');return;}
+  const cfg=JSON.parse(JSON.stringify(lCfg));
+  if(!cfg.goals) cfg.goals=[];
+  const goal={name:nm,target:tg,saved:sv};
+  if(dl) goal.deadline=dl;
+  cfg.goals.push(goal);
+  saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); rMgr();
+}
+function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8593; '+t.topup+': '+gl.name+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(i){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
@@ -2623,15 +3047,32 @@ function rStg(){
   const provIcon={'google.com':'<i data-lucide="globe" style="color:#EA4335"></i>','phone':'<i data-lucide="smartphone" style="color:var(--g1)"></i>','password':'<i data-lucide="mail" style="color:var(--p1)"></i>'}[provId]||'<i data-lucide="user" style="color:var(--mid)"></i>';
   let h='<div class="page">';
 
-  // -- Profile Header --
-  h+='<div class="prof-hdr">';
+  // -- Profile Header (premium chip on the right) --
+  const pStatus = getPremiumStatus();
+  let premiumChip = '';
+  if(pStatus.isPremium && !pStatus.isTrial){
+    const expiry = lCfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
+    const expiryStr = expiry ? fmtDate(expiry.split('T')[0]) : '';
+    premiumChip = '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">'
+      +'<span style="display:inline-flex;align-items:center;gap:4px;background:#E8F5E9;color:#1B5E20;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:10px;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px;color:#2E7D32"></i> Premium</span>'
+      +(expiryStr?'<span style="font-size:.58rem;color:var(--mid);white-space:nowrap">Until '+expiryStr+'</span>':'')
+      +'</div>';
+  } else if(pStatus.isPremium && pStatus.isTrial){
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:#F3E5F5;color:var(--p1);font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:10px;border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Trial · '+pStatus.daysLeft+'d</button>';
+  } else {
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:10px;border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Upgrade</button>';
+  }
+  h+='<div class="prof-hdr" style="align-items:center">';
   if(photo){h+='<div class="prof-av"><img src="'+photo+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>';}
   else{h+='<div class="prof-av" style="background:'+u.color+'">'+initials+'</div>';}
-  h+='<div class="prof-info"><div class="prof-name">'+displayName+'</div>';
-  if(cu&&cu.email)h+='<div class="prof-email">'+cu.email+'</div>';
+  h+='<div class="prof-info" style="flex:1;min-width:0">';
+  h+='<div class="prof-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+displayName+'</div>';
+  if(cu&&cu.email)h+='<div class="prof-email" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cu.email+'</div>';
   else if(cu&&cu.phoneNumber)h+='<div class="prof-email">'+cu.phoneNumber+'</div>';
   if(provId)h+='<div class="prof-badge">'+provIcon+' '+provLabel+'</div>';
-  h+='</div></div>';
+  h+='</div>';
+  h+=premiumChip;
+  h+='</div>';
 
   // -- General --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Zonse':'General')+'</span>';
@@ -2672,7 +3113,7 @@ function rStg(){
     +'</div>':'')
     +'</div>';
   // Household Code
-  if(hhId)h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#E8EAF6"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="cpCode()" style="padding:4px 9px;font-size:.65rem"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i></button><button class="hc-btn hc-wa" onclick="waCode()" style="font-size:.65rem"><i data-lucide="send" style="color:#25D366"></i></button></div></div>';
+  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:#E8EAF6"><i data-lucide="qr-code" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.65rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1)"></i></button><button class="hc-btn hc-wa" onclick="event.stopPropagation();waCode()" style="font-size:.65rem;padding:5px 8px"><i data-lucide="send" style="color:#25D366"></i></button><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
   // -- Security --
@@ -2708,26 +3149,10 @@ function rStg(){
   h+='<div class="stg-row" onclick="openPrivacyPolicy()"><div class="stg-row-ico" style="background:#EDE7F6"><i data-lucide="shield" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndondomeko ya Chinsinsi':'Privacy Policy')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
-  // -- Premium --
-  const pStatus = getPremiumStatus();
-  h+='<span class="stg-sec-lbl">Premium</span>';
-  h+='<div class="stg-grp">';
-  if(pStatus.isPremium && !pStatus.isTrial){
-    const expiry=lCfg.premiumExpiry||lHHDoc.premiumExpiry||null;
-    const expiryDays=expiry?Math.max(0,Math.ceil((new Date(expiry)-new Date())/86400000)):null;
-    const expiryStr=expiry?(expiryDays===0?'Expires today!':(expiryDays<=7?expiryDays+'d left · '+expiry:'Active until '+expiry)):'Lifetime / no expiry set';
-    h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="gem" style="color:#2E7D32"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:#1B5E20">✓ Premium Active</div><div class="stg-row-sub">'+expiryStr+'</div></div><div class="stg-row-right"><span style="font-size:.65rem;font-weight:800;color:#2E7D32;background:#E8F5E9;padding:3px 9px;border-radius:10px">PRO</span></div></div>';
-  } else if(pStatus.isPremium && pStatus.isTrial){
-    h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="gem" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Free Trial Active</div><div class="stg-row-sub">'+pStatus.daysLeft+' day'+(pStatus.daysLeft===1?'':'s')+' remaining — enjoy all features!</div></div><div class="stg-row-right"><button class="bsm be" onclick="showPremiumPage()" style="font-size:.65rem;padding:4px 9px">Upgrade</button></div></div>';
-  } else {
-    h+='<div class="stg-row" onclick="showPremiumPage()"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="gem" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--p1)">Upgrade to Premium</div><div class="stg-row-sub">MK 2,500/month · Charts, PDF, AI & more</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  }
-  h+='</div>';
-
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' — © Rodart Creatives</div></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' — © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:8px;padding:4px 9px;font-size:.63rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
   h+='</div>';
 
   h+='<button class="stg-logout" onclick="logout()"><i data-lucide="log-out" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i> '+t.logout+'</button>';
@@ -2736,6 +3161,37 @@ function rStg(){
   if(window.lucide) lucide.createIcons({nodes:[g('view')]});
 }
 
+function showWhatsNew(){
+  const isCW=lang==='cw';
+  const changes=[
+    {icon:'trending-up',  color:'#E65100', title:'Spending Streak',    desc:'Consecutive weeks under budget shown on Home screen.'},
+    {icon:'bar-chart-2',  color:'#7B1FA2', title:'6-Month Trend Chart',desc:'Income & spend comparison chart with budget line on Home tab.'},
+    {icon:'calendar',     color:'#1565C0', title:'Month Nav in History',desc:'Browse past months directly in the History tab.'},
+    {icon:'list-checks',  color:'#00695C', title:'Running Totals',     desc:'Income, expenses and count shown for active filter.'},
+    {icon:'target',       color:'#B71C1C', title:'Goal Deadlines',     desc:'Set a deadline when creating goals — monthly need auto-calculated.'},
+    {icon:'qr-code',      color:'#4527A0', title:'QR Code Sharing',    desc:'Tap Household Code in Settings for a scannable QR.'},
+    {icon:'zap',          color:'#F57F17', title:'Faster Rendering',   desc:'Transaction totals cached — much faster on large households.'},
+    {icon:'bug',          color:'#37474F', title:'Bug Fixes',          desc:'Fixed item and goal deletion crashes. Search now debounced.'},
+    {icon:'accessibility',color:'#2E7D32', title:'Accessibility',      desc:'Nav labels, skip-to-content, Enter key form shortcuts added.'},
+  ];
+  let h='<div class="dh"></div>';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
+  h+='<div style="width:44px;height:44px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+  h+='<i data-lucide="sparkles" style="width:22px;height:22px;color:#fff"></i></div>';
+  h+='<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">What\'s New in v'+APP_VERSION+'</div>';
+  h+='<div style="font-size:.7rem;color:var(--mid)">Release notes</div></div></div>';
+  changes.forEach(function(c){
+    h+='<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">';
+    h+='<div style="width:36px;height:36px;border-radius:10px;background:'+c.color+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    h+='<i data-lucide="'+c.icon+'" style="width:18px;height:18px;color:'+c.color+'"></i></div>';
+    h+='<div style="flex:1"><div style="font-weight:700;font-size:.82rem;color:var(--ink)">'+c.title+'</div>';
+    h+='<div style="font-size:.72rem;color:var(--mid);margin-top:1px;line-height:1.45">'+c.desc+'</div></div></div>';
+  });
+  h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(&quot;mv-u&quot;)">Close</button>';
+  g('mb-u').innerHTML=h;
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
+  openM('mv-u');
+}
 function openPrivacyPolicy(){
   // Show privacy policy in a modal sheet — not the full gate screen
   // The gate screen is only for first-time users who haven't agreed yet
@@ -2746,10 +3202,10 @@ function openPrivacyPolicy(){
   h+='<p style="margin-bottom:8px"><strong>Authentication:</strong> We use Firebase Authentication (email/password or Google Sign-In) to secure your account.</p>';
   h+='<p style="margin-bottom:8px"><strong>AI features:</strong> When you use Bajeti AI or Magic Log, your financial summary is sent to our AI service to generate responses. This data is not stored or used to train any model.</p>';
   h+='<p style="margin-bottom:8px"><strong>Data sharing:</strong> We do not sell or share your personal or financial data with any third parties.</p>';
-  h+='<p style="margin-bottom:8px"><strong>Your data:</strong> You can delete your household data at any time from Settings → Danger Zone.</p>';
+  h+='<p style="margin-bottom:8px"><strong>Your data:</strong> You can delete your household data at any time from Settings &rarr; Danger Zone.</p>';
   h+='<p style="margin-bottom:8px"><strong>Contact:</strong> For any privacy questions, contact the app administrator.</p>';
   h+='</div>';
-  h+='<button class="btnG" style="width:100%;margin-top:16px" onclick="closeM(\'mv-u\')">Close</button>';
+  h+='<button class="btnG" style="width:100%;margin-top:16px" onclick="closeM(&quot;mv-u&quot;)">Close</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
@@ -2766,7 +3222,7 @@ function stgOpenSection(sec){
     tab='stg'; // stay in profile tab highlight
     const t=tx();
     let h='<div class="page">';
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="go(\'stg\')" style="background:var(--mist);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):(lang==='cw'?'Zolinga zosungira':'Savings Goals'))+'</h2></div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="go(&quot;stg&quot;)" style="background:var(--mist);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):(lang==='cw'?'Zolinga zosungira':'Savings Goals'))+'</h2></div>';
     if(sec==='members'){
       h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')">&#10005;</button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
     } else if(sec==='items'){
@@ -2786,7 +3242,7 @@ function stgOpenSection(sec){
         h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+gl.name+'</div>';
         h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div>';
         if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')">&#8593; '+t.topup+'</button>';
-        h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+'">&#128465;</button></div></div>';
+        h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+')">&#128465;</button></div></div>';
         h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
         h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
         if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.65rem;color:#E65100;font-weight:700;background:#FFF3E0;border-radius:7px;padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+' needed'+(ml!==null?' · '+ml+(lang==='cw'?' miyezi':'mths left'):'')+'</div>';
@@ -3145,7 +3601,7 @@ self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWi
       const swUrl=URL.createObjectURL(blob);
       // Only register when on the actual hosted page, skip on file:// to avoid scope errors
       if(location.protocol!=='file:'){
-        navigator.serviceWorker.register(swUrl,{scope:location.pathname.replace(/\/[^/]*$/,'/')+'.'}).catch(()=>{
+        navigator.serviceWorker.register(swUrl,{scope:'./'}).catch(()=>{
           // Fallback: try without explicit scope
           navigator.serviceWorker.register(swUrl).catch(()=>{});
         });
@@ -3410,8 +3866,12 @@ function copyPreviousMonth(){
   premiumGate('copy_month', function(){
     const now=new Date(), prevM=new Date(now.getFullYear(), now.getMonth()-1, 1);
     const prevStr=prevM.getFullYear()+'-'+String(prevM.getMonth()+1).padStart(2,'0');
-    const prevPx=lPx.filter(p=>p.date&&p.date.startsWith(prevStr)&&p.type!=='income');
-    if(!prevPx.length){toast('No expenses found from last month','e');return;}
+    let prevPx=lPx.filter(p=>p.date&&p.date.startsWith(prevStr)&&p.type!=='income');
+    if(!prevPx.length){toast(lang==='cw'?'Palibe zogula za mwezi wapita':'No expenses found from last month','e');return;}
+    if(prevPx.length>200){
+      toast(lang==='cw'?'Kukopera 200 mwa '+prevPx.length+' (malire a chitetezo)':'Copying 200 of '+prevPx.length+' entries (limit for safety)','i');
+      prevPx=prevPx.slice(0,200);
+    }
     
     const todayStr=today();
     const batch=db.batch();
@@ -3421,7 +3881,7 @@ function copyPreviousMonth(){
         qty:p.qty||'',unit:p.unit||'',notes:p.notes||'',userId:p.userId,
         type:'expense',recurring:p.recurring||false});
     });
-    batch.commit().then(function(){ toast(prevPx.length+' entries copied!','s'); }).catch(function(e){ toast('Error: '+e.message,'e'); });
+    batch.commit().then(function(){ toast(lang==='cw'?prevPx.length+' zolemba zakopedwa!':prevPx.length+' entries copied!','s'); }).catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message,'e'); });
   });
 }
 
@@ -3583,8 +4043,8 @@ function showConvoLimitWall(count){
   h+='<strong style="color:var(--ink)">• Delete</strong> an existing conversation<br>';
   h+='<strong style="color:var(--p1)">• Upgrade to Premium</strong> for unlimited conversations';
   h+='</div>';
-  h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(\'mv-u\');showPremiumPage()">💎 Upgrade for Unlimited Chats</button>';
-  h+='<button onclick="closeM(\'mv-u\');openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">Manage Existing Chats</button>';
+  h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(&quot;mv-u&quot;);showPremiumPage()">💎 Upgrade for Unlimited Chats</button>';
+  h+='<button onclick="closeM(&quot;mv-u&quot;);openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">Manage Existing Chats</button>';
   h+='</div>';
   g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
@@ -3680,8 +4140,8 @@ function toggleChatSheet(e){
       +'<div class="chat-action-ico" style="background:#E3F2FD"><i data-lucide="pie-chart" style="color:#1565C0"></i></div>'
       +'<div><div style="font-weight:700">'+(isCW?'Chidule cha AI':'AI Summary')+'</div>'
       +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Pezani ndemanga yazachuma chanu':'Get your financial review')+'</div></div>'
-    +'</div>';
-    +(('<div class="chat-action-row" onclick="sheet_convos()">'+'<div class="chat-action-ico" style="background:#FFF3E0"><i data-lucide="message-square" style="color:#E65100"></i></div>'+'<div><div style="font-weight:700">'+(isCW?'Ziyankhulo':'Conversations')+'</div>'+'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Sungani ziyankhulo':'Manage saved chats')+'</div></div>'+'</div>'));
+    +'</div>'
+    +'<div class="chat-action-row" onclick="sheet_convos()">'+'<div class="chat-action-ico" style="background:#FFF3E0"><i data-lucide="message-square" style="color:#E65100"></i></div>'+'<div><div style="font-weight:700">'+(isCW?'Ziyankhulo':'Conversations')+'</div>'+'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Sungani ziyankhulo':'Manage saved chats')+'</div></div>'+'</div>';
   const footer=document.querySelector('.chat-footer');
   footer.style.position='relative';
   footer.appendChild(sheet);
@@ -3793,7 +4253,7 @@ function renderBubbles(){
     const displayText=(m.text||'').replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g,'').trim();
     const safe=displayText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/^[-•] (.+)/gm,'<li>$1</li>')
+      .replace(/^[-\u2022 ] (.+)/gm,'<li>$1</li>')
       .replace(/\n/g,'<br>');
     const ts=m.ts ? new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
     const label=isU?'You':'Bajeti AI';
@@ -3885,7 +4345,7 @@ function confirmAiAction(msgIdx){
     addPx({item:pa.item,date:dStr,timestamp:ts,amount:Number(pa.amount),notes:'',userId,type:pa.entryType||'expense',recurring:false});
     toast((lang==='cw'?'Cholembedwa: ':'Logged: ')+pa.item,'s');
   } else if(pa.type==='delete'){
-    delPx(pa.id);
+    updPx(pa.id,{deleted:true,deletedAt:Date.now()}); // soft-delete to trash
     toast(lang==='cw'?'Chotsedwa':'Deleted','s');
   }
   msg.pendingAction=null;
@@ -4003,7 +4463,8 @@ async function decConvoCountFS(){
 
 // -- Multiple conversations (all users, Firestore-backed) --
 async function startNewConversation(){
-  const convo = await newConversation(); // handles limit check internally
+  await syncActiveConvo(); // save current before starting new
+  const convo = await newConversation();
   if(convo) rChat();
 }
 async function openConvoList(){
@@ -4030,7 +4491,7 @@ async function openConvoList(){
     });
     h+='</div>';
   }
-  h+='<button class="btnM" style="width:100%;margin-top:12px" onclick="startNewConversation();closeM(\'mv-u\')">+ New Conversation</button>'
+  h+='<button class="btnM" style="width:100%;margin-top:12px" onclick="startNewConversation();closeM(&quot;mv-u&quot;)">+ New Conversation</button>'
     +'<button class="btnG" style="width:100%;margin-top:8px" onclick="closeM(\'mv-u\')">Close</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
@@ -4044,7 +4505,8 @@ function delConvoById(el){
   const id = el.closest('[data-cid]')?.dataset?.cid || el.dataset?.cid;
   if(id) deleteConvoFromList(id);
 }
-function switchConversation(id){
+async function switchConversation(id){
+  await syncActiveConvo(); // save current before switching
   loadConversationById(id);
   closeM('mv-u');
   rChat();
@@ -4067,8 +4529,8 @@ function clearChat(){
 
 function buildCtx(){
   const now=new Date();
-  const mo=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  const moPx=lPx.filter(p=>p.date&&p.date.startsWith(mo));
+  // Use the active budget period (salary-day aware) — same as totSp/totIn/iSpent
+  const moPx=lPx.filter(p=>p.date&&isTM(p.date)&&!p.deleted);
   const spent=moPx.filter(p=>p.type!=='income').reduce((s,p)=>s+p.amount,0);
   const income=moPx.filter(p=>p.type==='income').reduce((s,p)=>s+p.amount,0);
   const byItem={};
@@ -4105,7 +4567,8 @@ To delete (only after user confirms — show them the entry first and ask):
 [ACTION]{"type":"delete","id":"TRANSACTION_ID_HERE"}[/ACTION]
 
 Rules:
-- Only use item names from this list: ${JSON.stringify(validItems)}. If the user names something not on the list, use the closest match or "Other".
+- For the "item" field: ALWAYS use the exact name the user mentioned (e.g. "plug", "chitenje", "fertilizer"). Never use "Other" as an item name. "Other" is only a category, not a name.
+- For budget tracking, map the item to the closest name in this list if possible: ${JSON.stringify(validItems)}. But if nothing matches, keep the user's real word as the item name.
 - For delete, always identify the transaction from the list below and confirm with the user FIRST before outputting the delete action.
 - Never output more than one [ACTION] block per reply.
 - If the user asks to delete but is vague (e.g. "delete my transport"), list matching entries and ask which one.
@@ -4147,7 +4610,7 @@ async function sendChat(){
   renderBubbles();
   
   const msgsEl=g('chat-msgs');
-  if(msgsEl){const w=document.createElement('div');w.className='bubble-wrap ai';w.id='typing-ind';w.innerHTML='<div class="bubble ai typing"><span>●</span><span>●</span><span>●</span></div>';msgsEl.appendChild(w);msgsEl.scrollTop=msgsEl.scrollHeight;}
+  if(msgsEl){const w=document.createElement('div');w.className='bubble-wrap ai';w.id='typing-ind';w.innerHTML='<div class="bubble ai typing"><span>&#x25CF;</span><span>&#x25CF;</span><span>&#x25CF;</span></div>';msgsEl.appendChild(w);msgsEl.scrollTop=msgsEl.scrollHeight;}
   
   try {
     // -- Cloudflare Worker proxy -- API key never exposed in browser --
@@ -4213,15 +4676,20 @@ async function sendChat(){
     await syncActiveConvo();
     
   } catch(err) {
-    let errorMsg = lang==='cw'?'Pepani, kuna vuto la intaneti. Yesaninso.':'Sorry, there was a connection error. Please try again.';
-    
-    if (err.message && (err.message.includes("unregistered callers") || err.message.includes("API key not valid"))) {
-        errorMsg = "⚠️ API Key Missing! Please edit the downloaded HTML file and paste your API key inside the sendChat() function at the bottom.";
-    } else if (err.message) {
-        errorMsg = '⚠️ ' + err.message;
+    const isCW = lang === 'cw';
+    let errorMsg = isCW
+      ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
+      : 'Bajeti AI is busy right now, please try again in a moment.';
+
+    if (err.message && (err.message.includes('unregistered callers') || err.message.includes('API key not valid'))) {
+      errorMsg = '⚠️ API Key Missing! Please edit the downloaded HTML file and paste your API key inside the sendChat() function at the bottom.';
+    } else if (err.message && err.message.includes('quota')) {
+      errorMsg = isCW
+        ? 'Bajeti AI ili otanganidwa kwambiri lero. Yesaninso mawa.'
+        : 'Bajeti AI has reached its daily limit. Please try again tomorrow.';
     }
-    
-    chatHistory.push({role:'assistant',text:errorMsg,ts:Date.now()});
+
+    chatHistory.push({role:'assistant', text:errorMsg, ts:Date.now()});
   }
   
   const td=g('typing-ind'); if(td)td.remove();
@@ -4261,6 +4729,16 @@ function openMagicLog() {
 }
 
 // Chat-context receipt scan — shows scanning bubble and posts results as a chat message
+// Shared instruction injected into every AI item-extraction prompt (Magic Log,
+// receipt scan, chat receipt scan). Root cause of the "Others" naming bug: the
+// old prompts told the AI to "match items to these categories" using
+// lCfg.items.map(i=>i.name) as the candidate list -- but that list includes the
+// literal budget item named "Other" (from DEF_ITEMS), so the AI would frequently
+// just return item:"Other" for anything it wasn't fully sure about, destroying
+// the real item name permanently. This rule tells the AI explicitly: "Other" is
+// a category, never an item name, and the real item name must always be kept.
+const AI_ITEM_NAMING_RULE = 'IMPORTANT: "item" must always be the actual real-world name of the thing purchased (e.g. "tomatoes", "bus fare", "phone charger") -- NEVER the word "Other" or "Unknown". "Other" is only a category, never an item name. If you are unsure which category an item belongs to, just describe the item as best as you can and leave categorization to the app.';
+
 async function scanReceiptFromChat(input){
   if(!input.files||!input.files[0])return;
   const file=input.files[0];
@@ -4280,7 +4758,7 @@ async function scanReceiptFromChat(input){
   reader.onload=async function(e){
     const base64=e.target.result.split(',')[1];
     const mime=file.type||'image/jpeg';
-    const prompt='This is a receipt from Malawi. Extract ALL line items as a JSON array. Each object needs: {item: string, amount: number, type: "expense"}. Match items to these categories where possible: '+lCfg.items.map(function(i){return i.name;}).join(', ')+'. Return ONLY valid JSON array, no markdown, no explanation.';
+    const prompt='This is a receipt from Malawi. Extract ALL line items as a JSON array. Each object needs: {item: string, amount: number, type: "expense"}. '+AI_ITEM_NAMING_RULE+' Categories for reference only (do not use as item names): '+lCfg.items.map(function(i){return i.name;}).join(', ')+'. Return ONLY valid JSON array, no markdown, no explanation.';
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
@@ -4289,8 +4767,20 @@ async function scanReceiptFromChat(input){
       if(data.error)throw new Error(data.error.message);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
       const clean=resultText.replace(/```json|```/g,'').trim();
-      const items=JSON.parse(clean);
+      let items=JSON.parse(clean);
       if(!Array.isArray(items)||!items.length)throw new Error('No items found');
+      // Guard against the AI returning "Other" (or an empty string) as the item
+      // name itself -- this is what silently destroyed real item names before.
+      // We keep the real name whenever possible and only fall back to a clearly
+      // labeled placeholder, plus we now always assign a real category via catOf
+      // rather than leaving cat undefined (which previously meant every receipt
+      // item from this path had NO category logic applied at all).
+      items=items.map(function(tx){
+        const rawItem=String(tx.item||'').trim();
+        const isBadName=!rawItem || rawItem.toLowerCase()==='other' || rawItem.toLowerCase()==='unknown';
+        const safeItem=isBadName?(lang==='cw'?'Chinthu chosadziwika':'Unrecognized item'):rawItem;
+        return {...tx,item:safeItem,cat:catOf(safeItem,tx.cat)};
+      });
 
       // Remove scanning bubble
       const pb=document.getElementById('scan-progress-bubble'); if(pb)pb.remove();
@@ -4332,7 +4822,7 @@ async function scanReceipt(input){
   reader.onload=async function(e){
     const base64=e.target.result.split(',')[1];
     const mime=file.type||'image/jpeg';
-    const prompt='This is a receipt from Malawi. Extract ALL line items as a JSON array. Each object needs: {item: string, amount: number, type: "expense"}. Match items to these categories where possible: '+lCfg.items.map(function(i){return i.name;}).join(', ')+'. Return ONLY valid JSON array, no markdown, no explanation.';
+    const prompt='This is a receipt from Malawi. Extract ALL line items as a JSON array. Each object needs: {item: string, amount: number, type: "expense"}. '+AI_ITEM_NAMING_RULE+' Categories for reference only (do not use as item names): '+lCfg.items.map(function(i){return i.name;}).join(', ')+'. Return ONLY valid JSON array, no markdown, no explanation.';
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
@@ -4343,7 +4833,14 @@ async function scanReceipt(input){
       const clean=resultText.replace(/```json|```/g,'').trim();
       pendingMagicTxs=JSON.parse(clean);
       if(!Array.isArray(pendingMagicTxs)||!pendingMagicTxs.length)throw new Error('No items found');
-      pendingMagicTxs=pendingMagicTxs.map(tx=>({...tx,cat:catOf(String(tx.item||''))||'Other'}));
+      // Guard against the AI returning "Other"/empty as the item name itself --
+      // see AI_ITEM_NAMING_RULE comment above for the full root-cause explanation.
+      pendingMagicTxs=pendingMagicTxs.map(tx=>{
+        const rawItem=String(tx.item||'').trim();
+        const isBadName=!rawItem || rawItem.toLowerCase()==='other' || rawItem.toLowerCase()==='unknown';
+        const safeItem=isBadName?(lang==='cw'?'Chinthu chosadziwika':'Unrecognized item'):rawItem;
+        return {...tx,item:safeItem,cat:catOf(safeItem,tx.cat)};
+      });
       if(resultsEl)resultsEl.innerHTML=renderMagicResults();
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save All '+pendingMagicTxs.length+' Items'; if(window.lucide)lucide.createIcons({nodes:[btn]}); btn.setAttribute('onclick','saveMagicTxs()');}
       if(!getPremiumStatus().isPremium) incAiUsageTodayFS('scan');
@@ -4392,7 +4889,15 @@ function renderMagicResults(){
   });
   return h+'</div>';
 }
-function setMagicTxCat(idx,cat){if(!pendingMagicTxs[idx])return;pendingMagicTxs[idx].cat=cat;const el=g('magic-results');if(el)el.innerHTML=renderMagicResults();}
+function setMagicTxCat(idx,cat){
+  if(!pendingMagicTxs[idx])return;
+  pendingMagicTxs[idx].cat=cat;
+  const el=g('magic-results');
+  if(el){
+    el.innerHTML=renderMagicResults();
+    if(window.lucide)lucide.createIcons({nodes:[el]});
+  }
+}
 async function processMagicLog() {
   const input=val('magic-input').trim();
   if(!input){toast('Please enter some text','e');return;}
@@ -4401,24 +4906,37 @@ async function processMagicLog() {
   _aiInFlight=true;
   const btn=g('magic-btn-process');
   btn.disabled = true; btn.innerHTML = '<i data-lucide="refresh-cw" style="margin-right:4px"></i>...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
+  const resultsEl=g('magic-results');
+  if(resultsEl) resultsEl.innerHTML='<div style="text-align:center;padding:18px 0;color:var(--mid);font-size:.8rem"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;display:block;margin:0 auto 8px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'+(lang==='cw'?'AI ikuwerenga...':'AI is reading your text...')+'</div>';
   
-  const prompt = `Extract transactions from this text. 
+  const safeCandidates = lCfg.items.map(i=>i.name).filter(n=>n.toLowerCase()!=='other');
+  const prompt = `Extract transactions from this text.
   Respond ONLY with a valid JSON array of objects. Do not include markdown formatting like \`\`\`json.
+  ${AI_ITEM_NAMING_RULE}
   Properties needed for each object:
-  - item: string (try to match these categories if possible: ${lCfg.items.map(i=>i.name).join(', ')})
+  - item: string (real-world name of what was bought; map to these budget items if it fits: ${safeCandidates.join(', ')})
   - amount: number (extract the exact numeric amount)
   - type: string (either "expense" or "income")
-  
+
   Text: "${input}"`;
   
   try {
-    const url = "https://nyumba-ai.kabangorodrick6.workers.dev/chat";
+    const url = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
-    
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Bajeti-Secret': 'BY-2025-SEC-8f4k2p9m' }, body: JSON.stringify(payload) });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    
+    const delays = [1000, 2000, 4000, 8000];
+    let data = null, lastErr = null;
+    for (let i = 0; i <= delays.length; i++) {
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Bajeti-Secret': 'BY-2025-SEC-8f4k2p9m' }, body: JSON.stringify(payload) });
+        const resData = await res.json();
+        if (!res.ok) {
+          lastErr = new Error(resData?.error?.message || 'API Error');
+          if (res.status !== 429 && res.status !== 503) throw lastErr;
+          if (i === delays.length) throw lastErr;
+        } else { data = resData; break; }
+      } catch(err) { lastErr = err; if (i === delays.length) throw lastErr; }
+      if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
+    }
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     // Strip markdown code fences that Gemini often wraps around JSON responses
     const cleanText = resultText.replace(/```json|```/g,'').trim();
@@ -4439,19 +4957,39 @@ async function processMagicLog() {
     if(!getPremiumStatus().isPremium) incAiUsageTodayFS('magic');
     _aiInFlight=false;
   } catch(err){
-    toast('Extraction failed.','e');
-    btn.disabled=false; btn.innerHTML='<i data-lucide="wand-2" style="margin-right:4px"></i> Extract Again'; if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
+    const isCW = lang === 'cw';
+    const busyMsg = isCW
+      ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
+      : 'Bajeti AI is busy right now, please try again in a moment.';
+    toast(busyMsg, 'e');
+    const resultsEl2 = g('magic-results');
+    if(resultsEl2) resultsEl2.innerHTML = '<div style="text-align:center;padding:14px;font-size:.78rem;color:var(--r1)">'+busyMsg+'</div>';
+    btn.disabled=false; btn.innerHTML='<i data-lucide="wand-2" style="margin-right:4px"></i> '+(isCW?'Yesaninso':'Try Again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
 
 function saveMagicTxs() {
-  const dStr = today();
+  const RESERVED_NAMES = ['other','ena','food','transport','household','personal','unknown','other income','zina'];
+  const fallbackDate = today();
   let ts = new Date().getTime();
+  let saved = 0, skipped = 0;
   pendingMagicTxs.forEach(tx => {
+    const rawName = String(tx.item || '').trim();
+    if (!rawName || RESERVED_NAMES.includes(rawName.toLowerCase())) {
+      toast(
+        lang === 'cw'
+          ? 'Lowetsani dzina la chinthu ichi (osati "' + (rawName || 'bwera') + '")'
+          : 'Please enter a real name for this item — "' + (rawName || 'blank') + '" is not valid',
+        'e'
+      );
+      skipped++;
+      return;
+    }
     const amt = Number(tx.amount) || 0;
-    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(String(tx.item||'')),'e'); return; }
+    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(rawName),'e'); skipped++; return; }
+    const dStr = (tx.date && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)) ? tx.date : fallbackDate;
     addPx({
-      item: String(tx.item || 'Other').slice(0,100),
+      item: rawName.slice(0,100),
       date: dStr,
       timestamp: ts++,
       amount: amt,
@@ -4460,10 +4998,13 @@ function saveMagicTxs() {
       userId: actU().id,
       type: tx.type === 'income' ? 'income' : 'expense'
     });
+    saved++;
   });
-  closeM('mv-magic');
-  toast('Transactions Saved!', 's');
-  insTab='hist'; go('insights');
+  if (saved > 0) {
+    closeM('mv-magic');
+    toast('Transactions Saved!', 's');
+    insTab='hist'; go('insights');
+  }
 }
 
 // -- AI Smart Summary --
@@ -4475,18 +5016,34 @@ async function generateAiSummary() {
   const btn=g('ai-sum-btn'),box=g('ai-sum-box');
   btn.disabled=true; btn.innerHTML='<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
   try{
-    const res=await fetch("https://nyumba-ai.kabangorodrick6.workers.dev/chat",{method:'POST',
-      headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'},
-      body:JSON.stringify({contents:[{parts:[{text:`Provide a 2-3 sentence financial review. Language: ${lang==='cw'?'Chichewa':'English'}. Data: ${buildCtx()}`}]}]})});
-    const data=await res.json(); if(data.error)throw new Error(data.error.message);
-    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const url = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
+    const payload = {contents:[{parts:[{text:`Provide a 2-3 sentence financial review. Language: ${lang==='cw'?'Chichewa':'English'}. Data: ${buildCtx()}`}]}]};
+    const delays = [1000, 2000, 4000, 8000];
+    let data = null, lastErr = null;
+    for (let i = 0; i <= delays.length; i++) {
+      try {
+        const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'}, body:JSON.stringify(payload)});
+        const resData = await res.json();
+        if (!res.ok) {
+          lastErr = new Error(resData?.error?.message || 'API Error');
+          if (res.status !== 429 && res.status !== 503) throw lastErr;
+          if (i === delays.length) throw lastErr;
+        } else { data = resData; break; }
+      } catch(err) { lastErr = err; if (i === delays.length) throw lastErr; }
+      if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
+    }
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if(!_s.isPremium) incAiUsageTodayFS('summ');
     box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> AI Insight:</b><br>'+esc(reply||'')+'</div>';
     if(window.lucide)lucide.createIcons({nodes:[box]});
     box.classList.remove('hide'); btn.style.display='none'; _aiInFlight=false;
   }catch(err){
-    toast('AI Analysis failed.','e');
-    btn.disabled=false; btn.innerHTML='<i data-lucide="zap" style="margin-right:4px"></i> Try Again'; if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
+    const isCW = lang === 'cw';
+    const busyMsg = isCW
+      ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
+      : 'Bajeti AI is busy right now, please try again in a moment.';
+    toast(busyMsg,'e');
+    btn.disabled=false; btn.innerHTML='<i data-lucide="zap" style="margin-right:4px"></i> '+(isCW?'Yesaninso':'Try Again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
 
@@ -4506,10 +5063,10 @@ function pickCustomCat(cat){
 function autoDetectCustomCat(name){
   const n=(name||'').toLowerCase();
   const map=[
-    {cat:'Food',keys:['rice','maize','ufa','tomato','onion','oil','sugar','salt','bread','meat','fish','chicken','nsima','flour','milk','egg','beans','grocery','food']},
-    {cat:'Transport',keys:['bus','taxi','minibus','petrol','fuel','fare','transport','ticket','car','tyre']},
-    {cat:'Household',keys:['soap','washing','detergent','bleach','toilet','paper','broom','rent','electric','water','airtime','data','wifi','internet','prepaid','bill']},
-    {cat:'Personal',keys:['medicine','clinic','hospital','doctor','school','fees','uniform','book','pen','hair','barber','salon','clothes','shoes','phone']},
+    {cat:'Food',keys:['rice','maize','ufa','tomato','onion','oil','sugar','salt','bread','meat','fish','chicken','nsima','flour','milk','egg','beans','grocery','food','vegetables','rape','cabbage','groundnut','soya','cassava','fertilizer','fertiliser','seeds','npk','urea','dap','cane']},
+    {cat:'Transport',keys:['bus','taxi','minibus','petrol','fuel','fare','transport','ticket','car','tyre','tube','boda','bicycle','diesel','parking','car wash']},
+    {cat:'Household',keys:['soap','washing','detergent','bleach','toilet','paper','broom','rent','electric','water','airtime','data','wifi','internet','prepaid','bill','plug','socket','cable','wire','bulb','battery','torch','charger','dstv','gotv','token','extension','adaptor']},
+    {cat:'Personal',keys:['medicine','clinic','hospital','doctor','school','fees','uniform','book','pen','hair','barber','salon','clothes','shoes','phone','chitenje','chitengi','tablets','syrup','panadol','lotion','cream','makeup','deodorant','dress','shirt','blouse','trousers','skirt','sandals']},
   ];
   let det='Other';
   for(const e of map){if(e.keys.some(k=>n.includes(k))){det=e.cat;break;}}
@@ -4535,14 +5092,14 @@ function viewItem(name){
     txs.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(p=>{
       const u=uById(p.userId);
       h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;padding:8px 10px;background:var(--mist);border-radius:10px">';
-      h+='<div><div style="font-weight:700">'+p.date+'</div><div style="color:var(--mid)">'+esc(u.name)+(p.notes?' · '+esc(p.notes):'')+'</div></div>';
+      h+='<div><div style="font-weight:700">'+fmtDate(p.date)+'</div><div style="color:var(--mid)">'+esc(u.name)+(p.notes?' · '+esc(p.notes):'')+'</div></div>';
       h+='<span style="color:var(--r1);font-weight:700">'+MK(p.amount)+'</span></div>';
     });
     h+='</div>';
   } else {
     h+='<div class="empty"><p>No entries this month.</p></div>';
   }
-  h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(\'mv-u\')">'+t.cancel+'</button>';
+  h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button>';
   g('mb-u').innerHTML=h; initIcons(); openM('mv-u');
 }
 function openEUd(el){ openEU(parseInt(el.dataset.i)); }
@@ -4554,7 +5111,13 @@ function delGoald(el){ delGoal(parseInt(el.dataset.i)); }
 
 // Initialize Lucide icons after every render
 function initIcons(){
-  try{ if(window.lucide) lucide.createIcons(); }catch(e){}
+  try{ 
+    if(window.lucide){
+      // Scope to current view only to avoid re-processing entire document
+      const v=g('view');
+      if(v) lucide.createIcons({nodes:[v]});
+    } 
+  }catch(e){ console.warn('[initIcons] Lucide error:', e); }
 }
 const _origRender = typeof render==='function' ? render : null;
 if(_origRender){
