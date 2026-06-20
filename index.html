@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.3.5</title>
+<title>Bajeti Yanga v9.3.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
@@ -697,8 +697,8 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 .pay-steps{background:var(--mist);border-radius:9px;padding:9px 11px;font-size:.76rem;line-height:1.7}
 /* ── Profile / Settings v4.1 ── */
 .prof-hdr{background:var(--white);border-radius:var(--cr);box-shadow:var(--sh);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
-.prof-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:#fff;flex-shrink:0;overflow:hidden}
-.prof-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.prof-av{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:#fff;flex-shrink:0;overflow:hidden}
+.prof-av img{width:100%;height:100%;object-fit:cover;border-radius:14px}
 .prof-info{flex:1;min-width:0}
 .prof-name{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:var(--ink)}
 .prof-email{font-size:.68rem;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -741,7 +741,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </svg>
   </div>
   <div class="auth-title">Bajeti Yanga</div>
-  <div class="auth-sub" id="auth-sub">Finally know where your money goes 💜</div>
+  <div class="auth-sub" id="auth-sub">Finally know where your money goes. </div>
   <div class="auth-card">
     <div class="auth-tabs">
       <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Welcome Back</button>
@@ -941,7 +941,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     <p style="font-size:.76rem;color:rgba(255,255,255,.65);margin-bottom:20px;line-height:1.6">Click the link in that email to verify your account. Check your spam folder if you do not see it.</p>
     <button class="a-btn" onclick="checkVerification()" style="margin-bottom:10px">
       <i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i>
-      I Have Verified — Continue
+      I Have Verified. Continue
     </button>
     <button id="resend-btn" class="g-btn" onclick="resendVerification()" style="margin-bottom:14px">
       <i data-lucide="send" style="width:14px;height:14px;margin-right:6px"></i>
@@ -1055,7 +1055,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 
 const TX = {
   en:{
-    appTitle:'Bajeti Yanga',appSub:'Know where your Kwacha goes',
+    appTitle:'Bajeti Yanga',appSub:'Know where your Kwacha goes.',
     home:'Home',log:'Log',hist:'History',sum:'Summary',mgr:'Manage',stg:'Settings',
     cap:'Monthly Cap',spent:'Spent',left:'Left',income:'Income',expense:'Expense',
     recent:'Recent Transactions',viewAll:'View All',noPurchases:'No entries yet.',tapLog:'Tap + to add one.',
@@ -1173,7 +1173,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Fuel','Rent','Diapers','Money Sent','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.3.5';
+const APP_VERSION = '9.3.7';
 
 // ===============================================
 // 2. STATE -- only after all consts
@@ -1389,7 +1389,12 @@ function pinK(k) {
         const match = await verifyPIN(entered, stored);
         if(match){
           if(!stored.includes(':')){ const r=await hashPIN(entered); localStorage.setItem('nb_pin',r.salt+':'+r.hash); }
-          hidePIN(); bootApp();
+          hidePIN();
+          // bootApp() is a no-op on re-entry (authReg guard), so manual PIN success
+          // must connect to the household itself using the pending ID, same as biometrics does.
+          const hid = hhId || _pendingHid;
+          if(!hhId && hid){ hhId=hid; _pendingHid=null; connectHH(hid); }
+          else { bootApp(); }
         } else { pinEntry=''; updDots(); toast('Wrong PIN','e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
@@ -1435,13 +1440,13 @@ async function pinFgtVerify(){
   const pw=(g('pin-fgt-pw')||{}).value||'';
   const errEl=g('pin-fgt-err');
   if(!pw){ if(errEl){errEl.style.display='block';errEl.textContent='Please enter your password.';} return; }
-  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast('Cannot verify — please sign in again','e'); return; }
+  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast('Cannot verify. Please sign in again','e'); return; }
   try{
     const cred=firebase.auth.EmailAuthProvider.credential(curUser.email,pw);
     await curUser.reauthenticateWithCredential(cred);
     localStorage.removeItem('nb_pin');
     closeM('mv-confirm'); hidePIN();
-    toast('Verified — set a new PIN','s');
+    toast('Verified! Set a new PIN','s');
     setTimeout(()=>{ pinMode='set'; showPIN(); },400);
   }catch(e){
     if(errEl){
@@ -1523,14 +1528,14 @@ async function checkBio(){
 async function tryBioUnlock(){
   if(!curUser){ toast('Please wait, loading...','e'); return; }
   const hid = hhId || _pendingHid;
-  if(!hid){ toast('Session not ready — enter PIN','e'); return; }
+  if(!hid){ toast('Session not ready. Enter PIN','e'); return; }
   toast('Waiting for fingerprint...','i');
   const ok = await checkBio();
   if(ok){
     hidePIN();
-    if(!hhId){ hhId=hid; connectHH(hid); }
+    if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); }
     toast('Welcome back!','s');
-  } else { toast('Biometric failed — use your PIN','e'); }
+  } else { toast('Biometric failed. Use your PIN','e'); }
 }
 
 async function triggerBio(){
@@ -1540,7 +1545,7 @@ async function triggerBio(){
   const ok = await checkBio();
   if(ok){
     hidePIN();
-    if(!hhId){ hhId=hid; connectHH(hid); } else { bootApp(); }
+    if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); } else { bootApp(); }
   }
 }
 
@@ -1568,8 +1573,8 @@ function openDeleteAccount(){
     +(isCWdel?'Data yanu isungidwa kwa <strong>masiku 30</strong>. Lowani m\'pulogalamuyi mkati mwa masiku 30 kuti muibweze. Atatha, imatha kwathunthu.':'Your data is kept for <strong>30 days</strong>. Log back in within 30 days to restore it. After that, it is gone permanently.')
     +'</div></div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
-    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCWdel?'Lekani':'Cancel')+'</button>'
-    +'<button style="flex:1;background:linear-gradient(135deg,#C62828,#E53935);color:#fff;border:none;border-radius:12px;padding:12px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(198,40,40,.3)" onclick="closeM(\'mv-confirm\');_confirmDeleteAccount()">'+(isCWdel?'Chotsani Akaunti':'Delete Account')+'</button>'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCWdel?'Ayi, sungani':'No, keep it')+'</button>'
+    +'<button style="flex:1;background:linear-gradient(135deg,#C62828,#E53935);color:#fff;border:none;border-radius:12px;padding:12px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(198,40,40,.3)" onclick="closeM(\'mv-confirm\');_confirmDeleteAccount()">'+(isCWdel?'Inde, Chotsani!':'Yes, Delete!')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
   openM('mv-confirm');
@@ -1604,7 +1609,7 @@ function _confirmDeleteAccount(){
       hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[];
       show('scr-auth');
     },2000);
-  }).catch(()=>toast('Could not schedule deletion — check your connection and try again.','e'));
+  }).catch(()=>toast('Could not schedule deletion. Check your connection and try again.','e'));
 }
 function removePIN(){ localStorage.removeItem('nb_pin'); toast(tx().pinOff); go('stg'); }
 
@@ -1731,7 +1736,7 @@ function checkVerification(){
   if(!user){
     // User not signed in — ask them to log in again
     if(msgEl) msgEl.textContent='Please log in to continue.';
-    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified — Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
     backToLogin();
     return;
   }
@@ -1744,11 +1749,11 @@ function checkVerification(){
       bootApp();
     } else {
       if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent='Email not verified yet. Check your inbox and click the link, then try again.';}
-      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified — Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
     }
   }).catch(()=>{
     if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent='Could not check. Check your internet connection.';}
-    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified — Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
   });
 }
 
@@ -1851,10 +1856,15 @@ function showWelcome(hid, hhName){
 function welcomeContinue(){
   if(!_pendingHid) return;
   const hid = _pendingHid;
-  _pendingHid = null;
   hide('scr-welcome');
-  if(hasPIN()){ g('app').classList.add('hide'); show('scr-pin'); showPIN(); }
-  else{ hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); g('app').classList.remove('hide'); connectHH(hid); }
+  if(hasPIN()){
+    // Keep _pendingHid set — triggerBio() (fired by showPIN below) needs it.
+    // It gets cleared once the PIN/biometric flow actually consumes it.
+    g('app').classList.add('hide'); show('scr-pin'); showPIN();
+  } else {
+    _pendingHid = null;
+    hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); g('app').classList.remove('hide'); connectHH(hid);
+  }
 }
 
 function welcomeSwitch(){
@@ -2011,7 +2021,7 @@ function joinHH(){
                 localStorage.setItem('nb_household',code);
                 if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
                 hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code);
-                toast('Join request sent — owner will approve shortly','i');
+                toast('Join request sent. Owner will approve shortly','i');
               })
               .catch(e2=>{ setDot('off'); setupErr('Cannot join: '+e2.message); });
           }
@@ -2093,19 +2103,23 @@ function addPx(p){
   if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Please enter a valid amount','e');return;}
   const itemName=String(p.item||'').trim();
   if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return;}
-  setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied — check Firestore rules':'Sync error: '+(e&&e.code||'unknown'); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
+  setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules':'Sync error: '+(e&&e.code||'unknown'); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
 }
 function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
 function delPx(id){ if(!hhId)return; setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
 
 
 function appConfirm(msg, onOk, okLabel, danger){
+  const isCW = lang === 'cw';
+  const isGenericDelete = danger && !okLabel;
+  const cancelLabel = isGenericDelete ? (isCW?'Ayi, sungani':'No, keep it') : (isCW?'Lekani':'Cancel');
+  const confirmLabel = okLabel || (danger ? (isCW?'Inde, Chotsani!':'Yes, Delete!') : (isCW?'Tsimikizani':'Confirm'));
   const box=g('mb-confirm');
   box.innerHTML='<div class="dh"></div>'
     +'<div style="padding:4px 0 18px;font-size:.88rem;line-height:1.6;color:var(--txt)">'+msg+'</div>'
     +'<div style="display:flex;gap:10px">'
-    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">Cancel</button>'
-    +'<button class="btnM" style="flex:1'+(danger?';background:#C62828;box-shadow:0 4px 12px rgba(198,40,40,.3)':'')+'" onclick="closeM(\'mv-confirm\');(window._appConfirmCb&&window._appConfirmCb())">'+(okLabel||'Confirm')+'</button>'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+cancelLabel+'</button>'
+    +'<button class="btnM" style="flex:1'+(danger?';background:#C62828;box-shadow:0 4px 12px rgba(198,40,40,.3)':'')+'" onclick="closeM(\'mv-confirm\');(window._appConfirmCb&&window._appConfirmCb())">'+confirmLabel+'</button>'
     +'</div>';
   window._appConfirmCb=onOk;
   openM('mv-confirm');
@@ -2507,7 +2521,7 @@ function saveP(){
       addPx({item:cName,date:dStr,timestamp:ts,amount:a,qty:val('fq')||'',unit:val('fu')||'',notes:val('fn')||'',userId:actU().id,type:'expense',cat:customCat,recurring:(g('frc')||{}).checked||false});
       selItem=null; customCat='Other'; toast(t.saved); rLog(); return;
     }
-    if(!lCfg.items[selItem]){toast('Item no longer exists — please re-select','e');selItem=null;rLog();return;}
+    if(!lCfg.items[selItem]){toast('Item no longer exists. Please re-select','e');selItem=null;rLog();return;}
     addPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
   } else {
     addPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});
@@ -2652,7 +2666,7 @@ function doDel(id){
         .update({deletedAt:new Date().toISOString(),deleted:true})
         .then(function(){ toast('Moved to trash','i'); })
         .catch(function(){ delPx(id); toast(tx().deleted); });
-    }, 'Delete', true
+    }, null, true
   );
 }
 
@@ -2893,7 +2907,7 @@ function rMgr(){
       h+='</div></div>';
     });
   } else {
-    h+='<div class="empty" style="padding:10px 0"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p><strong>No bills tracked yet.</strong><br><span style="font-size:.75rem;color:var(--mid)">Add rent, ESCOM, water — never miss a due date.</span></p></div>';
+    h+='<div class="empty" style="padding:10px 0"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p><strong>No bills tracked yet.</strong><br><span style="font-size:.75rem;color:var(--mid)">Add rent, ESCOM, water. Never miss a due date.</span></p></div>';
   }
   h+='</div></div>';
 
@@ -2934,7 +2948,7 @@ function delBill(i){
     function(){
       var cfg=JSON.parse(JSON.stringify(lCfg));
       cfg.bills.splice(i,1); saveCfg(cfg); toast('Bill removed','i'); rMgr();
-    }, 'Remove', true
+    }, null, true
   );
 }
 
@@ -2951,7 +2965,7 @@ function updSalaryDay(v){
   toast('Salary period set: '+budgetPeriodLabel(),'s'); render();
 }
 function addIt(){ const t=tx(),n=val('ni-n').trim(),b=parseFloat(val('ni-b')),cat=val('ni-cat')||'Other'; if(!n){toast(lang==='cw'?'Lowetsani dzina':'Enter a name','e');return;} if(!b||isNaN(b)||b<=0||b>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} if(lCfg.items.find(it=>it.name.toLowerCase()===n.toLowerCase())){toast(lang==='cw'?'Chinthu chimenechi chilipo kale':'Item already exists','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.push({name:n,budget:b,cat:cat}); saveCfg(cfg); toast(t.itemAdded); rMgr(); }
-function delIt(i){ appConfirm(tx().confirmDelItem+' "'+lCfg.items[i].name+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); rMgr(); }, 'Delete', true) }
+function delIt(i){ appConfirm(tx().confirmDelItem+' "'+lCfg.items[i].name+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); rMgr(); }, null, true) }
 function openAddM(){
   const t=tx();
   let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
@@ -2963,7 +2977,7 @@ function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast('Enter a name
 function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(u.color===c?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+u.color+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); rMgr(); }
-function delMember(i){ appConfirm(tx().confirmDelMember, function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.splice(i,1); saveCfg(cfg); toast(tx().deleted); rMgr(); }, 'Remove', true) }
+function delMember(i){ appConfirm(tx().confirmDelMember, function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.splice(i,1); saveCfg(cfg); toast(tx().deleted); rMgr(); }, null, true) }
 function openEB(i){ const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+it.name+'</h3><input type="hidden" id="eb-i" value="'+i+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
 function svEB(){ const i=parseInt(val('eb-i')),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg));cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); rMgr(); }
 function openAddGoal(){
@@ -3031,7 +3045,7 @@ function doWithdraw(i){
   cfg.goals[i].saved=Math.max(cfg.goals[i].saved-amt,0);
   saveCfg(cfg); closeM('mv-gl'); toast(lang==='cw'?'Ndalama yachotsedwa':'Withdrawn'); rMgr();
 }
-function delGoal(i){ appConfirm(lang==='cw'?'Mukufuna kuchotsa cholinga ichi?':'Delete this goal?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.goals.splice(i,1); saveCfg(cfg); rMgr(); }, 'Delete', true) }
+function delGoal(i){ appConfirm(lang==='cw'?'Mukufuna kuchotsa cholinga ichi?':'Delete this goal?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.goals.splice(i,1); saveCfg(cfg); rMgr(); }, null, true) }
 
 // ===============================================
 // 14. SETTINGS
@@ -3101,14 +3115,14 @@ function rStg(){
     +'<div class="stg-row-ico" style="background:#E3F2FD;flex-shrink:0"><i data-lucide="calendar-check" style="color:#1565C0"></i></div>'
     +'<div class="stg-row-body" style="flex:1">'
     +'<div class="stg-row-lbl">'+(lang==='cw'?'Tsiku la Malipiro (Salary Day)':'Salary Day')+'</div>'
-    +'<div class="stg-row-sub" style="font-size:.68rem;color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?'Period: '+budgetPeriodLabel():(lang==='cw'?'Yosakhazikitsidwa — wogwiritsa ntchito mwezi wathunthu':'Not set — using calendar month'))+'</div>'
+    +'<div class="stg-row-sub" style="font-size:.68rem;color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?'Period: '+budgetPeriodLabel():(lang==='cw'?'Yosakhazikitsidwa, wogwiritsa ntchito mwezi wathunthu':'Not set. Using calendar month'))+'</div>'
     +'</div>'
     +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:56px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:8px;padding:5px 6px;font-size:.88rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="numeric" onchange="updSalaryDay(this.value)">'
     +'</div>'
     +(_periodActive?'<div style="margin:8px 0 4px 52px;font-size:.72rem;background:var(--mist);border-radius:9px;padding:7px 11px;color:var(--mid);line-height:1.6">'
     +'<span style="font-weight:700;color:var(--ink)">Active budget period:</span><br>'
     +'📅 <strong>'+budgetPeriodLabel()+'</strong><br>'
-    +'All totals, budget caps, summary and insights track this window — not the calendar month.<br>'
+    +'All totals, budget caps, summary and insights track this window, not the calendar month.<br>'
     +'<button onclick="updSalaryDay(\'\')" style="margin-top:6px;background:none;border:1.5px solid var(--border);border-radius:7px;padding:3px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid)">✕ Reset to calendar month</button>'
     +'</div>':'')
     +'</div>';
@@ -3152,7 +3166,7 @@ function rStg(){
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' — © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:8px;padding:4px 9px;font-size:.63rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:8px;padding:4px 9px;font-size:.63rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
   h+='</div>';
 
   h+='<button class="stg-logout" onclick="logout()"><i data-lucide="log-out" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i> '+t.logout+'</button>';
@@ -3168,9 +3182,9 @@ function showWhatsNew(){
     {icon:'bar-chart-2',  color:'#7B1FA2', title:'6-Month Trend Chart',desc:'Income & spend comparison chart with budget line on Home tab.'},
     {icon:'calendar',     color:'#1565C0', title:'Month Nav in History',desc:'Browse past months directly in the History tab.'},
     {icon:'list-checks',  color:'#00695C', title:'Running Totals',     desc:'Income, expenses and count shown for active filter.'},
-    {icon:'target',       color:'#B71C1C', title:'Goal Deadlines',     desc:'Set a deadline when creating goals — monthly need auto-calculated.'},
+    {icon:'target',       color:'#B71C1C', title:'Goal Deadlines',     desc:'Set a deadline when creating goals. Monthly need is auto-calculated.'},
     {icon:'qr-code',      color:'#4527A0', title:'QR Code Sharing',    desc:'Tap Household Code in Settings for a scannable QR.'},
-    {icon:'zap',          color:'#F57F17', title:'Faster Rendering',   desc:'Transaction totals cached — much faster on large households.'},
+    {icon:'zap',          color:'#F57F17', title:'Faster Rendering',   desc:'Transaction totals are cached, much faster on large households.'},
     {icon:'bug',          color:'#37474F', title:'Bug Fixes',          desc:'Fixed item and goal deletion crashes. Search now debounced.'},
     {icon:'accessibility',color:'#2E7D32', title:'Accessibility',      desc:'Nav labels, skip-to-content, Enter key form shortcuts added.'},
   ];
@@ -3198,7 +3212,7 @@ function openPrivacyPolicy(){
   let h='<div class="dh"></div><h3 style="font-family:Hanken Grotesk,sans-serif;margin-bottom:12px">Privacy Policy</h3>';
   h+='<div style="font-size:.75rem;color:var(--mid);line-height:1.7;max-height:60vh;overflow-y:auto;padding-right:4px">';
   h+='<p style="margin-bottom:10px"><strong>Bajeti Yanga</strong> is a household budgeting app. We take your privacy seriously.</p>';
-  h+='<p style="margin-bottom:8px"><strong>What we collect:</strong> Your transactions, budget settings, savings goals, and bill data — all stored securely in your household\'s private Firestore database.</p>';
+  h+='<p style="margin-bottom:8px"><strong>What we collect:</strong> Your transactions, budget settings, savings goals, and bill data, all stored securely in your household\'s private Firestore database.</p>';
   h+='<p style="margin-bottom:8px"><strong>Authentication:</strong> We use Firebase Authentication (email/password or Google Sign-In) to secure your account.</p>';
   h+='<p style="margin-bottom:8px"><strong>AI features:</strong> When you use Bajeti AI or Magic Log, your financial summary is sent to our AI service to generate responses. This data is not stored or used to train any model.</p>';
   h+='<p style="margin-bottom:8px"><strong>Data sharing:</strong> We do not sell or share your personal or financial data with any third parties.</p>';
@@ -3284,10 +3298,10 @@ function doExport(){
 
   let csv='';
   // Header block
-  csv+=row('BAJETI YANGA — HOUSEHOLD BUDGET EXPORT','','','','','','','');
+  csv+=row('BAJETI YANGA: HOUSEHOLD BUDGET EXPORT','','','','','','','');
   csv+=row('Household:',hhName,'','','','','','');
   csv+=row('Exported:',dateStr,'','','','','','');
-  csv+=row('Household Code:',hhId||'—','','','','','','');
+  csv+=row('Household Code:',hhId||'N/A','','','','','','');
   csv+=blank();
 
   // Summary block
@@ -3330,7 +3344,7 @@ function doExport(){
     csv+=row('',it.name,Number(it.budget).toLocaleString(),Number(sp).toLocaleString(),Number(rem).toLocaleString(),status,'','');
   });
   csv+=blank();
-  csv+=row('Generated by Bajeti Yanga v'+APP_VERSION+' — Rodart Creatives','','','','','','','');
+  csv+=row('Generated by Bajeti Yanga v'+APP_VERSION+', Rodart Creatives','','','','','','','');
 
   const BOM='﻿'; // UTF-8 BOM for Excel compatibility
   const blob=new Blob([BOM+csv],{type:'text/csv;charset=utf-8'});
@@ -3339,57 +3353,168 @@ function doExport(){
   const filename='BajetiYanga_'+hhName.replace(/[^a-zA-Z0-9]/g,'_')+'_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+'.csv';
   a.href=url; a.download=filename; a.click();
   setTimeout(()=>URL.revokeObjectURL(url),2000);
-  toast('CSV downloaded — '+(income.length+expenses.length)+' entries','s');
+  toast('CSV downloaded: '+(income.length+expenses.length)+' entries','s');
 }
 
 function doExportPDF(){
   premiumGate('export_pdf', function(){
-    const sp=totSp(), inc=totIn(), bg=lCfg.overallBudget;
-    const rows=lPx.slice(0,50).map(p=>{ const u=uById(p.userId); return '<tr><td>'+p.date+'</td><td>'+p.item+'</td><td>'+(p.type==='income'?'Income':'Expense')+'</td><td style="text-align:right;font-weight:700;color:'+(p.type==='income'?'#1B5E20':'#B71C1C')+'">MK '+Number(p.amount).toLocaleString()+'</td><td>'+u.name+'</td></tr>'; }).join('');
-    
-    // Category breakdown for PDF
-    const catSpendPDF={};
-    lCfg.items.forEach(function(it){const s=iSpent(it.name);if(s>0){const c=catOf(it.name);catSpendPDF[c]=(catSpendPDF[c]||0)+s;}});
-    const rows_count = lPx.slice(0,100).length;
-    const catRows=Object.entries(catSpendPDF).sort(function(a,b){return b[1]-a[1];}).map(function(e){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><span>'+e[0]+'</span><span style="font-weight:700;color:#7B1FA2">MK '+Number(e[1]).toLocaleString()+'</span></div>';
-    }).join('');
-    const memberRows=lCfg.users.map(function(u){
-      const ms=lPx.filter(function(p){return p.userId===u.id&&p.type!=='income';}).reduce(function(s,p){return s+p.amount;},0);
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:'+u.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">'+u.name[0]+'</div>'+u.name+'</div><span style="font-weight:700">MK '+Number(ms).toLocaleString()+'</span></div>';
-    }).join('');
-    const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bajeti Yanga -- '+mName()+' Report</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap\');*{box-sizing:border-box;margin:0;padding:0}body{font-family:Manrope,Arial,sans-serif;background:#F8F0FF;color:#1A1A2E;padding:32px 24px;max-width:680px;margin:0 auto}.header{background:linear-gradient(135deg,#7B1FA2,#4A148C);border-radius:20px;padding:24px 28px;color:#fff;margin-bottom:24px;display:flex;align-items:center;gap:20px}.logo{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}.header-info h1{font-size:24px;font-weight:800;margin-bottom:4px}.header-info p{font-size:12px;opacity:.75}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}.sum-card{background:#fff;border-radius:14px;padding:16px;text-align:center;box-shadow:0 2px 12px rgba(123,31,162,.1)}.sum-val{font-size:20px;font-weight:800;color:#7B1FA2;margin-bottom:4px}.sum-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#607D8B}.sum-card.spent .sum-val{color:#B71C1C}.sum-card.income .sum-val{color:#1B5E20}.section{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}.section h2{font-size:14px;font-weight:800;color:#7B1FA2;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EDE7F6}.tx-table{width:100%;border-collapse:collapse}.tx-table th{background:#F3E5F5;color:#4A148C;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;border-radius:4px}.tx-table td{padding:7px 10px;border-bottom:1px solid #F3E5F5;font-size:12px}.tx-table tr:last-child td{border-bottom:none}.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}.badge-exp{background:#FFEBEE;color:#B71C1C}.badge-inc{background:#E8F5E9;color:#1B5E20}.footer{text-align:center;font-size:10px;color:#9E9E9E;margin-top:24px;padding-top:16px;border-top:1px solid #EDE7F6}@media print{body{background:#fff;padding:16px}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}.section{box-shadow:none;border:1px solid #EDE7F6}}</style></head><body>';
-    const h2 = '<!DOCTYPE html>';
-    const fullHtml = html + '<div class="header"><div class="logo"><i data-lucide="home" style="color:var(--p1)"></i></div><div class="header-info"><h1>Bajeti Yanga</h1><p>Monthly Financial Report &bull; '+mName()+'<br>Household: '+hhId+' &bull; Generated: '+new Date().toLocaleDateString()+'</p></div></div>'
-    + '<div class="summary-grid"><div class="sum-card spent"><div class="sum-val">MK '+Number(sp).toLocaleString()+'</div><div class="sum-lbl">Total Spent</div></div><div class="sum-card income"><div class="sum-val">MK '+Number(inc).toLocaleString()+'</div><div class="sum-lbl">Income</div></div><div class="sum-card"><div class="sum-val">MK '+Number(Math.max(0,bg-sp)).toLocaleString()+'</div><div class="sum-lbl">Remaining</div></div></div>'
-    + '<div class="section"><h2>&#127922; Spending by Category</h2>'+catRows+'</div>'
-    + '<div class="section"><h2><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> Spending by Member</h2>'+memberRows+'</div>'
-    + '<div class="section"><h2><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> All Transactions ('+rows_count+')</h2><table class="tx-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Amount</th><th>Member</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-    + '<div class="footer">Bajeti Yanga v'+APP_VERSION+'&mdash; &copy; 2026 Rodart Creatives &bull; Made in Malawi &#127474;&#127484;</div></body></html>';
-    const w=window.open('','_blank');
-    if(w){
-      w.document.write(fullHtml); w.document.close();
-      setTimeout(function(){w.print(); w.close();},600);
-    } else {
-      // Fallback for Android/QuickEdit: download as HTML file
-      try {
-        const blob = new Blob([fullHtml], {type:'text/html'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'BajetiYanga_'+mName().replace(' ','_')+'_Report.html';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
-        toast('Report downloaded! Open it in your browser to print.','s');
-      } catch(e){
-        toast('Export failed. Allow popups and try again.','e');
-      }
-      return;
-    }
-    toast('PDF ready -- tap Print to save');
+    openPdfRangePicker();
   });
+}
+
+// Opens a modal asking the user which period to export.
+// "Pick a Past Month" is capped to the last 12 calendar months.
+function openPdfRangePicker(){
+  const isCW = lang === 'cw';
+  const now = new Date();
+  let monthOptions = '';
+  for(let i=0;i<12;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const val = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const lbl = tx().months[d.getMonth()]+' '+d.getFullYear();
+    monthOptions += '<option value="'+val+'">'+lbl+'</option>';
+  }
+  const todayStr = today();
+  const monthAgoStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()-30).toISOString().split('T')[0];
+
+  let h = '<div class="dh"></div><h3 style="font-family:Hanken Grotesk,sans-serif;margin-bottom:14px">'+(isCW?'Sankhani Nthawi':'Choose Report Period')+'</h3>';
+
+  h += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genPdfForRange(\'week\')"><div class="stg-row-ico" style="background:#E3F2FD"><i data-lucide="calendar-days" style="color:#1565C0"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Sabata Lino':'This Week')+'</div><div class="stg-row-sub">'+(isCW?'Masiku 7 apitawa':'Last 7 days')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
+  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genPdfForRange(\'month\')"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="calendar-check" style="color:var(--g1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Mwezi Uno':'This Month')+'</div><div class="stg-row-sub">'+budgetPeriodLabel()+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
+  h += '</div>';
+
+  h += '<div style="border-top:1.5px solid var(--border);padding-top:12px;margin-bottom:12px">';
+  h += '<label style="font-size:.72rem;font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Mwezi wapita (miyezi 12)':'Pick a Past Month (last 12 months)')+'</label>';
+  h += '<div style="display:flex;gap:8px"><select id="pdf-month-sel" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:.8rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">'+monthOptions+'</select>';
+  h += '<button class="btnM" style="width:auto;padding:9px 16px;font-size:.78rem" onclick="genPdfForMonth(g(\'pdf-month-sel\').value)">'+(isCW?'Tulutsani':'Export')+'</button></div>';
+  h += '</div>';
+
+  h += '<div style="border-top:1.5px solid var(--border);padding-top:12px">';
+  h += '<label style="font-size:.72rem;font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Nthawi Yanu':'Custom Range')+'</label>';
+  h += '<div style="display:flex;gap:8px;margin-bottom:8px">';
+  h += '<input type="date" id="pdf-from" value="'+monthAgoStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
+  h += '<input type="date" id="pdf-to" value="'+todayStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
+  h += '</div>';
+  h += '<button class="btnM" style="width:100%" onclick="genPdfCustomRange()">'+(isCW?'Tulutsani Lipoti':'Generate Report')+'</button>';
+  h += '</div>';
+
+  g('mb-u').innerHTML = h;
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
+  openM('mv-u');
+}
+
+function genPdfForRange(kind){
+  const now = new Date();
+  let fromD, toD, label;
+  if(kind === 'week'){
+    fromD = new Date(now.getFullYear(), now.getMonth(), now.getDate()-6);
+    toD = now;
+    label = (lang==='cw'?'Sabata Lino':'This Week');
+  } else {
+    const p = getBudgetPeriod();
+    fromD = new Date(p.startY, p.startM, p.startD);
+    toD = new Date(p.endY, p.endM, p.endD);
+    label = budgetPeriodLabel();
+  }
+  closeM('mv-u');
+  buildAndDownloadPdf(fromD, toD, label);
+}
+
+function genPdfForMonth(monthVal){
+  if(!monthVal) return;
+  const parts = monthVal.split('-');
+  const y = parseInt(parts[0],10), m = parseInt(parts[1],10)-1;
+  const fromD = new Date(y, m, 1);
+  const toD = new Date(y, m+1, 0);
+  const label = tx().months[m]+' '+y;
+  closeM('mv-u');
+  buildAndDownloadPdf(fromD, toD, label);
+}
+
+function genPdfCustomRange(){
+  const fromVal = g('pdf-from').value, toVal = g('pdf-to').value;
+  if(!fromVal || !toVal){ toast(lang==='cw'?'Sankhani masiku onse awiri':'Please pick both dates','e'); return; }
+  const fromD = new Date(fromVal+'T00:00:00');
+  const toD = new Date(toVal+'T00:00:00');
+  if(fromD > toD){ toast(lang==='cw'?'Tsiku loyamba liyenera kukhala lisanafike lomaliza':'Start date must be before end date','e'); return; }
+  const label = fmtDate(fromVal)+' – '+fmtDate(toVal);
+  closeM('mv-u');
+  buildAndDownloadPdf(fromD, toD, label);
+}
+
+function buildAndDownloadPdf(fromD, toD, periodLabel){
+  // Normalize to start/end of day for inclusive comparison
+  const fromTime = new Date(fromD.getFullYear(), fromD.getMonth(), fromD.getDate()).getTime();
+  const toTime   = new Date(toD.getFullYear(), toD.getMonth(), toD.getDate(), 23, 59, 59).getTime();
+
+  const rangePx = lPx.filter(function(p){
+    if(!p.date || p.deleted) return false;
+    const parts = String(p.date).split('-');
+    if(parts.length !== 3) return false;
+    const pd = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10)).getTime();
+    return pd >= fromTime && pd <= toTime;
+  }).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); });
+
+  if(!rangePx.length){
+    toast(lang==='cw'?'Palibe zolemba mu nthawi imeneyi':'No transactions found in that period','e');
+    return;
+  }
+
+  const sp = rangePx.filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+p.amount;},0);
+  const inc = rangePx.filter(function(p){return p.type==='income';}).reduce(function(s,p){return s+p.amount;},0);
+  const bg = lCfg.overallBudget;
+
+  // No silent cap — all matching transactions are included
+  const rows = rangePx.map(function(p){
+    const u = uById(p.userId);
+    return '<tr><td>'+fmtDate(p.date)+'</td><td>'+esc(p.item)+'</td><td>'+(p.type==='income'?'Income':'Expense')+'</td><td style="text-align:right;font-weight:700;color:'+(p.type==='income'?'#1B5E20':'#B71C1C')+'">MK '+Number(p.amount).toLocaleString()+'</td><td>'+esc(u.name)+'</td></tr>';
+  }).join('');
+
+  const catSpendPDF = {};
+  rangePx.filter(function(p){return p.type!=='income';}).forEach(function(p){
+    const c = catOf(p.item, p.cat);
+    catSpendPDF[c] = (catSpendPDF[c]||0) + p.amount;
+  });
+  const catRows = Object.entries(catSpendPDF).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><span>'+e[0]+'</span><span style="font-weight:700;color:#7B1FA2">MK '+Number(e[1]).toLocaleString()+'</span></div>';
+  }).join('');
+
+  const memberRows = lCfg.users.map(function(u){
+    const ms = rangePx.filter(function(p){return p.userId===u.id && p.type!=='income';}).reduce(function(s,p){return s+p.amount;},0);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:'+u.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">'+esc(u.name[0])+'</div>'+esc(u.name)+'</div><span style="font-weight:700">MK '+Number(ms).toLocaleString()+'</span></div>';
+  }).join('');
+
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bajeti Yanga -- '+periodLabel+' Report</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap\');*{box-sizing:border-box;margin:0;padding:0}body{font-family:Manrope,Arial,sans-serif;background:#F8F0FF;color:#1A1A2E;padding:32px 24px;max-width:680px;margin:0 auto}.header{background:linear-gradient(135deg,#7B1FA2,#4A148C);border-radius:20px;padding:24px 28px;color:#fff;margin-bottom:24px;display:flex;align-items:center;gap:20px}.logo{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}.header-info h1{font-size:24px;font-weight:800;margin-bottom:4px}.header-info p{font-size:12px;opacity:.75}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}.sum-card{background:#fff;border-radius:14px;padding:16px;text-align:center;box-shadow:0 2px 12px rgba(123,31,162,.1)}.sum-val{font-size:20px;font-weight:800;color:#7B1FA2;margin-bottom:4px}.sum-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#607D8B}.sum-card.spent .sum-val{color:#B71C1C}.sum-card.income .sum-val{color:#1B5E20}.section{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}.section h2{font-size:14px;font-weight:800;color:#7B1FA2;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EDE7F6}.tx-table{width:100%;border-collapse:collapse}.tx-table th{background:#F3E5F5;color:#4A148C;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;border-radius:4px}.tx-table td{padding:7px 10px;border-bottom:1px solid #F3E5F5;font-size:12px}.tx-table tr:last-child td{border-bottom:none}.footer{text-align:center;font-size:10px;color:#9E9E9E;margin-top:24px;padding-top:16px;border-top:1px solid #EDE7F6}@media print{body{background:#fff;padding:16px}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}.section{box-shadow:none;border:1px solid #EDE7F6}}</style></head><body>';
+  const fullHtml = html + '<div class="header"><div class="logo">📊</div><div class="header-info"><h1>Bajeti Yanga</h1><p>Financial Report &bull; '+periodLabel+'<br>Household: '+hhId+' &bull; Generated: '+new Date().toLocaleDateString()+'</p></div></div>'
+    + '<div class="summary-grid"><div class="sum-card spent"><div class="sum-val">MK '+Number(sp).toLocaleString()+'</div><div class="sum-lbl">Total Spent</div></div><div class="sum-card income"><div class="sum-val">MK '+Number(inc).toLocaleString()+'</div><div class="sum-lbl">Income</div></div><div class="sum-card"><div class="sum-val">MK '+Number(Math.max(0,bg-sp)).toLocaleString()+'</div><div class="sum-lbl">Budget Remaining</div></div></div>'
+    + '<div class="section"><h2>📊 Spending by Category</h2>'+catRows+'</div>'
+    + '<div class="section"><h2>👤 Spending by Member</h2>'+memberRows+'</div>'
+    + '<div class="section"><h2>📋 All Transactions ('+rangePx.length+')</h2><table class="tx-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Amount</th><th>Member</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    + '<div class="footer">Bajeti Yanga v'+APP_VERSION+' &middot; &copy; 2026 Rodart Creatives &bull; Made in Malawi 🇲🇼</div></body></html>';
+
+  const w = window.open('','_blank');
+  if(w){
+    w.document.write(fullHtml); w.document.close();
+    setTimeout(function(){w.print(); w.close();},600);
+  } else {
+    try {
+      const blob = new Blob([fullHtml], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'BajetiYanga_'+periodLabel.replace(/[\s,–]+/g,'_')+'_Report.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      toast(lang==='cw'?'Lipoti latsitsidwa!':'Report downloaded! Open it in your browser to print.','s');
+    } catch(e){
+      toast(lang==='cw'?'Zalephera. Loleni ma popup ndipo yesaninso.':'Export failed. Allow popups and try again.','e');
+    }
+    return;
+  }
+  toast(lang==='cw'?'Lipoti lakonzeka -- Print kuti musunge':'PDF ready -- tap Print to save');
 }
 
 // ===============================================
@@ -3474,7 +3599,7 @@ function openPrivacySheet(){
     +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">1. Data We Collect</h3>'
     +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality.</p>'
     +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">2. How We Use Your Data</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">Your data is used exclusively to provide the budgeting features. AI features process spending summaries temporarily — this data is not retained beyond the request.</p>'
+    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">Your data is used exclusively to provide the budgeting features. AI features process spending summaries temporarily; this data is not retained beyond the request.</p>'
     +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">3. Data Storage & Security</h3>'
     +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can access your data. Data is encrypted in transit and at rest.</p>'
     +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">4. Data Sharing</h3>'
@@ -3793,7 +3918,7 @@ function showPremiumPage(){
 
   // ── Why pay ──
   h += '<div style="border:1.5px solid #A5D6A7;background:linear-gradient(135deg,#F1F8E9,#E8F5E9);border-radius:14px;padding:11px 13px;margin-bottom:16px;font-size:.76rem;color:#1B5E20;line-height:1.6">';
-  h += '<i data-lucide="heart" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;color:#2E7D32"></i> <strong>Why pay?</strong> Bajeti Yanga is built in Malawi, for Malawian families. Your subscription keeps the app running — ad-free, private, forever. No data selling, ever.';
+  h += '<i data-lucide="heart" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;color:#2E7D32"></i> <strong>Why pay?</strong> Bajeti Yanga is built in Malawi, for Malawian families. Your subscription keeps the app running: ad-free, private, forever. No data selling, ever.';
   h += '</div>';
 
   // ── How to pay ──
@@ -3944,8 +4069,8 @@ function maybeNotify(title,body){
 // Call on boot after household connects
 function scheduleInAppAlerts(){
   const sp=totSp(), bg=lCfg.overallBudget, pct=sp/bg;
-  if(pct>=1) maybeNotify('Bajeti Yanga — Over Budget!',`You've spent MK ${Math.round(sp).toLocaleString()} of your MK ${bg.toLocaleString()} budget.`);
-  else if(pct>=0.8) maybeNotify('Bajeti Yanga — Budget Warning',`${Math.round(pct*100)}% of your monthly budget used.`);
+  if(pct>=1) maybeNotify('Bajeti Yanga: Over Budget!',`You've spent MK ${Math.round(sp).toLocaleString()} of your MK ${bg.toLocaleString()} budget.`);
+  else if(pct>=0.8) maybeNotify('Bajeti Yanga: Budget Warning',`${Math.round(pct*100)}% of your monthly budget used.`);
   lCfg.items.forEach(it=>{
     const s=iSpent(it.name);
     if(s>it.budget) maybeNotify(`${it.name} over budget`,`Spent MK ${Math.round(s).toLocaleString()} of MK ${it.budget.toLocaleString()}`);
@@ -4061,7 +4186,7 @@ function rChat(){
   const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>';
   const firstName = curUser&&curUser.displayName ? curUser.displayName.split(' ')[0] : (isCW?'Bwana':'there');
   const greeting = isCW ? 'Moni, '+firstName+'!' : 'Hey, '+firstName+'!';
-  const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI — your personal budget partner.";
+  const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI, your personal budget partner!";
   const suggestions = isCW ? [
     {icon:'trending-up',color:'#1B5E20',txt:'Kodi ndikuchita bwanji mwezi uno?'},
     {icon:'alert-triangle',color:'#E65100',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
@@ -4214,7 +4339,7 @@ function renderBubbles(){
     const u=actU();
     const firstName=curUser&&curUser.displayName?curUser.displayName.split(' ')[0]:(isCW?'Bwana':'there');
     const greeting=isCW?'Moni, '+firstName+'!':'Hey, '+firstName+'!';
-    const subText=isCW?'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!':"I'm Bajeti AI — your personal budget partner.";
+    const subText=isCW?'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!':"I'm Bajeti AI, your personal budget partner!";
     const suggs=isCW?[
       {icon:'trending-up',color:'#1B5E20',txt:'Kodi ndikuchita bwanji mwezi uno?'},
       {icon:'alert-triangle',color:'#E65100',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
@@ -4547,12 +4672,32 @@ function buildCtx(){
   const validItems = lCfg.items.map(it=>it.name);
 
   return `You are Bajeti AI, a warm, personal household budget assistant for a Malawian family using the Bajeti Yanga app.
+Bajeti Yanga was built by Rodart Creatives, a Malawian software studio. If the user asks who made the app, mention Rodart Creatives.
 You are talking to ${authName} (household member name: ${me.name}).
 The household has ${lCfg.users.length} member(s): ${lCfg.users.map(u=>u.name).join(', ')}.
 Always address the user by their first name (${me.name.split(' ')[0]}) naturally in conversation.
 Respond in ${lang==='cw'?'Chichewa':'English'}. Be warm, encouraging, and specific -- reference their actual numbers and names.
 Use MK (Malawian Kwacha). Use bullet points for lists. Bold key numbers.
 Keep replies concise (3-5 sentences or a short list). Never give generic advice -- always tie it to their real data.
+
+=== APP NAVIGATION (use this to guide the user to the right place) ===
+When the user asks "how do I..." or seems stuck on something the app can do, tell them exactly where to tap. Use this map:
+- Change salary day / budget period -> Settings (Profile tab) > Household > Salary Day
+- Add or edit a budget item / category -> Settings > Household > Items & Budgets
+- Add or remove a household member -> Settings > Household > Members
+- Set a savings goal -> Settings > Household > Savings Goals
+- Set the overall monthly budget cap -> Settings > Household > Monthly Budget Cap
+- Switch language (English/Chichewa) -> Settings > General > Language
+- Turn on dark mode -> Settings > General > Dark Mode
+- Set up fingerprint/Face unlock -> Settings > Security > Biometrics
+- Export data as CSV -> Settings > Data > Export CSV
+- Export a PDF report (Premium) -> Settings > Data > Export PDF
+- Bulk-log multiple transactions from a text/SMS -> Magic Log (sparkle/wand icon, usually on Home or Log)
+- Upgrade to Premium -> tap the "Upgrade" chip on the Profile tab, or Settings > Premium
+- Delete account -> Settings > Data > Delete Account (30-day recovery window)
+
+=== SUPPORT & CONTACT ===
+If the user is frustrated, stuck on something you can't resolve, reports a bug, or explicitly asks for human help/support, let them know they can reach Rodart Creatives directly on WhatsApp at +265 888 029 029 (also available in Settings > Help & Support). Don't push this proactively in every reply -- only when it's genuinely the right next step.
 
 === ACTIONS ===
 You can add or delete log entries when the user asks. Append ONE JSON block at the very end of your reply (after your text) when an action is needed. Never put JSON mid-reply. Format:
@@ -4787,7 +4932,7 @@ async function scanReceiptFromChat(input){
 
       // Build result message and save to chat history
       let msg=(lang==='cw'?'&#10024; Ndasankha zinthu '+items.length+' pachithunzi cha risiti:':'&#10024; Found '+items.length+' item(s) from your receipt:')+'\n\n';
-      items.forEach(function(tx){msg+='\u2022 **'+String(tx.item||'')+'** — MK '+Number(tx.amount||0).toLocaleString()+'\n';});
+      items.forEach(function(tx){msg+='\u2022 **'+String(tx.item||'')+'**: MK '+Number(tx.amount||0).toLocaleString()+'\n';});
       msg+='\n'+(lang==='cw'?'Kodi mufune kuzigwiritsira ntchito? Ndingathe kuzilembera.':'Want me to log these? Just say "log them" and I\'ll add them to your expenses.');
 
       chatHistory.push({role:'assistant',text:msg,ts:Date.now()});
@@ -4979,7 +5124,7 @@ function saveMagicTxs() {
       toast(
         lang === 'cw'
           ? 'Lowetsani dzina la chinthu ichi (osati "' + (rawName || 'bwera') + '")'
-          : 'Please enter a real name for this item — "' + (rawName || 'blank') + '" is not valid',
+          : 'Please enter a real name for this item. "' + (rawName || 'blank') + '" is not valid',
         'e'
       );
       skipped++;
