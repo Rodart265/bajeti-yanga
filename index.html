@@ -7,9 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.3.8</title>
+<title>Bajeti Yanga v9.4.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
 <script>
   document.currentScript.previousElementSibling.addEventListener('load', function(){
@@ -773,8 +774,19 @@ body.dark .chat-action-row:active{background:#2A2A2A}
         <input class="a-input" id="a-em" type="email" placeholder="you@example.com" autocomplete="email">
         <label class="a-label">Password</label>
         <div class="pw-wrap">
-          <input class="a-input" id="a-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="current-password">
+          <input class="a-input" id="a-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="current-password" oninput="validatePwReqs(this.value)">
           <button class="pw-eye" type="button" onclick="tgPW('a-pw',this)"><i data-lucide="eye"></i></button>
+        </div>
+        <!-- Password requirements — only shown on register tab -->
+        <div id="pw-reqs" class="hide" style="display:none;flex-wrap:wrap;gap:6px;margin:6px 0 10px">
+          <div id="req-len" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 10px;font-size:.68rem;color:rgba(255,255,255,.6);transition:all .2s">
+            <i data-lucide="x-circle" style="width:12px;height:12px" id="req-len-ico"></i>
+            <span>At least 6 characters</span>
+          </div>
+          <div id="req-space" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 10px;font-size:.68rem;color:rgba(255,255,255,.6);transition:all .2s">
+            <i data-lucide="x-circle" style="width:12px;height:12px" id="req-space-ico"></i>
+            <span>No leading/trailing spaces</span>
+          </div>
         </div>
         <div class="forgot-link" id="a-fgt-lnk"><button onclick="showFgt(true)" type="button">Forgot password?</button></div>
         <div id="a-pw2-f" class="hide">
@@ -1173,7 +1185,11 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Fuel','Rent','Diapers','Money Sent','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.3.8';
+const APP_VERSION = '9.4.0';
+// Household limits — change these values to adjust limits app-wide
+const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
+// Deep link base URL — used in QR codes and join links
+const APP_BASE_URL = 'https://rodart265.github.io/bajeti-yanga/';
 // Reusable app logo SVG — bar chart with cyan accent
 const APP_LOGO_SVG = (size, bg) => `<svg width="${size}" height="${size}" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="13" fill="${bg||'rgba(255,255,255,0.18)'}"/><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg>`;
 
@@ -1619,6 +1635,36 @@ function removePIN(){ localStorage.removeItem('nb_pin'); toast(tx().pinOff); go(
 // 6. AUTH
 // ===============================================
 
+function validatePwReqs(val){
+  const reqs = g('pw-reqs');
+  if(!reqs || reqs.style.display === 'none') return;
+  const pw = String(val || '');
+  if(pw.length === 0) return; // Don't validate empty field — wait for first keypress
+
+  // Requirement 1: at least 6 characters
+  const lenOk = pw.length >= 6;
+  const lenChip = g('req-len');
+  const lenIco = g('req-len-ico');
+  if(lenChip){
+    lenChip.style.background = lenOk ? 'rgba(46,125,50,0.4)' : 'rgba(255,255,255,.12)';
+    lenChip.style.color = lenOk ? '#A5D6A7' : 'rgba(255,255,255,.6)';
+  }
+  if(lenIco) lenIco.setAttribute('data-lucide', lenOk ? 'check-circle' : 'x-circle');
+
+  // Requirement 2: no leading/trailing spaces
+  const spaceOk = pw === pw.trim();
+  const spaceChip = g('req-space');
+  const spaceIco = g('req-space-ico');
+  if(spaceChip){
+    spaceChip.style.background = spaceOk ? 'rgba(46,125,50,0.4)' : 'rgba(255,255,255,.12)';
+    spaceChip.style.color = spaceOk ? '#A5D6A7' : 'rgba(255,255,255,.6)';
+  }
+  if(spaceIco) spaceIco.setAttribute('data-lucide', spaceOk ? 'check-circle' : 'x-circle');
+
+  // Re-render Lucide icons after updating data-lucide attributes
+  if(window.lucide) lucide.createIcons({nodes:[reqs]});
+}
+
 function aTab(mode){
   const isReg=mode==='register';
   g('at-login').classList.toggle('on',!isReg);
@@ -1629,6 +1675,18 @@ function aTab(mode){
   if(fgtL)fgtL.style.display=isReg?'none':'block';
   if(btn)btn.textContent=isReg?'Start Tracking':'Welcome Back';
   if(sw)sw.innerHTML=isReg?"Already tracking? <span onclick=\"aTab('login')\">Welcome back</span>":"New to Bajeti Yanga? <span onclick=\"aTab('register')\">Start tracking</span>";
+  // Show/hide password requirements chips
+  const reqs = g('pw-reqs');
+  if(reqs){
+    reqs.style.display = isReg ? 'flex' : 'none';
+    if(!isReg) reqs.classList.add('hide'); else reqs.classList.remove('hide');
+  }
+  // Clear password field and reset chip states when switching tabs
+  const pwField = g('a-pw');
+  if(pwField) pwField.value = '';
+  const lenChip=g('req-len'),spaceChip=g('req-space');
+  if(lenChip){ lenChip.style.background='rgba(255,255,255,.12)'; lenChip.style.color='rgba(255,255,255,.6)'; }
+  if(spaceChip){ spaceChip.style.background='rgba(255,255,255,.12)'; spaceChip.style.color='rgba(255,255,255,.6)'; }
   showAErr('');
 }
 function aMethod(m){
@@ -1876,7 +1934,23 @@ function welcomeSwitch(){
 }
 
 
+// Deep link join code — extracted from ?join= URL parameter on boot
+let _pendingJoinCode = null;
+
 function bootApp(){
+  // Extract ?join= deep link parameter before auth flow clears the URL
+  if(!_pendingJoinCode){
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const joinParam = params.get('join');
+      if(joinParam && joinParam.trim()){
+        _pendingJoinCode = joinParam.trim().toUpperCase();
+        // Clean the URL so it doesn't persist on refresh
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    } catch(e){ /* URL API unavailable — ignore */ }
+  }
   loadChatHistory();
   if(authReg)return;
   authReg=true;
@@ -1911,9 +1985,33 @@ function bootApp(){
             }
           } else {
             hide('scr-auth'); hide('scr-pin'); g('app').classList.add('hide'); show('scr-setup');
+            // Pre-fill join code from QR deep link if present
+            if(_pendingJoinCode){
+              setTimeout(function(){
+                const joinInp = g('join-code');
+                if(joinInp){
+                  joinInp.value = _pendingJoinCode;
+                  // Scroll to and highlight the join section
+                  joinInp.scrollIntoView({behavior:'smooth', block:'center'});
+                  joinInp.focus();
+                  // Show a toast so the user knows what happened
+                  toast(lang==='cw'?'Kodi yolowera yatsegulidwa kuchokera ku QR code.':'Join code loaded from QR code. Tap "Join This Household" to continue.','i');
+                }
+                _pendingJoinCode = null;
+              }, 400);
+            }
           }
         })
-        .catch(()=>{ hide('scr-auth'); hide('scr-pin'); g('app').classList.add('hide'); show('scr-setup'); });
+        .catch(()=>{
+          hide('scr-auth'); hide('scr-pin'); g('app').classList.add('hide'); show('scr-setup');
+          if(_pendingJoinCode){
+            setTimeout(function(){
+              const joinInp = g('join-code');
+              if(joinInp){ joinInp.value = _pendingJoinCode; joinInp.focus(); }
+              _pendingJoinCode = null;
+            }, 400);
+          }
+        });
     } else {
       curUser=null;
       g('app').classList.add('hide'); hide('scr-setup'); hide('scr-pin'); show('scr-auth');
@@ -1926,12 +2024,19 @@ function setupErr(msg){ const el=g('setup-err'); if(!el)return; el.textContent=m
 function createHHSolo(){
   if(!curUser){setupErr('Not signed in.');return;}
   setDot('spin'); setupErr('');
-  // Check household limit — max 2
+  // Check household limit using HOUSEHOLD_LIMITS config
   db.collection('users').doc(curUser.uid).get().then(uDoc=>{
     const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
-    if(ownedHH.length >= 5){
+    const pStatus = getPremiumStatus();
+    const limit = pStatus.isPremium ? HOUSEHOLD_LIMITS.premium : HOUSEHOLD_LIMITS.free;
+    if(limit !== Infinity && ownedHH.length >= limit){
       setDot('off');
-      setupErr('You already have 5 households (the maximum). Delete one before creating a new one.');
+      const isCW = lang === 'cw';
+      const msg = pStatus.isPremium
+        ? (isCW?'Mwafika malire a nyumba.':'You have reached the household limit.')
+        : (isCW?'Ma nyumba a pa ntchito auluka ('+limit+'). Kamera Premium kapena posani nyumba.':'Free accounts can only have '+limit+' households. Upgrade to Premium for unlimited, or delete one first.');
+      setupErr(msg);
+      if(!pStatus.isPremium) setTimeout(()=>showPremiumPage(), 1500);
       return;
     }
     const code=randCode();
@@ -1948,7 +2053,7 @@ function createHHSolo(){
           ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
         },{merge:true});
       })
-      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Welcome! You\'re all set 🎉','s'); })
+      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Takulandirani! Muli wokonzeka.':'Welcome! You\'re all set.','s'); })
       .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
   }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
 }
@@ -1956,12 +2061,19 @@ function createHHSolo(){
 function createHH(){
   if(!curUser){setupErr('Not signed in.');return;}
   setDot('spin'); setupErr('');
-  // Check household limit — max 2
+  // Check household limit using HOUSEHOLD_LIMITS config
   db.collection('users').doc(curUser.uid).get().then(uDoc=>{
     const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
-    if(ownedHH.length >= 5){
+    const pStatus = getPremiumStatus();
+    const limit = pStatus.isPremium ? HOUSEHOLD_LIMITS.premium : HOUSEHOLD_LIMITS.free;
+    if(limit !== Infinity && ownedHH.length >= limit){
       setDot('off');
-      setupErr('You already have 5 households (the maximum). Delete one before creating a new one.');
+      const isCW = lang === 'cw';
+      const msg = pStatus.isPremium
+        ? (isCW?'Mwafika malire a nyumba.':'You have reached the household limit.')
+        : (isCW?'Ma nyumba a pa ntchito auluka ('+limit+'). Kamera Premium kapena posani nyumba.':'Free accounts can only have '+limit+' households. Upgrade to Premium for unlimited, or delete one first.');
+      setupErr(msg);
+      if(!pStatus.isPremium) setTimeout(()=>showPremiumPage(), 1500);
       return;
     }
     const code=randCode();
@@ -1974,7 +2086,7 @@ function createHH(){
           ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
         },{merge:true});
       })
-      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast('Household created!'); })
+      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yopangidwa!':'Household created!','s'); })
       .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
   }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
 }
@@ -2018,23 +2130,61 @@ function joinHH(){
           setDot('off');
           // Show pending screen — don't connect yet, owner must approve first
           hide('scr-setup');
-          const pendingScr = g('scr-setup') || document.createElement('div');
           g('app').classList.add('hide');
           show('scr-setup');
           const setupBox = document.querySelector('.setup-card') || document.querySelector('.auth-box');
           if(setupBox){
-            setupBox.innerHTML = '<div style="text-align:center;padding:20px 0">'
+            setupBox.innerHTML = '<div style="text-align:center;padding:20px 0" id="pending-approval-box">'
               +'<div style="width:56px;height:56px;border-radius:18px;background:#FFF9C4;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="clock" style="width:28px;height:28px;color:#F9A825"></i></div>'
               +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:8px">'+(lang==='cw'?'Chonde Dikirani Chilolezo':'Waiting for Approval')+'</div>'
-              +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(lang==='cw'?'Pempho lanu litumizidwa. Mwini wa nyumba akukuonani — mudziwa mukavomelezwa.':'Your join request has been sent. The household owner will review it. You\'ll be notified when approved.')+'</div>'
+              +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(lang==='cw'?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa — palibe kufunikira kukonzanso.':'Your join request has been sent. You\'ll be connected automatically when the owner approves.')+'</div>'
               +'<div style="background:var(--mist);border-radius:12px;padding:10px 14px;font-size:.75rem;color:var(--mid);margin-bottom:16px;display:flex;align-items:center;gap:8px">'
               +'<i data-lucide="home" style="width:14px;height:14px;flex-shrink:0"></i>'
               +'<span>Household: <strong style="color:var(--ink)">'+code+'</strong></span></div>'
-              +'<button onclick="location.reload()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:9px 20px;font-size:.8rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Onani Pomwe':'Check Again')+'</button>'
+              +'<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:.72rem;color:var(--mid);margin-bottom:14px" id="approval-listening-indicator">'
+              +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1.2s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
+              +(lang==='cw'?'Kudikira chilolezo...':'Listening for approval...')
+              +'</div>'
               +'</div>';
             if(window.lucide) lucide.createIcons({nodes:[setupBox]});
           }
-          toast(lang==='cw'?'Pempho lotumizidwa. Dikirani chilolezo cha mwini.':'Join request sent. Waiting for owner approval.','i');
+          toast(lang==='cw'?'Pempho lotumizidwa. Mudziwa mukavomelezwa.':'Join request sent. You\'ll be notified when approved.','i');
+
+          // Auto-detect approval: watch the household doc for the requester's UID in memberUids
+          // When the owner taps Approve, Firestore updates memberUids and this listener fires
+          let _approvalUnsub = null;
+          _approvalUnsub = db.collection('households').doc(code).onSnapshot(function(snap){
+            if(!snap.exists) return;
+            const data = snap.data();
+            const memberUids = data.memberUids || [];
+            if(curUser && memberUids.includes(curUser.uid)){
+              // Approved! Clean up listener and connect
+              if(_approvalUnsub){ _approvalUnsub(); _approvalUnsub = null; }
+              localStorage.setItem('nb_household', code);
+              if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+
+              // Show approved animation before connecting
+              const box = g('pending-approval-box');
+              if(box){
+                box.innerHTML = '<div style="width:56px;height:56px;border-radius:18px;background:#E8F5E9;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="check-circle" style="width:28px;height:28px;color:#2E7D32"></i></div>'
+                  +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:#1B5E20;margin-bottom:6px">'+(lang==='cw'?'Mwavomelezedwa!':'You\'re Approved!')+'</div>'
+                  +'<div style="font-size:.78rem;color:var(--mid)">'+(lang==='cw'?'Kulumikizana...':'Connecting you now...')+'</div>';
+                if(window.lucide) lucide.createIcons({nodes:[box]});
+              }
+              setTimeout(function(){
+                hide('scr-setup'); g('app').classList.remove('hide');
+                connectHH(code);
+                toast(lang==='cw'?'Takulandirani mu nyumba!':'Welcome to the household!','s');
+              }, 1200);
+            }
+          }, function(err){
+            // Listener failed — fall back to manual check
+            console.warn('[approvalListener] Error:', err.code);
+            const indicator = g('approval-listening-indicator');
+            if(indicator){
+              indicator.innerHTML = '<button onclick="location.reload()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:7px 16px;font-size:.75rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Onani Pomwe':'Check Again')+'</button>';
+            }
+          });
         })
         .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
     })
@@ -2435,14 +2585,14 @@ function waCode(){ if(hhId)window.open('https://wa.me/?text='+encodeURIComponent
 function openQRCode(){
   if(!hhId){ toast('No household code','e'); return; }
   const isCW=lang==='cw';
-  const joinUrl='https://rodart265.github.io/bajeti-yanga/?join='+hhId;
+  const joinUrl=APP_BASE_URL+'?join='+encodeURIComponent(hhId);
   let h='<div class="dh"></div>';
   h+='<h3><i data-lucide="qr-code" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Kodi ya QR':'QR Code')+'</h3>';
   h+='<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px;line-height:1.5">';
-  h+=(isCW?'Gwiritsani ntchito QR code kuti musonkhanitsa anthu a nyumba yanu msanga.':'Let others scan this QR code to join your household instantly.')+'</p>';
+  h+=(isCW?'Gwiritsani ntchito QR code kuti musonkhanitsa anthu a nyumba yanu msanga.':'Scan this QR code to join your household instantly. Opens Bajeti Yanga with the code pre-filled.')+'</p>';
   h+='<div style="display:flex;justify-content:center;margin-bottom:16px">';
   h+='<div style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 24px rgba(123,31,162,.15);border:2px solid var(--border)">';
-  h+='<canvas id="qr-canvas" width="200" height="200" style="display:block;border-radius:8px"></canvas>';
+  h+='<div id="qr-canvas" style="width:200px;height:200px;border-radius:8px;display:flex;align-items:center;justify-content:center"></div>';
   h+='</div></div>';
   h+='<div style="background:var(--mist);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
   h+='<div><div style="font-size:.66rem;font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Kodi ya Nyumba':'Household Code')+'</div>';
@@ -2456,31 +2606,32 @@ function openQRCode(){
   g('mb-u').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
-  setTimeout(function(){ drawQRCode('qr-canvas', joinUrl); }, 80);
-}
-
-function drawQRCode(canvasId, text){
-  const canvas=document.getElementById(canvasId);
-  if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const W=canvas.width, H=canvas.height;
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
-  const img=new Image();
-  img.crossOrigin='anonymous';
-  img.onload=function(){ ctx.drawImage(img,0,0,W,H); };
-  img.onerror=function(){
-    ctx.fillStyle='#7B1FA2';
-    ctx.font='bold 13px monospace';
-    ctx.textAlign='center';
-    ctx.fillText('Household Code:', W/2, 80);
-    ctx.font='bold 18px monospace';
-    const code=text.split('?join=')[1]||text;
-    ctx.fillText(code, W/2, 110);
-    ctx.font='12px sans-serif';
-    ctx.fillStyle='#607D8B';
-    ctx.fillText('(offline - copy code above)', W/2, 140);
-  };
-  img.src='https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl='+encodeURIComponent(text)+'&choe=UTF-8&chld=M|2';
+  // Generate real scannable QR code using qrcode.js
+  setTimeout(function(){
+    const el = g('qr-canvas');
+    if(!el) return;
+    if(window.QRCode){
+      try {
+        new QRCode(el, {
+          text: joinUrl,
+          width: 200,
+          height: 200,
+          colorDark: '#4A148C',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch(e) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
+          +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.1rem;letter-spacing:2px">'+esc(hhId)+'</div>'
+          +'<div>QR unavailable offline.<br>Copy the code above.</div></div>';
+      }
+    } else {
+      // qrcode.js not loaded — show code as fallback
+      el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
+        +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.2rem;letter-spacing:2px;color:#4A148C">'+esc(hhId)+'</div>'
+        +'<div>Copy the code above to share</div></div>';
+    }
+  }, 100);
 }
 function rLog(){
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
@@ -2764,6 +2915,32 @@ function saveEP(isI){
 // 12. SUMMARY
 // ===============================================
 
+function toggleSumZero(){
+  const el = g('sum-zero-items');
+  const btn = g('sum-show-all-btn');
+  const chev = g('sum-chevron');
+  const isCW = lang === 'cw';
+  if(!el) return;
+  const isHidden = el.classList.contains('hide');
+  if(isHidden){
+    el.classList.remove('hide');
+    if(chev) chev.setAttribute('data-lucide','chevron-up');
+    if(btn){
+      const zeroCount = lCfg.items.filter(it=>iSpent(it.name)<=0).length;
+      btn.innerHTML = '<i data-lucide="chevron-up" style="width:14px;height:14px" id="sum-chevron"></i>'
+        +(isCW?'Bisa zinthu za zero':'Show less');
+    }
+  } else {
+    el.classList.add('hide');
+    if(btn){
+      const total = lCfg.items.length;
+      btn.innerHTML = '<i data-lucide="chevron-down" style="width:14px;height:14px" id="sum-chevron"></i>'
+        +(isCW?'Onani zinthu zonse '+total:'Show all '+total+' items');
+    }
+  }
+  if(window.lucide) lucide.createIcons({nodes:[btn||document.body]});
+}
+
 function rSum(){
   const t=tx(), tB=lCfg.items.reduce((s,it)=>s+it.budget,0), tS=totSp();
   let h='<div class="page"><div class="mnav"><button class="mnbtn" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+mName()+'</span><button class="mnbtn" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
@@ -2830,14 +3007,40 @@ function rSum(){
     h+='</div>';
   } else { h+='<div class="empty" style="padding:10px"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><p><strong>'+(lang==='cw'?'Palibe zolemba.':'No spending data yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">Log a few expenses to see your insights.</span></p></div>'; }
   h+='</div></div>';
-  // Budget bars
-  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.sumTitle+'</h2></div>';
-  lCfg.items.forEach(it=>{
+  // Budget bars — split into active (spent > 0) and zero-spend
+  const activeItems = lCfg.items.filter(it => iSpent(it.name) > 0);
+  const zeroItems   = lCfg.items.filter(it => iSpent(it.name) <= 0);
+
+  function renderSumItem(it){
     const sp=iSpent(it.name),st=statOf(sp,it.budget),pct=Math.min(sp/it.budget,1),rem=it.budget-sp;
     const mp={ok:['pfok','bok',t.ok],near:['pfnear','bnear',t.near],over:['pfover','bover',t.over],none:['pfok','bnone',t.none]};
     const arr=mp[st];
-    h+='<div class="sumi"><div class="sir1"><div class="sil"><span style="font-size:1.05rem">'+ico(it.name)+'</span><span class="siname">'+it.name+'</span></div><span class="sibadge '+arr[1]+'">'+arr[2]+'</span></div><div class="sir2"><span>'+t.budget+': <strong>'+MK(it.budget)+'</strong></span><span>'+t.spent+': <strong>'+MK(sp)+'</strong></span><span style="color:'+(rem<0?'var(--r1)':'inherit')+'">'+t.left+': <strong>'+MK(rem)+'</strong></span></div><div class="pb"><div class="pf '+arr[0]+'" style="width:'+Math.min(pct*100,100)+'%"></div></div></div>';
-  });
+    return '<div class="sumi"><div class="sir1"><div class="sil"><span style="font-size:1.05rem">'+ico(it.name)+'</span><span class="siname">'+it.name+'</span></div><span class="sibadge '+arr[1]+'">'+arr[2]+'</span></div><div class="sir2"><span>'+t.budget+': <strong>'+MK(it.budget)+'</strong></span><span>'+t.spent+': <strong>'+MK(sp)+'</strong></span><span style="color:'+(rem<0?'var(--r1)':'inherit')+'">'+t.left+': <strong>'+MK(rem)+'</strong></span></div><div class="pb"><div class="pf '+arr[0]+'" style="width:'+Math.min(pct*100,100)+'%"></div></div></div>';
+  }
+
+  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.sumTitle+'</h2></div>';
+
+  if(activeItems.length === 0){
+    // No spending yet — show a helpful empty state instead of 31 zero rows
+    h += '<div class="empty" style="padding:16px"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>'
+      +'<p><strong>'+(lang==='cw'?'Palibe zogula m\'nthawi ino.':'No spending logged this period.')+'</strong><br>'
+      +'<span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Onjezerani zogula kuti muwone chidule.':'Log some expenses to see your budget breakdown.')+'</span></p></div>';
+  } else {
+    // Render only items with spending
+    activeItems.forEach(it => { h += renderSumItem(it); });
+    // "Show all" toggle for zero-spend items
+    if(zeroItems.length > 0){
+      h += '<div id="sum-zero-items" class="hide">';
+      zeroItems.forEach(it => { h += renderSumItem(it); });
+      h += '</div>';
+      h += '<div style="text-align:center;padding:10px 0 6px">'
+        +'<button id="sum-show-all-btn" onclick="toggleSumZero()" style="background:none;border:none;color:var(--p1);font-size:.76rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:inline-flex;align-items:center;gap:4px">'
+        +'<i data-lucide="chevron-down" style="width:14px;height:14px" id="sum-chevron"></i>'
+        +(lang==='cw'?'Onani zinthu zonse '+lCfg.items.length:'Show all '+lCfg.items.length+' items')
+        +'</button></div>';
+    }
+  }
+
   h+='<div class="sumfoot"><div class="sfg"><div class="sfl">'+t.total+' '+t.budget+'</div><div class="sfv">'+MK(tB)+'</div></div><div class="sfg"><div class="sfl">'+t.total+' '+t.spent+'</div><div class="sfv">'+MK(tS)+'</div></div><div class="sfg"><div class="sfl">'+t.left+'</div><div class="sfv" style="color:'+(tS>tB?'#FF8A80':'#A5D6A7')+'">'+MK(tB-tS)+'</div></div></div></div>';
   if(lCfg.goals&&lCfg.goals.length){
     h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2></div><div class="cb">';
