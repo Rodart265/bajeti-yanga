@@ -7,10 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.4.0</title>
+<title>Bajeti Yanga v9.4.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
 <script>
   document.currentScript.previousElementSibling.addEventListener('load', function(){
@@ -778,21 +779,26 @@ body.dark .chat-action-row:active{background:#2A2A2A}
           <button class="pw-eye" type="button" onclick="tgPW('a-pw',this)"><i data-lucide="eye"></i></button>
         </div>
         <!-- Password requirements — only shown on register tab -->
-        <div id="pw-reqs" class="hide" style="display:none;flex-wrap:wrap;gap:6px;margin:6px 0 10px">
-          <div id="req-len" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 10px;font-size:.68rem;color:rgba(255,255,255,.6);transition:all .2s">
-            <i data-lucide="x-circle" style="width:12px;height:12px" id="req-len-ico"></i>
+        <!-- Password requirements — only shown on register tab, stacked in dark box -->
+        <div id="pw-reqs" style="display:none;flex-direction:column;gap:5px;margin:8px 0 10px;background:rgba(0,0,0,.18);border-radius:10px;padding:9px 12px">
+          <div id="req-len" style="display:flex;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
+            <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-len-ico"></i>
             <span>At least 6 characters</span>
           </div>
-          <div id="req-space" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 10px;font-size:.68rem;color:rgba(255,255,255,.6);transition:all .2s">
-            <i data-lucide="x-circle" style="width:12px;height:12px" id="req-space-ico"></i>
-            <span>No leading/trailing spaces</span>
+          <div id="req-space" style="display:flex;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
+            <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-space-ico"></i>
+            <span>No spaces at the start or end</span>
+          </div>
+          <div id="req-match" style="display:none;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
+            <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-match-ico"></i>
+            <span>Passwords match</span>
           </div>
         </div>
         <div class="forgot-link" id="a-fgt-lnk"><button onclick="showFgt(true)" type="button">Forgot password?</button></div>
         <div id="a-pw2-f" class="hide">
           <label class="a-label">Confirm Password</label>
           <div class="pw-wrap">
-            <input class="a-input" id="a-pw2" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;">
+            <input class="a-input" id="a-pw2" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" oninput="validatePwReqs(null,true)">
             <button class="pw-eye" type="button" onclick="tgPW('a-pw2',this)"><i data-lucide="eye"></i></button>
           </div>
         </div>
@@ -891,7 +897,12 @@ body.dark .chat-action-row:active{background:#2A2A2A}
         <i data-lucide="log-in" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>Join Existing
       </button>
     </div>
-    <input class="setup-in" id="join-code" placeholder="Paste household code to join…" maxlength="20" style="margin-bottom:8px">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="setup-in" id="join-code" placeholder="Paste household code to join…" maxlength="20" style="flex:1;margin-bottom:0">
+      <button onclick="openQRScanner()" style="flex-shrink:0;width:44px;height:44px;background:linear-gradient(135deg,var(--p1),var(--p2));border:none;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer" title="Scan QR Code">
+        <i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i>
+      </button>
+    </div>
     <button class="setup-btn outline" style="margin-top:0;font-size:.82rem" onclick="joinHH()">
       <i data-lucide="arrow-right-circle" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>Join This Household
     </button>
@@ -1185,7 +1196,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Fuel','Rent','Diapers','Money Sent','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.4.0';
+const APP_VERSION = '9.4.1';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
@@ -1635,31 +1646,31 @@ function removePIN(){ localStorage.removeItem('nb_pin'); toast(tx().pinOff); go(
 // 6. AUTH
 // ===============================================
 
-function validatePwReqs(val){
+function validatePwReqs(val, fromPw2){
   const reqs = g('pw-reqs');
   if(!reqs || reqs.style.display === 'none') return;
-  const pw = String(val || '');
-  if(pw.length === 0) return; // Don't validate empty field — wait for first keypress
+  const pw = String(g('a-pw') ? g('a-pw').value : (val||''));
+  const pw2 = String(g('a-pw2') ? g('a-pw2').value : '');
+  if(pw.length === 0 && !fromPw2) return; // Don't show errors before first keypress
+
+  function setReq(chipId, icoId, ok){
+    const chip = g(chipId), ico = g(icoId);
+    if(chip){ chip.style.color = ok ? '#A5D6A7' : 'rgba(255,255,255,.5)'; }
+    if(ico){ ico.setAttribute('data-lucide', ok ? 'check-circle' : 'x-circle'); }
+  }
 
   // Requirement 1: at least 6 characters
-  const lenOk = pw.length >= 6;
-  const lenChip = g('req-len');
-  const lenIco = g('req-len-ico');
-  if(lenChip){
-    lenChip.style.background = lenOk ? 'rgba(46,125,50,0.4)' : 'rgba(255,255,255,.12)';
-    lenChip.style.color = lenOk ? '#A5D6A7' : 'rgba(255,255,255,.6)';
-  }
-  if(lenIco) lenIco.setAttribute('data-lucide', lenOk ? 'check-circle' : 'x-circle');
+  setReq('req-len', 'req-len-ico', pw.length >= 6);
 
   // Requirement 2: no leading/trailing spaces
-  const spaceOk = pw === pw.trim();
-  const spaceChip = g('req-space');
-  const spaceIco = g('req-space-ico');
-  if(spaceChip){
-    spaceChip.style.background = spaceOk ? 'rgba(46,125,50,0.4)' : 'rgba(255,255,255,.12)';
-    spaceChip.style.color = spaceOk ? '#A5D6A7' : 'rgba(255,255,255,.6)';
+  setReq('req-space', 'req-space-ico', pw.length > 0 && pw === pw.trim());
+
+  // Requirement 3: passwords match — only show row once confirm field has content
+  const matchRow = g('req-match');
+  if(matchRow && pw2.length > 0){
+    matchRow.style.display = 'flex';
+    setReq('req-match', 'req-match-ico', pw === pw2 && pw.length > 0);
   }
-  if(spaceIco) spaceIco.setAttribute('data-lucide', spaceOk ? 'check-circle' : 'x-circle');
 
   // Re-render Lucide icons after updating data-lucide attributes
   if(window.lucide) lucide.createIcons({nodes:[reqs]});
@@ -1675,18 +1686,24 @@ function aTab(mode){
   if(fgtL)fgtL.style.display=isReg?'none':'block';
   if(btn)btn.textContent=isReg?'Start Tracking':'Welcome Back';
   if(sw)sw.innerHTML=isReg?"Already tracking? <span onclick=\"aTab('login')\">Welcome back</span>":"New to Bajeti Yanga? <span onclick=\"aTab('register')\">Start tracking</span>";
-  // Show/hide password requirements chips
+  // Show/hide password requirements box
   const reqs = g('pw-reqs');
-  if(reqs){
-    reqs.style.display = isReg ? 'flex' : 'none';
-    if(!isReg) reqs.classList.add('hide'); else reqs.classList.remove('hide');
+  if(reqs) reqs.style.display = isReg ? 'flex' : 'none';
+  // Reset all requirement indicators when switching tabs
+  if(!isReg || true){
+    ['req-len','req-space'].forEach(function(id){
+      const el=g(id); if(el){ el.style.color='rgba(255,255,255,.5)'; }
+    });
+    ['req-len-ico','req-space-ico'].forEach(function(id){
+      const el=g(id); if(el) el.setAttribute('data-lucide','x-circle');
+    });
+    const matchRow=g('req-match'); if(matchRow) matchRow.style.display='none';
+    const matchIco=g('req-match-ico'); if(matchIco) matchIco.setAttribute('data-lucide','x-circle');
+    const matchEl=g('req-match'); if(matchEl) matchEl.style.color='rgba(255,255,255,.5)';
   }
-  // Clear password field and reset chip states when switching tabs
-  const pwField = g('a-pw');
-  if(pwField) pwField.value = '';
-  const lenChip=g('req-len'),spaceChip=g('req-space');
-  if(lenChip){ lenChip.style.background='rgba(255,255,255,.12)'; lenChip.style.color='rgba(255,255,255,.6)'; }
-  if(spaceChip){ spaceChip.style.background='rgba(255,255,255,.12)'; spaceChip.style.color='rgba(255,255,255,.6)'; }
+  // Clear password fields when switching tabs
+  const pwField=g('a-pw'); if(pwField) pwField.value='';
+  const pw2Field=g('a-pw2'); if(pw2Field) pw2Field.value='';
   showAErr('');
 }
 function aMethod(m){
@@ -1708,27 +1725,57 @@ function showFgt(s){
 }
 function showAErr(msg){ const el=g('a-err'); if(!el)return; el.textContent=msg; el.classList.toggle('on',!!msg); }
 function fmtAErr(code){
-  const m={
-    'auth/user-not-found':'No account found with this email.',
-    'auth/wrong-password':'Incorrect password. Please try again.',
-    'auth/invalid-credential':'Incorrect email or password.',
-    'auth/invalid-login-credentials':'Incorrect email or password.',
-    'auth/email-already-in-use':'This email is already registered.',
-    'auth/invalid-email':'Please enter a valid email address.',
-    'auth/weak-password':'Password must be at least 6 characters.',
-    'auth/too-many-requests':'Too many attempts. Try again later.',
-    'auth/invalid-verification-code':'Wrong OTP code.',
-    'auth/code-expired':'OTP expired. Request a new one.',
-    'auth/invalid-phone-number':'Invalid phone number format.',
-    'auth/network-request-failed':'Network error. Check your internet connection.',
-    'auth/operation-not-allowed':'This sign-in method is not enabled.',
-    'auth/popup-blocked':'Popup was blocked by your browser.',
-    'auth/cancelled-popup-request':'Sign-in cancelled.',
-    'auth/account-exists-with-different-credential':'An account already exists with this email using a different sign-in method.',
-    'auth/missing-password':'Please enter a password.',
-    'auth/missing-email':'Please enter your email address.'
+  const isCW = lang === 'cw';
+  const en = {
+    'auth/user-not-found':           'No account found with this email. Check the address or create a new account.',
+    'auth/wrong-password':           'Incorrect password. Please try again.',
+    'auth/invalid-credential':       'Incorrect email or password. Please try again.',
+    'auth/invalid-login-credentials':'Incorrect email or password. Please try again.',
+    'auth/email-already-in-use':     'This email is already registered. Try signing in instead.',
+    'auth/invalid-email':            'Please enter a valid email address.',
+    'auth/weak-password':            'Password must be at least 6 characters.',
+    'auth/too-many-requests':        'Too many attempts. Please wait a few minutes and try again.',
+    'auth/invalid-verification-code':'Wrong OTP code. Please check and try again.',
+    'auth/code-expired':             'OTP has expired. Request a new one.',
+    'auth/invalid-phone-number':     'Invalid phone number. Include the country code (e.g. +265).',
+    'auth/network-request-failed':   'Network error. Check your internet connection and try again.',
+    'auth/operation-not-allowed':    'This sign-in method is not enabled. Contact support.',
+    'auth/popup-blocked':            'Popup was blocked. Allow popups in your browser settings and try again.',
+    'auth/cancelled-popup-request':  'Sign-in was cancelled. Please try again.',
+    'auth/account-exists-with-different-credential': 'An account exists with this email using a different sign-in method (e.g. Google). Try signing in with that method.',
+    'auth/missing-password':         'Please enter your password.',
+    'auth/missing-email':            'Please enter your email address.',
+    'auth/requires-recent-login':    'For security, please sign out and sign back in before doing this.',
+    'auth/user-disabled':            'This account has been disabled. Contact support at +265 888 029 029.',
+    'auth/expired-action-code':      'This link has expired. Please request a new one.',
+    'auth/invalid-action-code':      'This link is invalid or has already been used.',
   };
-  return m[code]||(code?'Error: '+code:'Something went wrong. Please try again.');
+  const cw = {
+    'auth/user-not-found':           'Akaunti yosapezeka ndi imeli iyi. Onani imeli kapena pangani akaunti yatsopano.',
+    'auth/wrong-password':           'Mawu achinsinsi olakwika. Yesaninso.',
+    'auth/invalid-credential':       'Imeli kapena mawu achinsinsi olakwika. Yesaninso.',
+    'auth/invalid-login-credentials':'Imeli kapena mawu achinsinsi olakwika. Yesaninso.',
+    'auth/email-already-in-use':     'Imeli iyi yalembetsedwa kale. Yesani kulowa.',
+    'auth/invalid-email':            'Lowetsani imeli yabwino.',
+    'auth/weak-password':            'Mawu achinsinsi ayenera kukhala ndi zilembo 6 kapena kupitirira.',
+    'auth/too-many-requests':        'Mayeso ochuluka. Dikirani mphindi zingapo ndipo yesaninso.',
+    'auth/invalid-verification-code':'Kodi ya OTP yolakwika. Onani ndipo yesaninso.',
+    'auth/code-expired':             'OTP yathera. Pemphani ipsya.',
+    'auth/invalid-phone-number':     'Nambala ya foni yolakwika. Pakuwayireni nambala ya dziko (mwachitsanzo +265).',
+    'auth/network-request-failed':   'Vuto la intaneti. Onani kulumikizana kwanu ndipo yesaninso.',
+    'auth/operation-not-allowed':    'Njira iyi ya kulowa siilolezedwa. Lankhulani ndi thandizo.',
+    'auth/popup-blocked':            'Popup idakanidwa. Lolani ma popup mu browser ndipo yesaninso.',
+    'auth/cancelled-popup-request':  'Kulowa kudaimitsiwa. Yesaninso.',
+    'auth/account-exists-with-different-credential': 'Akaunti ilipo ndi imeli iyi kugwiritsa ntchito njira ina (mwachitsanzo Google). Yesani kulowa ndi njira imeneyo.',
+    'auth/missing-password':         'Lowetsani mawu achinsinsi.',
+    'auth/missing-email':            'Lowetsani imeli yanu.',
+    'auth/requires-recent-login':    'Chifukwa cha chitetezo, tulukani ndipo lowani pomwe.',
+    'auth/user-disabled':            'Akaunti iyi yatsekedwa. Lankhulani thandizo pa +265 888 029 029.',
+    'auth/expired-action-code':      'Ulalo uwu wathera. Pemphani watsopano.',
+    'auth/invalid-action-code':      'Ulalo uwu ndi wopanda pake kapena wagwiritsidwa ntchito kale.',
+  };
+  const map = isCW ? cw : en;
+  return map[code] || (code ? (isCW ? 'Cholakwika: ' : 'Error: ') + code : (isCW ? 'Chinachake chinalakwika. Yesaninso.' : 'Something went wrong. Please try again.'));
 }
 function doEmailAuth(){
   const email=val('a-em').trim(), pass=val('a-pw');
@@ -1773,7 +1820,8 @@ function doFgt(){
 }
 
 // ── Email Verification Screen ──
-let _resendCooldown = 0;
+// FIX: Persist cooldown in localStorage so page refresh cannot bypass the 60s rate limit
+let _resendCooldown = parseInt(localStorage.getItem('nb_resend_cd')||'0');
 
 function showVerifyScreen(email){
   const emailEl=g('verify-email-display');
@@ -1832,8 +1880,10 @@ function resendVerification(){
   user.sendEmailVerification()
     .then(()=>{
       _resendCooldown=Date.now()+60000; // 60 second cooldown
+      localStorage.setItem('nb_resend_cd', String(_resendCooldown));
       const msgEl=g('verify-msg');
-      if(msgEl){msgEl.style.color='#C8E6C9';msgEl.textContent='Verification email sent! Check your inbox.';}
+      const isCW=lang==='cw';
+      if(msgEl){msgEl.style.color='#C8E6C9';msgEl.textContent=isCW?'Imeli yotumizidwa! Onani inbox yanu.':'Verification email sent! Check your inbox.';}
       if(btn){btn.disabled=false;}
     })
     .catch(e=>{
@@ -2128,21 +2178,33 @@ function joinHH(){
         })
         .then(()=>{
           setDot('off');
-          // Show pending screen — don't connect yet, owner must approve first
           hide('scr-setup');
           g('app').classList.add('hide');
           show('scr-setup');
           const setupBox = document.querySelector('.setup-card') || document.querySelector('.auth-box');
           if(setupBox){
-            setupBox.innerHTML = '<div style="text-align:center;padding:20px 0" id="pending-approval-box">'
-              +'<div style="width:56px;height:56px;border-radius:18px;background:#FFF9C4;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="clock" style="width:28px;height:28px;color:#F9A825"></i></div>'
-              +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:8px">'+(lang==='cw'?'Chonde Dikirani Chilolezo':'Waiting for Approval')+'</div>'
-              +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(lang==='cw'?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa — palibe kufunikira kukonzanso.':'Your join request has been sent. You\'ll be connected automatically when the owner approves.')+'</div>'
-              +'<div style="background:var(--mist);border-radius:12px;padding:10px 14px;font-size:.75rem;color:var(--mid);margin-bottom:16px;display:flex;align-items:center;gap:8px">'
-              +'<i data-lucide="home" style="width:14px;height:14px;flex-shrink:0"></i>'
-              +'<span>Household: <strong style="color:var(--ink)">'+code+'</strong></span></div>'
-              +'<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:.72rem;color:var(--mid);margin-bottom:14px" id="approval-listening-indicator">'
-              +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1.2s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
+            setupBox.innerHTML =
+              '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
+              // Purple gradient header with pulse ring — on-brand
+              +'<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#4A148C,#6A1B9A,#8E24AA);border-radius:0 0 24px 24px;position:relative;overflow:hidden">'
+              +'<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>'
+              +'<style>@keyframes pulse-ring{0%{transform:scale(1);opacity:.5}70%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}</style>'
+              +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;position:relative">'
+              +'<div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.15);animation:pulse-ring 2s ease-out infinite"></div>'
+              +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center">'
+              +'<i data-lucide="clock" style="width:26px;height:26px;color:#fff"></i>'
+              +'</div></div>'
+              +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(lang==='cw'?'Chonde Dikirani Chilolezo':'Waiting for Approval')+'</div>'
+              +'<div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.6">'+(lang==='cw'?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa.':'Your request has been sent. You will connect automatically once the owner approves.')+'</div>'
+              +'</div>'
+              // Household code pill
+              +'<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:12px;padding:10px 14px;font-size:.75rem;color:var(--mid);margin-bottom:14px">'
+              +'<i data-lucide="home" style="width:14px;height:14px;flex-shrink:0;color:var(--p1)"></i>'
+              +'<span>'+(lang==='cw'?'Nyumba':'Household')+': <strong style="color:var(--ink);font-family:monospace;letter-spacing:.5px">'+code+'</strong></span>'
+              +'</div>'
+              // Listening indicator with spinner
+              +'<div style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:.72rem;color:var(--mid)" id="approval-listening-indicator">'
+              +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--p1)" stroke-width="2.5" style="animation:spin 1.2s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
               +(lang==='cw'?'Kudikira chilolezo...':'Listening for approval...')
               +'</div>'
               +'</div>';
@@ -2150,41 +2212,60 @@ function joinHH(){
           }
           toast(lang==='cw'?'Pempho lotumizidwa. Mudziwa mukavomelezwa.':'Join request sent. You\'ll be notified when approved.','i');
 
-          // Auto-detect approval: watch the household doc for the requester's UID in memberUids
-          // When the owner taps Approve, Firestore updates memberUids and this listener fires
+          // Auto-detect approval: poll the household doc every 5 seconds
+          // We use get() not onSnapshot() — non-members have allow get but not allow listen
+          // This avoids the permission error that occurred with onSnapshot on household doc
+          // and avoids the owner needing to write to someone else's user doc
           let _approvalUnsub = null;
-          _approvalUnsub = db.collection('households').doc(code).onSnapshot(function(snap){
-            if(!snap.exists) return;
-            const data = snap.data();
-            const memberUids = data.memberUids || [];
-            if(curUser && memberUids.includes(curUser.uid)){
-              // Approved! Clean up listener and connect
-              if(_approvalUnsub){ _approvalUnsub(); _approvalUnsub = null; }
-              localStorage.setItem('nb_household', code);
-              if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
-
-              // Show approved animation before connecting
-              const box = g('pending-approval-box');
-              if(box){
-                box.innerHTML = '<div style="width:56px;height:56px;border-radius:18px;background:#E8F5E9;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="check-circle" style="width:28px;height:28px;color:#2E7D32"></i></div>'
-                  +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:#1B5E20;margin-bottom:6px">'+(lang==='cw'?'Mwavomelezedwa!':'You\'re Approved!')+'</div>'
-                  +'<div style="font-size:.78rem;color:var(--mid)">'+(lang==='cw'?'Kulumikizana...':'Connecting you now...')+'</div>';
-                if(window.lucide) lucide.createIcons({nodes:[box]});
-              }
-              setTimeout(function(){
-                hide('scr-setup'); g('app').classList.remove('hide');
-                connectHH(code);
-                toast(lang==='cw'?'Takulandirani mu nyumba!':'Welcome to the household!','s');
-              }, 1200);
+          let _approvalPollCount = 0;
+          const MAX_POLLS = 120; // poll for up to 10 minutes (120 × 5s)
+          function pollForApproval(){
+            if(_approvalUnsub === false) return; // stopped
+            if(_approvalPollCount >= MAX_POLLS){
+              const indicator = g('approval-listening-indicator');
+              if(indicator) indicator.innerHTML = '<button onclick="location.reload()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:7px 16px;font-size:.75rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Onani Pomwe':'Check Again')+'</button>';
+              return;
             }
-          }, function(err){
-            // Listener failed — fall back to manual check
-            console.warn('[approvalListener] Error:', err.code);
-            const indicator = g('approval-listening-indicator');
-            if(indicator){
-              indicator.innerHTML = '<button onclick="location.reload()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:7px 16px;font-size:.75rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Onani Pomwe':'Check Again')+'</button>';
-            }
-          });
+            _approvalPollCount++;
+            db.collection('households').doc(code).get()
+              .then(function(snap){
+                if(_approvalUnsub === false) return;
+                if(!snap.exists) return;
+                const memberUids = snap.data().memberUids || [];
+                if(curUser && memberUids.includes(curUser.uid)){
+                  _approvalUnsub = false; // stop polling
+                  localStorage.setItem('nb_household', code);
+                  if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+                  // Show approved animation
+                  const box = g('pending-approval-box');
+                  if(box){
+                    box.innerHTML =
+                      '<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#1B5E20,#2E7D32,#388E3C);border-radius:0 0 24px 24px">'
+                      +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:rgba(255,255,255,.2)">'
+                      +'<i data-lucide="check-circle" style="width:32px;height:32px;color:#fff"></i>'
+                      +'</div>'
+                      +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(lang==='cw'?'Mwavomelezedwa!':'You\'re Approved!')+'</div>'
+                      +'<div style="font-size:.75rem;color:rgba(255,255,255,.75)">'+(lang==='cw'?'Kulumikizana tsopano...':'Connecting you now...')+'</div>'
+                      +'</div>';
+                    if(window.lucide) lucide.createIcons({nodes:[box]});
+                  }
+                  setTimeout(function(){
+                    hide('scr-setup'); g('app').classList.remove('hide');
+                    connectHH(code);
+                    toast(lang==='cw'?'Takulandirani mu nyumba!':'Welcome to the household!','s');
+                  }, 1200);
+                } else {
+                  // Not yet approved — poll again in 5 seconds
+                  setTimeout(pollForApproval, 5000);
+                }
+              })
+              .catch(function(err){
+                console.warn('[approvalPoll] Error:', err.code);
+                if(_approvalUnsub !== false) setTimeout(pollForApproval, 8000); // back off on error
+              });
+          }
+          _approvalUnsub = null; // null = active
+          setTimeout(pollForApproval, 3000); // first check after 3 seconds
         })
         .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
     })
@@ -2582,6 +2663,112 @@ function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(h
 function waCode(){ if(hhId)window.open('https://wa.me/?text='+encodeURIComponent('Join my Bajeti Yanga!\nCode: '+hhId+'\n\nOpen the app and tap Join Household.'),'_blank'); }
 
 // ── QR Code generator (no library needed — uses a minimal pure-JS QR encoder) ──
+function openQRScanner(){
+  const isCW = lang === 'cw';
+  let stream = null;
+  let scanInterval = null;
+
+  let h = '<div class="dh"></div>';
+  h += '<div style="display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:12px">';
+  h += '<div style="width:32px;height:32px;border-radius:9px;background:#F3E5F5;display:flex;align-items:center;justify-content:center"><i data-lucide="scan-line" style="width:16px;height:16px;color:var(--p1)"></i></div>';
+  h += '<div style="flex:1"><div style="font-weight:800;font-size:.88rem">'+(isCW?'Skani QR Code':'Scan QR Code')+'</div>';
+  h += '<div style="font-size:.65rem;color:var(--mid)">'+(isCW?'Ikani kamera pa QR code ya nyumba':'Point camera at a household QR code')+'</div></div>';
+  h += '<button onclick="stopQRScanner()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Lekani':'Cancel')+'</button>';
+  h += '</div>';
+  h += '<div style="position:relative;width:100%;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1">';
+  h += '<video id="qr-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>';
+  // Scan frame overlay
+  h += '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">';
+  h += '<div style="width:65%;height:65%;border:3px solid var(--p1);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)">';
+  h += '<div style="position:absolute;top:-2px;left:-2px;width:20px;height:20px;border-top:3px solid #fff;border-left:3px solid #fff;border-radius:4px 0 0 0"></div>';
+  h += '<div style="position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-top:3px solid #fff;border-right:3px solid #fff;border-radius:0 4px 0 0"></div>';
+  h += '<div style="position:absolute;bottom:-2px;left:-2px;width:20px;height:20px;border-bottom:3px solid #fff;border-left:3px solid #fff;border-radius:0 0 0 4px"></div>';
+  h += '<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-bottom:3px solid #fff;border-right:3px solid #fff;border-radius:0 0 4px 0"></div>';
+  h += '</div></div>';
+  h += '<canvas id="qr-canvas-scan" style="display:none"></canvas>';
+  h += '</div>';
+  h += '<div style="text-align:center;margin-top:10px;font-size:.72rem;color:var(--mid)" id="qr-scan-status">'+(isCW?'Ikani kamera pa QR code...':'Positioning camera on the QR code...')+'</div>';
+
+  g('mb-u').innerHTML = h;
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
+  openM('mv-u');
+
+  // Start camera
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(function(s){
+      stream = s;
+      const video = g('qr-video');
+      if(video){ video.srcObject = s; video.play(); }
+
+      // Try BarcodeDetector first (native, fast), fall back to jsQR
+      if(window.BarcodeDetector){
+        const detector = new BarcodeDetector({formats:['qr_code']});
+        scanInterval = setInterval(async function(){
+          if(!video || video.readyState < 2) return;
+          try {
+            const codes = await detector.detect(video);
+            if(codes.length > 0){ handleQRResult(codes[0].rawValue); }
+          } catch(e){}
+        }, 300);
+      } else if(window.jsQR){
+        const canvas = g('qr-canvas-scan');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        scanInterval = setInterval(function(){
+          if(!video || video.readyState < 2 || !ctx) return;
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imgData.data, imgData.width, imgData.height, {inversionAttempts:'dontInvert'});
+          if(code){ handleQRResult(code.data); }
+        }, 300);
+      } else {
+        const status = g('qr-scan-status');
+        if(status) status.textContent = isCW ? 'Skani siilolezedwa pa browser iyi. Lowetsani kodi mwine.' : 'QR scanning not supported on this browser. Enter the code manually.';
+      }
+    })
+    .catch(function(err){
+      const status = g('qr-scan-status');
+      if(status) status.innerHTML = '<span style="color:#E53935">'+(isCW?'Kamera siilolezedwa. Lolani kamera ndipo yesaninso.':'Camera access denied. Please allow camera access and try again.')+'</span>';
+    });
+}
+
+function stopQRScanner(){
+  // Clean up camera and intervals
+  try {
+    const video = g('qr-video');
+    if(video && video.srcObject){
+      video.srcObject.getTracks().forEach(function(t){ t.stop(); });
+      video.srcObject = null;
+    }
+  } catch(e){}
+  if(window._qrScanInterval){ clearInterval(window._qrScanInterval); window._qrScanInterval = null; }
+  closeM('mv-u');
+}
+
+function handleQRResult(raw){
+  stopQRScanner();
+  const isCW = lang === 'cw';
+  // Extract household code from deep link URL or treat as raw code
+  let code = raw.trim();
+  try {
+    const url = new URL(raw);
+    const joinParam = url.searchParams.get('join');
+    if(joinParam) code = joinParam.trim().toUpperCase();
+  } catch(e){
+    // Not a URL — use as-is, uppercase
+    code = code.toUpperCase();
+  }
+  if(!code){ toast(isCW?'QR code yolakwika':'Invalid QR code','e'); return; }
+  // Pre-fill the join code input
+  const joinInp = g('join-code');
+  if(joinInp){
+    joinInp.value = code;
+    joinInp.focus();
+  }
+  toast(isCW?'Kodi yapet seka ku QR! Lowani "Lowani Nyumba Iyi".':'Code scanned! Tap "Join This Household" to continue.','s');
+}
+
 function openQRCode(){
   if(!hhId){ toast('No household code','e'); return; }
   const isCW=lang==='cw';
@@ -4128,10 +4315,17 @@ function showUpgradePrompt(feature, status){
 function approveJoin(uid){
   if(!hhId||!curUser) return;
   const batch = db.batch();
-  batch.update(db.collection('households').doc(hhId), {memberUids: firebase.firestore.FieldValue.arrayUnion(uid)});
+  // Add to household memberUids — polling on requester's side will detect this
+  batch.update(db.collection('households').doc(hhId), {
+    memberUids: firebase.firestore.FieldValue.arrayUnion(uid)
+  });
+  // Delete the join request
   batch.delete(db.collection('households').doc(hhId).collection('joinRequests').doc(uid));
   batch.commit()
-    .then(()=>{ toast(lang==='cw'?'Membala wovomerezedwa!':'Member approved!','s'); stgOpenSection('members'); })
+    .then(()=>{
+      toast(lang==='cw'?'Membala wovomerezedwa!':'Member approved!','s');
+      stgOpenSection('members');
+    })
     .catch(e=>toast('Approval failed: '+(e&&e.code||'error'),'e'));
 }
 
