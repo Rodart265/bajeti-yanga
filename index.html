@@ -498,15 +498,20 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .cp.on{border-color:var(--ink);transform:scale(1.15)}
 .ov{position:fixed;inset:0;background:rgba(13,13,26,.58);z-index:500;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(3px)}
 .ov.open{opacity:1;pointer-events:all}
+#mv-confirm{z-index:600}
+#mv-confirm{z-index:700} /* FIX: confirm dialogs must always stack above other open modals (e.g. Trash), not just share the base .ov z-index */
 .mb{background:var(--white);border-radius:24px 24px 0 0;padding:20px 17px calc(20px + env(safe-area-inset-bottom,0));width:100%;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);max-height:88vh;overflow-y:auto}
 .ov.open .mb{transform:translateY(0)}
 .mb h3{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.97rem;color:var(--ink);margin-bottom:13px}
 .dh{width:32px;height:4px;background:#DDD;border-radius:4px;margin:0 auto 16px}
-.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(18px);padding:10px 18px;border-radius:24px;font-weight:700;font-size:.81rem;z-index:9999;opacity:0;transition:all .27s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(18px);padding:11px 16px;border-radius:16px;font-weight:700;font-size:.81rem;z-index:9999;opacity:0;transition:all .27s;pointer-events:none;max-width:86vw;box-shadow:0 6px 20px rgba(0,0,0,.22);display:flex;align-items:flex-start;gap:8px;line-height:1.45;text-align:left}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.s{background:var(--g1);color:#fff}
-.toast.e{background:var(--r1);color:#fff}
+.toast.e{background:var(--r1);color:#fff;cursor:pointer}
 .toast.i{background:var(--p1);color:#fff}
+.toast .t-ic{flex-shrink:0;margin-top:1px}
+.toast .t-tap{font-size:.65rem;font-weight:800;opacity:.85;margin-top:3px;text-decoration:underline;display:none}
+.toast.e .t-tap{display:block}
 
 /* ── Trend Chart ── */
 .trend-chart-wrap{padding:16px;overflow:hidden}
@@ -1071,7 +1076,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 <div class="ov" id="mv-ep"><div class="mb" id="mb-ep"></div></div>
 <div class="ov" id="mv-gl"><div class="mb" id="mb-gl"></div></div>
 <div class="ov" id="mv-magic"><div class="mb" id="mb-magic"></div></div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" onclick="copyToast()"></div>
 
 <script>
 // ===============================================
@@ -1291,11 +1296,11 @@ function vmObj() { return viewMonth||curM(); }
 // salaryDay of prev month to (salaryDay−1) of current viewed month.
 // e.g. salaryDay=25: period = Apr 25 – May 24 when viewing May.
 // All totals, caps, summary, insights, member counts use isTM() so they all respect this.
-function getBudgetPeriod(){
+function getBudgetPeriod(forMonth){
   let sd = lCfg && lCfg.salaryDay ? parseInt(lCfg.salaryDay,10) : 0;
   sd = Math.min(Math.max(sd, 0), 28); // hard clamp — UI allows 1-28 but Firestore may hold legacy values
-  const v = vmObj();
-  if(!sd || sd<1){
+  const v = forMonth || vmObj();
+  if(!sd || sd<=1){
     // Standard: whole calendar month
     return { startY:v.y, startM:v.m, startD:1,
              endY:v.y, endM:v.m, endD:new Date(v.y, v.m+1, 0).getDate() };
@@ -1303,18 +1308,18 @@ function getBudgetPeriod(){
   // Period starts on salaryDay of the previous month relative to viewed month
   let startM=v.m-1, startY=v.y;
   if(startM<0){ startM=11; startY=v.y-1; }
-  // Period ends on (salaryDay−1) of viewed month; if salaryDay=1, ends last day of prev month
-  const endD = sd===1 ? new Date(v.y, v.m, 0).getDate() : sd-1;
-  const endM = sd===1 ? (v.m-1<0?11:v.m-1) : v.m;
-  const endY = sd===1 && v.m===0 ? v.y-1 : v.y;
+  // Period ends on (salaryDay−1) of viewed month (sd is always 2-28 here, since sd<=1 returned above)
+  const endD = sd-1;
+  const endM = v.m;
+  const endY = v.y;
   return { startY, startM, startD:sd, endY, endM, endD };
 }
 function budgetPeriodLabel(){
   const p=getBudgetPeriod(), mn=tx().months;
-  if(!lCfg||!lCfg.salaryDay) return mn[p.startM]+' '+p.startY;
+  if(!lCfg||!lCfg.salaryDay||lCfg.salaryDay<=1) return mn[p.startM]+' '+p.startY;
   return p.startD+' '+mn[p.startM]+' – '+p.endD+' '+mn[p.endM]+' '+p.endY;
 }
-function isTM(s){
+function isTM(s, forMonth){
   if(!s)return false;
   try{
     const clean=String(s).split('T')[0].trim();
@@ -1324,7 +1329,7 @@ function isTM(s){
     if(isNaN(dy)||isNaN(dm)||isNaN(dd)) return false;
     // Use Date objects so year-boundary salary-day periods compare correctly
     const date =new Date(dy, dm, dd);
-    const p    =getBudgetPeriod();
+    const p    =getBudgetPeriod(forMonth);
     const start=new Date(p.startY, p.startM, p.startD);
     const end  =new Date(p.endY,   p.endM,   p.endD);
     return date>=start && date<=end;
@@ -1356,7 +1361,29 @@ const val = id => (g(id)||{}).value||'';
 function esc(s){ const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML; }
 function show(id){ const el=g(id); if(el)el.classList.remove('hide'); }
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
-function toast(msg,type){ const el=g('toast'); if(!el)return; el.className='toast '+(type||'s'); el.textContent=msg; el.classList.add('on'); setTimeout(()=>el.classList.remove('on'),2400); }
+function toast(msg,type){
+  const el=g('toast'); if(!el)return;
+  type = type||'s';
+  const icons = {s:'check-circle', e:'alert-circle', i:'info'};
+  const isCW = lang==='cw';
+  el.className = 'toast '+type;
+  el.dataset.raw = msg;
+  el.dataset.type = type;
+  el.innerHTML = '<i data-lucide="'+icons[type]+'" class="t-ic" style="width:15px;height:15px"></i>'
+    +'<div style="flex:1;min-width:0"><div>'+esc(msg)+'</div>'
+    +(type==='e'?'<div class="t-tap">'+(isCW?'Dinani kuti mukope cholakwika':'Tap to copy error')+'</div>':'')
+    +'</div>';
+  if(window.lucide) lucide.createIcons({nodes:[el]});
+  clearTimeout(window._toastTimer);
+  el.classList.add('on');
+  window._toastTimer = setTimeout(()=>el.classList.remove('on'), type==='e'?4200:2400);
+}
+function copyToast(){
+  const el=g('toast'); if(!el||el.dataset.type!=='e'||!el.dataset.raw) return;
+  const msg=el.dataset.raw;
+  const done=function(){ toast(lang==='cw'?'Yakopedwa!':'Copied to clipboard','s'); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(done).catch(done);
+}
 function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':''); }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
@@ -1433,7 +1460,7 @@ function pinK(k) {
         if(entered===String(pinTmp).trim()){
           const result=await hashPIN(entered);
           localStorage.setItem('nb_pin',result.salt+':'+result.hash);
-          hidePIN(); toast(tx().pinOn); pinMode='check'; go('stg');
+          hidePIN(); g('app').classList.remove('hide'); toast(tx().pinOn); pinMode='check'; go('stg');
         } else {
           pinEntry=''; pinMode='set'; showPIN(); toast('PINs did not match','e');
         }
@@ -1613,6 +1640,8 @@ function openDeleteAccount(){
 
 function _confirmDeleteAccount(){
   if(!curUser){toast('Not signed in','e');return;}
+  if(unsub){unsub();unsub=null;}
+  if(unsubHH){unsubHH();unsubHH=null;}
   const uid = curUser.uid;
   const promises = [];
   if(hhId){
@@ -1632,7 +1661,11 @@ function _confirmDeleteAccount(){
     toast(lang==='cw'?'Akaunti ikuthetsedwa. Muli ndi masiku 30 kuti muibweze.':'Account scheduled for deletion. You have 30 days to restore it.','i');
     setTimeout(()=>{
       chatHistory=[];
-      curUser.delete().catch(()=>{ auth.signOut().catch(()=>{}); });
+      // FIX: do NOT delete the Auth user here — doing so made the "30 days to
+      // restore" promise impossible (no account left to log back into). Sign
+      // out instead; bootApp() detects pendingDeletion on next login and offers
+      // a Restore option (see showAccountRestorePrompt / restoreAccount).
+      auth.signOut().catch(()=>{});
       localStorage.removeItem('nb_household');
       localStorage.removeItem('nb_uid');
       localStorage.removeItem('nb_pin');
@@ -1726,7 +1759,27 @@ function showFgt(s){
   if(ok&&s)ok.classList.remove('on');
   showAErr('');
 }
-function showAErr(msg){ const el=g('a-err'); if(!el)return; el.textContent=msg; el.classList.toggle('on',!!msg); }
+function showAErr(msg){ renderErrBox('a-err',msg); }
+function renderErrBox(id,msg){
+  const el=g(id); if(!el)return;
+  if(!msg){ el.classList.remove('on'); el.innerHTML=''; return; }
+  const isCW=lang==='cw';
+  el.dataset.raw=msg;
+  el.innerHTML='<div style="display:flex;gap:8px;align-items:flex-start">'
+    +'<i data-lucide="alert-circle" style="width:15px;height:15px;color:#EF5350;flex-shrink:0;margin-top:1px"></i>'
+    +'<div style="flex:1;min-width:0"><div style="line-height:1.5">'+esc(msg)+'</div>'
+    +'<button type="button" onclick="copyErrBox(this)" style="background:none;border:none;color:#FFCDD2;text-decoration:underline;font-size:.68rem;font-weight:700;cursor:pointer;padding:4px 0 0;font-family:inherit">'+(isCW?'Kopani cholakwika':'Copy error')+'</button>'
+    +'</div></div>';
+  el.classList.add('on');
+  if(window.lucide) lucide.createIcons({nodes:[el]});
+}
+function copyErrBox(btn){
+  const box=btn.closest('.a-err,.setup-err'); if(!box||!box.dataset.raw)return;
+  const msg=box.dataset.raw;
+  const done=function(){ const old=btn.textContent; btn.textContent=lang==='cw'?'Yakopedwa!':'Copied!'; setTimeout(function(){btn.textContent=old;},1800); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(done).catch(done);
+  else done();
+}
 function fmtAErr(code){
   const isCW = lang === 'cw';
   const en = {
@@ -1961,6 +2014,7 @@ function backPh(){ show('a-ph-s1');hide('a-ph-s2'); confResult=null; if(rcapV){r
 let _authUnsubscribe = null;
 
 var _pendingHid = null;
+var _pendingRestoreHid = null;
 
 function showWelcome(hid, hhName){
   _pendingHid = hid;
@@ -2039,6 +2093,13 @@ function bootApp(){
       }
       db.collection('users').doc(user.uid).get()
         .then(doc=>{
+          // Account-deletion grace period: offer restore instead of loading the app
+          if(doc.exists && doc.data().pendingDeletion){
+            const restoreBefore = doc.data().restoreBefore ? new Date(doc.data().restoreBefore) : null;
+            const stillRecoverable = !restoreBefore || restoreBefore > new Date();
+            showAccountRestorePrompt(user, doc.data(), stillRecoverable);
+            return;
+          }
           // Check if user has a pending join request from a previous session
           const pendingCode = localStorage.getItem('nb_pending_join');
           if(pendingCode){
@@ -2115,7 +2176,48 @@ function bootApp(){
   });
 }
 
-function setupErr(msg){ const el=g('setup-err'); if(!el)return; el.textContent=msg; el.classList.toggle('on',!!msg); }
+function setupErr(msg){ renderErrBox('setup-err',msg); }
+
+// ── Account-deletion restore flow (see Bug 3 fix: Auth user is no longer
+// permanently deleted at deletion time, so this prompt can actually restore) ──
+function showAccountRestorePrompt(user, userData, stillRecoverable){
+  hide('scr-auth'); hide('scr-pin'); hide('scr-welcome'); g('app').classList.add('hide');
+  const isCW = lang === 'cw';
+  show('scr-setup');
+  _pendingRestoreHid = userData.householdId || null;
+  const box = document.querySelector('.setup-card') || document.querySelector('.auth-box');
+  if(!box) return;
+  if(stillRecoverable){
+    const daysLeft = userData.restoreBefore ? Math.max(0, Math.ceil((new Date(userData.restoreBefore)-new Date())/86400000)) : 30;
+    box.innerHTML = '<div style="text-align:center;padding:10px 0">'
+      +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+(isCW?'Bwezeretsani Akaunti?':'Restore Your Account?')+'</div>'
+      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(isCW?'Akaunti yanu idzachotsedwa kwathunthu pakapita masiku '+daysLeft+'. Mukufuna kuibwezera?':'Your account is scheduled for deletion in '+daysLeft+' day'+(daysLeft===1?'':'s')+'. Want to restore it?')+'</div>'
+      +'<button class="btnM" style="width:100%;margin-bottom:8px" onclick="restoreAccount()">'+(isCW?'Inde, Bwezeretsani':'Yes, Restore My Account')+'</button>'
+      +'<button class="btnG" style="width:100%" onclick="auth.signOut()">'+(isCW?'Ayi, Siyani':'No, Sign Out')+'</button>'
+      +'</div>';
+  } else {
+    box.innerHTML = '<div style="text-align:center;padding:10px 0">'
+      +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+(isCW?'Akaunti Yachotsedwa':'Account No Longer Recoverable')+'</div>'
+      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(isCW?'Nthawi ya masiku 30 yathera. Akaunti iyi sichingathe kubwezeretsedwanso.':'The 30-day recovery window has passed. This account can no longer be restored.')+'</div>'
+      +'<button class="btnG" style="width:100%" onclick="auth.signOut()">'+(isCW?'Tsekani':'Close')+'</button>'
+      +'</div>';
+  }
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+}
+
+function restoreAccount(){
+  const user = auth.currentUser;
+  if(!user){ toast('Not signed in','e'); return; }
+  const updates = [ db.collection('users').doc(user.uid).update({pendingDeletion:false, deletedAt:null, restoreBefore:null}) ];
+  if(_pendingRestoreHid){
+    updates.push(db.collection('households').doc(_pendingRestoreHid).update({deletedAt:null, deletedBy:null, restoreBefore:null}));
+  }
+  Promise.all(updates).then(()=>{
+    toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
+    _pendingRestoreHid=null;
+    authReg=false; bootApp();
+  }).catch(()=>toast('Restore failed. Check your connection.','e'));
+}
 
 function createHHSolo(){
   if(!curUser){setupErr('Not signed in.');return;}
@@ -2246,12 +2348,13 @@ function _restoreWaitingScreen(code){
 function switchHousehold(){
   appConfirm(
     lang==='cw'
-      ? 'Mukufuna kusiya nyumba iyi ndi kulowa ina? Simuloka kwathunthu — mudzakhala olowa.'
+      ? 'Mukufuna kutuluka nyumba iyi ndi kulowa ina? Simutuluka kwathunthu — mudzakhalabe olowa.'
       : 'Leave this household and join a different one? You will stay signed in.',
     function(){
       // Unsubscribe household listener
       if(unsub){ unsub(); unsub=null; }
-      if(window._unsubHH){ window._unsubHH(); window._unsubHH=null; }
+      if(unsubHH){ unsubHH(); unsubHH=null; }
+      clearTimeout(window._recurTimer);
       // Clear household state but keep auth
       localStorage.removeItem('nb_household');
       localStorage.removeItem('nb_uid');
@@ -2411,6 +2514,8 @@ function joinHH(){
 
 function connectHH(code){
   hhId=code; loadChatHistory(); setDot('spin');
+  hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
+  g('app').classList.remove('hide');
   // Unsubscribe previous household document listener to prevent memory leak
   if(unsubHH){ unsubHH(); unsubHH=null; }
   unsubHH=db.collection('households').doc(code).onSnapshot(doc=>{
@@ -2496,7 +2601,7 @@ function addPx(p){
   setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules':'Sync error: '+(e&&e.code||'unknown'); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
 }
 function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
-function delPx(id){ if(!hhId)return; setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
+function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error'),'e');setDot('off');throw e;}); }
 
 
 function appConfirm(msg, onOk, okLabel, danger){
@@ -2517,7 +2622,8 @@ function appConfirm(msg, onOk, okLabel, danger){
 
 function logout(){
   appConfirm(tx().confirmLogout, function(){
-  if(unsub)unsub();  // Clear local state only — keep Firestore householdId intact so partners aren't affected.
+  if(unsub){unsub();unsub=null;}  // Clear local state only — keep Firestore householdId intact so partners aren't affected.
+  if(unsubHH){unsubHH();unsubHH=null;}
   // bootApp will re-read Firestore on next login and route correctly.
   localStorage.removeItem('nb_household');
   localStorage.removeItem('nb_uid');
@@ -2547,18 +2653,19 @@ function go(t){
 function checkAndAddRecurring(){
   if(!hhId||!lPx||!lCfg) return;
   const KEY='nb_recur_last_'+(hhId||'anon');
-  const p=getBudgetPeriod();
+  const realNow=curM(); // always use the ACTUAL current month, never the viewed month
+  const p=getBudgetPeriod(realNow);
   const periodStart=p.startY+'-'+String(p.startM+1).padStart(2,'0')+'-'+String(p.startD).padStart(2,'0');
   if(localStorage.getItem(KEY)===periodStart) return; // already ran this period
   if(today()<periodStart) return; // period hasn't started yet
   // Find recurring expense entries NOT in current period (from previous)
-  const prevRecurring=lPx.filter(px=>px.recurring&&px.type!=='income'&&!isTM(px.date));
+  const prevRecurring=lPx.filter(px=>px.recurring&&px.type!=='income'&&!isTM(px.date,realNow));
   if(!prevRecurring.length){ localStorage.setItem(KEY,periodStart); return; }
   // One entry per unique item name (most recent)
   const seen=new Set(), toAdd=[];
   prevRecurring.forEach(px=>{ if(!seen.has(px.item)){ seen.add(px.item); toAdd.push(px); } });
   // Skip any already added this period
-  const actuallyAdd=toAdd.filter(px=>!lPx.some(e=>e.item===px.item&&e.recurring&&isTM(e.date)));
+  const actuallyAdd=toAdd.filter(px=>!lPx.some(e=>e.item===px.item&&e.recurring&&isTM(e.date,realNow)));
   if(!actuallyAdd.length){ localStorage.setItem(KEY,periodStart); return; }
   let ts=Date.now();
   const uid=actU().id;
@@ -2734,7 +2841,7 @@ function rHome(){
   let h='<div class="page">';
   h+=getTrialBanner();
   h+='<div class="mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
-  if(lCfg&&lCfg.salaryDay) h+='<div style="text-align:center;margin:-4px 0 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:.66rem;font-weight:700;color:var(--p1);background:rgba(123,31,162,.1);padding:3px 10px;border-radius:20px;letter-spacing:.1px"><i data-lucide="calendar-check" style="width:11px;height:11px"></i>'+budgetPeriodLabel()+'</span></div>';
+  if(lCfg&&lCfg.salaryDay>1) h+='<div style="text-align:center;margin:-4px 0 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:.66rem;font-weight:700;color:var(--p1);background:rgba(123,31,162,.1);padding:3px 10px;border-radius:20px;letter-spacing:.1px"><i data-lucide="calendar-check" style="width:11px;height:11px"></i>'+budgetPeriodLabel()+'</span></div>';
   h+='<div class="hero2">';
   h+='<div class="h2-top">';
   h+='<div class="h2-ring"><svg viewBox="0 0 80 80" width="78" height="78" style="transform:rotate(-90deg)"><circle fill="none" stroke="rgba(255,255,255,.14)" stroke-width="8" cx="40" cy="40" r="32"/><circle fill="none" stroke="'+stroke+'" stroke-width="8" stroke-linecap="round" cx="40" cy="40" r="32" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
@@ -3003,8 +3110,8 @@ function rLog(){
   h+='<button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div></div></div>';
   g('view').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('view')]});
-}
   if(logSrch) filterLogItems(logSrch);
+}
 function setLT(t){ logType=t; selItem=null; logSrch=''; rLog(); }
 function setU(id){ localStorage.setItem('nb_uid',id); updatePill(); rLog(); }
 function pickI(i){ selItem=i; rLog(); }
@@ -3203,8 +3310,10 @@ function openTrash(){
         h+='<div class="trash-meta">'+p.date+' · '+esc(u.name)+' · '+daysLeft+'d left in trash</div></div>';
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
+        h+='<div style="display:flex;gap:4px">';
         h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px">↩ Restore</button>';
-        h+='</div></div>';
+        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828">✕ Forever</button>';
+        h+='</div></div></div>';
       });
     }
     g('mb-u').innerHTML=h;
@@ -3217,6 +3326,28 @@ function restoreTrash(id){
     .update({deletedAt:null,deleted:false})
     .then(function(){ closeM('mv-u'); toast('Restored!','s'); })
     .catch(function(e){ toast('Error: '+e.message,'e'); });
+}
+function permaDeleteD(el){ permaDelete(el.dataset.pid); }
+function permaDelete(id){
+  const p=lPx.find(x=>x.id===id);
+  const label=p?(esc(p.item)+' ('+MK(p.amount)+')'):'this entry';
+  appConfirm(
+    (lang==='cw'
+      ? 'Kuchotsa <b>'+label+'</b> nthawi zonse? Simungathe kuibwezeretsanso.'
+      : 'Permanently delete <b>'+label+'</b>? This cannot be undone.'),
+    function(){
+      delPx(id).then(function(){
+        toast(lang==='cw'?'Yachotsedwa nthawi zonse':'Permanently deleted','s');
+        openTrash(); // re-render the trash list with this item gone
+      }).catch(function(){
+        // delPx already showed its own "Delete failed" toast -- just refresh
+        // the list so it accurately reflects that the item is still there.
+        openTrash();
+      });
+    },
+    (lang==='cw'?'Inde, Chotsani Nthawi Zonse':'Yes, Delete Forever'),
+    true
+  );
 }
 function openEP(id){
   const p=lPx.find(x=>x.id===id); if(!p)return;
@@ -3690,7 +3821,7 @@ function rStg(){
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:#F3E5F5"><i data-lucide="wallet" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Yonse ya Mwezi':'Monthly Budget Cap')+'</div></div><div class="stg-row-right"><input type="number" style="width:90px;text-align:right;border:1.5px solid var(--border);border-radius:8px;padding:4px 7px;font-size:.78rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:700" value="'+lCfg.overallBudget+'" inputmode="numeric" onchange="updOB(this.value)"></div></div>';
   // Salary Day / Budget Period
   const _sd=lCfg.salaryDay||'';
-  const _periodActive=!!_sd;
+  const _periodActive=_sd>1;
   h+='<div class="stg-row no-tap" style="flex-direction:column;align-items:stretch;gap:0">'
     +'<div style="display:flex;align-items:center;gap:11px;padding:0">'
     +'<div class="stg-row-ico" style="background:#E3F2FD;flex-shrink:0"><i data-lucide="calendar-check" style="color:#1565C0"></i></div>'
@@ -3742,7 +3873,8 @@ function rStg(){
   h+='<div class="stg-grp">';
   h+='<div class="stg-row"><a href="https://wa.me/265888029029" target="_blank" style="display:flex;align-items:center;gap:12px;flex:1;color:inherit;text-decoration:none"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="message-circle" style="color:#25D366"></i></div><div class="stg-row-body"><div class="stg-row-lbl">WhatsApp</div><div class="stg-row-sub">+265 888 029 029</div></div></a><span class="stg-chev" style="color:#25D366">›</span></div>';
   h+='<div class="stg-row"><a href="mailto:rodartcreatives@gmail.com" style="display:flex;align-items:center;gap:12px;flex:1;color:inherit;text-decoration:none"><div class="stg-row-ico" style="background:#EDE7F6"><i data-lucide="mail" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Email</div><div class="stg-row-sub">rodartcreatives@gmail.com</div></div></a><span class="stg-chev">›</span></div>';
-  h+='<div class="stg-row" onclick="openPrivacyPolicy()"><div class="stg-row-ico" style="background:#EDE7F6"><i data-lucide="shield" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndondomeko ya Chinsinsi':'Privacy Policy')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openPrivacySheet()"><div class="stg-row-ico" style="background:#EDE7F6"><i data-lucide="shield" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndondomeko ya Chinsinsi':'Privacy Policy')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openTerms()"><div class="stg-row-ico" style="background:#EDE7F6"><i data-lucide="file-text" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mgwirizano wa Ntchito':'Terms of Service')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
   // -- About --
@@ -3786,24 +3918,6 @@ function showWhatsNew(){
   h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(&quot;mv-u&quot;)">Close</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
-  openM('mv-u');
-}
-function openPrivacyPolicy(){
-  // Show privacy policy in a modal sheet — not the full gate screen
-  // The gate screen is only for first-time users who haven't agreed yet
-  let h='<div class="dh"></div><h3 style="font-family:Hanken Grotesk,sans-serif;margin-bottom:12px">Privacy Policy</h3>';
-  h+='<div style="font-size:.75rem;color:var(--mid);line-height:1.7;max-height:60vh;overflow-y:auto;padding-right:4px">';
-  h+='<p style="margin-bottom:10px"><strong>Bajeti Yanga</strong> is a household budgeting app. We take your privacy seriously.</p>';
-  h+='<p style="margin-bottom:8px"><strong>What we collect:</strong> Your transactions, budget settings, savings goals, and bill data, all stored securely in your household\'s private Firestore database.</p>';
-  h+='<p style="margin-bottom:8px"><strong>Authentication:</strong> We use Firebase Authentication (email/password or Google Sign-In) to secure your account.</p>';
-  h+='<p style="margin-bottom:8px"><strong>AI features:</strong> When you use Bajeti AI or Magic Log, your financial summary is sent to our AI service to generate responses. This data is not stored or used to train any model.</p>';
-  h+='<p style="margin-bottom:8px"><strong>Data sharing:</strong> We do not sell or share your personal or financial data with any third parties.</p>';
-  h+='<p style="margin-bottom:8px"><strong>Your data:</strong> You can delete your household data at any time from Settings &rarr; Danger Zone.</p>';
-  h+='<p style="margin-bottom:8px"><strong>Contact:</strong> For any privacy questions, contact the app administrator.</p>';
-  h+='</div>';
-  h+='<button class="btnG" style="width:100%;margin-top:16px" onclick="closeM(&quot;mv-u&quot;)">Close</button>';
-  g('mb-u').innerHTML=h;
-  if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
 }
 
@@ -4172,67 +4286,83 @@ function openSwitch(){
 function swU(id){ localStorage.setItem('nb_uid',id); updatePill(); closeM('mv-u'); render(); }
 function openM(id){ g(id).classList.add('open'); }
 function closeM(id){ g(id).classList.remove('open'); }
-document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target===o){
+    if(window._qrScanInterval){ stopQRScanner(); }
+    else { o.classList.remove('open'); }
+  }
+}));
 
 // ===============================================
 // TERMS OF SERVICE & PRIVACY POLICY PAGES
 // ===============================================
-function openTerms(){
-  const el = document.getElementById('scr-terms');
+function polChips(items){
+  let c='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px">';
+  items.forEach(function(it){
+    c+='<div style="display:inline-flex;align-items:center;gap:5px;background:'+it[1]+'14;border:1px solid '+it[1]+'35;border-radius:20px;padding:5px 12px 5px 9px">'
+      +'<i data-lucide="'+it[0]+'" style="width:12px;height:12px;color:'+it[1]+'"></i>'
+      +'<span style="font-size:.65rem;font-weight:700;color:'+it[1]+'">'+it[2]+'</span></div>';
+  });
+  return c+'</div>';
+}
+function polSection(num,icon,color,title,body,isLast){
+  return '<div style="display:flex;gap:12px;padding:14px 0'+(isLast?'':';border-bottom:1px solid #F0EBF8')+'">'
+    +'<div style="width:34px;height:34px;border-radius:10px;background:'+color+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+icon+'" style="width:17px;height:17px;color:'+color+'"></i></div>'
+    +'<div style="flex:1;min-width:0"><div style="font-family:Syne,sans-serif;font-size:.86rem;font-weight:800;color:#3D0E7A;margin-bottom:5px">'+num+'. '+title+'</div>'
+    +'<div style="font-size:.78rem;color:#555;line-height:1.65">'+body+'</div></div></div>';
+}
+function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
+  const el = document.getElementById(id);
   if(el){ el.style.display='block'; return; }
   const div = document.createElement('div');
-  div.id = 'scr-terms';
+  div.id = id;
   div.style.cssText = 'position:fixed;inset:0;background:#F0EBF8;z-index:9999;overflow-y:auto;padding:0';
   div.innerHTML = '<div style="max-width:480px;margin:0 auto;padding:0 0 40px">'
-    +'<div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);padding:24px 20px 20px;margin-bottom:0">'
-    +'<button onclick="document.getElementById(\'scr-terms\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:20px;padding:7px 16px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:6px">← Back</button>'
-    +'<h1 style="font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:4px">Terms of Service</h1>'
-    +'<p style="font-size:.72rem;color:rgba(255,255,255,.65)">Last updated: June 2026 · Rodart Creatives</p></div>'
+    +'<div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);padding:24px 20px 22px;margin-bottom:0">'
+    +'<button onclick="document.getElementById(\''+id+'\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:20px;padding:7px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back</button>'
+    +'<div style="display:flex;align-items:center;gap:11px">'
+    +'<div style="width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+iconBadge+'" style="width:21px;height:21px;color:#fff"></i></div>'
+    +'<div><h1 style="font-family:Syne,sans-serif;font-size:1.25rem;font-weight:800;color:#fff;margin-bottom:2px">'+heading+'</h1>'
+    +'<p style="font-size:.7rem;color:rgba(255,255,255,.65)">'+subtitle+'</p></div>'
+    +'</div></div>'
     +'<div style="padding:20px">'
-    +'<div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(123,31,162,.08)">'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">1. Acceptance of Terms</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">By using Bajeti Yanga, you agree to these terms. If you do not agree, do not use the app.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">2. Use of the App</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">Bajeti Yanga is a personal household budgeting tool. You may use it for lawful personal or household financial tracking only. You must not misuse, reverse-engineer, or resell the app.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">3. Your Data</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">All financial data you enter belongs to you. We store it securely on Google Firebase. You are responsible for the accuracy of data you enter.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">4. Premium Features</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">Premium features are available via a paid subscription. Payments are processed manually via Airtel Money or TNM Mpamba. Refunds are at the discretion of Rodart Creatives.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">5. Disclaimer</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">Bajeti Yanga is provided as-is. We are not responsible for any financial decisions made based on data in this app. Always verify important financial information independently.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">6. Contact</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6">Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.</p>'
+    +chipsHtml
+    +'<div style="background:#fff;border-radius:16px;padding:6px 18px;box-shadow:0 2px 12px rgba(123,31,162,.08)">'
+    +sectionsHtml
     +'</div></div></div>';
   document.body.appendChild(div);
+  if(window.lucide) lucide.createIcons({nodes:[div]});
+}
+function openTerms(){
+  const isCW = lang==='cw';
+  const chips = polChips([
+    ['smartphone','#1565C0',isCW?'Kagwiritsidwe kanu':'Personal use only'],
+    ['credit-card','#E65100','PayChangu'],
+    ['shield-check','#00695C',isCW?'Deta yanu ndi yanu':'Your data stays yours']
+  ]);
+  let s = polSection(1,'check-circle','#7B1FA2','Acceptance of Terms','By using Bajeti Yanga, you agree to these terms. If you do not agree, do not use the app.');
+  s += polSection(2,'smartphone','#1565C0','Use of the App','Bajeti Yanga is a personal household budgeting tool. You may use it for lawful personal or household financial tracking only. You must not misuse, reverse-engineer, or resell the app.');
+  s += polSection(3,'file-text','#00695C','Your Data','All financial data you enter belongs to you. We store it securely on Google Firebase. You are responsible for the accuracy of data you enter.');
+  s += polSection(4,'credit-card','#E65100','Premium Features &amp; Payments','Premium features are available via a paid subscription. Payments are processed securely through <strong>PayChangu</strong>. Refunds are at the discretion of Rodart Creatives.');
+  s += polSection(5,'alert-triangle','#B71C1C','Disclaimer','Bajeti Yanga is provided as-is. We are not responsible for any financial decisions made based on data in this app. Always verify important financial information independently.');
+  s += polSection(6,'mail','#4527A0','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
+  polShell('scr-terms','file-text','Terms of Service','Last updated: July 2026 · Rodart Creatives',chips,s);
 }
 
 function openPrivacySheet(){
-  const el = document.getElementById('scr-privacy-page');
-  if(el){ el.style.display='block'; return; }
-  const div = document.createElement('div');
-  div.id = 'scr-privacy-page';
-  div.style.cssText = 'position:fixed;inset:0;background:#F0EBF8;z-index:9999;overflow-y:auto;padding:0';
-  div.innerHTML = '<div style="max-width:480px;margin:0 auto;padding:0 0 40px">'
-    +'<div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);padding:24px 20px 20px;margin-bottom:0">'
-    +'<button onclick="document.getElementById(\'scr-privacy-page\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:20px;padding:7px 16px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:6px">← Back</button>'
-    +'<h1 style="font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:4px">Privacy Policy</h1>'
-    +'<p style="font-size:.72rem;color:rgba(255,255,255,.65)">Last updated: June 2026 · Rodart Creatives</p></div>'
-    +'<div style="padding:20px">'
-    +'<div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(123,31,162,.08)">'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">1. Data We Collect</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">2. How We Use Your Data</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">Your data is used exclusively to provide the budgeting features. AI features process spending summaries temporarily; this data is not retained beyond the request.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">3. Data Storage & Security</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can access your data. Data is encrypted in transit and at rest.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">4. Data Sharing</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">We do not sell, rent, or share your personal data with advertisers or third parties. Data is shared only with household members who have your household code.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">5. Your Rights</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6;margin-bottom:14px">You may delete your account and all associated data at any time via Settings. You can also export your data as CSV.</p>'
-    +'<h3 style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:#3D0E7A;margin-bottom:8px">6. Contact</h3>'
-    +'<p style="font-size:.78rem;color:#555;line-height:1.6">Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.</p>'
-    +'</div></div></div>';
-  document.body.appendChild(div);
+  const isCW = lang==='cw';
+  const chips = polChips([
+    ['lock','#7B1FA2',isCW?'Yosungidwa mosalala':'Encrypted storage'],
+    ['ban','#E65100',isCW?'Sitigulitsa deta':'No data selling'],
+    ['trash-2','#2E7D32',isCW?'Chotsani nthawi ina':'Delete anytime']
+  ]);
+  let s = polSection(1,'database','#1565C0','Data We Collect','We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality.');
+  s += polSection(2,'settings','#00695C','How We Use Your Data','Your data is used exclusively to provide the budgeting features. AI features process spending summaries temporarily; this data is not retained beyond the request.');
+  s += polSection(3,'lock','#7B1FA2','Data Storage &amp; Security','All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can access your data. Data is encrypted in transit and at rest.');
+  s += polSection(4,'users','#E65100','Data Sharing','We do not sell, rent, or share your personal data with advertisers or third parties. Data is shared only with household members who have your household code.');
+  s += polSection(5,'check-circle','#2E7D32','Your Rights','You may delete your account and all associated data at any time via Settings. You can also export your data as CSV.');
+  s += polSection(6,'mail','#4527A0','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
+  polShell('scr-privacy-page','shield-check','Privacy Policy','Last updated: July 2026 · Rodart Creatives',chips,s);
 }
 
 // ===============================================
@@ -4526,23 +4656,38 @@ function showPremiumPage(){
   h += paychanguBadge;
   h += '</div>';
 
-  // If already premium — show status
+  // If already premium — show status (comfortably active: no urgent action needed)
+  // If premium but expiring soon, fall through to the plan selector below so
+  // there's an actual way to pay — this used to dead-end at a "Close" button.
   if(status.isPremium && !status.isTrial){
     const expiry = lCfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
     const expiryStr = expiry ? fmtDate(expiry.split('T')[0]) : (isCW ? 'Palibe tsiku lotha' : 'No expiry set');
     const daysLeft = expiry ? Math.max(0, Math.ceil((new Date(expiry) - new Date()) / 86400000)) : null;
-    h += '<div style="margin:16px 0;background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border:1.5px solid #A5D6A7;border-radius:16px;padding:16px">';
-    h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
-    h += '<div style="width:36px;height:36px;border-radius:10px;background:#2E7D3220;display:flex;align-items:center;justify-content:center"><i data-lucide="gem" style="width:18px;height:18px;color:#2E7D32"></i></div>';
-    h += '<div><div style="font-weight:800;font-size:.88rem;color:#1B5E20">'+(isCW?'Premium Yanu Ikugwira Ntchito!':'Your Premium is Active!')+'</div>';
-    h += '<div style="font-size:.68rem;color:#388E3C">'+(isCW?'Intha':'Expires')+': '+expiryStr+(daysLeft!==null?' ('+daysLeft+(isCW?' tsiku':'d')+')':'')+'</div></div></div>';
-    h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:1.5px solid #A5D6A7;border-radius:10px;padding:9px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.8rem;color:#2E7D32;cursor:pointer">'+(isCW?'Zamkani':'Close')+'</button>';
-    h += '</div>';
-    g('mb-u').innerHTML = h;
-    if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
-    openM('mv-u');
-    return;
+    const nearExpiry = daysLeft !== null && daysLeft <= 7;
+    if(nearExpiry){
+      h += '<div style="margin:16px 0;background:linear-gradient(135deg,#FFF3E0,#FFF8E1);border:1.5px solid #FFCC80;border-radius:16px;padding:16px">';
+      h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+      h += '<div style="width:36px;height:36px;border-radius:10px;background:#E6510020;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:18px;height:18px;color:#E65100"></i></div>';
+      h += '<div><div style="font-weight:800;font-size:.88rem;color:#BF360C">'+(isCW?'Premium Yanu Yatsala Masiku '+daysLeft:'Premium Expires in '+daysLeft+' Day'+(daysLeft===1?'':'s'))+'</div>';
+      h += '<div style="font-size:.68rem;color:#E65100">'+(isCW?'Intha':'Expires')+': '+expiryStr+'</div></div></div>';
+      h += '<div style="font-size:.76rem;color:#5D4037;line-height:1.6">'+(isCW?'Bwezerani tsopano kuti mupitirize kugwiritsa ntchito zonse za Premium mopanda kusokonezeka.':'Renew now to keep uninterrupted access to Bill Tracker, PDF export, unlimited AI, and more.')+'</div>';
+      h += '</div>';
+      // fall through — plan selector + Proceed to Payment button render below
+    } else {
+      h += '<div style="margin:16px 0;background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border:1.5px solid #A5D6A7;border-radius:16px;padding:16px">';
+      h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+      h += '<div style="width:36px;height:36px;border-radius:10px;background:#2E7D3220;display:flex;align-items:center;justify-content:center"><i data-lucide="gem" style="width:18px;height:18px;color:#2E7D32"></i></div>';
+      h += '<div><div style="font-weight:800;font-size:.88rem;color:#1B5E20">'+(isCW?'Premium Yanu Ikugwira Ntchito!':'Your Premium is Active!')+'</div>';
+      h += '<div style="font-size:.68rem;color:#388E3C">'+(isCW?'Intha':'Expires')+': '+expiryStr+(daysLeft!==null?' ('+daysLeft+(isCW?' tsiku':'d')+')':'')+'</div></div></div>';
+      h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:1.5px solid #A5D6A7;border-radius:10px;padding:9px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.8rem;color:#2E7D32;cursor:pointer">'+(isCW?'Zamkani':'Close')+'</button>';
+      h += '</div>';
+      g('mb-u').innerHTML = h;
+      if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
+      openM('mv-u');
+      return;
+    }
   }
+
 
   // Feature grid
   const feats = [
@@ -5071,7 +5216,7 @@ function sheet_scan(){
     +'<label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--surf);border:1.5px solid var(--brd);border-radius:14px;cursor:pointer;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.85rem;color:var(--ink)">'
     +'<i data-lucide="image" style="width:16px;height:16px;vertical-align:middle;color:var(--p1)"></i> '+(lang==="cw"?"Sankhani kuchokera ku Gallery":"Choose from Gallery")+'<input type="file" accept="image/*" id="scan-gallery-modal" style="display:none" onchange="scanReceiptFromChat(this);closeM(\'mv-u\')"></label>'
     +'</div>'
-    +'<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(\'mb-u\')">'+(lang==="cw"?"Lekani":"Cancel")+'</button>';
+    +'<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(\'mv-u\')">'+(lang==="cw"?"Lekani":"Cancel")+'</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
@@ -5207,6 +5352,16 @@ function renderBubbles(){
         +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">Cancel</button></div>'
         +'</div>';
     }
+    if(!isU && m.pendingAction && m.pendingAction.type==='bulkLog'){
+      const pa=m.pendingAction;
+      actionCard='<div class="ai-action-card">'
+        +'<div class="aac-title"><i data-lucide="plus-circle" style="width:14px;height:14px"></i> Log '+pa.items.length+' item'+(pa.items.length>1?'s':'')+'?</div>'
+        +pa.items.map(function(it){return '<div class="aac-item"><span class="aac-name">'+esc(it.item)+'</span><span class="aac-amt">MK '+Number(it.amount||0).toLocaleString()+'</span></div>';}).join('')
+        +'<div style="display:flex;gap:8px;margin-top:4px">'
+        +'<button class="aac-confirm" onclick="confirmAiAction('+idx+')" style="flex:1">Log All ✓</button>'
+        +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">No</button></div>'
+        +'</div>';
+    }
     return dateSep+'<div class="bubble-wrap '+(isU?'user':'ai')+'" ontouchstart="bubbleLongPress(this)" ontouchend="bubbleLongPressEnd(this)">'
       +delBtn
       +'<div class="bubble '+(isU?'user':'ai')+'">'+safe+'</div>'
@@ -5250,6 +5405,13 @@ function confirmAiAction(msgIdx){
   } else if(pa.type==='delete'){
     updPx(pa.id,{deleted:true,deletedAt:Date.now()}); // soft-delete to trash
     toast(lang==='cw'?'Chotsedwa':'Deleted','s');
+  } else if(pa.type==='bulkLog'){
+    let ts=Date.now();
+    const userId=actU().id;
+    (pa.items||[]).forEach(function(it){
+      addPx({item:String(it.item||'').trim(),date:today(),timestamp:ts++,amount:Number(it.amount)||0,notes:'Added via Magic Log ✨',userId,type:it.type==='income'?'income':'expense',cat:it.cat||'Other',recurring:false});
+    });
+    toast(lang==='cw'?(pa.items||[]).length+' zolemba zalembedwa':(pa.items||[]).length+' items logged','s');
   }
   msg.pendingAction=null;
   saveChatHistory();
@@ -5338,6 +5500,7 @@ function loadConversationById(id){
   if(!convo) return;
   activeChatId = id;
   chatHistory = (convo.messages||[]).slice();
+  localStorage.setItem('nb_active_convo', id);
 }
 
 async function getConvoCountFS(){
@@ -5441,12 +5604,14 @@ function buildCtx(){
   const items=lCfg.items.map(it=>({item:it.name,budget:it.budget,spent:byItem[it.name]||0,status:(byItem[it.name]||0)>it.budget?'OVER BUDGET':(byItem[it.name]||0)>(it.budget*.8)?'Near limit':'OK'})).filter(it=>it.spent>0||it.budget>0).slice(0,20);
   const byMember={};
   lCfg.users.forEach(u=>{byMember[u.name]=moPx.filter(p=>p.userId===u.id&&p.type!=='income').reduce((s,p)=>s+p.amount,0);});
-  const recent=lPx.slice(0,10).map(p=>({item:p.item,amount:p.amount,date:p.date,by:uById(p.userId).name,type:p.type}));
   const me=actU();
   const authName=curUser&&(curUser.displayName||curUser.email)||me.name;
   
-  // Build transaction list with IDs so AI can reference them for deletion
-  const recentWithIds = lPx.slice(0,15).map(p=>({id:p.id,item:p.item,amount:p.amount,date:p.date,by:uById(p.userId).name,type:p.type}));
+  // Build transaction list with IDs so AI can reference them for deletion.
+  // FIX: exclude trashed (soft-deleted) entries -- previously this included
+  // deleted purchases with no flag, so the AI would report them as live
+  // transactions when asked "show me recent transactions".
+  const recentWithIds = lPx.filter(p=>!p.deleted).slice(0,15).map(p=>({id:p.id,item:p.item,amount:p.amount,date:p.date,by:uById(p.userId).name,type:p.type}));
   const validItems = lCfg.items.map(it=>it.name);
 
   return `You are Bajeti AI, a warm, personal household budget assistant for a Malawian family using the Bajeti Yanga app.
@@ -5713,11 +5878,12 @@ async function scanReceiptFromChat(input){
       items.forEach(function(tx){msg+='\u2022 **'+String(tx.item||'')+'**: MK '+Number(tx.amount||0).toLocaleString()+'\n';});
       msg+='\n'+(lang==='cw'?'Kodi mufune kuzigwiritsira ntchito? Ndingathe kuzilembera.':'Want me to log these? Just say "log them" and I\'ll add them to your expenses.');
 
-      chatHistory.push({role:'assistant',text:msg,ts:Date.now()});
+      const msgObj={role:'assistant',text:msg,ts:Date.now(),pendingAction:{type:'bulkLog',items:items}};
+      chatHistory.push(msgObj);
       saveChatHistory();
+      syncActiveConvo();
       renderBubbles();
 
-      // Store pending so user can confirm
       pendingMagicTxs=items;
       toast(lang==='cw'?'Risiti yawerekedwa!':'Receipt scanned!','s');
     }catch(err){
@@ -6050,28 +6216,7 @@ if(_origRender){
   };
 }
 
-// Inject PWA manifest with Concept D icon
-(function injectManifest(){
-  try{
-    const manifest={
-      name:'Bajeti Yanga',short_name:'Bajeti',
-      description:'Know where your Kwacha goes',
-      start_url:'./',display:'standalone',
-      background_color:'#4A148C',theme_color:'#7B1FA2',
-      orientation:'portrait',
-      icons:[{src:'',sizes:'192x192',type:'image/png'},{src:'',sizes:'512x512',type:'image/png'}]
-    };
-    var i192=makeIcon(192), i512=makeIcon(512);
-    if(i192&&i512){
-      manifest.icons[0].src=i192; manifest.icons[1].src=i512;
-      var blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
-      var url=URL.createObjectURL(blob);
-      var lnk=document.querySelector('link[rel="manifest"]');
-      if(!lnk){lnk=document.createElement('link');lnk.rel='manifest';document.head.appendChild(lnk);}
-      lnk.href=url;
-    }
-  }catch(e){}
-})();
+
 
 // ── BOOT ────────────────────────────────────────────────────────────────────
 (function(){
