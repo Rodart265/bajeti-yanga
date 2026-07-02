@@ -1775,11 +1775,20 @@ function _confirmDeleteAccount(){
   if(unsubHH){unsubHH();unsubHH=null;}
   const uid = curUser.uid;
   const promises = [];
-  if(hhId){
+  // Only the household OWNER deleting their account schedules the whole
+  // shared household for deletion. A non-owner member deleting their own
+  // account should just leave the household (rules now enforce this too —
+  // deletedAt/deletedBy/restoreBefore are owner-only fields).
+  const isOwnerHere = hhId && lHHDoc && lHHDoc.owner === uid;
+  if(hhId && isOwnerHere){
     promises.push(db.collection('households').doc(hhId).update({
       deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
       deletedBy:uid,
       restoreBefore:new Date(Date.now()+30*24*60*60*1000).toISOString()
+    }));
+  } else if(hhId){
+    promises.push(db.collection('households').doc(hhId).update({
+      memberUids: firebase.firestore.FieldValue.arrayRemove(uid)
     }));
   }
   promises.push(db.collection('users').doc(uid).update({
