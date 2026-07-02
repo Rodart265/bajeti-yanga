@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
 <title>Bajeti Yanga v9.4.2</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -496,10 +498,12 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .cpick{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:4px}
 .cp{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s}
 .cp.on{border-color:var(--ink);transform:scale(1.15)}
-.ov{position:fixed;inset:0;background:rgba(13,13,26,.58);z-index:500;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(3px)}
+.ov{position:fixed;inset:0;background:rgba(13,13,26,.58);z-index:1200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(3px)}
+/* FIX: .ov must outrank .screen (z-index:900) and #scr-pin (z-index:1000) — otherwise modals opened
+   from onboarding/setup/PIN screens (e.g. the QR scanner) render behind them: fully functional
+   (camera stream active, permission granted) but visually hidden. */
 .ov.open{opacity:1;pointer-events:all}
-#mv-confirm{z-index:600}
-#mv-confirm{z-index:700} /* FIX: confirm dialogs must always stack above other open modals (e.g. Trash), not just share the base .ov z-index */
+#mv-confirm{z-index:1300} /* confirm dialogs must always stack above other open modals (e.g. Trash), not just share the base .ov z-index */
 .mb{background:var(--white);border-radius:24px 24px 0 0;padding:20px 17px calc(20px + env(safe-area-inset-bottom,0));width:100%;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);max-height:88vh;overflow-y:auto}
 .ov.open .mb{transform:translateY(0)}
 .mb h3{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.97rem;color:var(--ink);margin-bottom:13px}
@@ -1396,6 +1400,7 @@ function showPIN() {
   pinEntry='';
   if(pinMode!=='confirm') pinTmp='';
   show('scr-pin'); hide('scr-auth'); hide('scr-setup'); g('app').classList.add('hide');
+  if(window._pushOnboardScreen) _pushOnboardScreen('pin');
   const sub=g('pin-sub');
   const isCW=lang==='cw';
   if(sub) sub.textContent=pinMode==='set'?(isCW?'Sankhani PIN yanu yapama':'Choose a 4-digit PIN'):pinMode==='confirm'?(isCW?'Tsimikizani PIN yanu':'Confirm your PIN'):(isCW?'Lowetsani PIN yanu':'Enter your PIN to continue');
@@ -1448,11 +1453,12 @@ function pinK(k) {
         if(match){
           if(!stored.includes(':')){ const r=await hashPIN(entered); localStorage.setItem('nb_pin',r.salt+':'+r.hash); }
           hidePIN();
-          // bootApp() is a no-op on re-entry (authReg guard), so manual PIN success
-          // must connect to the household itself using the pending ID, same as biometrics does.
+          // bootApp() is a no-op on re-entry (authReg guard). If we already have a connected
+          // household (e.g. this was a resume-lock re-check, not first sign-in), just reveal
+          // the app again — connectHH() already has a live listener running.
           const hid = hhId || _pendingHid;
           if(!hhId && hid){ hhId=hid; _pendingHid=null; connectHH(hid); }
-          else { bootApp(); }
+          else { g('app').classList.remove('hide'); }
         } else { pinEntry=''; updDots(); toast('Wrong PIN','e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
@@ -1603,14 +1609,139 @@ async function triggerBio(){
   const ok = await checkBio();
   if(ok){
     hidePIN();
-    if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); } else { bootApp(); }
+    // If we already have a connected household (resume-lock re-check), just reveal the app —
+    // bootApp() is a no-op on re-entry and won't do this for us.
+    if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); } else { g('app').classList.remove('hide'); }
   }
 }
 
+// -- Resume-lock: re-require PIN/biometrics after the app has been backgrounded a while --
+// Grace period avoids re-locking on brief interruptions like the OS camera sheet used for
+// receipt scanning, which also fires a visibilitychange event.
+const APP_LOCK_GRACE_MS = 20000;
+let _bgAt = 0;
+function lockApp(){
+  if(!hasPIN()) return;
+  if(!hhId) return; // not actually inside a household yet — nothing to lock
+  if(g('app').classList.contains('hide')) return; // already locked/on another screen
+  pinMode = 'check';
+  g('app').classList.add('hide');
+  show('scr-pin');
+  showPIN();
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden'){
+    _bgAt = Date.now();
+  } else if(document.visibilityState === 'visible'){
+    if(_bgAt && (Date.now() - _bgAt) >= APP_LOCK_GRACE_MS) lockApp();
+    _bgAt = 0;
+  }
+});
+
 function removeBio(){
-  ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig'].forEach(k=>localStorage.removeItem(k));
-  toast('Biometrics removed','i');
-  go('stg');
+  requestSecurityVerification(function(){
+    ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig'].forEach(k=>localStorage.removeItem(k));
+    toast('Biometrics removed','i');
+    go('stg');
+  });
+}
+
+// -- Security-change verification --
+// Anyone holding an unlocked phone could otherwise switch off PIN/biometrics in two taps.
+// Require re-proving identity first, using whichever method the user already has set up:
+// current PIN > a fresh biometric check > account password, in that order.
+let _secVerifyCallback = null;
+
+function requestSecurityVerification(onVerified){
+  if(hasPIN()){
+    _openSecurityPinVerify(onVerified);
+  } else if(hasBio()){
+    toast(lang==='cw'?'Tsimikizani ndi chala kapena nkhope...':'Verifying with biometrics...','i');
+    checkBio().then(function(ok){
+      if(ok){ onVerified(); }
+      else { toast(lang==='cw'?'Kutsimikiza kwalephera.':'Verification failed.','e'); }
+    });
+  } else if(curUser && curUser.email){
+    _openSecurityPasswordVerify(onVerified);
+  } else {
+    onVerified();
+  }
+}
+
+function _openSecurityPinVerify(onVerified){
+  _secVerifyCallback = onVerified;
+  const isCW = lang==='cw';
+  const box = g('mb-confirm');
+  box.innerHTML = '<div style="text-align:center;padding:6px 0 10px">'
+    +'<div style="width:52px;height:52px;border-radius:16px;background:#E8F5E9;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
+    +'<i data-lucide="shield-check" style="width:26px;height:26px;color:#2E7D32"></i></div>'
+    +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+(isCW?'Tsimikizani PIN yanu':'Confirm your PIN')+'</div>'
+    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zoteteza, lowetsani PIN yanu yamakono.':'To change your security settings, enter your current PIN.')+'</div>'
+    +'<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="fi" id="sec-pin-verify" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:1.2rem;margin-bottom:10px">'
+    +'<div id="sec-pin-verify-err" style="display:none;font-size:.75rem;color:#C62828;margin-bottom:8px"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Siyani':'Cancel')+'</button>'
+    +'<button class="btnM" style="flex:2" onclick="_secPinVerifySubmit()"><i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
+    +'</div>';
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+  openM('mv-confirm');
+  setTimeout(function(){ const el=g('sec-pin-verify'); if(el) el.focus(); },300);
+}
+
+async function _secPinVerifySubmit(){
+  const entered = ((g('sec-pin-verify')||{}).value||'').trim();
+  const errEl = g('sec-pin-verify-err');
+  const stored = String(localStorage.getItem('nb_pin')||'').trim();
+  if(entered.length!==4){ if(errEl){errEl.style.display='block';errEl.textContent=lang==='cw'?'Lowetsani manambala anayi.':'Enter your 4-digit PIN.';} return; }
+  const match = await verifyPIN(entered, stored);
+  if(match){
+    closeM('mv-confirm');
+    const cb = _secVerifyCallback; _secVerifyCallback = null;
+    if(cb) cb();
+  } else {
+    if(errEl){ errEl.style.display='block'; errEl.textContent=lang==='cw'?'PIN yolakwika.':'Incorrect PIN.'; }
+  }
+}
+
+function _openSecurityPasswordVerify(onVerified){
+  _secVerifyCallback = onVerified;
+  const isCW = lang==='cw';
+  const box = g('mb-confirm');
+  box.innerHTML = '<div style="text-align:center;padding:6px 0 10px">'
+    +'<div style="width:52px;height:52px;border-radius:16px;background:#EDE7F6;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
+    +'<i data-lucide="key" style="width:26px;height:26px;color:#7B1FA2"></i></div>'
+    +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+(isCW?'Tsimikizani ndi mawu achinsinsi':'Confirm with your password')+'</div>'
+    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zoteteza, lowetsani mawu achinsinsi a akaunti yanu.':'To change your security settings, enter your account password.')+'</div>'
+    +'<input type="password" class="fi" id="sec-pw-verify" placeholder="'+(isCW?'Mawu achinsinsi':'Password')+'" style="margin-bottom:10px">'
+    +'<div id="sec-pw-verify-err" style="display:none;font-size:.75rem;color:#C62828;margin-bottom:8px;text-align:left"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Siyani':'Cancel')+'</button>'
+    +'<button class="btnM" style="flex:2" onclick="_secPwVerifySubmit()"><i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
+    +'</div>';
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+  openM('mv-confirm');
+  setTimeout(function(){ const el=g('sec-pw-verify'); if(el) el.focus(); },300);
+}
+
+async function _secPwVerifySubmit(){
+  const pw = (g('sec-pw-verify')||{}).value||'';
+  const errEl = g('sec-pw-verify-err');
+  if(!pw){ if(errEl){errEl.style.display='block';errEl.textContent=lang==='cw'?'Lowetsani mawu achinsinsi.':'Please enter your password.';} return; }
+  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast(lang==='cw'?'Kutsimikiza kwalephera. Lowaninso.':'Cannot verify. Please sign in again','e'); return; }
+  try{
+    const cred=firebase.auth.EmailAuthProvider.credential(curUser.email,pw);
+    await curUser.reauthenticateWithCredential(cred);
+    closeM('mv-confirm');
+    const cb = _secVerifyCallback; _secVerifyCallback = null;
+    if(cb) cb();
+  }catch(e){
+    if(errEl){
+      errEl.style.display='block';
+      errEl.textContent = e.code==='auth/wrong-password'||e.code==='auth/invalid-credential' ? (lang==='cw'?'Mawu achinsinsi olakwika.':'Incorrect password. Try again.') : (lang==='cw'?'Kutsimikiza kwalephera: ':'Verification failed: ')+(e.message||e.code);
+    }
+  }
 }
 
 // -- Delete Account --
@@ -1675,7 +1806,13 @@ function _confirmDeleteAccount(){
     },2000);
   }).catch(()=>toast('Could not schedule deletion. Check your connection and try again.','e'));
 }
-function removePIN(){ localStorage.removeItem('nb_pin'); toast(tx().pinOff); go('stg'); }
+function removePIN(){
+  requestSecurityVerification(function(){
+    localStorage.removeItem('nb_pin');
+    toast(tx().pinOff);
+    go('stg');
+  });
+}
 
 // ===============================================
 // 6. AUTH
@@ -1904,6 +2041,7 @@ function showVerifyScreen(email){
   hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome');
   g('app').classList.add('hide');
   show('scr-verify');
+  if(window._pushOnboardScreen) _pushOnboardScreen('verify');
   if(window.lucide) lucide.createIcons({nodes:[g('scr-verify')]});
 }
 
@@ -2034,7 +2172,13 @@ function showWelcome(hid, hhName){
   hide('scr-auth'); hide('scr-setup'); hide('scr-pin');
   g('app').classList.add('hide');
   show('scr-welcome');
+  if(window._pushOnboardScreen) _pushOnboardScreen('welcome');
   if(window.lucide) lucide.createIcons({nodes:[g('scr-welcome')]});
+  // Auto-trigger biometrics right away so returning users don't need an extra tap first.
+  // Falls through silently to the normal "Continue" tap -> PIN screen if it fails/cancels.
+  if(hasPIN() && hasBio()){
+    setTimeout(triggerBio, 500);
+  }
 }
 
 function welcomeContinue(){
@@ -2109,6 +2253,7 @@ function bootApp(){
                 // Already approved — clear pending and connect
                 localStorage.removeItem('nb_pending_join');
                 localStorage.setItem('nb_household', pendingCode);
+                _claimMembership(pendingCode);
                 hide('scr-auth'); hide('scr-pin'); g('app').classList.add('hide'); show('scr-setup');
                 // Short delay then connect
                 setTimeout(function(){ hide('scr-setup'); g('app').classList.remove('hide'); connectHH(pendingCode); }, 300);
@@ -2318,6 +2463,7 @@ function _restoreWaitingScreen(code){
     +'<button onclick="cancelPendingJoin()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:7px 16px;font-size:.72rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(isCW?'Siyani Pempho':'Cancel Request')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[setupBox]});
+  if(window._pushOnboardScreen) _pushOnboardScreen('waiting-approval');
   // Resume polling
   let _pollCount = 0;
   const MAX_P = 120;
@@ -2331,7 +2477,7 @@ function _restoreWaitingScreen(code){
         if(curUser && uids.includes(curUser.uid)){
           localStorage.removeItem('nb_pending_join');
           localStorage.setItem('nb_household', code);
-          if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+          _claimMembership(code);
           const box = g('pending-approval-box');
           if(box){
             box.innerHTML = '<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#1B5E20,#2E7D32,#388E3C);border-radius:0 0 24px 24px"><div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:rgba(255,255,255,.2)"><i data-lucide="check-circle" style="width:32px;height:32px;color:#fff"></i></div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(lang==='cw'?'Mwavomelezedwa!':'You\'re Approved!')+'</div><div style="font-size:.75rem;color:rgba(255,255,255,.75)">'+(lang==='cw'?'Kulumikizana tsopano...':'Connecting you now...')+'</div></div>';
@@ -2343,6 +2489,20 @@ function _restoreWaitingScreen(code){
       .catch(function(){ if(localStorage.getItem('nb_pending_join')) setTimeout(_poll, 8000); });
   }
   setTimeout(_poll, 3000);
+}
+
+// Called on the JOINING user's own client once they detect they've been added to
+// a household's memberUids (via polling). Writes householdId to their OWN user doc
+// — allowed, since a user can always write their own doc — and points nb_uid at
+// their real Firebase uid so actU() resolves to their own member entry (added by
+// the owner in approveJoin) instead of silently falling back to the owner's ('u1').
+function _claimMembership(hid){
+  if(!curUser) return;
+  localStorage.setItem('nb_uid', curUser.uid);
+  db.collection('users').doc(curUser.uid).set({
+    householdId: hid,
+    displayName: curUser.displayName || curUser.email || 'User'
+  }, {merge:true}).catch(()=>{});
 }
 
 function switchHousehold(){
@@ -2373,13 +2533,20 @@ function switchHousehold(){
 }
 
 function cancelPendingJoin(){
-  if(!curUser) return;
+  // Reload instead of manually rebuilding the setup screen: the pending-approval
+  // markup replaced the setup-card's original HTML in place, so there's nothing
+  // to "show" back — a reload is the only clean way to restore it. Firebase Auth
+  // persists across reload, so the user stays signed in; they land on the normal
+  // create/join screen, not a re-login prompt.
+  const finish = ()=>location.reload();
+  if(!curUser){ finish(); return; }
   const code = localStorage.getItem('nb_pending_join');
-  if(code){
-    db.collection('households').doc(code).collection('joinRequests').doc(curUser.uid).delete().catch(()=>{});
-  }
   localStorage.removeItem('nb_pending_join');
-  hide('scr-setup'); show('scr-auth'); aTab('login');
+  if(code){
+    db.collection('households').doc(code).collection('joinRequests').doc(curUser.uid).delete().then(finish).catch(finish);
+  } else {
+    finish();
+  }
 }
 
 function joinHH(){
@@ -2389,7 +2556,7 @@ function joinHH(){
   setDot('spin'); setupErr('');
   db.collection('households').doc(code).get()
     .then(doc=>{
-      if(!doc.exists){setDot('off');setupErr(lang==='cw'?'Nyumba sichinipezeka. Onani kodi.':'Household not found. Check the code.');return;}
+      if(!doc.exists){setDot('off');setupErr(lang==='cw'?'Kodi imeneyi sichiripo. Onani kodi ya nyumba, kapena pangani nyumba yatsopano.':'That code doesn\'t exist. Double-check it with your household owner, or create your own household to get started.');return;}
       const hhData=doc.data();
       if(hhData.joinCodeExpiry && Date.now() > hhData.joinCodeExpiry){
         setDot('off');
@@ -2399,7 +2566,7 @@ function joinHH(){
       // Check if already a member — if so, just connect directly
       if(curUser && hhData.memberUids && hhData.memberUids.includes(curUser.uid)){
         localStorage.setItem('nb_household',code);
-        if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+        _claimMembership(code);
         hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code);
         toast(lang==='cw'?'Takulandirani!':'Welcome back!','s');
         return;
@@ -2442,12 +2609,14 @@ function joinHH(){
               +'<span>'+(lang==='cw'?'Nyumba':'Household')+': <strong style="color:var(--ink);font-family:monospace;letter-spacing:.5px">'+code+'</strong></span>'
               +'</div>'
               // Listening indicator with spinner
-              +'<div style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:.72rem;color:var(--mid)" id="approval-listening-indicator">'
+              +'<div style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:.72rem;color:var(--mid);margin-bottom:14px" id="approval-listening-indicator">'
               +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--p1)" stroke-width="2.5" style="animation:spin 1.2s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
               +(lang==='cw'?'Kudikira chilolezo...':'Listening for approval...')
               +'</div>'
+              +'<div style="text-align:center"><button onclick="cancelPendingJoin()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:7px 16px;font-size:.72rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Siyani Pempho':'Cancel Request')+'</button></div>'
               +'</div>';
             if(window.lucide) lucide.createIcons({nodes:[setupBox]});
+            if(window._pushOnboardScreen) _pushOnboardScreen('waiting-approval');
           }
           toast(lang==='cw'?'Pempho lotumizidwa. Mudziwa mukavomelezwa.':'Join request sent. You\'ll be notified when approved.','i');
 
@@ -2475,7 +2644,7 @@ function joinHH(){
                   _approvalUnsub = false; // stop polling
                   localStorage.removeItem('nb_pending_join'); // clear pending flag
                   localStorage.setItem('nb_household', code);
-                  if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
+                  _claimMembership(code);
                   // Show approved animation
                   const box = g('pending-approval-box');
                   if(box){
@@ -2519,7 +2688,26 @@ function connectHH(code){
   // Unsubscribe previous household document listener to prevent memory leak
   if(unsubHH){ unsubHH(); unsubHH=null; }
   unsubHH=db.collection('households').doc(code).onSnapshot(doc=>{
-    if(doc.exists){ const d=doc.data();
+    if(!doc.exists){
+      // Household was deleted (or never existed) but this user's account still points at it.
+      // Detach it so they aren't stuck on an endless spinner forever, and send them back to Setup.
+      if(unsubHH){ unsubHH(); unsubHH=null; }
+      if(unsub){ unsub(); unsub=null; }
+      localStorage.removeItem('nb_household');
+      if(hhId===code) hhId=null;
+      if(curUser){
+        db.collection('users').doc(curUser.uid).update({householdId:firebase.firestore.FieldValue.delete()}).catch(()=>{});
+      }
+      setDot('off');
+      hide('scr-auth'); hide('scr-pin'); hide('scr-welcome');
+      g('app').classList.add('hide');
+      show('scr-setup');
+      toast(lang==='cw'
+        ? 'Nyumba imeneyi sichinipezekanso. Pangani yatsopano kapena lowani ina.'
+        : 'That household no longer exists. Create a new one or join another.', 'e');
+      return;
+    }
+    { const d=doc.data();
       lHHDoc = d;
       lCfg=d.config||JSON.parse(JSON.stringify(DEF_CFG)); if(!lCfg.goals)lCfg.goals=[];
       let _mg=false;
@@ -2878,7 +3066,7 @@ function rHome(){
       const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
       h+='<div class="pri">';
       h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
-      h+='<div class="prinfo"><div class="prname">'+esc(p.item)+(isBadItemName(p.item)?' <span title="This entry needs a proper name" style="color:#E65100;font-size:.8em">⚠️</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
+      h+='<div class="prinfo"><div class="prname">'+esc(p.item)+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:#E65100;vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
       h+='<span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span></div></div>';
@@ -3082,7 +3270,7 @@ function rLog(){
     if(picks)h+='<div class="fsec"><label class="fl">&#9889; '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
     h+='<div class="fsec"><label class="fl">'+t.selItem+'</label>'
       +'<input type="text" class="fi" id="log-srch" placeholder="Search items..." oninput="filterLogItems(this.value)" value="'+esc(logSrch)+'" style="margin-bottom:8px;font-size:.84rem">'
-      +'<div class="igrid" id="log-igrid">'+lCfg.items.map((it,i)=>'<div class="ic'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'" data-name="'+it.name.toLowerCase()+'"><div class="ic-ico">'+ico(it.name)+'</div><div class="ic-nm">'+it.name+'</div></div>').join('')+'<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" data-name="custom" style="border-style:dashed"><div class="ic-ico">&#9998;</div><div class="ic-nm">'+(lang==='cw'?'Chinthu China':'Custom')+'</div></div>'+'</div></div>';
+      +'<div class="igrid" id="log-igrid">'+lCfg.items.map((it,i)=>'<div class="ic'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'" data-name="'+esc(it.name.toLowerCase())+'"><div class="ic-ico">'+ico(it.name)+'</div><div class="ic-nm">'+esc(it.name)+'</div></div>').join('')+'<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" data-name="custom" style="border-style:dashed"><div class="ic-ico">&#9998;</div><div class="ic-nm">'+(lang==='cw'?'Chinthu China':'Custom')+'</div></div>'+'</div></div>';
     if(selItem==='custom'){
       h+='<div class="fsec" style="background:var(--mist);border-radius:12px;padding:12px;margin-bottom:4px">'
         +'<label class="fl" style="margin-bottom:6px">&#9998; '+(lang==='cw'?'Dzina la Chinthu':'Item Name')+'</label>'
@@ -3239,7 +3427,7 @@ function rHist(){
         h+='<div class="pli'+(isI?' income-e':'')+'">';
         h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
         h+='<div class="plb"><div class="pltop">';
-        h+='<div class="plname">'+esc(p.item)+(badName?' <span title="This entry needs a proper name" style="color:#E65100;font-size:.75em">⚠️</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.58rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
+        h+='<div class="plname">'+esc(p.item)+(badName?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:#E65100;vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.58rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
         h+='<div class="plrow2"><span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
@@ -3278,7 +3466,7 @@ function setF(uid){ fUser=uid; rHist(); }
 function setFU(el){ setF(el.dataset.uid); }
 function doDel(id){
   const p=lPx.find(x=>x.id===id); if(!p)return;
-  const label = p.item + (p.amount?' ('+MK(p.amount)+')':'');
+  const label = esc(p.item) + (p.amount?' ('+MK(p.amount)+')':'');
   appConfirm(
     '<div style="text-align:center;padding:4px 0 8px">'
     +'<div style="width:48px;height:48px;border-radius:14px;background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
@@ -3312,7 +3500,7 @@ function openTrash(){
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
         h+='<div style="display:flex;gap:4px">';
         h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px">↩ Restore</button>';
-        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828">✕ Forever</button>';
+        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>Forever</button>';
         h+='</div></div></div>';
       });
     }
@@ -3355,7 +3543,7 @@ function openEP(id){
   const pt=p.timestamp?new Date(p.timestamp).toTimeString().slice(0,5):'12:00';
   let h='<div class="dh"></div><h3>&#9998; Edit Entry</h3><input type="hidden" id="ep-id" value="'+id+'"><input type="hidden" id="ep-uid" value="'+(p.userId||lCfg.users[0].id)+'">';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+((p.userId||lCfg.users[0].id)===u.id?' on':'')+'" onclick="epU(this,\''+u.id+'\')"><div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
-  if(!isI)h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+lCfg.items.map(it=>'<option value="'+it.name+'" '+(p.item===it.name?'selected':'')+'>'+it.name+'</option>').join('')+'</select></div>';
+  if(!isI)h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+lCfg.items.map(it=>'<option value="'+esc(it.name)+'" '+(p.item===it.name?'selected':'')+'>'+esc(it.name)+'</option>').join('')+'</select></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+p.amount+'" inputmode="numeric"></div></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+p.date+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+pt+'"></div></div>';
   if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
@@ -3477,7 +3665,7 @@ function rSum(){
     const sp=iSpent(it.name),st=statOf(sp,it.budget),pct=Math.min(sp/it.budget,1),rem=it.budget-sp;
     const mp={ok:['pfok','bok',t.ok],near:['pfnear','bnear',t.near],over:['pfover','bover',t.over],none:['pfok','bnone',t.none]};
     const arr=mp[st];
-    return '<div class="sumi"><div class="sir1"><div class="sil"><span style="font-size:1.05rem">'+ico(it.name)+'</span><span class="siname">'+it.name+'</span></div><span class="sibadge '+arr[1]+'">'+arr[2]+'</span></div><div class="sir2"><span>'+t.budget+': <strong>'+MK(it.budget)+'</strong></span><span>'+t.spent+': <strong>'+MK(sp)+'</strong></span><span style="color:'+(rem<0?'var(--r1)':'inherit')+'">'+t.left+': <strong>'+MK(rem)+'</strong></span></div><div class="pb"><div class="pf '+arr[0]+'" style="width:'+Math.min(pct*100,100)+'%"></div></div></div>';
+    return '<div class="sumi"><div class="sir1"><div class="sil"><span style="font-size:1.05rem">'+ico(it.name)+'</span><span class="siname">'+esc(it.name)+'</span></div><span class="sibadge '+arr[1]+'">'+arr[2]+'</span></div><div class="sir2"><span>'+t.budget+': <strong>'+MK(it.budget)+'</strong></span><span>'+t.spent+': <strong>'+MK(sp)+'</strong></span><span style="color:'+(rem<0?'var(--r1)':'inherit')+'">'+t.left+': <strong>'+MK(rem)+'</strong></span></div><div class="pb"><div class="pf '+arr[0]+'" style="width:'+Math.min(pct*100,100)+'%"></div></div></div>';
   }
 
   h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.sumTitle+'</h2></div>';
@@ -3509,7 +3697,7 @@ function rSum(){
     lCfg.goals.forEach((gl,i)=>{
       const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target,mn=goalMonthlyNeed(gl),ml=goalMonthsLeft(gl.deadline);
       h+='<div class="goal-card" onclick="go(&quot;mgr&quot;)" style="cursor:pointer'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
-      h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+gl.name+'</div><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div></div>';
+      h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div></div>';
       h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
       h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
       if(!done&&mn!==null)h+='<div style="margin-top:5px;font-size:.63rem;color:#E65100;font-weight:700"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'mo')+(ml?' · '+ml+(lang==='cw'?' miyezi':' mths'):'')+'</div>';
@@ -3551,7 +3739,7 @@ function rMGI(it,i){
   const bcls=st==='over'?'bover':st==='near'?'bnear':st==='ok'?'bok':'bnone';
   const t=tx(),btxt=st==='over'?t.over:st==='near'?t.near:st==='ok'?t.ok:t.none;
   const cc=CAT_COLORS[catOf(it.name)]||'#607D8B';
-  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+it.name+'</span><span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB('+i+')">&#9998;</button><button class="bsm bd" onclick="delIt('+i+')">&#128465;</button></div></div>';
+  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(it.name)+'</span><span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB('+i+')">&#9998;</button><button class="bsm bd" onclick="delIt('+i+')">&#128465;</button></div></div>';
 }
 
 function goalMonthsLeft(dl){ if(!dl)return null; const n=new Date(),d=new Date(dl+'T00:00:00'); const m=(d.getFullYear()-n.getFullYear())*12+(d.getMonth()-n.getMonth()); return Math.max(m,0); }
@@ -3559,14 +3747,14 @@ function goalMonthlyNeed(gl){ const ml=goalMonthsLeft(gl.deadline); if(ml===null
 function rMgr(){
   const t=tx();
   let h='<div class="page">';
-  h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')">&#10005;</button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
+  h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
   h+='<div class="obra"><label class="oblbl"><i data-lucide="home" style="color:var(--p1)"></i> '+t.overallCap+'</label><input type="number" class="obinp" id="ob-v" value="'+lCfg.overallBudget+'" inputmode="numeric" onchange="updOB(this.value)"></div>';
   h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2><button class="bsm be" onclick="openAddGoal()">&#10133; '+t.addGoal+'</button></div><div class="cb">';
   if(lCfg.goals&&lCfg.goals.length){lCfg.goals.forEach((gl,i)=>{
     const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target;
     const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);
     h+='<div class="goal-card" style="margin-bottom:9px'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
-    h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+gl.name+'</div>';
+    h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div>';
     h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div>';
     if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')">&#8593; '+t.topup+'</button>';
     if(!done&&gl.saved>0)h+='<button class="bsm bd" style="padding:3px 8px;font-size:.63rem;background:#FBE9E7;color:#B71C1C;border-color:#FFCCBC" onclick="openWithdraw('+i+')">&#8595; '+(lang==='cw'?'Chotsani':'Withdraw')+'</button>';
@@ -3664,7 +3852,7 @@ function updSalaryDay(v){
   toast('Salary period set: '+budgetPeriodLabel(),'s'); render();
 }
 function addIt(){ const t=tx(),n=val('ni-n').trim(),b=parseFloat(val('ni-b')),cat=val('ni-cat')||'Other'; if(!n){toast(lang==='cw'?'Lowetsani dzina':'Enter a name','e');return;} if(!b||isNaN(b)||b<=0||b>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} if(lCfg.items.find(it=>it.name.toLowerCase()===n.toLowerCase())){toast(lang==='cw'?'Chinthu chimenechi chilipo kale':'Item already exists','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.push({name:n,budget:b,cat:cat}); saveCfg(cfg); toast(t.itemAdded); rMgr(); }
-function delIt(i){ appConfirm(tx().confirmDelItem+' "'+lCfg.items[i].name+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); rMgr(); }, null, true) }
+function delIt(i){ appConfirm(tx().confirmDelItem+' "'+esc(lCfg.items[i].name)+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); rMgr(); }, null, true) }
 function openAddM(){
   const t=tx();
   let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
@@ -3677,7 +3865,7 @@ function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); rMgr(); }
 function delMember(i){ appConfirm(tx().confirmDelMember, function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.splice(i,1); saveCfg(cfg); toast(tx().deleted); rMgr(); }, null, true) }
-function openEB(i){ const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+it.name+'</h3><input type="hidden" id="eb-i" value="'+i+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
+function openEB(i){ const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(it.name)+'</h3><input type="hidden" id="eb-i" value="'+i+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
 function svEB(){ const i=parseInt(val('eb-i')),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg));cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); rMgr(); }
 function openAddGoal(){
   const t=tx(), isCW=lang==='cw';
@@ -3713,7 +3901,7 @@ function saveGoal(){
   cfg.goals.push(goal);
   saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); rMgr();
 }
-function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8593; '+t.topup+': '+gl.name+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8593; '+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(i){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
@@ -3729,7 +3917,7 @@ function topUpGoal(i){
 function openWithdraw(i){
   const gl=lCfg.goals[i];
   const isCW=lang==='cw';
-  g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Chotsani Ndalama':'Withdraw')+': '+gl.name+'</h3>'
+  g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Chotsani Ndalama':'Withdraw')+': '+esc(gl.name)+'</h3>'
     +'<div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(isCW?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(isCW?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div>'
     +'<label class="fl">'+(isCW?'Ndalama Yochotsedwa (MK)':'Amount to Withdraw (MK)')+'</label>'
     +'<input type="number" class="fi" id="wd-amt" inputmode="numeric" placeholder="0"></div>'
@@ -3930,11 +4118,15 @@ function stgOpenSection(sec){
   if(sec==='members'||sec==='items'||sec==='goals'){
     // Render manage but scroll to section
     tab='stg'; // stay in profile tab highlight
+    // Give this drill-down its own history entry so device back returns to the
+    // main Settings list (the entry pushed when the Settings tab was opened)
+    // instead of falling out of the app entirely.
+    try{ history.pushState({tab:'stg',section:sec},'',(location.pathname||'/')); }catch(e){}
     const t=tx();
     let h='<div class="page">';
     h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="go(&quot;stg&quot;)" style="background:var(--mist);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):(lang==='cw'?'Zolinga zosungira':'Savings Goals'))+'</h2></div>';
     if(sec==='members'){
-      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')">&#10005;</button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
+      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
       // Pending join requests — visible to owner
       // Check lHHDoc.owner first, fall back to ownedHouseholds on user doc for old households
       const isOwner = curUser && (
@@ -3990,7 +4182,7 @@ function stgOpenSection(sec){
         const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target;
         const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);
         h+='<div class="goal-card" style="margin-bottom:9px'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
-        h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+gl.name+'</div>';
+        h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div>';
         h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div>';
         if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')">&#8593; '+t.topup+'</button>';
         h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+')">&#128465;</button></div></div>';
@@ -4263,8 +4455,8 @@ function buildNotifs(){
   const notifs=[]; const t=tx(); const sp=totSp(), bg=lCfg.overallBudget, rem=bg-sp, pct=sp/bg;
   if(pct>=1) notifs.push({ico:'<i data-lucide="alert-triangle" style="color:var(--r1)"></i>',bg:'#FFEBEE',title:t.over,msg:'You have exceeded your monthly budget.'});
   else if(pct>=.8) notifs.push({ico:'<i data-lucide="alert-triangle" style="color:var(--a1)"></i>',bg:'#FFF3E0',title:t.near,msg:'You have used '+Math.round(pct*100)+'% of your budget.'});
-  lCfg.items.forEach(it=>{const s=iSpent(it.name),r=s/it.budget;if(r>=1) notifs.push({ico:'<i data-lucide="x-circle" style="color:var(--r1)"></i>',bg:'#FFEBEE',title:it.name+' over budget',msg:MK(s)+' spent of '+MK(it.budget)});else if(r>=.85) notifs.push({ico:'<i data-lucide="circle" style="color:var(--a1)"></i>',bg:'#FFF3E0',title:it.name+' near limit',msg:Math.round(r*100)+'% used'});});
-  lCfg.goals&&lCfg.goals.forEach(gl=>{const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);if(ml!==null&&ml<=2&&gl.saved<gl.target) notifs.push({ico:'<i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i>',bg:'#E3F2FD',title:'Goal deadline: '+gl.name,msg:ml===0?'Due this month!':'Only '+ml+' month(s) left -- need '+MK(mn)+'/mo'});});
+  lCfg.items.forEach(it=>{const s=iSpent(it.name),r=s/it.budget;if(r>=1) notifs.push({ico:'<i data-lucide="x-circle" style="color:var(--r1)"></i>',bg:'#FFEBEE',title:esc(it.name)+' over budget',msg:MK(s)+' spent of '+MK(it.budget)});else if(r>=.85) notifs.push({ico:'<i data-lucide="circle" style="color:var(--a1)"></i>',bg:'#FFF3E0',title:esc(it.name)+' near limit',msg:Math.round(r*100)+'% used'});});
+  lCfg.goals&&lCfg.goals.forEach(gl=>{const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);if(ml!==null&&ml<=2&&gl.saved<gl.target) notifs.push({ico:'<i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i>',bg:'#E3F2FD',title:'Goal deadline: '+esc(gl.name),msg:ml===0?'Due this month!':'Only '+ml+' month(s) left -- need '+MK(mn)+'/mo'});});
   return notifs;
 }
 function openNotifs(){
@@ -4376,115 +4568,15 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
 // -- Privacy: no gate, policy/terms accessible from auth screen --
 
 
-// -- PWA -- proper installable manifest with PNG icons --
+// -- PWA -- manifest is now a static file linked in <head> (./manifest.webmanifest),
+// and icons are static PNGs in ./icons/. Both used to be generated as blob: URLs
+// at runtime, which is unreliable for the manifest and outright rejected by
+// browsers for service worker registration.
 (function(){
-  // Generate PNG icon via canvas (required for Chrome installability -- SVG icons are rejected)
-  function makeIcon(size){
-    try{
-      var c=document.createElement('canvas');c.width=size;c.height=size;
-      var ctx=c.getContext('2d');
-      // Rounded square background
-      var r=size*0.18;
-      ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(size-r,0);ctx.quadraticCurveTo(size,0,size,r);
-      ctx.lineTo(size,size-r);ctx.quadraticCurveTo(size,size,size-r,size);
-      ctx.lineTo(r,size);ctx.quadraticCurveTo(0,size,0,size-r);
-      ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
-      var g2=ctx.createLinearGradient(0,0,size,size);
-      g2.addColorStop(0,'#7B1FA2');g2.addColorStop(1,'#4A148C');
-      ctx.fillStyle=g2;ctx.fill();
-
-      // Rising bars (Concept D)
-      var pad=size*0.15;
-      var bw=size*0.17; // bar width
-      var br=size*0.05; // bar corner radius
-      var baseY=size-pad;
-
-      function roundedRect(x,y,w,h,radius,color){
-        ctx.beginPath();
-        ctx.moveTo(x+radius,y);
-        ctx.lineTo(x+w-radius,y);
-        ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
-        ctx.lineTo(x+w,y+h-radius);
-        ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
-        ctx.lineTo(x+radius,y+h);
-        ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
-        ctx.lineTo(x,y+radius);
-        ctx.quadraticCurveTo(x,y,x+radius,y);
-        ctx.closePath();
-        ctx.fillStyle=color;
-        ctx.fill();
-      }
-
-      // Bar 1 - short, left, semi-transparent
-      var b1h=size*0.2;
-      roundedRect(pad, baseY-b1h, bw, b1h, br, 'rgba(255,255,255,0.4)');
-
-      // Bar 2 - medium, center
-      var b2h=size*0.35;
-      var b2x=pad+bw+size*0.06;
-      roundedRect(b2x, baseY-b2h, bw, b2h, br, 'rgba(255,255,255,0.65)');
-
-      // Bar 3 - tall, right, full white
-      var b3h=size*0.52;
-      var b3x=b2x+bw+size*0.06;
-      roundedRect(b3x, baseY-b3h, bw, b3h, br, '#ffffff');
-
-      // Cyan arrow tip on bar 3
-      var arrowTip=baseY-b3h;
-      var arrowW=bw;
-      ctx.beginPath();
-      ctx.moveTo(b3x, arrowTip+size*0.07);
-      ctx.lineTo(b3x+arrowW/2, arrowTip-size*0.07);
-      ctx.lineTo(b3x+arrowW, arrowTip+size*0.07);
-      ctx.closePath();
-      ctx.fillStyle='#00E5FF';
-      ctx.fill();
-
-      return c.toDataURL('image/png');
-    }catch(e){return null;}
-  }
-  var ic512=makeIcon(512),ic192=makeIcon(192),ic96=makeIcon(96);
-  var icons=[];
-  if(ic512)icons.push({src:ic512,sizes:'512x512',type:'image/png',purpose:'any maskable'});
-  if(ic192)icons.push({src:ic192,sizes:'192x192',type:'image/png',purpose:'any'});
-  if(ic96)icons.push({src:ic96,sizes:'96x96',type:'image/png',purpose:'any'});
-
-  var mf={
-    name:'Bajeti Yanga',short_name:'Bajeti Yanga',
-    description:'Household Finance Tracker for Malawi',
-    start_url:'https://rodart265.github.io/bajeti-yanga/',
-    scope:'https://rodart265.github.io/bajeti-yanga/',
-    display:'standalone',orientation:'portrait',
-    background_color:'#F0EBF8',theme_color:'#7B1FA2',
-    categories:['finance','utilities'],
-    prefer_related_applications:false,
-    icons:icons
-  };
-  try{
-    var b=new Blob([JSON.stringify(mf)],{type:'application/json'}),u=URL.createObjectURL(b),l=document.createElement('link');
-    l.rel='manifest';l.href=u;document.head.appendChild(l);
-  }catch(e){}
-
-  // -- Service Worker -- fixed scope: blob URL can't match page scope
-  // Use a relative path SW via a script tag injection instead
-  if('serviceWorker' in navigator){
-    const swCode=`const V="bajeti-v900";
-const URLS=["/bajeti-yanga/","/bajeti-yanga/index.html"];
-self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(V).then(c=>c.addAll(URLS).catch(()=>{})));});
-self.addEventListener("activate",e=>{e.waitUntil(Promise.all([clients.claim(),caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k))))]));});
-self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(nr=>{try{var c=nr.clone();caches.open(V).then(cc=>cc.put(e.request,c));}catch(x){}return nr;}).catch(()=>caches.match(URLS[0]))));});`;
-    try{
-      // Use a same-origin script tag to register the SW properly
-      const blob=new Blob([swCode],{type:'application/javascript'});
-      const swUrl=URL.createObjectURL(blob);
-      // Only register when on the actual hosted page, skip on file:// to avoid scope errors
-      if(location.protocol!=='file:'){
-        navigator.serviceWorker.register(swUrl,{scope:'./'}).catch(()=>{
-          // Fallback: try without explicit scope
-          navigator.serviceWorker.register(swUrl).catch(()=>{});
-        });
-      }
-    }catch(e){}
+  // -- Service Worker -- must be a real same-origin file, not a blob: URL.
+  // Bump the version string inside sw.js on every deploy to invalidate old caches.
+  if('serviceWorker' in navigator && location.protocol!=='file:'){
+    navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(()=>{});
   }
 
   // -- In-app Install prompt --
@@ -4594,19 +4686,35 @@ function showUpgradePrompt(feature, status){
 
 function approveJoin(uid){
   if(!hhId||!curUser) return;
-  const batch = db.batch();
-  // Add to household memberUids — polling on requester's side will detect this
-  batch.update(db.collection('households').doc(hhId), {
-    memberUids: firebase.firestore.FieldValue.arrayUnion(uid)
-  });
-  // Delete the join request
-  batch.delete(db.collection('households').doc(hhId).collection('joinRequests').doc(uid));
-  // NOW write householdId to the user doc — only after owner approves
-  batch.set(db.collection('users').doc(uid), {
-    householdId: hhId,
-    displayName: uid // will be overwritten on first login
-  }, {merge: true});
-  batch.commit()
+  const reqRef = db.collection('households').doc(hhId).collection('joinRequests').doc(uid);
+  reqRef.get().then(function(reqSnap){
+    const reqData = reqSnap.exists ? reqSnap.data() : {};
+    const memberName = (reqData.displayName || (reqData.email?reqData.email.split('@')[0]:'') || 'New Member').trim();
+    // Add them as a real member in config — not just Firestore access — so they
+    // show up on the Members screen and their purchases attribute to them
+    // instead of silently falling back to the owner (u1).
+    const cfg = JSON.parse(JSON.stringify(lCfg));
+    if(!cfg.users) cfg.users = [];
+    if(!cfg.users.find(u=>u.id===uid)){
+      const usedColors = cfg.users.map(u=>u.color);
+      const color = MEMBER_COLORS.find(c=>!usedColors.includes(c)) || MEMBER_COLORS[cfg.users.length % MEMBER_COLORS.length];
+      cfg.users.push({id: uid, name: memberName, color: color});
+    }
+    const batch = db.batch();
+    // Grant Firestore access + add as a config member in one write to the household
+    // doc (which the owner is allowed to write). We deliberately never write to
+    // users/{uid} here — that's the joining user's own doc, and security rules
+    // correctly block anyone else writing to it (this was the "Permission denied"
+    // bug). The joining user's own client writes householdId to their own doc once
+    // they detect they've been added to memberUids — see pollForApproval / _poll /
+    // bootApp / joinHH's already-a-member fast path.
+    batch.update(db.collection('households').doc(hhId), {
+      memberUids: firebase.firestore.FieldValue.arrayUnion(uid),
+      config: cfg
+    });
+    batch.delete(reqRef);
+    return batch.commit();
+  })
     .then(()=>{
       toast(lang==='cw'?'Membala wovomerezedwa!':'Member approved!','s');
       stgOpenSection('members');
@@ -5001,12 +5109,35 @@ function scheduleInAppAlerts(){
 }
 
 // -- Android Back Button Fix --
+// Onboarding screens (auth/setup/pin/welcome/verify) and the waiting-for-approval
+// screen sit outside the tab system, so they never had a history entry — device
+// back on them fell straight out of the app. _pushOnboardScreen() gives each one a
+// real entry; the popstate handler below reacts to it before falling through to
+// the normal tab logic.
+function _pushOnboardScreen(name){
+  try{ history.pushState({screen:name},'',(location.pathname||'/')); }catch(e){}
+}
 (function(){
   function pushState(t){ try{ history.pushState({tab:t},'',(location.pathname||'/')); }catch(e){} }
   var _go = window.go;
   window.go = function(t){ _go(t); pushState(t); };
   window.addEventListener('popstate', function(e){
-    var t = (e.state&&e.state.tab) || 'home';
+    var st = e.state;
+    if(st && st.screen){
+      if(st.screen==='waiting-approval'){
+        // Back on the waiting screen = cancel the request, same as the Cancel button.
+        cancelPendingJoin();
+        return;
+      }
+      // PIN / welcome / verify / setup are all pre-app gates — the safe universal
+      // "back" from any of them is the sign-in screen, same as if nothing was ever
+      // entered, rather than trying to reconstruct exact prior sub-state.
+      hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
+      g('app').classList.add('hide');
+      show('scr-auth'); aTab('login');
+      return;
+    }
+    var t = (st&&st.tab) || 'home';
     // Just call internal render without pushing another state
     tab=t;
     document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
@@ -5083,7 +5214,7 @@ function incAiUsageToday(){
 function showConvoLimitWall(count){
   let h='<div class="dh"></div>';
   h+='<div style="text-align:center;padding:10px 0 16px">';
-  h+='<div style="font-size:2.2rem;margin-bottom:8px">💬</div>';
+  h+='<div style="margin-bottom:8px"><i data-lucide="message-circle" style="width:38px;height:38px;color:var(--mid);opacity:.6"></i></div>';
   h+='<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:6px">Conversation Limit Reached</h3>';
   h+='<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">Free accounts can save up to <strong>'+FREE_MAX_CONVOS+' conversations</strong>. You have '+count+'/'+FREE_MAX_CONVOS+' used.</div>';
   h+='<div style="background:var(--mist);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:.76rem;color:var(--mid);text-align:left">';
@@ -5306,7 +5437,7 @@ function renderBubbles(){
     const ts=m.ts ? new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
     const label=isU?'You':'Bajeti AI';
     // Delete button
-    const delBtn='<button class="bubble-del-btn" onclick="deleteMessage('+idx+')" title="Delete message">✕</button>';
+    const delBtn='<button class="bubble-del-btn" onclick="deleteMessage('+idx+')" title="Delete message"><i data-lucide="x" style="width:11px;height:11px"></i></button>';
 
     // Date separator logic
     let dateSep='';
@@ -5552,7 +5683,7 @@ async function openConvoList(){
       h+='<div class="chat-convo-item'+(isActive?' on':'')+'" data-cid="'+c.id+'" onclick="switchConvoById(this)">'  
         +'<div class="chat-convo-title">'+esc(c.title)+'</div>'
         +'<span class="chat-convo-date">'+dateStr+'</span>'
-        +'<button class="chat-convo-del" onclick="event.stopPropagation();delConvoById(this.closest(\'[data-cid]\')||this)" title="Delete">✕</button>'
+        +'<button class="chat-convo-del" onclick="event.stopPropagation();delConvoById(this.closest(\'[data-cid]\')||this)" title="Delete"><i data-lucide="x" style="width:11px;height:11px"></i></button>'
         +'</div>';
     });
     h+='</div>';
