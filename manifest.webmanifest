@@ -1,0 +1,19 @@
+{
+  "name": "Bajeti Yanga",
+  "short_name": "Bajeti Yanga",
+  "description": "Household Finance Tracker for Malawi",
+  "start_url": "https://rodart265.github.io/bajeti-yanga/",
+  "scope": "https://rodart265.github.io/bajeti-yanga/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F0EBF8",
+  "theme_color": "#7B1FA2",
+  "categories": ["finance", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
+
