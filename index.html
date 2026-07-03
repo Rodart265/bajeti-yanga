@@ -691,8 +691,30 @@ body.dark .ai-action-card .aac-item{background:#1E1E1E}
 body.dark .chat-action-sheet{background:#1E1E1E;border-color:#333}
 body.dark .chat-action-row{color:#E0E0E0}
 body.dark .chat-action-row:active{background:#2A2A2A}
-.magic-btn{background:linear-gradient(135deg,#FFF9C4,#FFF176);color:#F57F17;border:1px solid #FBC02D;padding:10px 15px;border-radius:12px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;width:100%;box-shadow:0 4px 12px rgba(245,127,23,.15)}
+.magic-wrap{position:relative;border-radius:15px;padding:1.5px;margin-bottom:12px;background:linear-gradient(120deg,#7B1FA2,#F9A825,#7B1FA2);background-size:220% 100%;animation:magicShimmer 3.5s linear infinite}
+.magic-btn{background:linear-gradient(135deg,#3C1361,#1F0A38);color:#fff;border:none;padding:11px 12px;border-radius:13.5px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
 .magic-btn:active{transform:scale(.98)}
+.magic-btn .mb-ico{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#F9A825,#F57F17);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.magic-btn .mb-txt{flex:1;text-align:left}
+.magic-btn .mb-sub{display:block;font-size:.65rem;font-weight:500;color:#D8B4E8;margin-top:1px}
+@keyframes magicShimmer{0%{background-position:0% 0}100%{background-position:220% 0}}
+.magic-modal-header{background:linear-gradient(135deg,#3C1361,#1F0A38);border-radius:16px;padding:15px 15px;margin-bottom:14px}
+.magic-modal-header .mmh-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.magic-modal-header .mmh-ico{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#F9A825,#F57F17);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.magic-modal-header .mmh-title{color:#fff;font-weight:800;font-size:.95rem}
+.magic-modal-header .mmh-sub{color:#D8B4E8;font-size:.72rem;line-height:1.5}
+.magic-tile{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:11px 8px;border-radius:12px;background:var(--mist);border:1.5px solid var(--border);cursor:pointer;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.72rem;color:var(--ink);text-align:center}
+.magic-tile i{color:var(--p1)}
+.magic-tile:active{transform:scale(.98)}
+.magic-scan-card{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#3C1361,#1F0A38);border-radius:14px;padding:14px 15px;margin-bottom:10px}
+.magic-scan-card .msc-ico{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#F9A825,#F57F17);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:mscPulse 1.4s ease-in-out infinite}
+.magic-scan-card .msc-label{color:#fff;font-weight:700;font-size:.78rem;margin-bottom:6px}
+.magic-scan-card .msc-track{height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden}
+.magic-scan-card .msc-bar{height:100%;width:40%;background:linear-gradient(90deg,#F9A825,#7B1FA2);border-radius:3px;animation:mscSlide 1.6s ease-in-out infinite}
+@keyframes mscPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes mscSlide{0%{transform:translateX(-100%)}50%{transform:translateX(160%)}100%{transform:translateX(160%)}}
+.spin-ico{animation:spinIco .9s linear infinite;display:inline-block}
+@keyframes spinIco{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .ai-summary-box{background:linear-gradient(135deg,#F3E5F5,#EDE7F6);border:1px solid #CE93D8;border-radius:14px;padding:14px;margin-bottom:12px;font-size:.82rem;line-height:1.5;color:var(--p1)}
 
 
@@ -836,7 +858,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
         </div>
         <div id="a-ph-s2" class="hide">
           <button class="a-back" onclick="backPh()"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Change number</button>
-          <p style="color:rgba(255,255,255,.78);font-size:.82rem;margin-bottom:13px;text-align:center">Enter the 6-digit code sent to your phone</p>
+          <p style="color:rgba(255,255,255,.78);font-size:.82rem;margin-bottom:13px;text-align:center">Enter the 6-digit code sent to your phone.</p>
           <div class="otp-row">
             <input class="otp-b" id="ob0" maxlength="1" type="tel" oninput="otpN(this,0)">
             <input class="otp-b" id="ob1" maxlength="1" type="tel" oninput="otpN(this,1)">
@@ -966,7 +988,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </svg>
   </div>
   <div class="auth-title" id="verify-title">Check Your Email</div>
-  <div class="auth-sub" id="verify-sub">We sent a verification link to your email</div>
+  <div class="auth-sub" id="verify-sub">We sent a verification link to your email.</div>
   <div class="auth-card" style="text-align:center">
     <div style="width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
       <i data-lucide="mail" style="width:28px;height:28px;color:#fff"></i>
@@ -1002,7 +1024,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </div>
     <div class="pin-title">Bajeti Yanga</div>
   </div>
-  <div class="pin-sub" id="pin-sub">Enter your PIN to continue</div>
+  <div class="pin-sub" id="pin-sub">Enter your PIN to continue.</div>
   <div class="pin-dots">
     <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
     <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
@@ -1228,6 +1250,12 @@ let tab = 'home', selItem = null, fUser = 'all', logSrch = '';
 let sortMode = 'cat', srchQ = '', logType = 'expense', histFilter = 'all', histTime = 'month';
 let viewMonth = null;
 let pinEntry = '', pinMode = 'check', pinTmp = '';
+// Set right before showing the PIN screen from a specific origin screen, and
+// consumed (reset) the moment it's used, so the back button can return a
+// returning user to "Welcome back" instead of forcing them through sign-in
+// again. Left null for all other PIN entry points (setup, resume-lock,
+// in-app PIN change) which keep their existing, already-correct fallback.
+let _pinBackTarget = null;
 let confResult = null, rcapV = null;
 let unsubHH = null; // Household document listener - separate from purchases listener
 
@@ -1363,6 +1391,16 @@ function randCode(){
 const g   = id => document.getElementById(id);
 const val = id => (g(id)||{}).value||'';
 function esc(s){ const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML; }
+// Lightweight markdown -> HTML for AI-generated text. The AI is told to use
+// **bold** and bullet lists; this is the ONLY place that syntax should ever
+// reach the user as real formatting instead of literal asterisks. Any screen
+// that shows raw AI text must run it through this (not esc() alone).
+function mdLite(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^[-\u2022 ] (.+)/gm,'<li>$1</li>')
+    .replace(/\n/g,'<br>');
+}
 function show(id){ const el=g(id); if(el)el.classList.remove('hide'); }
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
 function toast(msg,type){
@@ -1396,14 +1434,14 @@ function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text';
 // ===============================================
 
 function hasPIN()  { return !!localStorage.getItem('nb_pin'); }
-function showPIN() {
+function showPIN(_skipHistoryPush) {
   pinEntry='';
   if(pinMode!=='confirm') pinTmp='';
   show('scr-pin'); hide('scr-auth'); hide('scr-setup'); g('app').classList.add('hide');
-  if(window._pushOnboardScreen) _pushOnboardScreen('pin');
+  if(!_skipHistoryPush && window._pushOnboardScreen){ _pushOnboardScreen('pin', _pinBackTarget); _pinBackTarget=null; }
   const sub=g('pin-sub');
   const isCW=lang==='cw';
-  if(sub) sub.textContent=pinMode==='set'?(isCW?'Sankhani PIN yanu yapama':'Choose a 4-digit PIN'):pinMode==='confirm'?(isCW?'Tsimikizani PIN yanu':'Confirm your PIN'):(isCW?'Lowetsani PIN yanu':'Enter your PIN to continue');
+  if(sub) sub.textContent=pinMode==='set'?(isCW?'Sankhani PIN yanu yapama.':'Choose a 4-digit PIN.'):pinMode==='confirm'?(isCW?'Tsimikizani PIN yanu.':'Confirm your PIN.'):(isCW?'Lowetsani PIN yanu.':'Enter your PIN to continue.');
   const hint=g('pin-hint');
   if(hint) hint.style.display=pinMode==='check'?'flex':'none';
   // Show fingerprint key in keypad when biometrics available
@@ -1459,7 +1497,7 @@ function pinK(k) {
           const hid = hhId || _pendingHid;
           if(!hhId && hid){ hhId=hid; _pendingHid=null; connectHH(hid); }
           else { g('app').classList.remove('hide'); }
-        } else { pinEntry=''; updDots(); toast('Wrong PIN','e'); }
+        } else { pinEntry=''; updDots(); toast('Wrong PIN.','e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
       } else if(pinMode==='confirm'){
@@ -1468,7 +1506,7 @@ function pinK(k) {
           localStorage.setItem('nb_pin',result.salt+':'+result.hash);
           hidePIN(); g('app').classList.remove('hide'); toast(tx().pinOn); pinMode='check'; go('stg');
         } else {
-          pinEntry=''; pinMode='set'; showPIN(); toast('PINs did not match','e');
+          pinEntry=''; pinMode='set'; showPIN(); toast('PINs did not match.','e');
         }
       }
     },160);
@@ -1504,13 +1542,13 @@ async function pinFgtVerify(){
   const pw=(g('pin-fgt-pw')||{}).value||'';
   const errEl=g('pin-fgt-err');
   if(!pw){ if(errEl){errEl.style.display='block';errEl.textContent='Please enter your password.';} return; }
-  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast('Cannot verify. Please sign in again','e'); return; }
+  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast('Cannot verify. Please sign in again.','e'); return; }
   try{
     const cred=firebase.auth.EmailAuthProvider.credential(curUser.email,pw);
     await curUser.reauthenticateWithCredential(cred);
     localStorage.removeItem('nb_pin');
     closeM('mv-confirm'); hidePIN();
-    toast('Verified! Set a new PIN','s');
+    toast('Verified! Set a new PIN.','s');
     setTimeout(()=>{ pinMode='set'; showPIN(); },400);
   }catch(e){
     if(errEl){
@@ -1537,7 +1575,7 @@ function _fromB64url(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length
 
 async function registerBio(){
   const avail = await _bioAvailable();
-  if(!avail){ toast('No biometric sensor found on this device','e'); return; }
+  if(!avail){ toast('No biometric sensor found on this device.','e'); return; }
   const isSecure = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
   if(!isSecure){ toast('Biometrics needs HTTPS. Host the app on a secure URL to enable fingerprint unlock.','e'); return; }
   try{
@@ -1553,14 +1591,23 @@ async function registerBio(){
       }
     });
     localStorage.setItem('nb_bio_credId', _b64url(cred.rawId));
+    // WebAuthn platform credentials are bound to the exact origin (scheme +
+    // host + port) they were created on. If the app is later opened from a
+    // different origin -- a new preview/staging URL, http vs https, a domain
+    // change -- the browser will never find this credential again, and every
+    // future check will fail with no useful error. Remember the origin here
+    // so checkBio() can catch that case explicitly instead of leaving the
+    // toggle stuck on "ON" while it silently never works.
+    localStorage.setItem('nb_bio_origin', location.origin);
+    localStorage.removeItem('nb_bio_fail_count');
     localStorage.removeItem('nb_bio_enabled');
     localStorage.removeItem('nb_bio_token');
     localStorage.removeItem('nb_bio_sig');
     toast('Fingerprint registered ✓','s');
     go('stg');
   }catch(e){
-    if(e.name==='NotAllowedError') toast('Registration cancelled','e');
-    else toast('Setup failed: '+(e.message||e.name),'e');
+    if(e.name==='NotAllowedError') toast('Registration cancelled.','e');
+    else toast('Setup failed: '+(e.message||e.name)+'.','e');
   }
 }
 
@@ -1571,6 +1618,11 @@ async function checkBio(){
     if(!await _bioAvailable()){ localStorage.removeItem('nb_bio_credId'); return false; }
     const isSecure = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
     if(!isSecure) return false;
+    const regOrigin = localStorage.getItem('nb_bio_origin');
+    if(regOrigin && regOrigin !== location.origin){
+      _clearStaleBio();
+      return false;
+    }
     await navigator.credentials.get({
       publicKey:{
         challenge: crypto.getRandomValues(new Uint8Array(32)),
@@ -1579,6 +1631,7 @@ async function checkBio(){
         userVerification:'required', timeout:30000
       }
     });
+    localStorage.removeItem('nb_bio_fail_count');
     return true;
   }catch(e){
     if(e.name!=='NotAllowedError'){
@@ -1588,18 +1641,40 @@ async function checkBio(){
     return false;
   }
 }
+// Removes a fingerprint credential that can no longer possibly work (origin
+// changed since registration) and tells the user plainly why, instead of
+// leaving Settings showing "ON" for something that silently never succeeds.
+function _clearStaleBio(){
+  ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig','nb_bio_origin','nb_bio_fail_count'].forEach(k=>localStorage.removeItem(k));
+  toast(lang==='cw'
+    ? 'Chikhalidwe cha chala chinasintha (app inasamukira ku adilesi ina). Ikanso mu Settings > Security.'
+    : "Your fingerprint setup no longer matches this app's address and was reset. Set it up again in Settings > Security.", 'e');
+}
+// Auto (non-tap) biometric checks stay silent on a single miss so a routine
+// app-resume doesn't nag the user. But if it keeps failing, Settings still
+// says "ON" while it never actually works. After repeated silent misses,
+// say so once with an actionable next step instead of staying quiet forever.
+function _bioAutoFailed(){
+  const n = (parseInt(localStorage.getItem('nb_bio_fail_count')||'0',10))+1;
+  localStorage.setItem('nb_bio_fail_count', String(n));
+  if(n===2){
+    toast(lang==='cw'
+      ? 'Chala sichikugwira pa gadgetli. Gwiritsani PIN, kapena ikanso mu Settings.'
+      : "Fingerprint isn't responding on this device. Use your PIN, or set it up again in Settings.", 'e');
+  }
+}
 
 async function tryBioUnlock(){
   if(!curUser){ toast('Please wait, loading...','e'); return; }
   const hid = hhId || _pendingHid;
-  if(!hid){ toast('Session not ready. Enter PIN','e'); return; }
+  if(!hid){ toast('Session not ready. Enter PIN.','e'); return; }
   toast('Waiting for fingerprint...','i');
   const ok = await checkBio();
   if(ok){
     hidePIN();
     if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); }
     toast('Welcome back!','s');
-  } else { toast('Biometric failed. Use your PIN','e'); }
+  } else { toast('Biometric failed. Use your PIN.','e'); }
 }
 
 async function triggerBio(){
@@ -1612,6 +1687,8 @@ async function triggerBio(){
     // If we already have a connected household (resume-lock re-check), just reveal the app —
     // bootApp() is a no-op on re-entry and won't do this for us.
     if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); } else { g('app').classList.remove('hide'); }
+  } else {
+    _bioAutoFailed();
   }
 }
 
@@ -1640,8 +1717,8 @@ document.addEventListener('visibilitychange', function(){
 
 function removeBio(){
   requestSecurityVerification(function(){
-    ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig'].forEach(k=>localStorage.removeItem(k));
-    toast('Biometrics removed','i');
+    ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig','nb_bio_origin','nb_bio_fail_count'].forEach(k=>localStorage.removeItem(k));
+    toast('Biometrics removed.','i');
     go('stg');
   });
 }
@@ -1746,7 +1823,7 @@ async function _secPwVerifySubmit(){
 
 // -- Delete Account --
 function openDeleteAccount(){
-  if(!curUser){toast('Not signed in','e');return;}
+  if(!curUser){toast('Not signed in.','e');return;}
   const isCWdel = lang === 'cw';
   const firstName = curUser.displayName ? curUser.displayName.split(' ')[0] : (isCWdel ? 'akaunti yanu' : 'your account');
   // Step 1 — warning modal
@@ -1770,7 +1847,7 @@ function openDeleteAccount(){
 }
 
 function _confirmDeleteAccount(){
-  if(!curUser){toast('Not signed in','e');return;}
+  if(!curUser){toast('Not signed in.','e');return;}
   if(unsub){unsub();unsub=null;}
   if(unsubHH){unsubHH();unsubHH=null;}
   const uid = curUser.uid;
@@ -2038,7 +2115,7 @@ function showVerifyScreen(email){
   const resendLbl = g('verify-resend-lbl');
   const backLbl = g('verify-back-lbl');
   if(titleEl) titleEl.textContent = isCW ? 'Onani Imeli Yanu' : 'Check Your Email';
-  if(subEl) subEl.textContent = isCW ? 'Tatumiza ulalo wotsimikizira imeli yanu' : 'We sent a verification link to your email';
+  if(subEl) subEl.textContent = isCW ? 'Tatumiza ulalo wotsimikizira imeli yanu.' : 'We sent a verification link to your email.';
   if(bodyEl) bodyEl.textContent = isCW ? 'Dinani ulalo mu imeli imeneyo kuti mutsimikizire akaunti yanu. Onani spam folder ngati simuwona.' : 'Click the link in that email to verify your account. Check your spam folder if you do not see it.';
   if(contLbl) contLbl.textContent = isCW ? 'Ndinawonetsa. Pitirizani' : 'I Have Verified. Continue';
   if(resendLbl) resendLbl.textContent = isCW ? 'Tumizaninso Imeli' : 'Resend Verification Email';
@@ -2120,7 +2197,7 @@ function backToLogin(){
   aTab('login');
 }
 function doGoogle(){
-  if(!auth){toast('Not ready','e');return;}
+  if(!auth){toast('Not ready.','e');return;}
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
     .catch(e=>{ if(e.code!=='auth/popup-closed-by-user')showAErr(fmtAErr(e.code)); });
 }
@@ -2197,6 +2274,7 @@ function welcomeContinue(){
   if(hasPIN()){
     // Keep _pendingHid set — triggerBio() (fired by showPIN below) needs it.
     // It gets cleared once the PIN/biometric flow actually consumes it.
+    _pinBackTarget='welcome';
     g('app').classList.add('hide'); show('scr-pin'); showPIN();
   } else {
     _pendingHid = null;
@@ -2361,7 +2439,7 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
 
 function restoreAccount(){
   const user = auth.currentUser;
-  if(!user){ toast('Not signed in','e'); return; }
+  if(!user){ toast('Not signed in.','e'); return; }
   const updates = [ db.collection('users').doc(user.uid).update({pendingDeletion:false, deletedAt:null, restoreBefore:null}) ];
   if(_pendingRestoreHid){
     updates.push(db.collection('households').doc(_pendingRestoreHid).update({deletedAt:null, deletedBy:null, restoreBefore:null}));
@@ -2781,24 +2859,24 @@ function connectHH(code){
         // Index not ready or field missing, try without ordering
         if(unsub) unsub();
         unsub=tryConnect(null);
-      } else { toast('Connection lost: '+(err&&err.code||'unknown'),'e'); setDot('off'); }
+      } else { toast('Connection lost: '+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
     });
   };
   unsub=tryConnect('createdAt');
   applyLang();
 }
 
-function saveCfg(cfg){ if(!cfg.goals)cfg.goals=[]; lCfg=cfg; if(hhId){setDot('spin');db.collection('households').doc(hhId).update({config:cfg}).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error'),'e');setDot('off');});} }
+function saveCfg(cfg){ if(!cfg.goals)cfg.goals=[]; lCfg=cfg; if(hhId){setDot('spin');db.collection('households').doc(hhId).update({config:cfg}).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error')+'.','e');setDot('off');});} }
 function addPx(p){
-  if(!hhId){toast('Not connected','e');return;}
+  if(!hhId){toast('Not connected.','e');return;}
   const amt=Number(p.amount);
   if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Please enter a valid amount','e');return;}
   const itemName=String(p.item||'').trim();
   if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return;}
-  setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules':'Sync error: '+(e&&e.code||'unknown'); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
+  setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules.':'Sync error: '+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
 }
-function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error'),'e');setDot('off');}); }
-function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error'),'e');setDot('off');throw e;}); }
+function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error')+'.','e');setDot('off');}); }
+function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }
 
 
 function appConfirm(msg, onOk, okLabel, danger){
@@ -2828,7 +2906,7 @@ function logout(){
   authReg=false;
   auth.signOut().catch(()=>{});
   chatHistory=[]; 
-  toast('See you soon! 👋','i');
+  toast('See you soon! 👋.','i');
   }, 'Sign Out', true);
 }
 
@@ -3218,7 +3296,7 @@ function handleQRResult(raw){
 }
 
 function openQRCode(){
-  if(!hhId){ toast('No household code','e'); return; }
+  if(!hhId){ toast('No household code.','e'); return; }
   const isCW=lang==='cw';
   const joinUrl=APP_BASE_URL+'?join='+encodeURIComponent(hhId);
   let h='<div class="dh"></div>';
@@ -3264,22 +3342,28 @@ function openQRCode(){
       // qrcode.js not loaded — show code as fallback
       el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
         +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.2rem;letter-spacing:2px;color:#4A148C">'+esc(hhId)+'</div>'
-        +'<div>Copy the code above to share</div></div>';
+        +'<div>Copy the code above to share.</div></div>';
     }
   }, 100);
 }
 function rLog(){
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
-  h+='<button class="magic-btn" onclick="openMagicLog()"><i data-lucide="wand-2" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(lang==='cw'?'Koperani SMS (Airtel/Mpamba) kapena Lembani':'Magic Log (Paste SMS or Type)')+'</button>';
+  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — koperani SMS kapena lembani.':'AI-powered — paste SMS or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" onclick="setU(\''+u.id+'\')">'+'<div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+name+'</div>';}).join('');
     if(picks)h+='<div class="fsec"><label class="fl">&#9889; '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
     h+='<div class="fsec"><label class="fl">'+t.selItem+'</label>'
-      +'<input type="text" class="fi" id="log-srch" placeholder="Search items..." oninput="filterLogItems(this.value)" value="'+esc(logSrch)+'" style="margin-bottom:8px;font-size:.84rem">'
-      +'<div class="igrid" id="log-igrid">'+lCfg.items.map((it,i)=>'<div class="ic'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'" data-name="'+esc(it.name.toLowerCase())+'"><div class="ic-ico">'+ico(it.name)+'</div><div class="ic-nm">'+esc(it.name)+'</div></div>').join('')+'<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" data-name="custom" style="border-style:dashed"><div class="ic-ico">&#9998;</div><div class="ic-nm">'+(lang==='cw'?'Chinthu China':'Custom')+'</div></div>'+'</div></div>';
+      +'<input type="text" class="fi" id="log-srch" placeholder="'+t.searchPurchases+'" oninput="filterLogItems(this.value)" value="'+esc(logSrch)+'" style="margin-bottom:8px;font-size:.84rem">'
+      +'<div id="log-search-results"></div>';
+    if(selItem!==null&&selItem!=='custom'){
+      const si=lCfg.items[selItem];
+      if(si)h+='<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:12px;padding:8px 12px;margin-bottom:8px"><div style="font-size:1.05rem">'+ico(si.name)+'</div><div style="flex:1;font-weight:700;font-size:.82rem;color:var(--ink)">'+esc(si.name)+'</div><button onclick="pickI(null)" style="border:none;background:none;color:var(--mid);cursor:pointer;padding:2px" aria-label="Clear selection"><i data-lucide="x" style="width:15px;height:15px"></i></button></div>';
+    }
+    h+='<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" style="border-style:dashed;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 10px"><div class="ic-ico">&#9998;</div><div class="ic-nm">'+(lang==='cw'?'Chinthu Chinanso':'Custom item')+'</div></div>'
+      +'</div>';
     if(selItem==='custom'){
       h+='<div class="fsec" style="background:var(--mist);border-radius:12px;padding:12px;margin-bottom:4px">'
         +'<label class="fl" style="margin-bottom:6px">&#9998; '+(lang==='cw'?'Dzina la Chinthu':'Item Name')+'</label>'
@@ -3314,11 +3398,13 @@ function setU(id){ localStorage.setItem('nb_uid',id); updatePill(); rLog(); }
 function pickI(i){ selItem=i; rLog(); }
 function filterLogItems(q){
   logSrch=q;
-  const grid=document.getElementById('log-igrid'); if(!grid)return;
+  const box=document.getElementById('log-search-results'); if(!box)return;
   const term=q.toLowerCase().trim();
-  grid.querySelectorAll('.ic').forEach(el=>{
-    el.style.display=(!term||el.dataset.name.includes(term))?'':'none';
-  });
+  if(!term){box.innerHTML='';return;}
+  const matches=lCfg.items.map((it,i)=>({it,i})).filter(o=>o.it.name.toLowerCase().includes(term)).slice(0,8);
+  if(!matches.length){box.innerHTML='<div style="padding:10px 4px;font-size:.74rem;color:var(--mid);text-align:center">'+(lang==='cw'?'Palibe chotsatana.':'No matches.')+'</div>';return;}
+  box.innerHTML='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">'+matches.map(o=>'<div class="ic'+(selItem===o.i?' on':'')+'" style="flex-direction:row;justify-content:flex-start;text-align:left;padding:8px 10px" onclick="pickID(this)" data-i="'+o.i+'"><div class="ic-ico">'+ico(o.it.name)+'</div><div class="ic-nm">'+esc(o.it.name)+'</div></div>').join('')+'</div>';
+  if(window.lucide) lucide.createIcons({nodes:[box]});
 }
 function saveP(){
   const t=tx(), a=parseFloat(val('fa'));
@@ -3341,7 +3427,7 @@ function saveP(){
       addPx({item:cName,date:dStr,timestamp:ts,amount:a,qty:val('fq')||'',unit:val('fu')||'',notes:val('fn')||'',userId:actU().id,type:'expense',cat:customCat,recurring:(g('frc')||{}).checked||false});
       selItem=null; customCat='Other'; toast(t.saved); rLog(); return;
     }
-    if(!lCfg.items[selItem]){toast('Item no longer exists. Please re-select','e');selItem=null;rLog();return;}
+    if(!lCfg.items[selItem]){toast('Item no longer exists. Please re-select.','e');selItem=null;rLog();return;}
     addPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
   } else {
     addPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});
@@ -3484,7 +3570,7 @@ function doDel(id){
     function(){
       db.collection('households').doc(hhId).collection('purchases').doc(id)
         .update({deletedAt:new Date().toISOString(),deleted:true})
-        .then(function(){ toast('Moved to trash','i'); })
+        .then(function(){ toast('Moved to trash.','i'); })
         .catch(function(){ delPx(id); toast(tx().deleted); });
     }, null, true
   );
@@ -3522,7 +3608,7 @@ function restoreTrash(id){
   db.collection('households').doc(hhId).collection('purchases').doc(id)
     .update({deletedAt:null,deleted:false})
     .then(function(){ closeM('mv-u'); toast('Restored!','s'); })
-    .catch(function(e){ toast('Error: '+e.message,'e'); });
+    .catch(function(e){ toast('Error: '+e.message+'.','e'); });
 }
 function permaDeleteD(el){ permaDelete(el.dataset.pid); }
 function permaDelete(id){
@@ -3534,7 +3620,7 @@ function permaDelete(id){
       : 'Permanently delete <b>'+label+'</b>? This cannot be undone.'),
     function(){
       delPx(id).then(function(){
-        toast(lang==='cw'?'Yachotsedwa nthawi zonse':'Permanently deleted','s');
+        toast(lang==='cw'?'Yachotsedwa nthawi zonse.':'Permanently deleted.','s');
         openTrash(); // re-render the trash list with this item gone
       }).catch(function(){
         // delPx already showed its own "Delete failed" toast -- just refresh
@@ -3563,7 +3649,7 @@ function openEP(id){
 function epU(el,uid){ g('ep-uid').value=uid; el.closest('.usel').querySelectorAll('.usb').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
 function saveEP(isI){
   const id=val('ep-id'), a=parseFloat(val('ep-amt'));
-  if(!a||a<=0){toast('Amount required','e');return;}
+  if(!a||a<=0){toast('Amount required.','e');return;}
   const dStr=val('ep-date'), tStr=val('ep-time')||'12:00', ts=new Date(dStr+'T'+tStr).getTime();
   const data={date:dStr,timestamp:ts,amount:a,notes:val('ep-notes'),userId:val('ep-uid')};
   if(!isI){data.item=val('ep-item');data.qty=val('ep-qty');data.unit=val('ep-unit');}
@@ -3825,7 +3911,7 @@ function openAddBill(){
 
 function saveBill(){
   var nm=val('bl-nm').trim(), amt=parseFloat(val('bl-amt')), due=val('bl-due'), ic=val('bl-ic');
-  if(!nm||!amt||!due){toast('Fill all fields','e');return;}
+  if(!nm||!amt||!due){toast('Fill all fields.','e');return;}
   var cfg=JSON.parse(JSON.stringify(lCfg));
   if(!cfg.bills)cfg.bills=[];
   cfg.bills.push({name:nm,amount:amt,dueDate:due,icon:ic});
@@ -3843,7 +3929,7 @@ function delBill(i){
     +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">Remove <strong style="color:var(--ink)">'+esc(label)+'</strong> from your bill tracker?</div></div>',
     function(){
       var cfg=JSON.parse(JSON.stringify(lCfg));
-      cfg.bills.splice(i,1); saveCfg(cfg); toast('Bill removed','i'); rMgr();
+      cfg.bills.splice(i,1); saveCfg(cfg); toast('Bill removed.','i'); rMgr();
     }, null, true
   );
 }
@@ -3853,12 +3939,12 @@ function updOB(v){ const n=parseFloat(v); if(!n||isNaN(n)||n<=0||n>99999999){toa
 function updSalaryDay(v){
   if(v===''||v===null||v===undefined||v==='0'){
     saveCfg({...lCfg,salaryDay:0});
-    toast('Reset to calendar month','s'); render(); return;
+    toast('Reset to calendar month.','s'); render(); return;
   }
   const n=parseInt(v,10);
-  if(isNaN(n)||n<1||n>28){ toast('Enter a day between 1 and 28','e'); return; }
+  if(isNaN(n)||n<1||n>28){ toast('Enter a day between 1 and 28.','e'); return; }
   saveCfg({...lCfg,salaryDay:n});
-  toast('Salary period set: '+budgetPeriodLabel(),'s'); render();
+  toast('Salary period set: '+budgetPeriodLabel()+'.','s'); render();
 }
 function addIt(){ const t=tx(),n=val('ni-n').trim(),b=parseFloat(val('ni-b')),cat=val('ni-cat')||'Other'; if(!n){toast(lang==='cw'?'Lowetsani dzina':'Enter a name','e');return;} if(!b||isNaN(b)||b<=0||b>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} if(lCfg.items.find(it=>it.name.toLowerCase()===n.toLowerCase())){toast(lang==='cw'?'Chinthu chimenechi chilipo kale':'Item already exists','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.push({name:n,budget:b,cat:cat}); saveCfg(cfg); toast(t.itemAdded); rMgr(); }
 function delIt(i){ appConfirm(tx().confirmDelItem+' "'+esc(lCfg.items[i].name)+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); rMgr(); }, null, true) }
@@ -3869,7 +3955,7 @@ function openAddM(){
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e');
 }
 function pickC(el,pid,hid){ g(hid).value=el.style.background; document.querySelectorAll('#'+pid+' .cp').forEach(cp=>cp.classList.remove('on')); el.classList.add('on'); }
-function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast('Enter a name','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#7B1FA2'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); rMgr(); }
+function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast('Enter a name.','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#7B1FA2'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); rMgr(); }
 function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(u.color===c?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+u.color+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save</button></div>'; g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); rMgr(); }
@@ -4060,7 +4146,7 @@ function rStg(){
   // -- Data --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Deta':'Data')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="table-2" style="color:var(--g1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tsitsani deta yanu':'Download your data as CSV')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="table-2" style="color:var(--g1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Sankhani nthawi kenako tsitsani':'Choose a period, then download')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:#FCE4EC"><i data-lucide="file-text" style="color:#C2185B"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Export PDF <i data-lucide="gem" style="color:var(--p1);font-size:.7rem"></i></div><div class="stg-row-sub">'+(lang==='cw'?'Tulutsani Lipoti':'Printable report -- Premium')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:#FFEBEE"><i data-lucide="trash-2" style="color:var(--r1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--r1)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Data isungidwa kwa masiku 30':'Data kept for 30 days -- restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--r1)">›</span></div></div>';
   h+='</div>';
@@ -4133,7 +4219,7 @@ function stgOpenSection(sec){
     try{ history.pushState({tab:'stg',section:sec},'',(location.pathname||'/')); }catch(e){}
     const t=tx();
     let h='<div class="page">';
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="go(&quot;stg&quot;)" style="background:var(--mist);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):(lang==='cw'?'Zolinga zosungira':'Savings Goals'))+'</h2></div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):(lang==='cw'?'Zolinga zosungira':'Savings Goals'))+'</h2></div>';
     if(sec==='members'){
       h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
       // Pending join requests — visible to owner
@@ -4217,27 +4303,45 @@ function addItAndStay(){
   const cfg=JSON.parse(JSON.stringify(lCfg));cfg.items.push({name:n,budget:b});saveCfg(cfg);toast(t.itemAdded);stgOpenSection('items');
 }
 function tgDark(on){ document.body.classList.toggle('dark',on); localStorage.setItem('nb_dark',on?'1':'0'); toast(on?'Dark mode on':'Dark mode off','i'); }
-function doPwReset(){ if(!curUser||!curUser.email){toast('No email on account','e');return;} auth.sendPasswordResetEmail(curUser.email).then(()=>toast('Reset link sent to '+curUser.email,'s')).catch(e=>toast(e.message,'e')); }
-function doExport(){
+function doPwReset(){ if(!curUser||!curUser.email){toast('No email on account.','e');return;} auth.sendPasswordResetEmail(curUser.email).then(()=>toast('Reset link sent to '+curUser.email,'s')).catch(e=>toast(e.message,'e')); }
+function buildAndDownloadCSV(fromD, toD, periodLabel){
   const t=tx();
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
   const hhName=lCfg.users.map(u=>u.name).join(' & ');
-  const income=lPx.filter(p=>p.type==='income'&&!p.deleted);
-  const expenses=lPx.filter(p=>p.type!=='income'&&!p.deleted);
+
+  // Normalize to start/end of day for inclusive comparison, matching the PDF export logic
+  const fromTime = new Date(fromD.getFullYear(), fromD.getMonth(), fromD.getDate()).getTime();
+  const toTime   = new Date(toD.getFullYear(), toD.getMonth(), toD.getDate(), 23, 59, 59).getTime();
+  const inRange = p => {
+    if(!p.date || p.deleted) return false;
+    const parts = String(p.date).split('-');
+    if(parts.length !== 3) return false;
+    const pd = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10)).getTime();
+    return pd >= fromTime && pd <= toTime;
+  };
+
+  const income=lPx.filter(p=>p.type==='income'&&inRange(p));
+  const expenses=lPx.filter(p=>p.type!=='income'&&inRange(p));
+
+  if(!income.length && !expenses.length){
+    toast(lang==='cw'?'Palibe zolemba mu nthawi imeneyi.':'No transactions found in that period.','e');
+    return;
+  }
+
   const totalInc=income.reduce((s,p)=>s+Number(p.amount||0),0);
   const totalExp=expenses.reduce((s,p)=>s+Number(p.amount||0),0);
   const net=totalInc-totalExp;
 
   const q=v=>'"'+String(v===undefined||v===null?'':v).replace(/"/g,'""')+'"';
   const row=(...cells)=>cells.map(q).join(',')+String.fromCharCode(13,10);
-  const sep=(label='')=>row(label==='---'?'---':label,'','','','','','','');
   const blank=()=>String.fromCharCode(13,10);
 
   let csv='';
   // Header block
   csv+=row('BAJETI YANGA: HOUSEHOLD BUDGET EXPORT','','','','','','','');
   csv+=row('Household:',hhName,'','','','','','');
+  csv+=row('Period:',periodLabel,'','','','','','');
   csv+=row('Exported:',dateStr,'','','','','','');
   csv+=row('Household Code:',hhId||'N/A','','','','','','');
   csv+=blank();
@@ -4272,8 +4376,8 @@ function doExport(){
     csv+=blank();
   }
 
-  // Budget performance section
-  csv+=row('BUDGET PERFORMANCE','Item','Budget (MK)','Spent (MK)','Remaining (MK)','Status','','');
+  // Budget performance section (reflects current configured budgets, not the export range)
+  csv+=row('BUDGET PERFORMANCE (current)','Item','Budget (MK)','Spent (MK)','Remaining (MK)','Status','','');
   lCfg.items.forEach(it=>{
     const sp=iSpent(it.name);
     const rem=it.budget-sp;
@@ -4291,19 +4395,23 @@ function doExport(){
   const filename='BajetiYanga_'+hhName.replace(/[^a-zA-Z0-9]/g,'_')+'_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+'.csv';
   a.href=url; a.download=filename; a.click();
   setTimeout(()=>URL.revokeObjectURL(url),2000);
-  toast('CSV downloaded: '+(income.length+expenses.length)+' entries','s');
+  toast('CSV downloaded: '+(income.length+expenses.length)+' entries.','s');
 }
 
 function doExportPDF(){
   premiumGate('export_pdf', function(){
-    openPdfRangePicker();
+    openExportRangePicker('pdf');
   });
 }
+function doExport(){
+  openExportRangePicker('csv');
+}
 
-// Opens a modal asking the user which period to export.
+// Opens a modal asking the user which period to export, for either CSV or PDF.
 // "Pick a Past Month" is capped to the last 12 calendar months.
-function openPdfRangePicker(){
+function openExportRangePicker(format){
   const isCW = lang === 'cw';
+  const isPdf = format === 'pdf';
   const now = new Date();
   let monthOptions = '';
   for(let i=0;i<12;i++){
@@ -4318,23 +4426,24 @@ function openPdfRangePicker(){
   let h = '<div class="dh"></div><h3 style="font-family:Hanken Grotesk,sans-serif;margin-bottom:14px">'+(isCW?'Sankhani Nthawi':'Choose Report Period')+'</h3>';
 
   h += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
-  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genPdfForRange(\'week\')"><div class="stg-row-ico" style="background:#E3F2FD"><i data-lucide="calendar-days" style="color:#1565C0"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Sabata Lino':'This Week')+'</div><div class="stg-row-sub">'+(isCW?'Masiku 7 apitawa':'Last 7 days')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
-  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genPdfForRange(\'month\')"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="calendar-check" style="color:var(--g1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Mwezi Uno':'This Month')+'</div><div class="stg-row-sub">'+budgetPeriodLabel()+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
+  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genExportForRange(\'all\',\''+format+'\')"><div class="stg-row-ico" style="background:var(--mist)"><i data-lucide="infinity" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Nthawi Zonse':'All Time')+'</div><div class="stg-row-sub">'+(isCW?'Zolemba zonse':'Everything on record')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
+  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genExportForRange(\'week\',\''+format+'\')"><div class="stg-row-ico" style="background:#E3F2FD"><i data-lucide="calendar-days" style="color:#1565C0"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Sabata Lino':'This Week')+'</div><div class="stg-row-sub">'+(isCW?'Masiku 7 apitawa':'Last 7 days')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
+  h += '<button class="stg-row" style="border:1.5px solid var(--border);border-radius:12px;background:var(--white)" onclick="genExportForRange(\'month\',\''+format+'\')"><div class="stg-row-ico" style="background:#E8F5E9"><i data-lucide="calendar-check" style="color:var(--g1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(isCW?'Mwezi Uno':'This Month')+'</div><div class="stg-row-sub">'+budgetPeriodLabel()+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></button>';
   h += '</div>';
 
   h += '<div style="border-top:1.5px solid var(--border);padding-top:12px;margin-bottom:12px">';
   h += '<label style="font-size:.72rem;font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Mwezi wapita (miyezi 12)':'Pick a Past Month (last 12 months)')+'</label>';
-  h += '<div style="display:flex;gap:8px"><select id="pdf-month-sel" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:.8rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">'+monthOptions+'</select>';
-  h += '<button class="btnM" style="width:auto;padding:9px 16px;font-size:.78rem" onclick="genPdfForMonth(g(\'pdf-month-sel\').value)">'+(isCW?'Tulutsani':'Export')+'</button></div>';
+  h += '<div style="display:flex;gap:8px"><select id="exp-month-sel" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:.8rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">'+monthOptions+'</select>';
+  h += '<button class="btnM" style="width:auto;padding:9px 16px;font-size:.78rem" onclick="genExportForMonth(g(\'exp-month-sel\').value,\''+format+'\')">'+(isCW?'Tulutsani':'Export')+'</button></div>';
   h += '</div>';
 
   h += '<div style="border-top:1.5px solid var(--border);padding-top:12px">';
   h += '<label style="font-size:.72rem;font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Nthawi Yanu':'Custom Range')+'</label>';
   h += '<div style="display:flex;gap:8px;margin-bottom:8px">';
-  h += '<input type="date" id="pdf-from" value="'+monthAgoStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
-  h += '<input type="date" id="pdf-to" value="'+todayStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
+  h += '<input type="date" id="exp-from" value="'+monthAgoStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
+  h += '<input type="date" id="exp-to" value="'+todayStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
   h += '</div>';
-  h += '<button class="btnM" style="width:100%" onclick="genPdfCustomRange()">'+(isCW?'Tulutsani Lipoti':'Generate Report')+'</button>';
+  h += '<button class="btnM" style="width:100%" onclick="genExportCustomRange(\''+format+'\')">'+(isCW?(isPdf?'Tulutsani Lipoti':'Tulutsani'):(isPdf?'Generate Report':'Generate CSV'))+'</button>';
   h += '</div>';
 
   g('mb-u').innerHTML = h;
@@ -4342,10 +4451,14 @@ function openPdfRangePicker(){
   openM('mv-u');
 }
 
-function genPdfForRange(kind){
+function genExportForRange(kind, format){
   const now = new Date();
   let fromD, toD, label;
-  if(kind === 'week'){
+  if(kind === 'all'){
+    fromD = new Date(2000,0,1);
+    toD = now;
+    label = (lang==='cw'?'Nthawi Zonse':'All Time');
+  } else if(kind === 'week'){
     fromD = new Date(now.getFullYear(), now.getMonth(), now.getDate()-6);
     toD = now;
     label = (lang==='cw'?'Sabata Lino':'This Week');
@@ -4356,10 +4469,11 @@ function genPdfForRange(kind){
     label = budgetPeriodLabel();
   }
   closeM('mv-u');
-  buildAndDownloadPdf(fromD, toD, label);
+  if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
+  else buildAndDownloadPdf(fromD, toD, label);
 }
 
-function genPdfForMonth(monthVal){
+function genExportForMonth(monthVal, format){
   if(!monthVal) return;
   const parts = monthVal.split('-');
   const y = parseInt(parts[0],10), m = parseInt(parts[1],10)-1;
@@ -4367,18 +4481,20 @@ function genPdfForMonth(monthVal){
   const toD = new Date(y, m+1, 0);
   const label = tx().months[m]+' '+y;
   closeM('mv-u');
-  buildAndDownloadPdf(fromD, toD, label);
+  if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
+  else buildAndDownloadPdf(fromD, toD, label);
 }
 
-function genPdfCustomRange(){
-  const fromVal = g('pdf-from').value, toVal = g('pdf-to').value;
-  if(!fromVal || !toVal){ toast(lang==='cw'?'Sankhani masiku onse awiri':'Please pick both dates','e'); return; }
+function genExportCustomRange(format){
+  const fromVal = g('exp-from').value, toVal = g('exp-to').value;
+  if(!fromVal || !toVal){ toast(lang==='cw'?'Sankhani masiku onse awiri.':'Please pick both dates.','e'); return; }
   const fromD = new Date(fromVal+'T00:00:00');
   const toD = new Date(toVal+'T00:00:00');
-  if(fromD > toD){ toast(lang==='cw'?'Tsiku loyamba liyenera kukhala lisanafike lomaliza':'Start date must be before end date','e'); return; }
+  if(fromD > toD){ toast(lang==='cw'?'Tsiku loyamba liyenera kukhala lisanafike lomaliza.':'Start date must be before end date.','e'); return; }
   const label = fmtDate(fromVal)+' – '+fmtDate(toVal);
   closeM('mv-u');
-  buildAndDownloadPdf(fromD, toD, label);
+  if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
+  else buildAndDownloadPdf(fromD, toD, label);
 }
 
 function buildAndDownloadPdf(fromD, toD, periodLabel){
@@ -4485,8 +4601,13 @@ function openSwitch(){
   openM('mv-u');
 }
 function swU(id){ localStorage.setItem('nb_uid',id); updatePill(); closeM('mv-u'); render(); }
-function openM(id){ g(id).classList.add('open'); }
-function closeM(id){ g(id).classList.remove('open'); }
+// Track open modals in the order they were opened (mv-confirm can stack on
+// top of another already-open modal, e.g. a delete-confirm over Trash) so
+// the device back button can close exactly the topmost one -- see the
+// popstate handler below.
+let _openModalStack = [];
+function openM(id){ g(id).classList.add('open'); _openModalStack=_openModalStack.filter(x=>x!==id); _openModalStack.push(id); }
+function closeM(id){ g(id).classList.remove('open'); _openModalStack=_openModalStack.filter(x=>x!==id); }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{
   if(e.target===o){
     if(window._qrScanInterval){ stopQRScanner(); }
@@ -4600,7 +4721,7 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
     window._deferredInstall=null;
     var btn=document.getElementById('install-fab');
     if(btn){btn.style.display='none';}
-    if(typeof toast==='function')toast('App installed! &#127881;','s');
+    if(typeof toast==='function')toast('App installed! &#127881;.','s');
   });
 })();
 
@@ -4728,7 +4849,7 @@ function approveJoin(uid){
       toast(lang==='cw'?'Membala wovomerezedwa!':'Member approved!','s');
       stgOpenSection('members');
     })
-    .catch(e=>toast('Approval failed: '+(e&&e.code||'error'),'e'));
+    .catch(e=>toast('Approval failed: '+(e&&e.code||'error')+'.','e'));
 }
 
 function declineJoin(uid){
@@ -4737,8 +4858,8 @@ function declineJoin(uid){
     lang==='cw'?'Mukufuna kukana pempho ili?':'Decline this join request?',
     function(){
       db.collection('households').doc(hhId).collection('joinRequests').doc(uid).delete()
-        .then(()=>{ toast(lang==='cw'?'Pempho lakanidwa':'Request declined','i'); stgOpenSection('members'); })
-        .catch(e=>toast('Error: '+(e&&e.code||'error'),'e'));
+        .then(()=>{ toast(lang==='cw'?'Pempho lakanidwa.':'Request declined.','i'); stgOpenSection('members'); })
+        .catch(e=>toast('Error: '+(e&&e.code||'error')+'.','e'));
     }, null, true
   );
 }
@@ -5034,7 +5155,7 @@ function copyPreviousMonth(){
     let prevPx=lPx.filter(p=>p.date&&p.date.startsWith(prevStr)&&p.type!=='income');
     if(!prevPx.length){toast(lang==='cw'?'Palibe zogula za mwezi wapita':'No expenses found from last month','e');return;}
     if(prevPx.length>200){
-      toast(lang==='cw'?'Kukopera 200 mwa '+prevPx.length+' (malire a chitetezo)':'Copying 200 of '+prevPx.length+' entries (limit for safety)','i');
+      toast(lang==='cw'?'Kukopera 200 mwa '+prevPx.length+' (malire a chitetezo).':'Copying 200 of '+prevPx.length+' entries (limit for safety).','i');
       prevPx=prevPx.slice(0,200);
     }
     
@@ -5046,7 +5167,7 @@ function copyPreviousMonth(){
         qty:p.qty||'',unit:p.unit||'',notes:p.notes||'',userId:p.userId,
         type:'expense',recurring:p.recurring||false});
     });
-    batch.commit().then(function(){ toast(lang==='cw'?prevPx.length+' zolemba zakopedwa!':prevPx.length+' entries copied!','s'); }).catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message,'e'); });
+    batch.commit().then(function(){ toast(lang==='cw'?prevPx.length+' zolemba zakopedwa!':prevPx.length+' entries copied!','s'); }).catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message+'.','e'); });
   });
 }
 
@@ -5123,14 +5244,23 @@ function scheduleInAppAlerts(){
 // back on them fell straight out of the app. _pushOnboardScreen() gives each one a
 // real entry; the popstate handler below reacts to it before falling through to
 // the normal tab logic.
-function _pushOnboardScreen(name){
-  try{ history.pushState({screen:name},'',(location.pathname||'/')); }catch(e){}
+function _pushOnboardScreen(name, from){
+  try{ history.pushState({screen:name, from:from||null},'',(location.pathname||'/')); }catch(e){}
 }
 (function(){
   function pushState(t){ try{ history.pushState({tab:t},'',(location.pathname||'/')); }catch(e){} }
   var _go = window.go;
   window.go = function(t){ _go(t); pushState(t); };
   window.addEventListener('popstate', function(e){
+    // A modal being open always wins: close the topmost one and stay right
+    // where we are, instead of letting the screen/tab underneath change
+    // while the modal keeps floating on top of it (it never had its own
+    // history entry, so without this the modal would just get left behind).
+    if(_openModalStack.length){
+      closeM(_openModalStack[_openModalStack.length-1]);
+      try{ history.pushState(e.state||{tab:tab},'',(location.pathname||'/')); }catch(err){}
+      return;
+    }
     var st = e.state;
     if(st && st.screen){
       if(st.screen==='waiting-approval'){
@@ -5138,9 +5268,18 @@ function _pushOnboardScreen(name){
         cancelPendingJoin();
         return;
       }
-      // PIN / welcome / verify / setup are all pre-app gates — the safe universal
-      // "back" from any of them is the sign-in screen, same as if nothing was ever
-      // entered, rather than trying to reconstruct exact prior sub-state.
+      if(st.screen==='pin' && st.from==='welcome'){
+        // Reached PIN entry from "Welcome back" (a returning, already-signed-in
+        // user) -- back should return there, not force them through the
+        // sign-in form again as if they were never logged in.
+        hide('scr-pin'); g('app').classList.add('hide');
+        show('scr-welcome');
+        return;
+      }
+      // PIN (any other origin) / welcome / verify / setup are all pre-app
+      // gates — the safe universal "back" from any of them is the sign-in
+      // screen, same as if nothing was ever entered, rather than trying to
+      // reconstruct exact prior sub-state.
       hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
       g('app').classList.add('hide');
       show('scr-auth'); aTab('login');
@@ -5351,10 +5490,10 @@ function sheet_scan(){
     +'<h3><i data-lucide="camera" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(lang==="cw"?"Skani Risiti":"Scan Receipt")+'</h3>'
     +'<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px">'+(lang==="cw"?"Sankhani chithunzi cha risiti kapena ngodya yanu yosindikizidwa.":"Choose a photo of your receipt or printed invoice to extract expenses.")+'</p>'
     +'<div style="display:flex;flex-direction:column;gap:10px">'
-    +'<label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1.5px solid #43A047;border-radius:14px;cursor:pointer;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.85rem;color:#1B5E20">'
-    +'<i data-lucide="camera" style="width:16px;height:16px;vertical-align:middle"></i> '+(lang==="cw"?"Gwiritsani Kamera":"Open Camera")+'<input type="file" accept="image/*" capture="camera" id="scan-cam-modal" style="display:none" onchange="scanReceiptFromChat(this);closeM(\'mv-u\')"></label>'
-    +'<label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--surf);border:1.5px solid var(--brd);border-radius:14px;cursor:pointer;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.85rem;color:var(--ink)">'
-    +'<i data-lucide="image" style="width:16px;height:16px;vertical-align:middle;color:var(--p1)"></i> '+(lang==="cw"?"Sankhani kuchokera ku Gallery":"Choose from Gallery")+'<input type="file" accept="image/*" id="scan-gallery-modal" style="display:none" onchange="scanReceiptFromChat(this);closeM(\'mv-u\')"></label>'
+    +'<label class="magic-tile" style="flex-direction:row;padding:13px">'
+    +'<i data-lucide="camera" style="width:16px;height:16px"></i> '+(lang==="cw"?"Gwiritsani Kamera":"Open Camera")+'<input type="file" accept="image/*" capture="camera" id="scan-cam-modal" style="display:none" onchange="scanReceiptFromChat(this);closeM(\'mv-u\')"></label>'
+    +'<label class="magic-tile" style="flex-direction:row;padding:13px">'
+    +'<i data-lucide="image" style="width:16px;height:16px"></i> '+(lang==="cw"?"Sankhani kuchokera ku Gallery":"Choose from Gallery")+'<input type="file" accept="image/*" id="scan-gallery-modal" style="display:none" onchange="scanReceiptFromChat(this);closeM(\'mv-u\')"></label>'
     +'</div>'
     +'<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(\'mv-u\')">'+(lang==="cw"?"Lekani":"Cancel")+'</button>';
   g('mb-u').innerHTML=h;
@@ -5439,10 +5578,7 @@ function renderBubbles(){
     const isU=m.role==='user';
     // Strip [ACTION]...[/ACTION] from display text
     const displayText=(m.text||'').replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g,'').trim();
-    const safe=displayText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/^[-\u2022 ] (.+)/gm,'<li>$1</li>')
-      .replace(/\n/g,'<br>');
+    const safe=mdLite(displayText);
     const ts=m.ts ? new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
     const label=isU?'You':'Bajeti AI';
     // Delete button
@@ -5541,7 +5677,7 @@ function confirmAiAction(msgIdx){
     const ts=now.getTime();
     const userId=actU().id;
     addPx({item:pa.item,date:dStr,timestamp:ts,amount:Number(pa.amount),notes:'',userId,type:pa.entryType||'expense',recurring:false});
-    toast((lang==='cw'?'Cholembedwa: ':'Logged: ')+pa.item,'s');
+    toast((lang==='cw'?'Cholembedwa: ':'Logged: ')+pa.item+'.','s');
   } else if(pa.type==='delete'){
     updPx(pa.id,{deleted:true,deletedAt:Date.now()}); // soft-delete to trash
     toast(lang==='cw'?'Chotsedwa':'Deleted','s');
@@ -5551,7 +5687,7 @@ function confirmAiAction(msgIdx){
     (pa.items||[]).forEach(function(it){
       addPx({item:String(it.item||'').trim(),date:today(),timestamp:ts++,amount:Number(it.amount)||0,notes:'Added via Magic Log ✨',userId,type:it.type==='income'?'income':'expense',cat:it.cat||'Other',recurring:false});
     });
-    toast(lang==='cw'?(pa.items||[]).length+' zolemba zalembedwa':(pa.items||[]).length+' items logged','s');
+    toast(lang==='cw'?(pa.items||[]).length+' zolemba zalembedwa.':(pa.items||[]).length+' items logged.','s');
   }
   msg.pendingAction=null;
   saveChatHistory();
@@ -5763,6 +5899,17 @@ Respond in ${lang==='cw'?'Chichewa':'English'}. Be warm, encouraging, and specif
 Use MK (Malawian Kwacha). Use bullet points for lists. Bold key numbers.
 Keep replies concise (3-5 sentences or a short list). Never give generic advice -- always tie it to their real data.
 
+=== BUDGETING PRINCIPLES (apply these, don't just cheer the user on) ===
+Ground your coaching in well-established personal-finance practice, adapted to a Malawian household living on a monthly salary cycle:
+- Needs vs wants: point out when "Household"/"Food" essentials are being crowded out by discretionary items, before the month runs out.
+- A rough needs/wants/savings split (something like 50/30/20) is a useful reference point to mention, not a rule to force -- their actual item budgets are ground truth.
+- Zero-based thinking: every Kwacha of income should be assigned to a category, a goal, or savings -- flag if a large share of income logged has no matching budget item.
+- Build a small emergency buffer before aggressively funding non-essential savings goals, and say so plainly if none exists yet.
+- Irregular/informal income: if income entries are lumpy rather than one fixed salary, suggest budgeting off the lowest recent month rather than the average, so a slow month doesn't break the plan.
+- Recurring bills (rent, electricity, data/airtime) should be the first thing budgeted for at the start of each period, before discretionary spend -- flag it if they aren't.
+- Prefer specific, small, doable next actions ("move MK X from Y to your goal") over vague encouragement like "keep saving."
+- Never suggest borrowing, loans, or debt to cover a shortfall -- point them toward trimming a specific category instead.
+
 === APP NAVIGATION (use this to guide the user to the right place) ===
 When the user asks "how do I..." or seems stuck on something the app can do, tell them exactly where to tap. Use this map:
 - Change salary day / budget period -> Settings (Profile tab) > Household > Salary Day
@@ -5815,7 +5962,7 @@ Last 15 transactions (with IDs): ${JSON.stringify(recentWithIds)}`;
 
 async function sendChat(){
   if(chatBusy)return;
-  if(_aiInFlight){toast('Please wait','e');return;}
+  if(_aiInFlight){toast('Please wait.','e');return;}
   // Check free tier AI limit from Firestore (device-switch safe)
   const status=getPremiumStatus();
   if(!status.isPremium){
@@ -5934,23 +6081,23 @@ async function sendChat(){
 function openMagicLog() {
   const t = tx();
   const isPrem = hasPremiumFeature('receipt_scan');
-  let h = '<div class="dh"></div><h3>&#10024; '+(lang==='cw'?'Koperani SMS kapena Lembani':'Magic Log')+'</h3>';
-  h += '<p style="font-size:0.75rem; color:var(--mid); margin-bottom:10px;">'+(lang==='cw'?'Ikani SMS ya Mpamba/Airtel Money kapena lembani mwachidule zomwe mwagula.':'Paste an Airtel Money/Mpamba SMS or type what you bought (e.g. "Spent 5K on Transport and 15k on Maize").')+'</p>';
+  let h = '<div class="dh"></div>';
+  h += '<div class="magic-modal-header"><div class="mmh-top"><span class="mmh-ico"><i data-lucide="sparkles" style="width:17px;height:17px;color:#2A1400"></i></span><span class="mmh-title">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'</span></div><div class="mmh-sub">'+(lang==='cw'?'Ikani SMS ya Mpamba kapena Airtel Money, kapena lembani zomwe mwagula.':'Paste an Airtel Money or Mpamba SMS, or type what you bought.')+'</div></div>';
 
   // Camera scan row (Premium)
   h += '<div style="display:flex;gap:8px;margin-bottom:10px">';
   if(isPrem){
-    h += '<label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1.5px solid #43A047;border-radius:12px;cursor:pointer;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;color:#1B5E20"><i data-lucide="camera" style="margin-right:4px;vertical-align:middle;color:#1565C0"></i> Scan Receipt<input type="file" accept="image/*" capture="camera" id="receipt-cam" style="display:none" onchange="scanReceipt(this)"></label>';
-    h += '<label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:linear-gradient(135deg,#E3F2FD,#BBDEFB);border:1.5px solid #1976D2;border-radius:12px;cursor:pointer;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;color:#0D47A1"><i data-lucide="image" style="margin-right:4px"></i> Gallery<input type="file" accept="image/*" id="receipt-gal" style="display:none" onchange="scanReceipt(this)"></label>';
+    h += '<label class="magic-tile"><i data-lucide="camera" style="width:19px;height:19px"></i> '+(lang==='cw'?'Jambulani Risiti':'Scan receipt')+'<input type="file" accept="image/*" capture="camera" id="receipt-cam" style="display:none" onchange="scanReceipt(this)"></label>';
+    h += '<label class="magic-tile"><i data-lucide="image" style="width:19px;height:19px"></i> '+(lang==='cw'?'Zithunzi':'Gallery')+'<input type="file" accept="image/*" id="receipt-gal" style="display:none" onchange="scanReceipt(this)"></label>';
   } else {
-    h += '<button onclick="showPremiumPage();closeM(&quot;mv-magic&quot;)" style="width:100%;padding:10px;background:linear-gradient(135deg,#F3E5F5,#EDE7F6);border:1.5px solid var(--p1);border-radius:12px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;color:var(--p1);cursor:pointer"><i data-lucide="camera" style="margin-right:4px;vertical-align:middle;color:#1565C0"></i> Scan Receipt <i data-lucide="gem" style="margin-right:3px;vertical-align:middle;color:var(--p1)"></i> (Premium)</button>';
+    h += '<button onclick="showPremiumPage();closeM(&quot;mv-magic&quot;)" class="magic-tile" style="width:100%;flex-direction:row"><i data-lucide="camera" style="width:16px;height:16px"></i> '+(lang==='cw'?'Jambulani Risiti':'Scan receipt')+' <i data-lucide="gem" style="width:14px;height:14px"></i> (Premium)</button>';
   }
   h += '</div>';
 
-  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:.68rem;color:var(--mid);font-weight:600">or type</span><div style="flex:1;height:1px;background:var(--border)"></div></div>';
-  h += '<textarea class="fi" id="magic-input" rows="4" placeholder="e.g. Spent 5k on maize and 2k on transport..." style="resize:none;margin-bottom:10px;"></textarea>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:.68rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'kapena lembani':'or type')+'</span><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+  h += '<textarea class="fi" id="magic-input" rows="4" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula 5k ufa ndi 2k pa mabasi.':'e.g. Spent 5k on maize and 2k on transport.')+'" style="resize:none;margin-bottom:10px;"></textarea>';
   h += '<div id="magic-results" style="margin-bottom:10px;"></div>';
-  h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#F57F17,#F9A825);" onclick="processMagicLog()">&#10024; Extract</button></div>';
+  h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#7B1FA2,#F57F17);display:flex;align-items:center;justify-content:center;gap:6px" onclick="processMagicLog()"><i data-lucide="sparkles" style="width:15px;height:15px"></i> '+(lang==='cw'?'Tulutsani':'Extract')+'</button></div>';
   g('mb-magic').innerHTML = h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-magic')]});
   openM('mv-magic');
@@ -6039,13 +6186,13 @@ async function scanReceiptFromChat(input){
 
 async function scanReceipt(input){
   if(!input.files||!input.files[0])return;
-  if(_aiInFlight){toast('Please wait','e');return;}
-  const _ss=getPremiumStatus();if(!_ss.isPremium){const _su=await getAiUsageTodayFS('scan');if(_su>=FREE_DAILY_SCAN){toast('Receipt scan limit ('+FREE_DAILY_SCAN+'/day) reached','e');return;}}
+  if(_aiInFlight){toast('Please wait.','e');return;}
+  const _ss=getPremiumStatus();if(!_ss.isPremium){const _su=await getAiUsageTodayFS('scan');if(_su>=FREE_DAILY_SCAN){toast('Receipt scan limit ('+FREE_DAILY_SCAN+'/day) reached.','e');return;}}
   _aiInFlight=true;
   const file=input.files[0];
   const resultsEl=g('magic-results');
-  if(resultsEl)resultsEl.innerHTML='<div style="text-align:center;padding:12px;color:var(--mid);font-size:.8rem"><i data-lucide="camera" style="margin-right:4px;vertical-align:middle;color:#1565C0"></i> Reading receipt with AI...</div>';
-  const btn=g('magic-btn-process'); if(btn){btn.disabled=true;btn.innerHTML='&#10003; Scanning...';}
+  if(resultsEl){resultsEl.innerHTML='<div class="magic-scan-card"><span class="msc-ico"><i data-lucide="scan" style="width:18px;height:18px;color:#2A1400"></i></span><div style="flex:1"><div class="msc-label">'+(lang==='cw'?'Tikuwerenga risiti yanu...':'Reading your receipt...')+'</div><div class="msc-track"><div class="msc-bar"></div></div></div></div>';if(window.lucide)lucide.createIcons({nodes:[resultsEl]});}
+  const btn=g('magic-btn-process'); if(btn){btn.disabled=true;btn.innerHTML='<i data-lucide="loader-2" class="spin-ico" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Kuwerenga...':'Scanning...');if(window.lucide)lucide.createIcons({nodes:[btn]});}
 
   const reader=new FileReader();
   reader.onload=async function(e){
@@ -6077,7 +6224,7 @@ async function scanReceipt(input){
       toast('Receipt scanned!','s');
     }catch(err){
       if(resultsEl)resultsEl.innerHTML='';
-      if(btn){btn.disabled=false;btn.innerHTML='&#10024; Extract';}
+      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="sparkles" style="width:15px;height:15px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Tulutsani':'Extract');if(window.lucide)lucide.createIcons({nodes:[btn]});}
       _aiInFlight=false;
       toast('Could not read receipt.','e');
     }
@@ -6129,14 +6276,14 @@ function setMagicTxCat(idx,cat){
 }
 async function processMagicLog() {
   const input=val('magic-input').trim();
-  if(!input){toast('Please enter some text','e');return;}
-  if(_aiInFlight){toast('Please wait','e');return;}
-  const _ms=getPremiumStatus(); if(!_ms.isPremium){const _mu=await getAiUsageTodayFS('magic'); if(_mu>=FREE_DAILY_MAGIC){toast('Magic Log limit ('+FREE_DAILY_MAGIC+'/day) reached','e');return;}}
+  if(!input){toast('Please enter some text.','e');return;}
+  if(_aiInFlight){toast('Please wait.','e');return;}
+  const _ms=getPremiumStatus(); if(!_ms.isPremium){const _mu=await getAiUsageTodayFS('magic'); if(_mu>=FREE_DAILY_MAGIC){toast('Magic Log limit ('+FREE_DAILY_MAGIC+'/day) reached.','e');return;}}
   _aiInFlight=true;
   const btn=g('magic-btn-process');
-  btn.disabled = true; btn.innerHTML = '<i data-lucide="refresh-cw" style="margin-right:4px"></i>...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
+  btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="spin-ico" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Kuwerenga...':'Extracting...'); if(window.lucide)lucide.createIcons({nodes:[btn]});
   const resultsEl=g('magic-results');
-  if(resultsEl) resultsEl.innerHTML='<div style="text-align:center;padding:18px 0;color:var(--mid);font-size:.8rem"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;display:block;margin:0 auto 8px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'+(lang==='cw'?'AI ikuwerenga...':'AI is reading your text...')+'</div>';
+  if(resultsEl){resultsEl.innerHTML='<div class="magic-scan-card"><span class="msc-ico"><i data-lucide="sparkles" style="width:18px;height:18px;color:#2A1400"></i></span><div style="flex:1"><div class="msc-label">'+(lang==='cw'?'AI ikuwerenga zomwe mwalemba...':'Reading your text...')+'</div><div class="msc-track"><div class="msc-bar"></div></div></div></div>';if(window.lucide)lucide.createIcons({nodes:[resultsEl]});}
   
   const safeCandidates = lCfg.items.map(i=>i.name).filter(n=>n.toLowerCase()!=='other');
   const prompt = `Extract transactions from this text.
@@ -6188,12 +6335,12 @@ async function processMagicLog() {
   } catch(err){
     const isCW = lang === 'cw';
     const busyMsg = isCW
-      ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
-      : 'Bajeti AI is busy right now, please try again in a moment.';
+      ? 'Bajeti AI ili otanganidwa. Chonde yesaninso posachedwa.'
+      : 'Bajeti AI is busy right now. Please try again in a moment.';
     toast(busyMsg, 'e');
     const resultsEl2 = g('magic-results');
     if(resultsEl2) resultsEl2.innerHTML = '<div style="text-align:center;padding:14px;font-size:.78rem;color:var(--r1)">'+busyMsg+'</div>';
-    btn.disabled=false; btn.innerHTML='<i data-lucide="wand-2" style="margin-right:4px"></i> '+(isCW?'Yesaninso':'Try Again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
+    btn.disabled=false; btn.innerHTML='<i data-lucide="refresh-cw" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(isCW?'Yesaninso':'Try again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
 
@@ -6215,7 +6362,7 @@ function saveMagicTxs() {
       return;
     }
     const amt = Number(tx.amount) || 0;
-    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(rawName),'e'); skipped++; return; }
+    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(rawName)+'.','e'); skipped++; return; }
     const dStr = (tx.date && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)) ? tx.date : fallbackDate;
     addPx({
       item: rawName.slice(0,100),
@@ -6231,16 +6378,16 @@ function saveMagicTxs() {
   });
   if (saved > 0) {
     closeM('mv-magic');
-    toast('Transactions Saved!', 's');
+    toast('Transactions Saved!','s');
     insTab='hist'; go('insights');
   }
 }
 
 // -- AI Smart Summary --
 async function generateAiSummary() {
-  if(_aiInFlight){toast('Please wait','e');return;}
+  if(_aiInFlight){toast('Please wait.','e');return;}
   const _s=getPremiumStatus();
-  if(!_s.isPremium){ const _u=await getAiUsageTodayFS('summ'); if(_u>=FREE_DAILY_SUMM){toast('AI Summary limit ('+FREE_DAILY_SUMM+'/day) reached','e');return;} }
+  if(!_s.isPremium){ const _u=await getAiUsageTodayFS('summ'); if(_u>=FREE_DAILY_SUMM){toast('AI Summary limit ('+FREE_DAILY_SUMM+'/day) reached.','e');return;} }
   _aiInFlight=true;
   const btn=g('ai-sum-btn'),box=g('ai-sum-box');
   btn.disabled=true; btn.innerHTML='<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
@@ -6263,7 +6410,7 @@ async function generateAiSummary() {
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if(!_s.isPremium) incAiUsageTodayFS('summ');
-    box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> AI Insight:</b><br>'+esc(reply||'')+'</div>';
+    box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> AI Insight:</b><br>'+mdLite(reply||'')+'</div>';
     if(window.lucide)lucide.createIcons({nodes:[box]});
     box.classList.remove('hide'); btn.style.display='none'; _aiInFlight=false;
   }catch(err){
