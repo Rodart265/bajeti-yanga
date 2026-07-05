@@ -10,11 +10,16 @@
 <title>Bajeti Yanga v9.4.2</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
+     first paint doesn't wait on fonts.googleapis.com. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap"></noscript>
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
+<!-- qrcode/jsQR are only used by the QR-scan and QR-code-display features
+     (openQRCode / scanQR), never during boot, so they're deferred. -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script defer src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
 <script>
   document.currentScript.previousElementSibling.addEventListener('load', function(){
     if(window.lucide){ lucide.createIcons(); }
@@ -761,6 +766,61 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 </style>
 </head>
 <body>
+
+<!-- BOOT SPLASH: visible immediately (no JS/CSS framework dependency), removed
+     automatically once a real screen (#scr-auth, #scr-setup, #scr-pin,
+     #scr-welcome, #scr-verify, #app) becomes visible. If nothing becomes
+     visible within ~9s (e.g. first-ever offline visit, no cached session),
+     it swaps to an offline/retry message instead of staying blank forever. -->
+<style>
+#boot-splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:linear-gradient(145deg,#7B1FA2,#5E1291 50%,#3D0E7A);color:#fff;font-family:'Hanken Grotesk',Arial,sans-serif;text-align:center;padding:24px;transition:opacity .25s ease}
+#boot-splash.boot-splash-out{opacity:0;pointer-events:none}
+#boot-splash .bs-spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.28);border-top-color:#fff;animation:bs-spin .8s linear infinite}
+#boot-splash .bs-title{font-weight:800;font-size:1.05rem;letter-spacing:.2px}
+#boot-splash .bs-sub{font-size:.78rem;opacity:.75;max-width:280px;line-height:1.4}
+#boot-splash .bs-retry{margin-top:6px;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:700;font-size:.82rem;padding:9px 18px;border-radius:10px;cursor:pointer}
+@keyframes bs-spin{to{transform:rotate(360deg)}}
+</style>
+<div id="boot-splash">
+  <div class="bs-spin" id="boot-splash-spin"></div>
+  <div class="bs-title">Bajeti Yanga</div>
+  <div class="bs-sub" id="boot-splash-msg">Loading your budget…</div>
+</div>
+<script>
+(function(){
+  var splash = document.getElementById('boot-splash');
+  var ids = ['scr-auth','scr-setup','scr-pin','scr-welcome','scr-verify','app'];
+  function els(){ return ids.map(function(id){ return document.getElementById(id); }).filter(Boolean); }
+  function anyVisible(){
+    return els().some(function(el){ return !el.classList.contains('hide'); });
+  }
+  function removeSplash(){
+    if(!splash || !splash.parentNode) return;
+    splash.classList.add('boot-splash-out');
+    setTimeout(function(){ if(splash.parentNode) splash.parentNode.removeChild(splash); }, 260);
+    if(observer) observer.disconnect();
+    clearTimeout(timeoutTimer);
+  }
+  if(anyVisible()){ removeSplash(); return; }
+  var observer = new MutationObserver(function(){ if(anyVisible()) removeSplash(); });
+  els().forEach(function(el){ observer.observe(el, {attributes:true, attributeFilter:['class']}); });
+  // Safety net: slow/no network and nothing cached yet — don't leave people
+  // staring at a spinner forever.
+  var timeoutTimer = setTimeout(function(){
+    if(anyVisible()){ removeSplash(); return; }
+    var offline = !navigator.onLine;
+    var msgEl = document.getElementById('boot-splash-msg');
+    var spinEl = document.getElementById('boot-splash-spin');
+    if(spinEl) spinEl.style.display = 'none';
+    if(msgEl){
+      msgEl.innerHTML = (offline
+        ? "You're offline and this device hasn't loaded Bajeti Yanga before, so it needs a connection the first time."
+        : "This is taking longer than usual. Check your connection and try again.")
+        + '<br><br><button class="bs-retry" onclick="location.reload()">Retry</button>';
+    }
+  }, 9000);
+})();
+</script>
 
 <!-- AUTH -->
 <div id="scr-auth" class="screen hide">
@@ -2292,6 +2352,17 @@ function welcomeSwitch(){
 // Deep link join code — extracted from ?join= URL parameter on boot
 let _pendingJoinCode = null;
 
+// Cache-first read with a server fallback. Firestore's default .get()
+// behavior is "try the server first, fall back to cache only once the
+// network attempt fails/times out" — on a slow or offline connection that
+// makes every boot wait out a network timeout before it ever looks at data
+// that's already sitting on the device. Trying the cache first means a
+// returning user unblocks instantly; a brand-new login (nothing cached yet)
+// still falls through to the normal server request.
+function fastGet(ref){
+  return ref.get({source:'cache'}).catch(()=>ref.get());
+}
+
 function bootApp(){
   // Extract ?join= deep link parameter before auth flow clears the URL
   if(!_pendingJoinCode){
@@ -2322,7 +2393,7 @@ function bootApp(){
         showVerifyScreen(user.email||'');
         return;
       }
-      db.collection('users').doc(user.uid).get()
+      fastGet(db.collection('users').doc(user.uid))
         .then(doc=>{
           // Account-deletion grace period: offer restore instead of loading the app
           if(doc.exists && doc.data().pendingDeletion){
@@ -2367,7 +2438,7 @@ function bootApp(){
               showWelcome(hid, hhName);
             } else {
               // Fetch household name from Firestore for display
-              db.collection('households').doc(hid).get().then(hhDoc=>{
+              fastGet(db.collection('households').doc(hid)).then(hhDoc=>{
                 const name = hhDoc.exists ? (hhDoc.data().name||'Your Household') : 'Your Household';
                 showWelcome(hid, name);
               }).catch(()=>showWelcome(hid, 'Your Household'));
