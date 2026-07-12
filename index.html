@@ -1351,7 +1351,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.4.7';
+const APP_VERSION = '9.4.8';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
@@ -3045,11 +3045,43 @@ function connectHH(code){
         // Index not ready or field missing, try without ordering
         if(unsub) unsub();
         unsub=tryConnect(null);
+      } else if(err.code==='permission-denied'){
+        // The household doc itself stays readable to any signed-in user (needed for
+        // join-code verification), so it won't error out on removal -- but purchases
+        // are gated on live memberUids membership, so this is the reliable signal
+        // that this account was removed from the household. Route to a clean
+        // re-request state instead of leaving them on a frozen list with a vague
+        // "connection lost" toast.
+        handleRemovedFromHousehold();
       } else { toast('Connection lost: '+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
     });
   };
   unsub=tryConnect('createdAt');
   applyLang();
+}
+
+// Called when a live listener detects this account is no longer a household
+// member (permission-denied on purchases -- see tryConnect above). Mirrors the
+// "household deleted" cleanup in connectHH's own listener, but with an accurate
+// message: this household still exists, this account was just removed from it.
+// Re-entering the same code afterward files a fresh joinRequest, same as any
+// new member -- the owner has to approve it again.
+function handleRemovedFromHousehold(){
+  if(unsubHH){ unsubHH(); unsubHH=null; }
+  if(unsub){ unsub(); unsub=null; }
+  if(unsubJoinBadge){ unsubJoinBadge(); unsubJoinBadge=null; }
+  localStorage.removeItem('nb_household');
+  hhId=null;
+  if(curUser){
+    db.collection('users').doc(curUser.uid).update({householdId:firebase.firestore.FieldValue.delete()}).catch(()=>{});
+  }
+  setDot('off');
+  hide('scr-auth'); hide('scr-pin'); hide('scr-welcome');
+  g('app').classList.add('hide');
+  show('scr-setup');
+  toast(lang==='cw'
+    ? 'Mwachotsedwa mu nyumbayi. Lowetsani kodi kuti mupemphe kulowanso.'
+    : 'You were removed from this household. Enter the code again to request to rejoin.', 'e');
 }
 
 function saveCfg(cfg){ if(!cfg.goals)cfg.goals=[]; lCfg=cfg; if(hhId){setDot('spin');db.collection('households').doc(hhId).update({config:cfg}).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error')+'.','e');setDot('off');});} }
@@ -4183,6 +4215,10 @@ function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); _stgRefresh(); }
 function delMember(i){
+  if(!curUser || !lHHDoc || curUser.uid !== lHHDoc.owner){
+    toast(lang==='cw'?'Ndi mwini nyumba yekha amene angachotse membala.':'Only the household owner can remove a member.','e');
+    return;
+  }
   const member = lCfg.users[i];
   appConfirm(tx().confirmDelMember, function(){
     const cfg=JSON.parse(JSON.stringify(lCfg));
@@ -4465,7 +4501,7 @@ function stgOpenSection(sec){
     let h='<div class="page">';
     h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:var(--cr);padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):sec==='goals'?(lang==='cw'?'Zolinga zosungira':'Savings Goals'):(lang==='cw'?'Zolipira':'Bill Tracker'))+'</h2></div>';
     if(sec==='members'){
-      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
+      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
       // Pending join requests — visible to owner
       // Check lHHDoc.owner first, fall back to ownedHouseholds on user doc for old households
       const isOwner = curUser && (
