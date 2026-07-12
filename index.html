@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga </title>
+<title>Bajeti Yanga v9.4.5</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
@@ -238,6 +238,8 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .setup-card-hdr-ico{font-size:1.2rem}
 .setup-card h3{font-family:Hanken Grotesk,sans-serif;font-size:.95rem;font-weight:800;color:#fff;margin-bottom:0}
 .setup-card p{font-size:.76rem;color:rgba(255,255,255,.68);margin-bottom:14px;line-height:1.55}
+.fade-in{animation:setupFadeIn .22s ease}
+@keyframes setupFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .setup-in{width:100%;padding:13px 14px;border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);background:rgba(255,255,255,.1);color:#fff;font-family:Hanken Grotesk,sans-serif;font-size:.92rem;text-align:center;outline:none;letter-spacing:.5px;transition:border-color .2s,background .2s;backdrop-filter:blur(8px)}
 .setup-in:focus{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.16)}
 .setup-in::placeholder{color:rgba(255,255,255,.35);letter-spacing:0}
@@ -285,7 +287,12 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
    width. Pre-auth screens (login/setup/PIN/verify) are left alone — their
    existing centered-card-on-full-bleed-gradient look is a normal, intentional
    pattern at any width and doesn't need a frame. */
-@media(min-width:600px){
+/* Raised from 600px to 1024px: 600px was catching tablets (portrait AND
+   landscape iPads etc all fall under ~600-1024px) and squeezing them into the
+   same narrow 480px phone column as desktop, leaving a big empty backdrop on
+   either side. Tablets now get the full-width layout; only genuine desktop
+   widths (>=1024px) get the centered phone-card frame. */
+@media(min-width:1024px){
   #app{max-width:480px;margin:0 auto;position:relative;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 12px 48px rgba(0,0,0,.18)}
   .ov{justify-content:center}
   .mb{max-width:480px;margin:0 auto}
@@ -1037,35 +1044,8 @@ body.dark .chat-action-row:active{background:#2A2A2A}
     </div>
   </div>
 
-  <!-- Create or Join — combined -->
-  <div id="setup-card-join" class="setup-card" style="margin-top:10px">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <div style="width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i data-lucide="users" style="color:#fff;width:22px;height:22px"></i>
-      </div>
-      <div style="flex:1">
-        <div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:#fff;margin-bottom:2px">With Family / Partner</div>
-        <div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4">Create a new household or join one that was shared with you.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button class="setup-btn" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="createHH()">
-        <i data-lucide="plus-circle" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>Create New
-      </button>
-      <button class="setup-btn outline" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="document.getElementById('join-code').focus()">
-        <i data-lucide="log-in" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>Join Existing
-      </button>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input class="setup-in" id="join-code" placeholder="Paste household code to join…" maxlength="20" style="flex:1;margin-bottom:0">
-      <button onclick="openQRScanner()" style="flex-shrink:0;width:44px;height:44px;background:linear-gradient(135deg,var(--p1),var(--p2));border:none;border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Scan QR Code">
-        <i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i>
-      </button>
-    </div>
-    <button class="setup-btn outline" style="margin-top:0;font-size:.82rem" onclick="joinHH()">
-      <i data-lucide="arrow-right-circle" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>Join This Household
-    </button>
-  </div>
+  <!-- Create or Join — two-step card, populated by renderSetupJoinChoice()/renderSetupJoinForm() in JS -->
+  <div id="setup-card-join" class="setup-card" style="margin-top:10px"></div>
 
   <div id="setup-err" class="setup-err"></div>
   <p class="auth-copy" style="margin-top:20px;color:rgba(255,255,255,.4)">&#169; Rodart Creatives. All Rights Reserved.</p>
@@ -1559,7 +1539,7 @@ function mdLite(s){
     .replace(/^[-\u2022 ] (.+)/gm,'<li>$1</li>')
     .replace(/\n/g,'<br>');
 }
-function show(id){ const el=g(id); if(el)el.classList.remove('hide'); }
+function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='scr-setup' && typeof resetSetupJoinCard==='function') resetSetupJoinCard(); }
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
 function toast(msg,type){
   const el=g('toast'); if(!el)return;
@@ -2550,6 +2530,7 @@ function bootApp(){
             // Pre-fill join code from QR deep link if present
             if(_pendingJoinCode){
               setTimeout(function(){
+                renderSetupJoinForm();
                 const joinInp = g('join-code');
                 if(joinInp){
                   joinInp.value = _pendingJoinCode;
@@ -2568,6 +2549,7 @@ function bootApp(){
           hide('scr-auth'); hide('scr-pin'); g('app').classList.add('hide'); show('scr-setup');
           if(_pendingJoinCode){
             setTimeout(function(){
+              renderSetupJoinForm();
               const joinInp = g('join-code');
               if(joinInp){ joinInp.value = _pendingJoinCode; joinInp.focus(); }
               _pendingJoinCode = null;
@@ -2643,6 +2625,76 @@ function _setupUnlock(){
   document.querySelectorAll('#scr-setup button, #scr-setup [onclick]').forEach(el=>{
     el.disabled = false; el.style.pointerEvents = ''; el.style.opacity = '';
   });
+}
+
+// ── Setup screen: "With Family / Partner" card, two-step flow ──────────────
+// Step 1 (default): choice between Create New / Join Existing.
+// Step 2 (after tapping Join Existing): code input + QR scan + submit, with
+// a Back button. Both steps render into #setup-card-join; the actual backend
+// calls (createHH/joinHH/openQRScanner) are unchanged, only the surrounding
+// markup/interaction is new.
+function renderSetupJoinChoice(){
+  const box = g('setup-card-join');
+  if(!box) return;
+  const isCW = lang === 'cw';
+  box.innerHTML =
+    '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'
+      +'<div style="width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        +'<i data-lucide="users" style="color:#fff;width:22px;height:22px"></i>'
+      +'</div>'
+      +'<div style="flex:1">'
+        +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:#fff;margin-bottom:2px">'+(isCW?'Ndi Banja / Mnzanu':'With Family / Partner')+'</div>'
+        +'<div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4">'+(isCW?'Pangani nyumba yatsopano kapena lowani imene mwapatsidwa.':'Create a new household or join one that was shared with you.')+'</div>'
+      +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px">'
+      +'<button class="setup-btn" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="createHH()">'
+        +'<i data-lucide="plus-circle" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Pangani Yatsopano':'Create New')+'</button>'
+      +'<button class="setup-btn outline" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="renderSetupJoinForm()">'
+        +'<i data-lucide="log-in" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Lowani Ina':'Join Existing')+'</button>'
+    +'</div>';
+  setupErr('');
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+}
+
+function renderSetupJoinForm(){
+  const box = g('setup-card-join');
+  if(!box) return;
+  const isCW = lang === 'cw';
+  box.innerHTML =
+    '<button onclick="renderSetupJoinChoice()" style="background:none;border:none;color:rgba(255,255,255,.75);font-size:.78rem;display:flex;align-items:center;gap:3px;margin-bottom:14px;cursor:pointer;padding:0;font-family:inherit">'
+      +'<i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(isCW?'Bwerera':'Back')+'</button>'
+    +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'
+      +'<div style="width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        +'<i data-lucide="log-in" style="color:#fff;width:22px;height:22px"></i>'
+      +'</div>'
+      +'<div style="flex:1">'
+        +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:#fff;margin-bottom:2px">'+(isCW?'Lowani mu Nyumba':'Join a Household')+'</div>'
+        +'<div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4">'+(isCW?'Lowetsani kodi imene mwini nyumba wakupatsani.':'Enter the code your household owner shared with you.')+'</div>'
+      +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px">'
+      +'<input class="setup-in" id="join-code" placeholder="'+(isCW?'Bzalani kodi ya nyumba…':'Paste household code…')+'" maxlength="20" style="flex:1;margin-bottom:0">'
+      +'<button onclick="openQRScanner()" style="flex-shrink:0;width:48px;height:48px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Scan QR Code">'
+        +'<i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i></button>'
+    +'</div>'
+    +'<button class="setup-btn" style="width:100%;margin-top:0;padding:13px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="joinHH()">'
+      +'<i data-lucide="arrow-right-circle" style="width:16px;height:16px"></i>'+(isCW?'Lowani Nyumba Iyi':'Join This Household')+'</button>';
+  setupErr('');
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+  box.classList.add('fade-in');
+  setTimeout(function(){ const inp=g('join-code'); if(inp) inp.focus(); }, 150);
+}
+
+// Restores the "With Family / Partner" card to its default choice state and
+// un-hides the solo card/heading — used whenever the setup screen is shown
+// fresh (not while a join request is pending, since that flow renders its own
+// waiting screen immediately after and handles solo/heading visibility itself).
+function resetSetupJoinCard(){
+  if(localStorage.getItem('nb_pending_join')) return;
+  const soloCard = g('setup-card-solo'); if(soloCard) soloCard.style.display='';
+  const heading = g('setup-heading'); if(heading) heading.style.display='';
+  renderSetupJoinChoice();
 }
 
 function createHHSolo(){
