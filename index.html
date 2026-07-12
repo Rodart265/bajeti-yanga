@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.4.5</title>
+<title>Bajeti Yanga </title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
@@ -179,7 +179,7 @@ body.dark .stat-chip{filter:brightness(.9)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken Grotesk,sans-serif;color:var(--ink)}
 .hide{display:none!important}
-.screen{position:fixed;inset:0;z-index:900;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px 32px}
+.screen{position:fixed;inset:0;z-index:900;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding:24px 20px 32px}
 #scr-auth{background:linear-gradient(155deg,#4A148C,var(--p1) 55%,#880E4F)}
 #scr-setup{background:linear-gradient(155deg,#4A148C,var(--p1) 55%,#880E4F)}
 #scr-welcome{background:linear-gradient(155deg,#4A148C,var(--p1) 55%,#880E4F)}
@@ -273,6 +273,24 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .pin-bio-btn{margin-bottom:14px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 .pin-bio-btn:active{transform:scale(.93);background:rgba(255,255,255,.25)}
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+/* Desktop/tablet: the whole app is built as a single-column phone layout with
+   no upper width bound, so above ~phone width it was stretching edge-to-edge
+   (bottom nav tabs spread far apart, cards going full-bleed, chat bubbles
+   absurdly wide). Rather than rebuilding every screen for multi-column desktop
+   use — a much bigger, riskier undertaking for a mostly-on-phone budgeting app
+   — collapse the app into a centered phone-width column here. Percentage/flex
+   based children inside #app cascade to the new width automatically; the three
+   still-viewport-fixed pieces (bottom-sheet modals, the install FAB) are
+   repositioned to match it explicitly since position:fixed ignores #app's own
+   width. Pre-auth screens (login/setup/PIN/verify) are left alone — their
+   existing centered-card-on-full-bleed-gradient look is a normal, intentional
+   pattern at any width and doesn't need a frame. */
+@media(min-width:600px){
+  #app{max-width:480px;margin:0 auto;position:relative;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 12px 48px rgba(0,0,0,.18)}
+  .ov{justify-content:center}
+  .mb{max-width:480px;margin:0 auto}
+  #install-fab{right:calc(50% - 240px + 16px)}
+}
 #app.hide{display:none}
 #topbar{background:linear-gradient(135deg,var(--p1),var(--p2));padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;position:relative;overflow:hidden}
 #topbar::before{content:'';position:absolute;right:-40px;top:-40px;width:150px;height:150px;background:rgba(255,255,255,.07);border-radius:50%}
@@ -1000,11 +1018,13 @@ body.dark .chat-action-row:active{background:#2A2A2A}
       <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
     </svg>
   </div>
+  <div id="setup-heading" class="setup-title-wrap">
   <div class="setup-title" style="font-size:1.8rem;margin-bottom:6px">Set Up Bajeti Yanga</div>
   <div class="setup-sub" style="margin-bottom:28px">Your money, your rules. Choose how you want to get started.</div>
+  </div>
 
   <!-- Solo option -->
-  <div class="setup-card" style="cursor:pointer" onclick="createHHSolo()">
+  <div id="setup-card-solo" class="setup-card" style="cursor:pointer" onclick="createHHSolo()">
     <div style="display:flex;align-items:center;gap:14px">
       <div style="width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <i data-lucide="user" style="color:#fff;width:22px;height:22px"></i>
@@ -1018,7 +1038,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
   </div>
 
   <!-- Create or Join — combined -->
-  <div class="setup-card" style="margin-top:10px">
+  <div id="setup-card-join" class="setup-card" style="margin-top:10px">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
       <div style="width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <i data-lucide="users" style="color:#fff;width:22px;height:22px"></i>
@@ -2604,8 +2624,31 @@ function restoreAccount(){
   }).catch(()=>toast('Restore failed. Check your connection.','e'));
 }
 
+// Guards createHHSolo()/createHH()/joinHH() against double-submission: these three
+// are the only setup actions that keep their button on screen while awaiting a
+// Firestore round-trip, so a slow network + a second tap could otherwise create
+// two households or send two join requests. Locked while any one is in flight;
+// unlocked on error/no-op paths (success navigates away, so re-enabling there is
+// harmless but not required — done anyway so a later return to this screen, e.g.
+// via switchHousehold(), never finds stale disabled buttons).
+let _setupBusy = false;
+function _setupLock(){
+  _setupBusy = true;
+  document.querySelectorAll('#scr-setup button, #scr-setup [onclick]').forEach(el=>{
+    el.disabled = true; el.style.pointerEvents = 'none'; el.style.opacity = '.55';
+  });
+}
+function _setupUnlock(){
+  _setupBusy = false;
+  document.querySelectorAll('#scr-setup button, #scr-setup [onclick]').forEach(el=>{
+    el.disabled = false; el.style.pointerEvents = ''; el.style.opacity = '';
+  });
+}
+
 function createHHSolo(){
   if(!curUser){setupErr('Not signed in.');return;}
+  if(_setupBusy) return;
+  _setupLock();
   setDot('spin'); setupErr('');
   // Check household limit using HOUSEHOLD_LIMITS config
   db.collection('users').doc(curUser.uid).get().then(uDoc=>{
@@ -2627,7 +2670,7 @@ function createHHSolo(){
     const nm=(curUser&&(curUser.displayName||curUser.email||'').split('@')[0])||'Me';
     soloCfg.users=[{id:'u1',name:nm,color:'#7B1FA2'}];
     soloCfg.solo=true;
-    db.collection('households').doc(code)
+    return db.collection('households').doc(code)
       .set({config:soloCfg,createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser.uid,solo:true,memberUids:[curUser.uid]})
       .then(()=>{
         return db.collection('users').doc(curUser.uid).set({
@@ -2638,11 +2681,14 @@ function createHHSolo(){
       })
       .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Takulandirani! Muli wokonzeka.':'Welcome! You\'re all set.','s'); })
       .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
-  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
+  .finally(()=>{ _setupUnlock(); });
 }
 
 function createHH(){
   if(!curUser){setupErr('Not signed in.');return;}
+  if(_setupBusy) return;
+  _setupLock();
   setDot('spin'); setupErr('');
   // Check household limit using HOUSEHOLD_LIMITS config
   db.collection('users').doc(curUser.uid).get().then(uDoc=>{
@@ -2660,7 +2706,7 @@ function createHH(){
       return;
     }
     const code=randCode();
-    db.collection('households').doc(code)
+    return db.collection('households').doc(code)
       .set({config:injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG))),createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser.uid,memberUids:[curUser.uid]})
       .then(()=>{
         return db.collection('users').doc(curUser.uid).set({
@@ -2671,13 +2717,16 @@ function createHH(){
       })
       .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yopangidwa!':'Household created!','s'); })
       .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
-  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
+  .finally(()=>{ _setupUnlock(); });
 }
 
 // Restores the waiting-for-approval screen after app reopen during a pending join request
 function _restoreWaitingScreen(code){
-  const setupBox = document.querySelector('.setup-card') || document.querySelector('.auth-box');
+  const setupBox = g('setup-card-join') || document.querySelector('.setup-card') || document.querySelector('.auth-box');
   if(!setupBox) return;
+  const soloCard = g('setup-card-solo'); if(soloCard) soloCard.style.display='none';
+  const heading = g('setup-heading'); if(heading) heading.style.display='none';
   const isCW = lang === 'cw';
   setupBox.innerHTML =
     '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
@@ -2811,6 +2860,8 @@ function joinHH(){
   const code=val('join-code').trim().toLowerCase();
   if(!code){setupErr('Enter a household code.');return;}
   if(!curUser){setupErr('Not signed in.');return;}
+  if(_setupBusy) return;
+  _setupLock();
   setDot('spin'); setupErr('');
   db.collection('households').doc(code).get()
     .then(doc=>{
@@ -2845,7 +2896,9 @@ function joinHH(){
           hide('scr-setup');
           g('app').classList.add('hide');
           show('scr-setup');
-          const setupBox = document.querySelector('.setup-card') || document.querySelector('.auth-box');
+          const setupBox = g('setup-card-join') || document.querySelector('.setup-card') || document.querySelector('.auth-box');
+          const soloCard = g('setup-card-solo'); if(soloCard) soloCard.style.display='none';
+          const heading = g('setup-heading'); if(heading) heading.style.display='none';
           if(setupBox){
             setupBox.innerHTML =
               '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
@@ -2948,7 +3001,8 @@ function joinHH(){
         })
         .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
     })
-    .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+    .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
+    .finally(()=>{ _setupUnlock(); });
 }
 
 function connectHH(code){
@@ -4964,7 +5018,7 @@ function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
   const div = document.createElement('div');
   div.id = id;
   div.style.cssText = 'position:fixed;inset:0;background:#F0EBF8;z-index:9999;overflow-y:auto;padding:0';
-  div.innerHTML = '<div style="max-width:480px;margin:0 auto;padding:0 0 40px">'
+  div.innerHTML = '<div style="max-width:640px;margin:0 auto;padding:0 0 40px">'
     +'<div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);padding:24px 20px 22px;margin-bottom:0">'
     +'<button onclick="document.getElementById(\''+id+'\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--cr);padding:7px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back</button>'
     +'<div style="display:flex;align-items:center;gap:11px">'
