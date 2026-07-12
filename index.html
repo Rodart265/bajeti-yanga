@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.4.5</title>
+<title>Bajeti Yanga</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
@@ -240,6 +240,7 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .setup-card p{font-size:.76rem;color:rgba(255,255,255,.68);margin-bottom:14px;line-height:1.55}
 .fade-in{animation:setupFadeIn .22s ease}
 @keyframes setupFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:.5}70%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}
 .setup-in{width:100%;padding:13px 14px;border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);background:rgba(255,255,255,.1);color:#fff;font-family:Hanken Grotesk,sans-serif;font-size:.92rem;text-align:center;outline:none;letter-spacing:.5px;transition:border-color .2s,background .2s;backdrop-filter:blur(8px)}
 .setup-in:focus{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.16)}
 .setup-in::placeholder{color:rgba(255,255,255,.35);letter-spacing:0}
@@ -566,14 +567,17 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
 .ov.open .mb{transform:translateY(0)}
 .mb h3{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.97rem;color:var(--ink);margin-bottom:13px}
 .dh{width:32px;height:4px;background:#DDD;border-radius:4px;margin:0 auto 16px}
-.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(18px);padding:11px 16px;border-radius:var(--cr);font-weight:700;font-size:.81rem;z-index:9999;opacity:0;transition:all .27s;pointer-events:none;max-width:86vw;box-shadow:0 6px 20px rgba(0,0,0,.22);display:flex;align-items:flex-start;gap:8px;line-height:1.45;text-align:left}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(18px);padding:10px 10px 10px 12px;border-radius:16px;font-weight:700;font-size:.81rem;z-index:9999;opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;max-width:86vw;box-shadow:0 10px 32px rgba(0,0,0,.26),0 2px 8px rgba(0,0,0,.12);display:flex;align-items:center;gap:9px;line-height:1.4;text-align:left;overflow:hidden;cursor:pointer}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:all}
 .toast.s{background:var(--g1);color:#fff}
-.toast.e{background:var(--r1);color:#fff;cursor:pointer}
+.toast.e{background:var(--r1);color:#fff}
 .toast.i{background:var(--p1);color:#fff}
-.toast .t-ic{flex-shrink:0;margin-top:1px}
-.toast .t-tap{font-size:.65rem;font-weight:800;opacity:.85;margin-top:3px;text-decoration:underline;display:none}
-.toast.e .t-tap{display:block}
+.toast .t-ic-wrap{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center}
+.toast .t-msg{flex:1;min-width:0}
+.toast .t-close{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:none;border:none;color:inherit;opacity:.75;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.toast .t-close:active{opacity:1;background:rgba(255,255,255,.15)}
+.toast .t-bar{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.55);width:100%;transform-origin:left;animation:toastShrink linear forwards}
+@keyframes toastShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 
 /* ── Trend Chart ── */
 .trend-chart-wrap{padding:16px;overflow:hidden}
@@ -1210,7 +1214,7 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 <div class="ov" id="mv-ep"><div class="mb" id="mb-ep"></div></div>
 <div class="ov" id="mv-gl"><div class="mb" id="mb-gl"></div></div>
 <div class="ov" id="mv-magic"><div class="mb" id="mb-magic"></div></div>
-<div class="toast" id="toast" onclick="copyToast()"></div>
+<div class="toast" id="toast" onclick="dismissToast()"></div>
 
 <script>
 // ===============================================
@@ -1316,11 +1320,15 @@ const DEF_USERS = [
 const DEF_CFG = {items:DEF_ITEMS,users:DEF_USERS,overallBudget:400000,goals:[],salaryDay:0};
 
 const ITEM_ICONS = {
-  'Tomatoes':'&#127813;','Onions':'&#129477;','Maize Flour (Ufa)':'&#127805;','Cooking Oil':'&#128738;',
-  'Sugar':'&#127852;','Salt':'&#129474;','Soap (bar)':'&#129532;','Washing Powder':'&#129767;',
+  'Tomatoes':'&#127813;','Onions':'&#129477;','Maize Flour (Ufa)':'&#127805;',
+  'Cooking Oil':'<i data-lucide="droplet" style="width:18px;height:18px;color:#F9A825;vertical-align:middle"></i>',
+  'Sugar':'<i data-lucide="package" style="width:18px;height:18px;color:#42A5F5;vertical-align:middle"></i>',
+  'Salt':'&#129474;','Soap (bar)':'&#129532;','Washing Powder':'&#129767;',
   'Rice':'&#127834;','Beans (Nyemba)':'&#129752;','Potatoes':'&#129364;','Cabbage':'&#129388;',
   'Chicken':'&#127831;','Fish (Nsomba)':'&#128031;','Bread':'&#127838;','Milk':'&#129371;',
-  'Tea Leaves':'&#127861;','Charcoal':'&#129704;','Toilet Paper':'&#129531;','Matches/Candles':'&#128367;',
+  'Tea Leaves':'&#127861;',
+  'Charcoal':'<i data-lucide="flame" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
+  'Toilet Paper':'&#129531;','Matches/Candles':'&#128367;',
   'Bathing Soap':'&#129524;','Toothpaste':'&#129463;',
   'Airtime / Data':'<i data-lucide="smartphone" style="width:18px;height:18px;color:#1565C0;vertical-align:middle"></i>',
   'Transport':'<i data-lucide="bus" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
@@ -1545,24 +1553,23 @@ function toast(msg,type){
   const el=g('toast'); if(!el)return;
   type = type||'s';
   const icons = {s:'check-circle', e:'alert-circle', i:'info'};
-  const isCW = lang==='cw';
   el.className = 'toast '+type;
-  el.dataset.raw = msg;
-  el.dataset.type = type;
-  el.innerHTML = '<i data-lucide="'+icons[type]+'" class="t-ic" style="width:15px;height:15px"></i>'
-    +'<div style="flex:1;min-width:0"><div>'+esc(msg)+'</div>'
-    +(type==='e'?'<div class="t-tap">'+(isCW?'Dinani kuti mukope cholakwika':'Tap to copy error')+'</div>':'')
-    +'</div>';
+  // Duration scales with message length so short messages don't linger and
+  // long messages aren't cut off before they can be read.
+  const duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
+  el.innerHTML = '<div class="t-ic-wrap"><i data-lucide="'+icons[type]+'" style="width:13px;height:13px"></i></div>'
+    +'<div class="t-msg">'+esc(msg)+'</div>'
+    +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="Dismiss"><i data-lucide="x" style="width:13px;height:13px"></i></button>'
+    +'<div class="t-bar" style="animation-duration:'+duration+'ms"></div>';
   if(window.lucide) lucide.createIcons({nodes:[el]});
   clearTimeout(window._toastTimer);
   el.classList.add('on');
-  window._toastTimer = setTimeout(()=>el.classList.remove('on'), type==='e'?4200:2400);
+  window._toastTimer = setTimeout(dismissToast, duration);
 }
-function copyToast(){
-  const el=g('toast'); if(!el||el.dataset.type!=='e'||!el.dataset.raw) return;
-  const msg=el.dataset.raw;
-  const done=function(){ toast(lang==='cw'?'Yakopedwa!':'Copied to clipboard','s'); };
-  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(done).catch(done);
+function dismissToast(){
+  const el=g('toast'); if(!el)return;
+  el.classList.remove('on');
+  clearTimeout(window._toastTimer);
 }
 function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':''); }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; if(window.lucide)lucide.createIcons({nodes:[btn]}); }
@@ -1741,7 +1748,7 @@ async function registerBio(){
     localStorage.removeItem('nb_bio_enabled');
     localStorage.removeItem('nb_bio_token');
     localStorage.removeItem('nb_bio_sig');
-    toast('Fingerprint registered ✓','s');
+    toast('Fingerprint registered','s');
     go('stg');
   }catch(e){
     if(e.name==='NotAllowedError') toast('Registration cancelled.','e');
@@ -2125,22 +2132,12 @@ function showAErr(msg){ renderErrBox('a-err',msg); }
 function renderErrBox(id,msg){
   const el=g(id); if(!el)return;
   if(!msg){ el.classList.remove('on'); el.innerHTML=''; return; }
-  const isCW=lang==='cw';
-  el.dataset.raw=msg;
   el.innerHTML='<div style="display:flex;gap:8px;align-items:flex-start">'
     +'<i data-lucide="alert-circle" style="width:15px;height:15px;color:#EF5350;flex-shrink:0;margin-top:1px"></i>'
-    +'<div style="flex:1;min-width:0"><div style="line-height:1.5">'+esc(msg)+'</div>'
-    +'<button type="button" onclick="copyErrBox(this)" style="background:none;border:none;color:#FFCDD2;text-decoration:underline;font-size:.68rem;font-weight:700;cursor:pointer;padding:4px 0 0;font-family:inherit">'+(isCW?'Kopani cholakwika':'Copy error')+'</button>'
-    +'</div></div>';
+    +'<div style="flex:1;min-width:0;line-height:1.5">'+esc(msg)+'</div>'
+    +'</div>';
   el.classList.add('on');
   if(window.lucide) lucide.createIcons({nodes:[el]});
-}
-function copyErrBox(btn){
-  const box=btn.closest('.a-err,.setup-err'); if(!box||!box.dataset.raw)return;
-  const msg=box.dataset.raw;
-  const done=function(){ const old=btn.textContent; btn.textContent=lang==='cw'?'Yakopedwa!':'Copied!'; setTimeout(function(){btn.textContent=old;},1800); };
-  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(done).catch(done);
-  else done();
 }
 function fmtAErr(code){
   const isCW = lang === 'cw';
@@ -2774,37 +2771,61 @@ function createHH(){
 }
 
 // Restores the waiting-for-approval screen after app reopen during a pending join request
-function _restoreWaitingScreen(code){
+// ── Setup screen: "Waiting for Approval" state, adapted from the join-flow
+// prototype. Text on this card sits directly on the translucent purple glass
+// (not on a light panel), so it needs to be white/light — the previous version
+// used var(--mid)/var(--border), which are dark-on-light tokens meant for the
+// household-code pill below, and were basically unreadable here. Shared by
+// joinHH() (just submitted) and _restoreWaitingScreen() (resumed after reopen).
+function renderSetupJoinWaiting(code, justSubmitted){
   const setupBox = g('setup-card-join') || document.querySelector('.setup-card') || document.querySelector('.auth-box');
   if(!setupBox) return;
   const soloCard = g('setup-card-solo'); if(soloCard) soloCard.style.display='none';
   const heading = g('setup-heading'); if(heading) heading.style.display='none';
   const isCW = lang === 'cw';
+  const subText = justSubmitted
+    ? (isCW?'Pempho lanu latumizidwa. Mudziwa mukavomelezwa.':'Your request has been sent. You\'ll connect automatically once the owner approves.')
+    : (isCW?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa.':'Your request is still pending. You\'ll connect automatically once the owner approves.');
   setupBox.innerHTML =
     '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
     +'<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#4A148C,#6A1B9A,#8E24AA);border-radius:0 0 24px 24px;position:relative;overflow:hidden">'
     +'<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>'
-    +'<style>@keyframes pulse-ring{0%{transform:scale(1);opacity:.5}70%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}</style>'
     +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;position:relative">'
     +'<div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.15);animation:pulse-ring 2s ease-out infinite"></div>'
     +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center">'
     +'<i data-lucide="clock" style="width:26px;height:26px;color:#fff"></i>'
     +'</div></div>'
     +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(isCW?'Chonde Dikirani Chilolezo':'Waiting for Approval')+'</div>'
-    +'<div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.6">'+(isCW?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa.':'Your request is still pending. You\'ll connect automatically once the owner approves.')+'</div>'
+    +'<div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.6">'+subText+'</div>'
     +'</div>'
     +'<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:var(--cr-md);padding:10px 14px;font-size:.75rem;color:var(--mid);margin-bottom:14px">'
     +'<i data-lucide="home" style="width:14px;height:14px;flex-shrink:0;color:var(--p1)"></i>'
-    +'<span>'+(isCW?'Nyumba':'Household')+': <strong style="color:var(--ink);font-family:monospace;letter-spacing:.5px">'+code+'</strong></span>'
+    +'<span>'+(isCW?'Nyumba':'Household')+': <strong style="color:var(--ink);font-family:monospace;letter-spacing:.5px">'+esc(code)+'</strong></span>'
     +'</div>'
-    +'<div style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:.72rem;color:var(--mid);margin-bottom:10px" id="approval-listening-indicator">'
-    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--p1)" stroke-width="2.5" style="animation:spin 1.2s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
-    +(isCW?'Kudikira chilolezo...':'Listening for approval...')
+    +'<div style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:.74rem;color:rgba(255,255,255,.75);margin-bottom:14px" id="approval-listening-indicator">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" style="animation:spin 1.2s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
+    +(isCW?'Kudikira chilolezo…':'Listening for approval…')
     +'</div>'
-    +'<button onclick="cancelPendingJoin()" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-md);padding:7px 16px;font-size:.72rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(isCW?'Siyani Pempho':'Cancel Request')+'</button>'
+    +'<button onclick="cancelPendingJoin()" style="width:100%;background:none;border:1.5px solid rgba(255,255,255,.35);border-radius:var(--cr-md);padding:11px;font-size:.8rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit">'+(isCW?'Siyani Pempho':'Cancel Request')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[setupBox]});
   if(window._pushOnboardScreen) _pushOnboardScreen('waiting-approval');
+}
+
+// Swaps the waiting card's header into the green "You're Approved!" state.
+// Shared by both polling loops below (joinHH's fresh poll and
+// _restoreWaitingScreen's resumed poll) — was previously duplicated verbatim.
+function _setupJoinApproved(){
+  const box = g('pending-approval-box');
+  if(!box) return;
+  const isCW = lang === 'cw';
+  box.innerHTML = '<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#1B5E20,#2E7D32,#388E3C);border-radius:0 0 24px 24px"><div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:rgba(255,255,255,.2)"><i data-lucide="check-circle" style="width:32px;height:32px;color:#fff"></i></div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(isCW?'Mwavomelezedwa!':'You\'re Approved!')+'</div><div style="font-size:.75rem;color:rgba(255,255,255,.75)">'+(isCW?'Kulumikizana tsopano...':'Connecting you now...')+'</div></div>';
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+}
+
+function _restoreWaitingScreen(code){
+  const isCW = lang === 'cw';
+  renderSetupJoinWaiting(code, false);
   // Resume polling
   let _pollCount = 0;
   const MAX_P = 120;
@@ -2823,11 +2844,7 @@ function _restoreWaitingScreen(code){
           localStorage.removeItem('nb_pending_join');
           localStorage.setItem('nb_household', code);
           _claimMembership(code);
-          const box = g('pending-approval-box');
-          if(box){
-            box.innerHTML = '<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#1B5E20,#2E7D32,#388E3C);border-radius:0 0 24px 24px"><div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:rgba(255,255,255,.2)"><i data-lucide="check-circle" style="width:32px;height:32px;color:#fff"></i></div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(lang==='cw'?'Mwavomelezedwa!':'You\'re Approved!')+'</div><div style="font-size:.75rem;color:rgba(255,255,255,.75)">'+(lang==='cw'?'Kulumikizana tsopano...':'Connecting you now...')+'</div></div>';
-            if(window.lucide) lucide.createIcons({nodes:[box]});
-          }
+          _setupJoinApproved();
           setTimeout(function(){ hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Takulandirani mu nyumba!':'Welcome to the household!','s'); }, 1200);
         } else {
           // Not approved yet — check whether the owner declined (request doc removed)
@@ -2948,39 +2965,7 @@ function joinHH(){
           hide('scr-setup');
           g('app').classList.add('hide');
           show('scr-setup');
-          const setupBox = g('setup-card-join') || document.querySelector('.setup-card') || document.querySelector('.auth-box');
-          const soloCard = g('setup-card-solo'); if(soloCard) soloCard.style.display='none';
-          const heading = g('setup-heading'); if(heading) heading.style.display='none';
-          if(setupBox){
-            setupBox.innerHTML =
-              '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
-              // Purple gradient header with pulse ring — on-brand
-              +'<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#4A148C,#6A1B9A,#8E24AA);border-radius:0 0 24px 24px;position:relative;overflow:hidden">'
-              +'<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>'
-              +'<style>@keyframes pulse-ring{0%{transform:scale(1);opacity:.5}70%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}</style>'
-              +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;position:relative">'
-              +'<div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.15);animation:pulse-ring 2s ease-out infinite"></div>'
-              +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center">'
-              +'<i data-lucide="clock" style="width:26px;height:26px;color:#fff"></i>'
-              +'</div></div>'
-              +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(lang==='cw'?'Chonde Dikirani Chilolezo':'Waiting for Approval')+'</div>'
-              +'<div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.6">'+(lang==='cw'?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa.':'Your request has been sent. You will connect automatically once the owner approves.')+'</div>'
-              +'</div>'
-              // Household code pill
-              +'<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:var(--cr-md);padding:10px 14px;font-size:.75rem;color:var(--mid);margin-bottom:14px">'
-              +'<i data-lucide="home" style="width:14px;height:14px;flex-shrink:0;color:var(--p1)"></i>'
-              +'<span>'+(lang==='cw'?'Nyumba':'Household')+': <strong style="color:var(--ink);font-family:monospace;letter-spacing:.5px">'+code+'</strong></span>'
-              +'</div>'
-              // Listening indicator with spinner
-              +'<div style="display:flex;align-items:center;justify-content:center;gap:7px;font-size:.72rem;color:var(--mid);margin-bottom:14px" id="approval-listening-indicator">'
-              +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--p1)" stroke-width="2.5" style="animation:spin 1.2s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
-              +(lang==='cw'?'Kudikira chilolezo...':'Listening for approval...')
-              +'</div>'
-              +'<div style="text-align:center"><button onclick="cancelPendingJoin()" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-md);padding:7px 16px;font-size:.72rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Siyani Pempho':'Cancel Request')+'</button></div>'
-              +'</div>';
-            if(window.lucide) lucide.createIcons({nodes:[setupBox]});
-            if(window._pushOnboardScreen) _pushOnboardScreen('waiting-approval');
-          }
+          renderSetupJoinWaiting(code, true);
           toast(lang==='cw'?'Pempho lotumizidwa. Mudziwa mukavomelezwa.':'Join request sent. You\'ll be notified when approved.','i');
 
           // Auto-detect approval: poll the household doc every 5 seconds
@@ -2994,7 +2979,7 @@ function joinHH(){
             if(_approvalUnsub === false) return; // stopped
             if(_approvalPollCount >= MAX_POLLS){
               const indicator = g('approval-listening-indicator');
-              if(indicator) indicator.innerHTML = '<button onclick="location.reload()" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-md);padding:7px 16px;font-size:.75rem;color:var(--mid);cursor:pointer;font-family:inherit">'+(lang==='cw'?'Onani Pomwe':'Check Again')+'</button>';
+              if(indicator) indicator.innerHTML = '<button onclick="location.reload()" style="background:none;border:1.5px solid rgba(255,255,255,.35);border-radius:var(--cr-md);padding:7px 16px;font-size:.75rem;color:#fff;cursor:pointer;font-family:inherit">'+(lang==='cw'?'Onani Pomwe':'Check Again')+'</button>';
               return;
             }
             _approvalPollCount++;
@@ -3008,19 +2993,7 @@ function joinHH(){
                   localStorage.removeItem('nb_pending_join'); // clear pending flag
                   localStorage.setItem('nb_household', code);
                   _claimMembership(code);
-                  // Show approved animation
-                  const box = g('pending-approval-box');
-                  if(box){
-                    box.innerHTML =
-                      '<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#1B5E20,#2E7D32,#388E3C);border-radius:0 0 24px 24px">'
-                      +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:rgba(255,255,255,.2)">'
-                      +'<i data-lucide="check-circle" style="width:32px;height:32px;color:#fff"></i>'
-                      +'</div>'
-                      +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;color:#fff;margin-bottom:6px">'+(lang==='cw'?'Mwavomelezedwa!':'You\'re Approved!')+'</div>'
-                      +'<div style="font-size:.75rem;color:rgba(255,255,255,.75)">'+(lang==='cw'?'Kulumikizana tsopano...':'Connecting you now...')+'</div>'
-                      +'</div>';
-                    if(window.lucide) lucide.createIcons({nodes:[box]});
-                  }
+                  _setupJoinApproved();
                   setTimeout(function(){
                     hide('scr-setup'); g('app').classList.remove('hide');
                     connectHH(code);
@@ -3245,7 +3218,7 @@ function logout(){
   authReg=false;
   auth.signOut().catch(()=>{});
   chatHistory=[]; 
-  toast('See you soon! 👋.','i');
+  toast('See you soon!','i');
   }, 'Sign Out', true);
 }
 
@@ -3290,8 +3263,8 @@ function checkAndAddRecurring(){
   });
   localStorage.setItem(KEY,periodStart);
   toast(lang==='cw'
-    ? actuallyAdd.length+' zinthu zofanananso zaonjezedwa kwa nthawi ino 🔄'
-    : actuallyAdd.length+' recurring item'+(actuallyAdd.length>1?'s':'')+' added for this period 🔄',
+    ? actuallyAdd.length+' zinthu zofanananso zaonjezedwa kwa nthawi ino'
+    : actuallyAdd.length+' recurring item'+(actuallyAdd.length>1?'s':'')+' added for this period',
   's');
 }
 
@@ -3717,7 +3690,7 @@ function rLog(){
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" onclick="setU(\''+u.id+'\')">'+'<div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+trName(name)+'</div>';}).join('');
-    if(picks)h+='<div class="fsec"><label class="fl">&#9889; '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
+    if(picks)h+='<div class="fsec"><label class="fl"><i data-lucide="zap" style="width:11px;height:11px;vertical-align:-1px;color:#F9A825"></i> '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
     h+='<div class="fsec"><label class="fl">'+t.selItem+'</label>'
       +'<input type="text" class="fi" id="log-srch" placeholder="'+t.searchPurchases+'" oninput="filterLogItems(this.value)" value="'+esc(logSrch)+'" style="margin-bottom:8px;font-size:.84rem">'
       +'<div id="log-search-results"></div>';
@@ -3725,11 +3698,11 @@ function rLog(){
       const si=lCfg.items[selItem];
       if(si)h+='<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:var(--cr-md);padding:8px 12px;margin-bottom:8px"><div style="font-size:1.05rem">'+ico(si.name)+'</div><div style="flex:1;font-weight:700;font-size:.82rem;color:var(--ink)">'+esc(trName(si.name))+'</div><button onclick="pickI(null)" style="border:none;background:none;color:var(--mid);cursor:pointer;padding:2px" aria-label="Clear selection"><i data-lucide="x" style="width:15px;height:15px"></i></button></div>';
     }
-    h+='<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" style="border-style:dashed;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 10px"><div class="ic-ico">&#9998;</div><div class="ic-nm">'+(lang==='cw'?'Chinthu Chinanso':'Custom item')+'</div></div>'
+    h+='<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" style="border-style:dashed;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 10px"><div class="ic-ico"><i data-lucide="pencil" style="width:16px;height:16px"></i></div><div class="ic-nm">'+(lang==='cw'?'Chinthu Chinanso':'Custom item')+'</div></div>'
       +'</div>';
     if(selItem==='custom'){
       h+='<div class="fsec" style="background:var(--mist);border-radius:var(--cr-md);padding:12px;margin-bottom:4px">'
-        +'<label class="fl" style="margin-bottom:6px">&#9998; '+(lang==='cw'?'Dzina la Chinthu':'Item Name')+'</label>'
+        +'<label class="fl" style="margin-bottom:6px"><i data-lucide="pencil" style="width:10px;height:10px;vertical-align:-1px"></i> '+(lang==='cw'?'Dzina la Chinthu':'Item Name')+'</label>'
         +'<input type="text" class="fi" id="custom-item-name" placeholder="e.g. Medicine, Bus fare..." style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
         +'<label class="fl" style="margin-bottom:6px">'+(lang==='cw'?'Gulu':'Category')+'</label>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="custom-cat-grid">'
@@ -3891,7 +3864,7 @@ function rHist(){
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
         h+='<div class="plrow2"><span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
         h+='<div class="plact">';
-        h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+p.id+'">&#9998; '+t.editP+'</button>';
+        h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+p.id+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
         h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+p.id+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
         h+='</div></div></div>';
       });
@@ -4000,7 +3973,7 @@ function openEP(id){
   const p=lPx.find(x=>x.id===id); if(!p)return;
   const t=tx(), isI=p.type==='income';
   const pt=p.timestamp?new Date(p.timestamp).toTimeString().slice(0,5):'12:00';
-  let h='<div class="dh"></div><h3>&#9998; Edit Entry</h3><input type="hidden" id="ep-id" value="'+id+'"><input type="hidden" id="ep-uid" value="'+(p.userId||lCfg.users[0].id)+'">';
+  let h='<div class="dh"></div><h3><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;margin-right:3px"></i> Edit Entry</h3><input type="hidden" id="ep-id" value="'+id+'"><input type="hidden" id="ep-uid" value="'+(p.userId||lCfg.users[0].id)+'">';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+((p.userId||lCfg.users[0].id)===u.id?' on':'')+'" onclick="epU(this,\''+u.id+'\')"><div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(!isI)h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+lCfg.items.map(it=>'<option value="'+esc(it.name)+'" '+(p.item===it.name?'selected':'')+'>'+esc(trName(it.name))+'</option>').join('')+'</select></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+p.amount+'" inputmode="numeric"></div></div>';
@@ -4096,7 +4069,7 @@ function rSum(){
     cats.forEach(([cat,val_],i)=>{
       const clr=PC[cat]||PIE_COLORS[i%PIE_COLORS.length];
       const pct=Math.round(val_/tS*100);
-      const catIcon={Food:'utensils',Household:'home',Personal:'user',Transport:'car',Other:'more-horizontal'}[cat]||'circle';
+      const catIcon={Food:'utensils',Household:'home',Personal:'user',Transport:'bus',Other:'package'}[cat]||'circle';
       h+=`<div style="background:var(--mist);border-radius:var(--cr);padding:12px 13px">
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
           <div style="width:34px;height:34px;border-radius:var(--cr-md);background:${clr}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -4396,7 +4369,7 @@ function saveGoal(){
   cfg.goals.push(goal);
   saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); _stgRefresh();
 }
-function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8593; '+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:#2E7D32"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(i){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
@@ -4405,7 +4378,7 @@ function topUpGoal(i){
   const actual=Math.min(amt, gl.target-gl.saved);
   gl.saved=Math.min(gl.saved+amt,gl.target);
   saveCfg(cfg); closeM('mv-gl');
-  if(gl.saved>=gl.target) toast('🎉 Goal complete! '+gl.name+' reached!','s');
+  if(gl.saved>=gl.target) toast('Goal complete! '+gl.name+' reached!','s');
   else toast('Goal updated! '+MK(actual)+' added.','s');
   _stgRefresh();
 }
@@ -4522,7 +4495,7 @@ function rStg(){
     +'</div>':'')
     +'</div>';
   // Household Code
-  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.65rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1)"></i></button><button class="hc-btn hc-wa" onclick="event.stopPropagation();waCode()" style="font-size:.65rem;padding:5px 8px"><i data-lucide="send" style="color:#25D366"></i></button><span class="stg-chev">›</span></div></div>';
+  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.65rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1)"></i></button><button class="hc-btn hc-wa" onclick="event.stopPropagation();waCode()" style="font-size:.65rem;padding:5px 8px"><i data-lucide="send" style="width:13px;height:13px;vertical-align:middle"></i></button><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="switchHousehold()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="arrow-left-right" style="color:var(--o1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:#E65100">'+(lang==='cw'?'Siyani / Sintha Nyumba':'Switch / Leave Household')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Lowani nyumba ina osaloka kwathunthu':'Join a different household without signing out')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:#E65100">›</span></div></div>';
   h+='</div>';
 
@@ -4605,7 +4578,8 @@ function showWhatsNew(){
 
 
 function buildStgSortBar(t){
-  const modes=[['cat','&#128193; '+t.sortCat],['az',t.sortAZ],['over','&#128308; '+t.sortOver],['spend','&#128176; '+t.sortSpend]];
+  const ic=function(name){return '<i data-lucide="'+name+'" style="width:12px;height:12px;vertical-align:-2px;margin-right:3px;color:currentColor"></i>';};
+  const modes=[['cat',ic('layout-grid')+t.sortCat],['az',t.sortAZ],['over',ic('alert-circle')+t.sortOver],['spend',ic('flame')+t.sortSpend]];
   return '<div class="sort-bar">'+modes.map(function(m){return '<div class="sb'+(sortMode===m[0]?' on':'')+'" onclick="sortAndStg(\''+m[0]+'\')" >'+m[1]+'</div>';}).join('')+'</div>';
 }
 function stgOpenSection(sec){
@@ -4622,7 +4596,7 @@ function stgOpenSection(sec){
     let h='<div class="page">';
     h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:var(--cr);padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):sec==='goals'?(lang==='cw'?'Zolinga zosungira':'Savings Goals'):(lang==='cw'?'Zolipira':'Bill Tracker'))+'</h2></div>';
     if(sec==='members'){
-      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()">&#10133; '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')">&#9998;</button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
+      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')"><i data-lucide="pencil" style="width:12px;height:12px"></i></button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
       // Pending join requests — visible to owner
       // Check lHHDoc.owner first, fall back to ownedHouseholds on user doc for old households
       const isOwner = curUser && (
@@ -4670,17 +4644,17 @@ function stgOpenSection(sec){
       const items=lCfg.items;
       if(sortMode==='cat'){['Food','Household','Personal','Transport','Other'].forEach(cat=>{const ci=items.map((it,i)=>({...it,i})).filter(it=>catOf(it.name)===cat);if(!ci.length)return;h+='<div class="cat-hdr"><span style="color:'+CAT_COLORS[cat]+'">'+(t.cats[cat]||cat)+'</span></div>';ci.forEach(it=>h+=rMGI(it,it.i));});}
       else{let sorted=items.map((it,i)=>({...it,i,sp:iSpent(it.name)}));if(sortMode==='az')sorted.sort((a,b)=>a.name.localeCompare(b.name));else if(sortMode==='over')sorted.sort((a,b)=>(b.sp/b.budget)-(a.sp/a.budget));else if(sortMode==='spend')sorted.sort((a,b)=>b.sp-a.sp);sorted.forEach(it=>h+=rMGI(it,it.i));}
-      h+='<div class="addform"><h3>&#10133; '+t.addItem+'</h3><input type="text" class="fi" id="ni-n" placeholder="'+t.iname+'" style="margin-bottom:9px"><div style="display:flex;gap:7px"><input type="number" class="fi" id="ni-b" placeholder="'+t.ibudget+'" inputmode="numeric" style="flex:1"><button class="btnM" onclick="addItAndStay()" style="width:auto;padding:9px 18px;font-size:.82rem">'+t.add+'</button></div></div></div>';
+      h+='<div class="addform"><h3><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;margin-right:2px"></i> '+t.addItem+'</h3><input type="text" class="fi" id="ni-n" placeholder="'+t.iname+'" style="margin-bottom:9px"><div style="display:flex;gap:7px"><input type="number" class="fi" id="ni-b" placeholder="'+t.ibudget+'" inputmode="numeric" style="flex:1"><button class="btnM" onclick="addItAndStay()" style="width:auto;padding:9px 18px;font-size:.82rem">'+t.add+'</button></div></div></div>';
     } else if(sec==='goals'){
-      h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2><button class="bsm be" onclick="openAddGoal()">&#10133; '+t.addGoal+'</button></div><div class="cb">';
+      h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2><button class="bsm be" onclick="openAddGoal()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addGoal+'</button></div><div class="cb">';
       if(lCfg.goals&&lCfg.goals.length){lCfg.goals.forEach((gl,i)=>{
         const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target;
         const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);
         h+='<div class="goal-card" style="margin-bottom:9px'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
         h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div>';
         h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div>';
-        if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')">&#8593; '+t.topup+'</button>';
-        h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+')">&#128465;</button></div></div>';
+        if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')"><i data-lucide="arrow-up" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.topup+'</button>';
+        h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+')"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></div></div>';
         h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
         h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
         if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.65rem;color:#E65100;font-weight:700;background:#FFF3E0;border-radius:var(--cr-sm);padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+' needed'+(ml!==null?' · '+ml+(lang==='cw'?' miyezi':'mths left'):'')+'</div>';
@@ -4968,7 +4942,7 @@ function buildAndDownloadPdf(fromD, toD, periodLabel){
   const fullHtml = html + '<div class="header"><div class="logo"><svg width="36" height="36" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.2)"/><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg></div><div class="header-info"><h1>Bajeti Yanga</h1><p>Financial Report &bull; '+periodLabel+'<br>Household: '+hhId+' &bull; Generated: '+new Date().toLocaleDateString()+'</p></div></div>'
     + '<div class="summary-grid"><div class="sum-card spent"><div class="sum-val">MK '+Number(sp).toLocaleString()+'</div><div class="sum-lbl">Total Spent</div></div><div class="sum-card income"><div class="sum-val">MK '+Number(inc).toLocaleString()+'</div><div class="sum-lbl">Income</div></div><div class="sum-card"><div class="sum-val">MK '+Number(Math.max(0,bg-sp)).toLocaleString()+'</div><div class="sum-lbl">Budget Remaining</div></div></div>'
     + '<div class="section"><h2>Spending by Category</h2>'+catRows+'</div>'
-    + '<div class="section"><h2>👤 Spending by Member</h2>'+memberRows+'</div>'
+    + '<div class="section"><h2>Spending by Member</h2>'+memberRows+'</div>'
     + '<div class="section"><h2>All Transactions ('+rangePx.length+')</h2><table class="tx-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Amount</th><th>Member</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
     + '<div class="footer">Bajeti Yanga v'+APP_VERSION+' &middot; &copy; 2026 Rodart Creatives &bull; Made in Malawi 🇲🇼</div></body></html>';
 
