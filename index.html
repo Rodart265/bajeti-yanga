@@ -1351,7 +1351,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.4.8';
+const APP_VERSION = '9.4.9';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
@@ -2979,6 +2979,20 @@ function connectHH(code){
       return;
     }
     { const d=doc.data();
+      // Defense-in-depth: re-validate live membership on every snapshot, not
+      // only when the (separately gated) purchases listener happens to hit a
+      // permission-denied later. Without this, a removed member could still
+      // land here via the "Welcome back" shortcut (connectHH called directly,
+      // no join-request involved) and briefly render real household config —
+      // the household doc itself is readable by any signed-in user by design
+      // (needed for join-code verification), so this check is the only thing
+      // standing between "removed" and "quietly still in." Only runs when
+      // memberUids actually exists on the doc, to stay backward-compatible
+      // with old households created before that field existed.
+      if(curUser && Array.isArray(d.memberUids) && !d.memberUids.includes(curUser.uid) && curUser.uid !== d.owner){
+        handleRemovedFromHousehold();
+        return;
+      }
       lHHDoc = d;
       lCfg=d.config||JSON.parse(JSON.stringify(DEF_CFG)); if(!lCfg.goals)lCfg.goals=[];
       let _mg=false;
@@ -4455,6 +4469,7 @@ function rStg(){
 function showWhatsNew(){
   const isCW=lang==='cw';
   const changes=[
+    {icon:'user-x',        color:'#C62828', title:'Household Join Fixes',      desc:'Cancelling a join request and detecting a declined one now actually work. Removed members can no longer slip back in without a new approval.'},
     {icon:'alarm-clock',   color:'#2E7D32', title:'Bill Tracker: Mark as Paid', desc:'Tap the new checkmark on a bill to log the payment as an expense and roll the due date forward a month.'},
     {icon:'zap',           color:'#7B1FA2', title:'Faster, Focused Quick Pick', desc:'Trimmed down to your most-used staples so logging an entry is quicker.'},
     {icon:'shield-check',  color:'#1565C0', title:'Safer Member Removal',       desc:'Removing a household member now also revokes their access, not just their name from the list.'},
