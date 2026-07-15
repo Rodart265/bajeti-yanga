@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.4.5</title>
+<title>Bajeti Yanga </title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
@@ -876,6 +876,9 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 .cg-choice-btn{flex:1;padding:16px 10px;border:2px solid var(--border);border-radius:var(--cr-md);background:var(--white);text-align:center;cursor:pointer}
 .cg-choice-btn:active{border-color:var(--p1)}
 .cg-code-box{display:flex;align-items:center;justify-content:center;background:var(--mist);border-radius:var(--cr-md);padding:14px;margin:4px 0 10px;font-family:monospace;font-size:1.3rem;font-weight:800;letter-spacing:2px;color:var(--p1)}
+.cg-code-pill{display:inline-flex;align-items:center;gap:6px;background:var(--mist);border-radius:20px;padding:5px 10px;font-family:monospace;font-size:.7rem;font-weight:700;letter-spacing:1px;color:var(--p1);cursor:pointer}
+.cg-row-x{background:none;border:none;color:var(--mid);cursor:pointer;padding:4px;flex-shrink:0;display:flex;align-items:center}
+.cg-link-danger{display:block;width:100%;text-align:center;background:none;border:none;color:var(--r2);font-size:.72rem;font-weight:700;font-family:Hanken Grotesk,sans-serif;padding:10px 0 2px;cursor:pointer}
 
 </style>
 </head>
@@ -3450,6 +3453,10 @@ function startChipRotation(){
 function chipTogglePaid(uid){
   const grp=activeChipGroup(); if(!grp||!grp.currentCycle) return;
   const isCW=lang==='cw';
+  const cc=grp.currentCycle;
+  const isSelf = curUser && uid===curUser.uid;
+  const isRecipientUser = curUser && curUser.uid===cc.recipientUid;
+  if(!isSelf && !isRecipientUser){ toast(isCW?'Ndinu kapena wolandira yekha amene angasinthe izi':'Only you or the recipient can update this','e'); return; }
   const cur=grp.currentCycle.contributions[uid]||{};
   const next=!cur.paid;
   const patch={};
@@ -3480,34 +3487,51 @@ function chipConfirmPayout(){
   const grp=activeChipGroup(); if(!grp||!grp.currentCycle) return;
   const isCW=lang==='cw';
   const cc=grp.currentCycle;
-  const contributors=grp.rotationOrder.filter(u=>u!==cc.recipientUid);
-  const allPaid=contributors.length>0 && contributors.every(u=>cc.contributions[u]&&cc.contributions[u].paid);
-  if(!allPaid){ toast(isCW?'Onse asanalipire':'Not everyone has paid yet','e'); return; }
-  const idx=grp.rotationOrder.indexOf(cc.recipientUid);
-  const nextRecipient=grp.rotationOrder[(idx+1)%grp.rotationOrder.length];
-  const newContributions={};
-  grp.rotationOrder.forEach(function(u){ if(u!==nextRecipient) newContributions[u]={paid:false,paidAt:null,confirmedBy:null}; });
-  const histEntry={cycleNumber:cc.cycleNumber, recipientUid:cc.recipientUid, amount:cc.amount, date:today()};
-  const wasMyPayout = curUser && cc.recipientUid===curUser.uid;
+  if(!curUser || (curUser.uid!==cc.recipientUid && curUser.uid!==grp.createdBy)){
+    toast(isCW?'Ndi wolandira kapena mtsogoleri yekha amene angatsimikizire':'Only the recipient or the admin can confirm this payout','e'); return;
+  }
   setDot('spin');
-  db.collection('chipereganyu_groups').doc(grp.id).update({
-    history: firebase.firestore.FieldValue.arrayUnion(histEntry),
-    currentCycle:{
-      cycleNumber:cc.cycleNumber+1,
-      recipientUid:nextRecipient,
-      dueDate:chipNextDue(grp.frequency),
-      amount:grp.contributionAmount*(grp.rotationOrder.length-1),
-      contributions:newContributions
-    }
+  const ref=db.collection('chipereganyu_groups').doc(grp.id);
+  let payoutInfo=null;
+  db.runTransaction(function(tx){
+    return tx.get(ref).then(function(doc){
+      if(!doc.exists) throw {code:'missing'};
+      const d=doc.data();
+      const cur=d.currentCycle;
+      if(!cur) throw {code:'no-cycle'};
+      const contributors=(d.rotationOrder||[]).filter(u=>u!==cur.recipientUid);
+      const allPaid=contributors.length>0 && contributors.every(u=>cur.contributions[u]&&cur.contributions[u].paid);
+      if(!allPaid) throw {code:'not-all-paid'};
+      const idx=d.rotationOrder.indexOf(cur.recipientUid);
+      const nextRecipient=d.rotationOrder[(idx+1)%d.rotationOrder.length];
+      const newContributions={};
+      d.rotationOrder.forEach(function(u){ if(u!==nextRecipient) newContributions[u]={paid:false,paidAt:null,confirmedBy:null}; });
+      const histEntry={cycleNumber:cur.cycleNumber, recipientUid:cur.recipientUid, amount:cur.amount, date:today()};
+      payoutInfo={wasMyPayout: curUser && cur.recipientUid===curUser.uid, amount:cur.amount, groupName:d.name};
+      tx.update(ref,{
+        history: firebase.firestore.FieldValue.arrayUnion(histEntry),
+        currentCycle:{
+          cycleNumber:cur.cycleNumber+1,
+          recipientUid:nextRecipient,
+          dueDate:chipNextDue(d.frequency),
+          amount:d.contributionAmount*(d.rotationOrder.length-1),
+          contributions:newContributions
+        }
+      });
+    });
   }).then(function(){
     setDot('');
-    if(wasMyPayout){
+    if(payoutInfo && payoutInfo.wasMyPayout){
       // Only log an income entry when the current signed-in account is the one receiving --
       // we can't write into another member's household budget.
-      addPx({item:(isCW?'Chipereganyu \u2014 '+grp.name:'Chipereganyu \u2014 '+grp.name), date:today(), timestamp:Date.now(), amount:cc.amount, userId:actU().id, type:'income', notes:grp.name});
+      addPx({item:(isCW?'Chipereganyu \u2014 '+payoutInfo.groupName:'Chipereganyu \u2014 '+payoutInfo.groupName), date:today(), timestamp:Date.now(), amount:payoutInfo.amount, userId:actU().id, type:'income', notes:payoutInfo.groupName});
     }
     toast(isCW?'Ndalama zatumizidwa!':'Payout confirmed!','s');
-  }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }).catch(function(e){
+    setDot('off');
+    if(e && e.code==='not-all-paid') toast(isCW?'Onse asanalipire':'Not everyone has paid yet','e');
+    else toast('Failed: '+(e&&e.code||'error'),'e');
+  });
 }
 
 function renderChipHomeCard(){
@@ -3558,13 +3582,20 @@ function rChip(){
     h+='<div style="display:flex;gap:8px;margin-bottom:14px"><button class="btnG" style="flex:1" onclick="cpChipCode(\''+grp.id+'\')"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Koperani':'Copy')+'</button><button class="btnG" style="flex:1" onclick="waChipCode(\''+grp.id+'\')"><i data-lucide="share-2" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>WhatsApp</button></div>';
     (grp.rotationOrder||[]).forEach(function(uid,i){
       const m=grp.members[uid]||{name:'?',color:'#999'};
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(uid===grp.createdBy?'<span style="font-size:.64rem;color:var(--p1);font-weight:700">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+'</div>';
+      const isAdminRow=uid===grp.createdBy;
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.64rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
     });
+    if(!isAdmin){
+      h+='<button class="cg-link-danger" style="color:var(--mid)" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
+    }
     if(isAdmin){
       h+='<button class="cg-cta on" onclick="startChipRotation()" style="margin-top:10px"><i data-lucide="play" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Yambani Chipereganyu':'Start Chipereganyu')+'</button>';
       if((grp.rotationOrder||[]).length<2) h+='<p style="font-size:.7rem;color:var(--mid);text-align:center;margin-top:8px">'+(isCW?'Muyenera membala osachepera 2 kuti muyambe.':'You need at least 2 members to start.')+'</p>';
     } else {
       h+='<p style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Mukudikira mtsogoleri kuti ayambe.':'Waiting for the admin to start the rotation.')+'</p>';
+    }
+    if(isAdmin){
+      h+='<button class="cg-link-danger" onclick="chipDeleteGroup()">'+(isCW?'Chotsani gulu lino':'Delete this group')+'</button>';
     }
     h+='</div></div></div>';
     g('view').innerHTML=h; initIcons(); return;
@@ -3578,6 +3609,7 @@ function rChip(){
   const circ=2*Math.PI*48;
   const recipientName=(grp.members[cc.recipientUid]||{}).name||'?';
 
+  h+='<div style="text-align:center;margin-bottom:6px"><span class="cg-code-pill" onclick="cpChipCode(\''+grp.id+'\')" title="'+(isCW?'Kopelani nambala':'Tap to copy code')+'"><i data-lucide="hash" style="width:11px;height:11px"></i>'+grp.id+'<i data-lucide="copy" style="width:11px;height:11px"></i></span></div>';
   h+='<div class="cg-wheel">';
   h+='<svg class="cg-ring" width="250" height="250" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="50" cy="50" r="48" fill="none" stroke="var(--g1)" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+(circ*(1-pct)).toFixed(1)+'" style="transition:stroke-dashoffset .5s"/></svg>';
   h+='<div class="cg-pot"><div class="cg-pot-lbl">'+(isCW?'Gawo ':'Round ')+cc.cycleNumber+'</div><div class="cg-pot-val">'+MK(collected)+'</div><div class="cg-pot-sub">'+(isCW?'pa ':'of ')+MK(cc.amount)+'</div></div>';
@@ -3606,27 +3638,39 @@ function rChip(){
   h+='</div>';
 
   if(chipTab==='cycle'){
+    const isRecipientView = curUser && curUser.uid===cc.recipientUid;
     contributors.forEach(function(uid){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const paidInfo=cc.contributions[uid]||{};
-      h+='<div class="cg-row"><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b><span>'+MK(grp.contributionAmount)+'</span></div>';
+      const isSelfRow = curUser && uid===curUser.uid;
+      h+='<div class="cg-row"><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(isSelfRow?' ('+(isCW?'Inu':'You')+')':'')+'</b><span>'+MK(grp.contributionAmount)+'</span></div>';
       if(paidInfo.paid){
         h+='<div class="cg-pill-ok"><i data-lucide="check" style="width:10px;height:10px"></i>'+(isCW?'Walipira':'Paid')+'</div>';
-      } else {
+      } else if(isRecipientView || isSelfRow){
         h+='<div class="cg-pill-actions"><button class="cg-pill-remind" onclick="chipRemind(\''+uid+'\')"><i data-lucide="bell" style="width:11px;height:11px"></i></button><button class="cg-pill-mark" onclick="chipTogglePaid(\''+uid+'\')">'+(isCW?'Walipira':'Mark paid')+'</button></div>';
+      } else {
+        h+='<div class="cg-pill-actions"><button class="cg-pill-remind" onclick="chipRemind(\''+uid+'\')"><i data-lucide="bell" style="width:11px;height:11px"></i></button></div>';
       }
       h+='</div>';
     });
     const allPaid=contributors.length>0 && paidCount===contributors.length;
-    h+='<button class="cg-cta'+(allPaid?' on':' off')+'" '+(allPaid?'onclick="chipConfirmPayout()"':'disabled')+'>'+(allPaid?(isCW?'Tsimikizani kutumiza kwa '+esc(recipientName.split(' ')[0]):'Confirm payout to '+esc(recipientName.split(' ')[0])):(isCW?'Mukudikira '+(contributors.length-paidCount)+' ena':'Waiting on '+(contributors.length-paidCount)+' more contribution'+(contributors.length-paidCount===1?'':'s')))+'</button>';
+    const canConfirm = curUser && (curUser.uid===cc.recipientUid || curUser.uid===grp.createdBy);
+    if(allPaid && canConfirm){
+      h+='<button class="cg-cta on" onclick="chipConfirmPayout()">'+(isCW?'Tsimikizani kutumiza kwa '+esc(recipientName.split(' ')[0]):'Confirm payout to '+esc(recipientName.split(' ')[0]))+'</button>';
+    } else if(allPaid){
+      h+='<div style="text-align:center;font-size:.72rem;color:var(--mid);padding:12px 0">'+(isCW?'Onse alipira \u2014 mukudikira '+esc(recipientName.split(' ')[0])+' kuti atsimikizire':'All paid \u2014 waiting for '+esc(recipientName.split(' ')[0])+' to confirm')+'</div>';
+    } else {
+      h+='<button class="cg-cta off" disabled>'+(isCW?'Mukudikira '+(contributors.length-paidCount)+' ena':'Waiting on '+(contributors.length-paidCount)+' more contribution'+(contributors.length-paidCount===1?'':'s'))+'</button>';
+    }
   } else if(chipTab==='order'){
+    const isAdminView = curUser && curUser.uid===grp.createdBy;
     grp.rotationOrder.forEach(function(uid,i){
       const m=grp.members[uid]||{name:'?'};
       const isRecipient=uid===cc.recipientUid;
       const receivedBefore=(grp.history||[]).some(function(hh){return hh.recipientUid===uid;});
       const label=isRecipient?(isCW?'Akulandira tsopano':'Receiving now'):(receivedBefore?(isCW?'Analandira':'Received'):(isCW?'Akudikira':'Upcoming'));
       const color=isRecipient?'var(--p1)':(receivedBefore?'var(--g1)':'var(--mid)');
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(m.color||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b><span class="cg-order-st" style="color:'+color+'">'+label+'</span></div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(m.color||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span></div>';
     });
   } else {
     if(grp.history && grp.history.length){
@@ -3645,6 +3689,66 @@ function rChip(){
 
 function cpChipCode(code){ navigator.clipboard && navigator.clipboard.writeText(code).then(()=>toast(lang==='cw'?'Nambala yakoperedwa':'Code copied','i')).catch(()=>toast(lang==='cw'?'Nambala yakoperedwa':'Code copied','i')); }
 function waChipCode(code){ window.open('https://wa.me/?text='+encodeURIComponent('Join my Chipereganyu on Bajeti Yanga!\nCode: '+code),'_blank'); }
+
+function chipLeaveGroup(){
+  const grp=activeChipGroup(); if(!grp||!curUser) return;
+  const isCW=lang==='cw';
+  if(grp.status!=='gathering'){ toast(isCW?'Simungatuluke pambuyo poyamba':'You can\'t leave after the rotation has started','e'); return; }
+  if(curUser.uid===grp.createdBy){ toast(isCW?'Mtsogoleri sangatuluke. Chotsani gululi m\u2019malo mwake.':'The admin can\u2019t leave. Delete the group instead.','e'); return; }
+  appConfirm(isCW?'Mutuluka mu gululi?':'Leave this group?', function(){
+    setDot('spin');
+    const patch={
+      memberUids: firebase.firestore.FieldValue.arrayRemove(curUser.uid),
+      rotationOrder: firebase.firestore.FieldValue.arrayRemove(curUser.uid)
+    };
+    patch['members.'+curUser.uid]=firebase.firestore.FieldValue.delete();
+    db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
+      setDot(''); chipActiveId=null; toast(isCW?'Mwatuluka mu gulu':'Left the group','i'); go('home');
+    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }, isCW?'Tulukani':'Leave', true);
+}
+
+function chipRemoveMember(uid){
+  const grp=activeChipGroup(); if(!grp||!curUser||grp.createdBy!==curUser.uid) return;
+  const isCW=lang==='cw';
+  if(grp.status!=='gathering'){ toast(isCW?'Simungachotse membala pambuyo poyamba':'Can\'t remove members after the rotation has started','e'); return; }
+  const nm=(grp.members[uid]||{}).name||'';
+  appConfirm((isCW?'Chotsani ':'Remove ')+nm+(isCW?' mgululi?':' from the group?'), function(){
+    setDot('spin');
+    const patch={
+      memberUids: firebase.firestore.FieldValue.arrayRemove(uid),
+      rotationOrder: firebase.firestore.FieldValue.arrayRemove(uid)
+    };
+    patch['members.'+uid]=firebase.firestore.FieldValue.delete();
+    db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
+      setDot(''); toast(isCW?'Wachotsedwa':'Removed','i');
+    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }, isCW?'Chotsani':'Remove', true);
+}
+
+function chipDeleteGroup(){
+  const grp=activeChipGroup(); if(!grp||!curUser||grp.createdBy!==curUser.uid) return;
+  const isCW=lang==='cw';
+  if(grp.status!=='gathering'){ toast(isCW?'Simungathe kuchotsa gulu lomwe layamba kale':'Can\'t delete a group once it has started','e'); return; }
+  appConfirm(isCW?'Chotsani gulu lonseli? Izi sizingasinthidwe.':'Delete this group entirely? This can\u2019t be undone.', function(){
+    setDot('spin');
+    db.collection('chipereganyu_groups').doc(grp.id).delete().then(function(){
+      setDot(''); chipActiveId=null; toast(isCW?'Gulu lachotsedwa':'Group deleted','i'); go('home');
+    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }, isCW?'Chotsani':'Delete', true);
+}
+
+function chipMakeAdmin(uid){
+  const grp=activeChipGroup(); if(!grp||!curUser||grp.createdBy!==curUser.uid) return;
+  const isCW=lang==='cw';
+  const nm=(grp.members[uid]||{}).name||'';
+  appConfirm((isCW?'Sankhani ':'Make ')+nm+(isCW?' kukhala mtsogoleri?':' the new admin?'), function(){
+    setDot('spin');
+    db.collection('chipereganyu_groups').doc(grp.id).update({createdBy:uid}).then(function(){
+      setDot(''); toast(isCW?'Mtsogoleri watsopano wasankhidwa':'New admin set','i');
+    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }, isCW?'Sankhani':'Make admin', false);
+}
 
 
 function appConfirm(msg, onOk, okLabel, danger){
