@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
-<title>Bajeti Yanga v9.5.1</title>
+<title>Bajeti Yanga</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
@@ -1419,7 +1419,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.5.1';
+const APP_VERSION = '9.6.0';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
@@ -3459,7 +3459,8 @@ function chipTogglePaid(uid, btn){
   const cc=grp.currentCycle;
   const isSelf = curUser && uid===curUser.uid;
   const isRecipientUser = curUser && curUser.uid===cc.recipientUid;
-  if(!isSelf && !isRecipientUser){ toast(isCW?'Ndinu kapena wolandira yekha amene angasinthe izi':'Only you or the recipient can update this','e'); return; }
+  const isAdminUser = curUser && curUser.uid===grp.createdBy;
+  if(!isSelf && !isRecipientUser && !isAdminUser){ toast(isCW?'Ndinu, wolandira, kapena mtsogoleri yekha amene angasinthe izi':'Only you, the recipient, or the admin can update this','e'); return; }
   const cur=grp.currentCycle.contributions[uid]||{};
   const next=!cur.paid;
   const patch={};
@@ -3506,7 +3507,7 @@ function chipRemind(uid){
   toast((isCW?'Chikumbutso chatumizidwa kwa ':'Reminder sent to ')+nm,'i');
 }
 
-function chipConfirmPayout(btn){
+function chipConfirmPayout(btn, force){
   const grp=activeChipGroup(); if(!grp||!grp.currentCycle) return;
   const isCW=lang==='cw';
   const cc=grp.currentCycle;
@@ -3525,12 +3526,12 @@ function chipConfirmPayout(btn){
       if(!cur) throw {code:'no-cycle'};
       const contributors=(d.rotationOrder||[]).filter(u=>u!==cur.recipientUid);
       const allPaid=contributors.length>0 && contributors.every(u=>cur.contributions[u]&&cur.contributions[u].paid);
-      if(!allPaid) throw {code:'not-all-paid'};
+      if(!allPaid && !force) throw {code:'not-all-paid'};
       const idx=d.rotationOrder.indexOf(cur.recipientUid);
       const nextRecipient=d.rotationOrder[(idx+1)%d.rotationOrder.length];
       const newContributions={};
       d.rotationOrder.forEach(function(u){ if(u!==nextRecipient) newContributions[u]={paid:false,paidAt:null,confirmedBy:null}; });
-      const histEntry={cycleNumber:cur.cycleNumber, recipientUid:cur.recipientUid, amount:cur.amount, date:today()};
+      const histEntry={cycleNumber:cur.cycleNumber, recipientUid:cur.recipientUid, amount:cur.amount, date:today(), contributions:cur.contributions};
       payoutInfo={wasMyPayout: curUser && cur.recipientUid===curUser.uid, amount:cur.amount, groupName:d.name};
       tx.update(ref,{
         history: firebase.firestore.FieldValue.arrayUnion(histEntry),
@@ -3556,6 +3557,21 @@ function chipConfirmPayout(btn){
     if(e && e.code==='not-all-paid') toast(isCW?'Onse asanalipire':'Not everyone has paid yet','e');
     else toast('Failed: '+(e&&e.code||'error'),'e');
   });
+}
+
+function chipForceConfirmPrompt(){
+  const grp=activeChipGroup(); if(!grp||!grp.currentCycle||!curUser||curUser.uid!==grp.createdBy) return;
+  const isCW=lang==='cw';
+  const cc=grp.currentCycle;
+  const unpaidNames=grp.rotationOrder.filter(function(u){ return u!==cc.recipientUid && !(cc.contributions[u]&&cc.contributions[u].paid); }).map(function(u){ return (grp.members[u]||{}).name||'?'; }).join(', ');
+  appConfirm(
+    (isCW
+      ? (unpaidNames+' sanalipire. Kutsimikizira tsopano kudzasiya mbiri yosonyeza kuti sanalipire, ndipo sizingasinthidwe. Pitirizani?')
+      : (unpaidNames+' hasn\u2019t paid yet. Confirming now will record this round as short and can\u2019t be undone. Continue anyway?')),
+    function(){ chipConfirmPayout(null, true); },
+    isCW?'Tsimikizani chonse':'Force confirm',
+    true
+  );
 }
 
 function renderChipHomeCard(){
@@ -3663,6 +3679,7 @@ function rChip(){
 
   if(chipTab==='cycle'){
     const isRecipientView = curUser && curUser.uid===cc.recipientUid;
+    const isAdminView = curUser && curUser.uid===grp.createdBy;
     contributors.forEach(function(uid){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const paidInfo=cc.contributions[uid]||{};
@@ -3670,7 +3687,7 @@ function rChip(){
       h+='<div class="cg-row"><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(isSelfRow?' ('+(isCW?'Inu':'You')+')':'')+'</b><span>'+MK(grp.contributionAmount)+'</span></div>';
       if(paidInfo.paid){
         h+='<div class="cg-pill-ok"><i data-lucide="check" style="width:10px;height:10px"></i>'+(isCW?'Walipira':'Paid')+'</div>';
-      } else if(isRecipientView || isSelfRow){
+      } else if(isRecipientView || isSelfRow || isAdminView){
         h+='<div class="cg-pill-actions"><button class="cg-pill-remind" onclick="chipRemind(\''+uid+'\')"><i data-lucide="bell" style="width:11px;height:11px"></i></button><button class="cg-pill-mark" onclick="chipTogglePaid(\''+uid+'\',this)">'+(isCW?'Walipira':'Mark paid')+'</button></div>';
       } else {
         h+='<div class="cg-pill-actions"><button class="cg-pill-remind" onclick="chipRemind(\''+uid+'\')"><i data-lucide="bell" style="width:11px;height:11px"></i></button></div>';
@@ -3685,6 +3702,9 @@ function rChip(){
       h+='<div style="text-align:center;font-size:.72rem;color:var(--mid);padding:12px 0">'+(isCW?'Onse alipira \u2014 mukudikira '+esc(recipientName.split(' ')[0])+' kuti atsimikizire':'All paid \u2014 waiting for '+esc(recipientName.split(' ')[0])+' to confirm')+'</div>';
     } else {
       h+='<button class="cg-cta off" disabled>'+(isCW?'Mukudikira '+(contributors.length-paidCount)+' ena':'Waiting on '+(contributors.length-paidCount)+' more contribution'+(contributors.length-paidCount===1?'':'s'))+'</button>';
+      if(isAdminView){
+        h+='<button class="cg-link-danger" style="margin-top:8px" onclick="chipForceConfirmPrompt()">'+(isCW?'Tsimikizani chonse ngakhale ena sanalipire':'Force confirm anyway')+'</button>';
+      }
     }
   } else if(chipTab==='order'){
     const isAdminView = curUser && curUser.uid===grp.createdBy;
@@ -3701,13 +3721,26 @@ function rChip(){
       // since those are frozen and chipMoveUp will refuse to cross them anyway.
       const prevUid=i>0?grp.rotationOrder[i-1]:null;
       const canMoveUp=isAdminView && isUpcoming && prevUid && prevUid!==cc.recipientUid && paidOutUids.indexOf(prevUid)<0;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(m.color||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(canMoveUp?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" style="width:11px;height:11px"></i></button>':'')+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span></div>';
+      // Admin can remove anyone here except the current, unconfirmed recipient --
+      // that payout has nowhere to go until it's confirmed. Removing someone who
+      // already appears in `history` (received=true) is still allowed, but
+      // chipRemoveMember shows an explicit warning first since it means they're
+      // exiting without finishing their contributions to the rest of this lap.
+      const canRemove=isAdminView && uid!==grp.createdBy && !isRecipient;
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(m.color||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(canMoveUp?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" style="width:11px;height:11px"></i></button>':'')+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span>'+(canRemove?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
     });
+    if(curUser && curUser.uid!==grp.createdBy){
+      h+='<button class="cg-link-danger" style="color:var(--mid);margin-top:10px" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
+    }
   } else {
     if(grp.history && grp.history.length){
       grp.history.slice().reverse().forEach(function(hh){
         const m=grp.members[hh.recipientUid]||{name:'?'};
-        h+='<div class="cg-row"><div class="cg-av2">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+'</b><span>'+(isCW?'Gawo ':'Round ')+hh.cycleNumber+' \u00b7 '+fmtDate(hh.date)+'</span></div><b style="color:var(--g1);font-size:.8rem">'+MK(hh.amount)+'</b></div>';
+        // Older entries (from before this snapshot field existed) won't have
+        // `contributions` at all -- treat those as clean rather than short,
+        // since we have no record either way.
+        const short = hh.contributions && Object.keys(hh.contributions).some(function(u){ return !(hh.contributions[u]&&hh.contributions[u].paid); });
+        h+='<div class="cg-row"><div class="cg-av2">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(short?' <span style="color:var(--warn,#B36B00);font-size:.68rem;font-weight:700">'+(isCW?'\u00b7 sanalipire onse':'\u00b7 not everyone paid')+'</span>':'')+'</b><span>'+(isCW?'Gawo ':'Round ')+hh.cycleNumber+' \u00b7 '+fmtDate(hh.date)+'</span></div><b style="color:var(--g1);font-size:.8rem">'+MK(hh.amount)+'</b></div>';
       });
     } else {
       h+='<p style="font-size:.75rem;color:var(--mid);text-align:center;padding:16px 0">'+(isCW?'Palibe gawo lomaliza.':'No completed rounds yet.')+'</p>';
@@ -3724,37 +3757,64 @@ function waChipCode(code){ window.open('https://wa.me/?text='+encodeURIComponent
 function chipLeaveGroup(){
   const grp=activeChipGroup(); if(!grp||!curUser) return;
   const isCW=lang==='cw';
-  if(grp.status!=='gathering'){ toast(isCW?'Simungatuluke pambuyo poyamba':'You can\'t leave after the rotation has started','e'); return; }
   if(curUser.uid===grp.createdBy){ toast(isCW?'Mtsogoleri sangatuluke. Chotsani gululi m\u2019malo mwake.':'The admin can\u2019t leave. Delete the group instead.','e'); return; }
-  appConfirm(isCW?'Mutuluka mu gululi?':'Leave this group?', function(){
+  if(grp.status==='active' && grp.currentCycle && curUser.uid===grp.currentCycle.recipientUid){
+    toast(isCW?'Simungatuluke pamene mukulandira gawo lino. Tsimikizani kutumiza kaye.':'You can\u2019t leave while it\u2019s your turn to receive this round. That payout needs to be confirmed first.','e'); return;
+  }
+  const alreadyReceived = grp.status==='active' && (grp.history||[]).some(function(hh){ return hh.recipientUid===curUser.uid; });
+  const doLeave=function(){
     setDot('spin');
     const patch={
       memberUids: firebase.firestore.FieldValue.arrayRemove(curUser.uid),
       rotationOrder: firebase.firestore.FieldValue.arrayRemove(curUser.uid)
     };
     patch['members.'+curUser.uid]=firebase.firestore.FieldValue.delete();
+    if(grp.status==='active'){
+      patch['currentCycle.contributions.'+curUser.uid]=firebase.firestore.FieldValue.delete();
+    }
     db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
       setDot(''); chipActiveId=null; toast(isCW?'Mwatuluka mu gulu':'Left the group','i'); go('home');
     }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
-  }, isCW?'Tulukani':'Leave', true);
+  };
+  if(alreadyReceived){
+    // They've already taken a payout this lap but the lap isn't done, so
+    // leaving now means the app has no further way to collect their share
+    // toward everyone else's turn. Can't be prevented outright (no bank
+    // integration to hold them to it), but this makes the tradeoff explicit
+    // instead of a silent, clean-looking exit.
+    appConfirm(isCW?'Mudalandira kale gawo mu mzere uno musanamalize kulipira ena onse. Ngati mutuluka tsopano, sitingathe kukumbutsani kudzera mu app. Mutuluke bwanji?':'You already received a payout this lap and haven\u2019t finished contributing to everyone else\u2019s turn yet. Leaving now means the app can\u2019t collect that from you going forward. Leave anyway?', doLeave, isCW?'Tulukani chonse':'Leave anyway', true);
+  } else {
+    appConfirm(isCW?'Mutuluka mu gululi?':'Leave this group?', doLeave, isCW?'Tulukani':'Leave', true);
+  }
 }
 
 function chipRemoveMember(uid){
   const grp=activeChipGroup(); if(!grp||!curUser||grp.createdBy!==curUser.uid) return;
   const isCW=lang==='cw';
-  if(grp.status!=='gathering'){ toast(isCW?'Simungachotse membala pambuyo poyamba':'Can\'t remove members after the rotation has started','e'); return; }
+  if(grp.status==='active' && grp.currentCycle && uid===grp.currentCycle.recipientUid){
+    toast(isCW?'Simungachotse amene akulandira gawo lino. Tsimikizani kutumiza kaye.':'Can\u2019t remove the person currently receiving this round. Confirm that payout first.','e'); return;
+  }
   const nm=(grp.members[uid]||{}).name||'';
-  appConfirm((isCW?'Chotsani ':'Remove ')+nm+(isCW?' mgululi?':' from the group?'), function(){
+  const alreadyReceived = grp.status==='active' && (grp.history||[]).some(function(hh){ return hh.recipientUid===uid; });
+  const doRemove=function(){
     setDot('spin');
     const patch={
       memberUids: firebase.firestore.FieldValue.arrayRemove(uid),
       rotationOrder: firebase.firestore.FieldValue.arrayRemove(uid)
     };
     patch['members.'+uid]=firebase.firestore.FieldValue.delete();
+    if(grp.status==='active'){
+      patch['currentCycle.contributions.'+uid]=firebase.firestore.FieldValue.delete();
+    }
     db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
       setDot(''); toast(isCW?'Wachotsedwa':'Removed','i');
     }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
-  }, isCW?'Chotsani':'Remove', true);
+  };
+  if(alreadyReceived){
+    appConfirm((isCW?'Katswiri, '+nm+' analandira kale gawo mu mzere uno musanamalize kulipira ena onse. Kuchotsa tsopano kutanthauza kuti simungathe kukumbutsanso pa app. Chotsani chonse?':nm+' already received a payout this lap and hasn\u2019t finished contributing to everyone else\u2019s turn yet. Removing them now means the app can\u2019t collect that going forward. Remove anyway?'), doRemove, isCW?'Chotsani chonse':'Remove anyway', true);
+  } else {
+    appConfirm((isCW?'Chotsani ':'Remove ')+nm+(isCW?' mgululi?':' from the group?'), doRemove, isCW?'Chotsani':'Remove', true);
+  }
 }
 
 function chipDeleteGroup(){
