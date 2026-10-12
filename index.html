@@ -17,6 +17,25 @@
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <!-- qrcode/jsQR are only used by the QR-scan and QR-code-display features
      (openQRCode / scanQR), never during boot, so they're deferred. -->
+<script>
+// Some browsers (private mode, blocked site data, certain in-app webviews) throw on ANY localStorage access.
+// The app reads it at load time, so without this it halts with a blank screen. Fall back to an in-memory store.
+(function(){
+  try{ var k='__bajeti_ls_test'; window.localStorage.setItem(k,'1'); window.localStorage.removeItem(k); }
+  catch(e){
+    var mem={};
+    var shim={
+      getItem:function(k){ return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null; },
+      setItem:function(k,v){ mem[k]=String(v); },
+      removeItem:function(k){ delete mem[k]; },
+      clear:function(){ mem={}; },
+      key:function(i){ return Object.keys(mem)[i]||null; }
+    };
+    Object.defineProperty(shim,'length',{get:function(){ return Object.keys(mem).length; }});
+    try{ Object.defineProperty(window,'localStorage',{value:shim,configurable:true}); }catch(_){}
+  }
+})();
+</script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script defer src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
@@ -1419,7 +1438,7 @@ const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F',
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
-const APP_VERSION = '9.6.0';
+const APP_VERSION = '9.6.1';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
@@ -1463,7 +1482,7 @@ let pinEntry = '', pinMode = 'check', pinTmp = '';
 let _pinBackTarget = null;
 let confResult = null, rcapV = null;
 let unsubHH = null; // Household document listener - separate from purchases listener
-let unsubJoinBadge = null; // Pending-join-request badge listener (owner only)
+let unsubJoinBadge = null; let _joinBadgeFor = null; // Pending-join-request badge listener (owner only)
 let _lastMemberUids = null; // Snapshot of memberUids from the previous household-doc update, used to detect new joins
 
 // ── Performance: memoized totals ──
@@ -1471,7 +1490,7 @@ let _lastMemberUids = null; // Snapshot of memberUids from the previous househol
 let _memoKey = '', _memoSp = 0, _memoIn = 0, _memoByItem = {};
 function _invalidateMemo(){ _memoKey = ''; }
 function _ensureMemo(){
-  const key = (hhId||'')+'|'+(viewMonth?viewMonth.m+'-'+viewMonth.y:'')+lPx.length;
+  const key = (hhId||'')+'|'+(viewMonth?viewMonth.m+'-'+viewMonth.y:'')+'|'+((lCfg&&lCfg.salaryDay)||0)+'|'+lPx.length;
   if(key === _memoKey) return;
   _memoKey = key;
   _memoSp = 0; _memoIn = 0; _memoByItem = {};
@@ -1492,10 +1511,22 @@ const fmt = new Intl.NumberFormat('en-MW',{style:'currency',currency:'MWK',minim
 const MK  = n => fmt.format(Math.round(n||0)).replace('MWK','MK');
 const MKs = n => { n=Math.round(n||0); if(n>=1e6)return 'MK '+(n/1e6).toFixed(1)+'M'; if(n>=1000)return 'MK '+(n/1e3).toFixed(0)+'K'; return MK(n); };
 const tx      = () => TX[lang];
-const today   = () => new Date().toISOString().split('T')[0];
+// Local-calendar YYYY-MM-DD. toISOString() is UTC, which is the previous day in Malawi (UTC+2) between 00:00 and 02:00.
+const localISO = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today   = () => localISO(new Date());
+// Small stable string hash (base36) used to build deterministic Firestore document ids.
+const _hashStr = str => { let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))|0; return (h>>>0).toString(36); };
 const nowTime = () => { const d=new Date(); return d.toTimeString().slice(0,5); };
 // Format ISO date string to DD/MM/YYYY for display (Malawian locale convention)
-function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s; }
+// Output is HTML-escaped because dates come from Firestore and are interpolated into innerHTML in many places.
+// A date-only expiry like "2026-12-31" means "valid through the end of that day" in the user's timezone
+// (new Date("2026-12-31") is UTC midnight, which ended Premium ~2 hours into the last day in Malawi).
+function _expiryEnd(e){
+  const str=String(e||'');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)){ const p=str.split('-'); return new Date(+p[0],+p[1]-1,+p[2],23,59,59); }
+  return new Date(e);
+}
+function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return esc(p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s); }
 // Returns true if the stored item name is a reserved category label (data quality flag)
 function isBadItemName(n){ return ['other','ena','food','transport','household','personal','unknown','other income','zina'].includes(String(n||'').toLowerCase().trim()); }
 const ico     = name => ITEM_ICONS[name] || '<i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i>';
@@ -1530,7 +1561,14 @@ const catOf = (name, explicitCat) => {
   return explicitCat || 'Other';
 };
 
-function curM()  { const d=new Date(); return {m:d.getMonth(),y:d.getFullYear()}; }
+// The budget period that contains today. With a salary day (e.g. 25) the period "May" runs 25 Apr - 24 May,
+// so from the 25th onward today already belongs to the NEXT calendar month's period.
+function curM()  {
+  const d=new Date(); let m=d.getMonth(), y=d.getFullYear();
+  const sd = (typeof lCfg!=='undefined' && lCfg && lCfg.salaryDay) ? Math.min(Math.max(parseInt(lCfg.salaryDay,10)||0,0),28) : 0;
+  if(sd>1 && d.getDate()>=sd){ m++; if(m>11){ m=0; y++; } }
+  return {m,y};
+}
 function vmObj() { return viewMonth||curM(); }
 
 // ── Budget Period ──
@@ -1600,7 +1638,16 @@ function randCode(){
 
 const g   = id => document.getElementById(id);
 const val = id => (g(id)||{}).value||'';
-function esc(s){ const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// Colours come from Firestore (members set their own), so only allow plain hex before putting them in style attributes.
+function sC(c){
+  c=String(c||'').trim();
+  if(/^#[0-9a-fA-F]{3,8}$/.test(c)) return c;
+  // The swatch picker stores el.style.background, which browsers serialise as "rgb(21, 101, 192)"; normalise to hex.
+  const m=/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/.exec(c);
+  if(m){ const h=n=>('0'+Math.min(255,+n).toString(16)).slice(-2); return '#'+h(m[1])+h(m[2])+h(m[3]); }
+  return '#7B1FA2';
+}
 // Lightweight markdown -> HTML for AI-generated text. The AI is told to use
 // **bold** and bullet lists; this is the ONLY place that syntax should ever
 // reach the user as real formatting instead of literal asterisks. Any screen
@@ -1721,7 +1768,27 @@ function pinK(k) {
     },160);
   }
 }
+// Google and phone accounts have no password, so the password prompts below can never succeed for them.
+function _authProviders(){ return ((curUser&&curUser.providerData)||[]).map(function(p){return p.providerId;}); }
+async function _reauthWithoutPassword(){
+  if(_authProviders().indexOf('google.com')>=0){
+    await curUser.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+    return true;
+  }
+  return false; // phone-only: no in-app re-auth route
+}
+async function pinFgtNoPassword(){
+  try{
+    const ok=await _reauthWithoutPassword();
+    if(!ok){ toast(lang==='cw'?'Kuti musinthe PIN, tulukani ndi kulowanso ndi nambala yanu ya foni.':'To reset your PIN, sign out and sign back in with your phone number.','i'); return; }
+    localStorage.removeItem('nb_pin');
+    hidePIN();
+    toast('Verified! Set a new PIN.','s');
+    setTimeout(()=>{ pinMode='set'; showPIN(); },400);
+  }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
+}
 function pinFgt(){
+  if(_authProviders().indexOf('password')<0){ pinFgtNoPassword(); return; }
   const box=g('mb-confirm');
   const isCW=lang==='cw';
   const ph=isCW?'Mawu achinsinsi':'Account password';
@@ -1990,7 +2057,15 @@ async function _secPinVerifySubmit(){
   }
 }
 
+async function _secVerifyNoPassword(onVerified){
+  try{
+    const ok=await _reauthWithoutPassword();
+    if(!ok){ toast(lang==='cw'?'Tulukani ndi kulowanso ndi nambala yanu ya foni kuti musinthe zoteteza.':'To change security settings, sign out and sign back in with your phone number.','i'); return; }
+    if(onVerified) onVerified();
+  }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
+}
 function _openSecurityPasswordVerify(onVerified){
+  if(_authProviders().indexOf('password')<0){ _secVerifyNoPassword(onVerified); return; }
   _secVerifyCallback = onVerified;
   const isCW = lang==='cw';
   const box = g('mb-confirm');
@@ -2034,7 +2109,7 @@ async function _secPwVerifySubmit(){
 function openDeleteAccount(){
   if(!curUser){toast('Not signed in.','e');return;}
   const isCWdel = lang === 'cw';
-  const firstName = curUser.displayName ? curUser.displayName.split(' ')[0] : (isCWdel ? 'akaunti yanu' : 'your account');
+  const firstName = curUser.displayName ? esc(curUser.displayName.split(' ')[0]) : (isCWdel ? 'akaunti yanu' : 'your account');
   // Step 1 — warning modal
   const box = g('mb-confirm');
   box.innerHTML = ''
@@ -2057,34 +2132,37 @@ function openDeleteAccount(){
 
 function _confirmDeleteAccount(){
   if(!curUser){toast('Not signed in.','e');return;}
-  if(unsub){unsub();unsub=null;}
-  if(unsubHH){unsubHH();unsubHH=null;}
-  if(unsubJoinBadge){unsubJoinBadge();unsubJoinBadge=null;}
   const uid = curUser.uid;
-  const promises = [];
+  const FV = firebase.firestore.FieldValue;
+  // One atomic batch: either the household and the user doc are both updated or neither is, so a failure
+  // can't leave a household scheduled for deletion while the user doc says nothing.
+  const batch = db.batch();
   // Only the household OWNER deleting their account schedules the whole
   // shared household for deletion. A non-owner member deleting their own
   // account should just leave the household (rules now enforce this too —
   // deletedAt/deletedBy/restoreBefore are owner-only fields).
   const isOwnerHere = hhId && lHHDoc && lHHDoc.owner === uid;
   if(hhId && isOwnerHere){
-    promises.push(db.collection('households').doc(hhId).update({
-      deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    batch.update(db.collection('households').doc(hhId),{
+      deletedAt:FV.serverTimestamp(),
       deletedBy:uid,
       restoreBefore:new Date(Date.now()+30*24*60*60*1000).toISOString()
-    }));
+    });
   } else if(hhId){
-    promises.push(db.collection('households').doc(hhId).update({
-      memberUids: firebase.firestore.FieldValue.arrayRemove(uid)
-    }));
+    batch.update(db.collection('households').doc(hhId),{ memberUids: FV.arrayRemove(uid) });
   }
-  promises.push(db.collection('users').doc(uid).update({
-    deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+  batch.update(db.collection('users').doc(uid),{
+    deletedAt:FV.serverTimestamp(),
     pendingDeletion:true,
     // Remove this household from ownedHouseholds so the count stays accurate
-    ownedHouseholds:hhId?firebase.firestore.FieldValue.arrayRemove(hhId):firebase.firestore.FieldValue.delete()
-  }));
+    ownedHouseholds:hhId?FV.arrayRemove(hhId):FV.delete()
+  });
+  const promises=[batch.commit()];
   Promise.all(promises).then(()=>{
+    // Detach listeners only now that the deletion is committed (they used to be torn down first, so a failed write left a dead app).
+    if(unsub){unsub();unsub=null;}
+    if(unsubHH){unsubHH();unsubHH=null;}
+    if(unsubJoinBadge){unsubJoinBadge();unsubJoinBadge=null;}
     toast(lang==='cw'?'Akaunti ikuthetsedwa. Muli ndi masiku 30 kuti muibweze.':'Account scheduled for deletion. You have 30 days to restore it.','i');
     setTimeout(()=>{
       chatHistory=[];
@@ -2273,15 +2351,15 @@ function doEmailAuth(){
       .then(cred=>{
         const user=cred.user;
         const updates=[];
-        if(nm) updates.push(user.updateProfile({displayName:nm}));
-        updates.push(user.sendEmailVerification());
+        // Both are best-effort: the account already exists, so a failure here (e.g. too-many-requests) must not
+        // strand the user with an error and a half-created account. They can use "Resend" on the verify screen.
+        if(nm) updates.push(user.updateProfile({displayName:nm}).catch(()=>{}));
+        updates.push(user.sendEmailVerification().catch(()=>{}));
         return Promise.all(updates).then(()=>user);
       })
       .then(user=>{
-        // Sign out immediately — user must verify before proceeding
-        return auth.signOut().then(()=>user);
-      })
-      .then(user=>{
+        // Stay signed in on the verify screen: Resend / "I Have Verified" need auth.currentUser, and
+        // onAuthStateChanged already blocks unverified email users from reaching the app.
         if(btn){btn.disabled=false;btn.textContent='Start Tracking';}
         showVerifyScreen(email);
       })
@@ -2336,14 +2414,15 @@ function showVerifyScreen(email){
 
 function checkVerification(){
   const btn=document.querySelector('#scr-verify .a-btn');
-  if(btn){btn.disabled=true;btn.textContent='Checking...';}
+  // Change only the label span; setting btn.textContent would delete #verify-continue-lbl and the label could never be restored.
+  if(btn){btn.disabled=true; const _l=g('verify-continue-lbl'); if(_l) _l.textContent='Checking...';}
   const msgEl=g('verify-msg');
   // Must sign in fresh to get updated emailVerified status
   const user=auth.currentUser;
   if(!user){
     // User not signed in — ask them to log in again
     if(msgEl) msgEl.textContent='Please log in to continue.';
-    if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="check-circle" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"></i> I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+    if(btn){btn.disabled=false; const _l2=g('verify-continue-lbl'); if(_l2) _l2.textContent=(lang==='cw'?'Ndinawonetsa. Pitirizani':'I Have Verified. Continue');}
     backToLogin();
     return;
   }
@@ -2540,9 +2619,11 @@ function bootApp(){
         .then(doc=>{
           // Account-deletion grace period: offer restore instead of loading the app
           if(doc.exists && doc.data().pendingDeletion){
-            const restoreBefore = doc.data().restoreBefore ? new Date(doc.data().restoreBefore) : null;
+            const _ud = doc.data();
+            const _delAt = _ud.deletedAt && _ud.deletedAt.toDate ? _ud.deletedAt.toDate() : null;
+            const restoreBefore = _ud.restoreBefore ? new Date(_ud.restoreBefore) : (_delAt ? new Date(_delAt.getTime()+30*24*60*60*1000) : null);
             const stillRecoverable = !restoreBefore || restoreBefore > new Date();
-            showAccountRestorePrompt(user, doc.data(), stillRecoverable);
+            showAccountRestorePrompt(user, Object.assign({}, _ud, {restoreBefore: restoreBefore ? restoreBefore.toISOString() : null}), stillRecoverable);
             return;
           }
           // Check if user has a pending join request from a previous session
@@ -2634,8 +2715,13 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
   const isCW = lang === 'cw';
   show('scr-setup');
   _pendingRestoreHid = userData.householdId || null;
-  const box = document.querySelector('.setup-card') || document.querySelector('.auth-box');
+  // Render into the dedicated join card. (document.querySelector('.setup-card') used to match the "Just Me" card,
+  // whose onclick is createHHSolo(), so tapping Restore / Sign Out also tried to create a new household.)
+  const box = g('setup-card-join');
   if(!box) return;
+  const _soloCard = g('setup-card-solo'); if(_soloCard) _soloCard.style.display='none';
+  const _heading = g('setup-heading'); if(_heading) _heading.style.display='none';
+  box.style.display='';
   if(stillRecoverable){
     const daysLeft = userData.restoreBefore ? Math.max(0, Math.ceil((new Date(userData.restoreBefore)-new Date())/86400000)) : 30;
     box.innerHTML = '<div style="text-align:center;padding:10px 0">'
@@ -2657,11 +2743,24 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
 function restoreAccount(){
   const user = auth.currentUser;
   if(!user){ toast('Not signed in.','e'); return; }
-  const updates = [ db.collection('users').doc(user.uid).update({pendingDeletion:false, deletedAt:null, restoreBefore:null}) ];
-  if(_pendingRestoreHid){
-    updates.push(db.collection('households').doc(_pendingRestoreHid).update({deletedAt:null, deletedBy:null, restoreBefore:null}));
+  const uid = user.uid, hid = _pendingRestoreHid, FV = firebase.firestore.FieldValue;
+  const userUpd = {pendingDeletion:false, deletedAt:null, restoreBefore:null};
+  let step = Promise.resolve();
+  if(hid){
+    const hhRef = db.collection('households').doc(hid);
+    step = hhRef.get().then(snap=>{
+      const d = snap.exists ? snap.data() : null;
+      if(!d) return null;
+      if(d.owner === uid){
+        // Owner: un-schedule the household and put it back in ownedHouseholds (deletion removed it).
+        userUpd.ownedHouseholds = FV.arrayUnion(hid);
+        return hhRef.update({deletedAt:null, deletedBy:null, restoreBefore:null});
+      }
+      // Member: deletion only removed them from memberUids, so re-add them. Best effort; rules may require the owner to re-approve.
+      return hhRef.update({memberUids: FV.arrayUnion(uid)}).catch(()=>null);
+    });
   }
-  Promise.all(updates).then(()=>{
+  step.then(()=>db.collection('users').doc(uid).update(userUpd)).then(()=>{
     toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
     _pendingRestoreHid=null;
     authReg=false; bootApp();
@@ -3113,6 +3212,8 @@ function connectHH(code){
   _lastMemberUids = null;
   unsubHH=db.collection('households').doc(code).onSnapshot(doc=>{
     if(!doc.exists){
+      // A cache-only "missing" result isn't proof (we may be offline or still syncing); wait for the server before unlinking anyone.
+      if(doc.metadata && doc.metadata.fromCache) return;
       // Household was deleted (or never existed) but this user's account still points at it.
       // Detach it so they aren't stuck on an endless spinner forever, and send them back to Setup.
       if(unsubHH){ unsubHH(); unsubHH=null; }
@@ -3164,23 +3265,31 @@ function connectHH(code){
         }
         _lastMemberUids = d.memberUids.slice();
       }
-      let _mg=false;
-      DEF_ITEMS.filter(di=>di.name!=='Paraffin').forEach(di=>{if(!lCfg.items.find(it=>it.name===di.name)){lCfg.items.push(di);_mg=true;}});
-      const _pi=lCfg.items.findIndex(it=>it.name==='Paraffin');
-      if(_pi>-1){lCfg.items.splice(_pi,1);_mg=true;}
-      if(_mg)saveCfg(lCfg);
+      // One-time defaults migration per household. (It used to run on every snapshot, which silently
+      // re-added any default item a user had deleted and wrote to Firestore from inside the listener.)
+      if(!lCfg.defaultsMigrated && Array.isArray(lCfg.items)){
+        const _next=JSON.parse(JSON.stringify(lCfg));
+        DEF_ITEMS.filter(di=>di.name!=='Paraffin').forEach(di=>{if(!_next.items.find(it=>it.name===di.name)){_next.items.push(di);}});
+        const _pi=_next.items.findIndex(it=>it.name==='Paraffin');
+        if(_pi>-1){_next.items.splice(_pi,1);}
+        _next.defaultsMigrated=1;
+        saveCfg(_next);
+      }
       setDot(''); updatePill(); render();
       scheduleInAppAlerts(); checkBillReminders();
       // Load pending join requests badge for owner
-      if(curUser && d.owner === curUser.uid){
+      // Attach once per household. (It used to be re-attached on every household snapshot, which reset the counter
+      // and re-fired the "new request" toast + notification on any unrelated config change while a request was pending.)
+      if(curUser && d.owner === curUser.uid && (!unsubJoinBadge || _joinBadgeFor!==code)){
         if(unsubJoinBadge){ unsubJoinBadge(); unsubJoinBadge=null; }
-        let _prevJoinReqCount = 0;
+        _joinBadgeFor = code;
+        let _prevJoinReqCount = -1; // -1 = no baseline yet: the first snapshot only sets the badge, it doesn't toast
         unsubJoinBadge = db.collection('households').doc(code).collection('joinRequests').onSnapshot(function(snap){
             const badge = g('pending-join-badge');
             if(badge) badge.innerHTML = snap.size > 0
               ? '<span style="background:#E65100;color:#fff;border-radius:var(--cr-md);font-size:.6rem;font-weight:800;padding:2px 7px;margin-right:5px">'+snap.size+'</span>'
               : '';
-            if(snap.size > _prevJoinReqCount){
+            if(_prevJoinReqCount>=0 && snap.size > _prevJoinReqCount){
               const _isCW = lang === 'cw';
               toast(_isCW?'Pempho latsopano lolowa nyumba.':'New request to join your household.','i');
               maybeNotify('Bajeti Yanga', _isCW?'Pali pempho latsopano lolowa nyumba yanu.':'Someone wants to join your household.');
@@ -3211,8 +3320,7 @@ function connectHH(code){
     'e');
   });
   if(unsub)unsub();
-  // Try ordering by createdAt (works for all versions of data)
-  // If that fails (no index), fall back to unordered and sort client-side
+  let _permRetried=false; // one automatic retry after refreshing the auth token before we conclude the user was removed
   const tryConnect = (field) => {
     const q = field
       ? db.collection('households').doc(code).collection('purchases').orderBy(field,'desc')
@@ -3220,9 +3328,11 @@ function connectHH(code){
     return q.onSnapshot(snap=>{
       lPx=snap.docs.map(d=>({id:d.id,...d.data()}));
       // Sort client-side by date desc as fallback
+      // createdAt is a Firestore Timestamp (not a number), so convert before comparing.
+      const _ms=x=>{ if(x.timestamp) return Number(x.timestamp)||0; const c=x.createdAt; return (c&&c.toMillis)?c.toMillis():0; };
       lPx.sort((a,b)=>{
-        const ta=a.timestamp||a.createdAt||0, tb=b.timestamp||b.createdAt||0;
-        if(ta&&tb) return tb-ta;
+        const ta=_ms(a), tb=_ms(b);
+        if(ta&&tb&&ta!==tb) return tb-ta;
         return (b.date||'').localeCompare(a.date||'');
       });
       _invalidateMemo(); // Clear performance cache when data changes
@@ -3241,11 +3351,24 @@ function connectHH(code){
         // that this account was removed from the household. Route to a clean
         // re-request state instead of leaving them on a frozen list with a vague
         // "connection lost" toast.
-        handleRemovedFromHousehold();
+        // A single permission-denied can also be a transient auth/token hiccup, and acting on it deletes the user's
+        // householdId link. So confirm against the SERVER copy of the household first, and only unlink if they're really gone from it.
+        Promise.resolve(curUser && curUser.getIdToken(true)).catch(()=>{})
+          .then(()=>db.collection('households').doc(code).get({source:'server'}))
+          .then(snap=>{
+            const dd=snap.exists?snap.data():null;
+            const uidNow=curUser&&curUser.uid;
+            const isMember = !!dd && (dd.owner===uidNow || !Array.isArray(dd.memberUids) || dd.memberUids.includes(uidNow));
+            if(!snap.exists || !isMember){ handleRemovedFromHousehold(); return; }
+            if(!_permRetried){ _permRetried=true; if(unsub) unsub(); unsub=tryConnect(null); }
+            else { toast('Cannot load entries (permission denied). Please sign out and in again.','e'); setDot('off'); }
+          })
+          .catch(()=>{ toast('Connection problem. Please check your network.','e'); setDot('off'); });
       } else { toast('Connection lost: '+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
     });
   };
-  unsub=tryConnect('createdAt');
+  // No server-side orderBy: Firestore silently drops documents that lack the ordered field (older entries), and we sort client-side anyway.
+  unsub=tryConnect(null);
   applyLang();
   startChipListener();
 }
@@ -3295,14 +3418,37 @@ function handleRemovedFromHousehold(){
     : 'You were removed from this household. Enter the code again to request to rejoin.', 'e');
 }
 
-function saveCfg(cfg){ if(!cfg.goals)cfg.goals=[]; lCfg=cfg; if(hhId){setDot('spin');db.collection('households').doc(hhId).update({config:cfg}).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error')+'.','e');setDot('off');});} }
-function addPx(p){
-  if(!hhId){toast('Not connected.','e');return;}
+function saveCfg(cfg){
+  if(!cfg.goals)cfg.goals=[];
+  const prev=lCfg||{}; lCfg=cfg; _invalidateMemo();
+  if(!hhId) return Promise.resolve();
+  // Field-level update: only the top-level config keys that changed (items, bills, goals, users, ...), not the whole map.
+  const FV=firebase.firestore.FieldValue, upd={};
+  Object.keys(cfg).forEach(k=>{ if(JSON.stringify(cfg[k])!==JSON.stringify(prev[k])) upd['config.'+k]=cfg[k]===undefined?FV.delete():cfg[k]; });
+  Object.keys(prev).forEach(k=>{ if(!(k in cfg)) upd['config.'+k]=FV.delete(); });
+  if(!Object.keys(upd).length) return Promise.resolve();
+  setDot('spin');
+  return db.collection('households').doc(hhId).update(upd).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error')+'.','e');setDot('off');});
+}
+// Returns a Promise<boolean> (true = saved) so callers that chain several writes can tell whether this one worked.
+// opts.docId makes the write idempotent (same id => same document), used to stop two devices both adding the same recurring entry.
+function addPx(p,opts){
+  opts=opts||{};
+  if(!hhId){toast('Not connected.','e');return Promise.resolve(false);}
   const amt=Number(p.amount);
-  if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Please enter a valid amount','e');return;}
+  if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Please enter a valid amount','e');return Promise.resolve(false);}
   const itemName=String(p.item||'').trim();
-  if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return;}
-  setDot('spin'); db.collection('households').doc(hhId).collection('purchases').add({...p,item:itemName,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>setDot('')).catch(e=>{const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules.':'Sync error: '+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); });
+  if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return Promise.resolve(false);}
+  setDot('spin');
+  const col=db.collection('households').doc(hhId).collection('purchases');
+  // store the validated number (not whatever string/fraction the caller passed), rounded to 2dp to avoid float drift
+  const data={...p,item:itemName,amount:Math.round(amt*100)/100,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
+  return op.then(()=>{setDot('');return true;}).catch(e=>{
+    if(opts.quiet){ setDot(''); return false; }
+    const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules.':'Sync error: '+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
+    return false;
+  });
 }
 function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error')+'.','e');setDot('off');}); }
 function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }
@@ -3326,9 +3472,8 @@ function setChipActive(id){ chipActiveId=id; chipTab='cycle'; rChip(); }
 function setChipTab(t){ chipTab=t; rChip(); }
 
 function chipNextDue(freq){
-  const d=new Date();
-  if(freq==='weekly') d.setDate(d.getDate()+7); else d.setMonth(d.getMonth()+1);
-  return d.toISOString().split('T')[0];
+  if(freq==='weekly'){ const d=new Date(); d.setDate(d.getDate()+7); return localISO(d); }
+  return addMonthClamped(today()); // clamps 31 Jan -> 28/29 Feb instead of rolling into March
 }
 
 function openChipView(){
@@ -3410,25 +3555,36 @@ function joinChipGroup(btn){
   if(!curUser){ toast('Not signed in.','e'); return; }
   if(btn) btn.disabled=true;
   setDot('spin');
-  db.collection('chipereganyu_groups').doc(code).get().then(function(doc){
-    if(!doc.exists){ setDot('off'); if(btn) btn.disabled=false; toast(isCW?'Nambala sipezeka':'Code not found','e'); return; }
-    const d=doc.data();
-    if(Array.isArray(d.memberUids)&&d.memberUids.includes(curUser.uid)){
-      setDot('off'); if(btn) btn.disabled=false; closeM('mv-e'); chipActiveId=code; toast(isCW?'Mulili mmenemo kale':'You are already in this group','i'); openChipView(); return;
-    }
-    if(d.status!=='gathering'){ setDot('off'); if(btn) btn.disabled=false; toast(isCW?'Gululi lidayamba kale kuzungulira':'This group has already started its rotation','e'); return; }
-    const me=actU();
-    const patch={
-      memberUids: firebase.firestore.FieldValue.arrayUnion(curUser.uid),
-      rotationOrder: firebase.firestore.FieldValue.arrayUnion(curUser.uid)
-    };
-    patch['members.'+curUser.uid]={name:me.name, color:me.color||MEMBER_COLORS[0], joinedAt:Date.now()};
-    db.collection('chipereganyu_groups').doc(code).update(patch).then(function(){
-      setDot(''); closeM('mv-e'); chipActiveId=code;
-      toast((isCW?'Mwalowa mu ':'Joined ')+(d.name||'Chipereganyu'),'s');
-      openChipView();
-    }).catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast('Failed: '+(e&&e.code||'error'),'e'); });
-  }).catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast('Failed: '+(e&&e.code||'error'),'e'); });
+  const ref=db.collection('chipereganyu_groups').doc(code);
+  let outcome=null;
+  // Transaction: the status check and the join happen against the same snapshot, so a join can't land
+  // after the admin has started the rotation (which would leave the new member with no contribution slot).
+  db.runTransaction(function(tx){
+    return tx.get(ref).then(function(doc){
+      if(!doc.exists) throw {code:'not-found'};
+      const d=doc.data();
+      if(Array.isArray(d.memberUids)&&d.memberUids.includes(curUser.uid)){ outcome={already:true,d:d}; return; }
+      if(d.status!=='gathering') throw {code:'already-started'};
+      const me=actU();
+      const patch={
+        memberUids: firebase.firestore.FieldValue.arrayUnion(curUser.uid),
+        rotationOrder: firebase.firestore.FieldValue.arrayUnion(curUser.uid)
+      };
+      patch['members.'+curUser.uid]={name:me.name, color:sC(me.color||MEMBER_COLORS[0]), joinedAt:Date.now()};
+      tx.update(ref,patch);
+      outcome={already:false,d:d};
+    });
+  }).then(function(){
+    setDot(''); closeM('mv-e'); chipActiveId=code;
+    if(outcome.already) toast(isCW?'Mulili mmenemo kale':'You are already in this group','i');
+    else toast((isCW?'Mwalowa mu ':'Joined ')+(outcome.d.name||'Chipereganyu'),'s');
+    openChipView();
+  }).catch(function(e){
+    setDot('off'); if(btn) btn.disabled=false;
+    if(e&&e.code==='not-found') toast(isCW?'Nambala sipezeka':'Code not found','e');
+    else if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale kuzungulira':'This group has already started its rotation','e');
+    else toast('Failed: '+(e&&e.code||'error'),'e');
+  });
 }
 
 function startChipRotation(btn){
@@ -3436,21 +3592,38 @@ function startChipRotation(btn){
   const isCW=lang==='cw';
   if(!curUser||grp.createdBy!==curUser.uid){ toast(isCW?'Ndi mtsogoleri yekha amene angayambe':'Only the group admin can start this','e'); return; }
   if(!grp.rotationOrder||grp.rotationOrder.length<2){ toast(isCW?'Muyenera membala osachepera 2 kuti muyambe':'You need at least 2 members to start','e'); return; }
-  const contributions={};
-  grp.rotationOrder.forEach(function(u){ if(u!==grp.rotationOrder[0]) contributions[u]={paid:false,paidAt:null,confirmedBy:null}; });
   if(btn) btn.disabled=true;
   setDot('spin');
-  db.collection('chipereganyu_groups').doc(grp.id).update({
-    status:'active',
-    currentCycle:{
-      cycleNumber:1,
-      recipientUid:grp.rotationOrder[0],
-      dueDate:chipNextDue(grp.frequency),
-      amount:grp.contributionAmount*(grp.rotationOrder.length-1),
-      contributions:contributions
-    }
+  const ref=db.collection('chipereganyu_groups').doc(grp.id);
+  // Transaction: re-read the group so the member list used for the cycle is the CURRENT one (someone may have just joined),
+  // and so a second start from another device can't reset a cycle that's already running.
+  db.runTransaction(function(tx){
+    return tx.get(ref).then(function(doc){
+      if(!doc.exists) throw {code:'not-found'};
+      const d=doc.data();
+      if(d.status!=='gathering') throw {code:'already-started'};
+      const order=d.rotationOrder||[];
+      if(order.length<2) throw {code:'too-few'};
+      const contributions={};
+      order.forEach(function(u){ if(u!==order[0]) contributions[u]={paid:false,paidAt:null,confirmedBy:null}; });
+      tx.update(ref,{
+        status:'active',
+        currentCycle:{
+          cycleNumber:1,
+          recipientUid:order[0],
+          dueDate:chipNextDue(d.frequency),
+          amount:d.contributionAmount*(order.length-1),
+          contributions:contributions
+        }
+      });
+    });
   }).then(function(){ setDot(''); if(btn) btn.disabled=false; toast(isCW?'Chipereganyu chayamba!':'Chipereganyu started!','s'); })
-    .catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast('Failed: '+(e&&e.code||'error'),'e'); });
+    .catch(function(e){
+      setDot('off'); if(btn) btn.disabled=false;
+      if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale':'This group has already started','i');
+      else if(e&&e.code==='too-few') toast(isCW?'Muyenera membala osachepera 2 kuti muyambe':'You need at least 2 members to start','e');
+      else toast('Failed: '+(e&&e.code||'error'),'e');
+    });
 }
 
 function chipTogglePaid(uid, btn){
@@ -3472,13 +3645,31 @@ function chipTogglePaid(uid, btn){
   // un-marking can find and remove it again below instead of leaving a
   // stale expense behind.
   const chipTag=grp.id+'#'+cc.cycleNumber+'#'+uid;
-  db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
+  // Deterministic id: marking paid twice (or from two devices) writes the SAME budget entry instead of a duplicate,
+  // and un-marking can delete it by id even if it hasn't synced into lPx yet.
+  const expDocId='chip_'+_hashStr(chipTag);
+  const gRef=db.collection('chipereganyu_groups').doc(grp.id);
+  // Transaction + cycle check: if the cycle advanced since this screen rendered, don't write the patch into the NEW cycle.
+  db.runTransaction(function(tx){
+    return tx.get(gRef).then(function(snap){
+      const gd=snap.exists?snap.data():null;
+      if(!gd || !gd.currentCycle || gd.currentCycle.cycleNumber!==cc.cycleNumber) throw {code:'stale-cycle'};
+      tx.update(gRef,patch);
+    });
+  }).catch(function(e){
+    // Transactions need a server round-trip. Offline (common here), fall back to a plain update, which Firestore queues and syncs later.
+    if(e && e.code==='unavailable') return gRef.update(patch);
+    throw e;
+  }).then(function(){
     if(btn) btn.disabled=false;
     if(next && curUser && uid===curUser.uid){
       // Only auto-log to Bajeti Yanga's own budget when marking YOUR OWN contribution --
       // we can't write into another member's household purchases collection.
-      addPx({item:(isCW?'Chipereganyu \u2014 '+grp.name:'Chipereganyu \u2014 '+grp.name), date:today(), timestamp:Date.now(), amount:grp.contributionAmount, userId:actU().id, type:'expense', notes:grp.name, chipTag:chipTag});
-      toast(isCW?'Zalembedwa ndipo zawonjezedwa ku bajeti yanu':'Marked as paid and logged to your budget','s');
+      addPx({item:(isCW?'Chipereganyu \u2014 '+grp.name:'Chipereganyu \u2014 '+grp.name), date:today(), timestamp:Date.now(), amount:grp.contributionAmount, userId:actU().id, type:'expense', notes:grp.name, chipTag:chipTag}, {docId:expDocId, quiet:true})
+        .then(function(ok){
+          toast(ok?(isCW?'Zalembedwa ndipo zawonjezedwa ku bajeti yanu':'Marked as paid and logged to your budget')
+                  :(isCW?'Zalembedwa, koma sizinawonjezedwe ku bajeti yanu':'Marked as paid, but it could not be logged to your budget'), ok?'s':'i');
+        });
     } else if(!next && isSelf){
       // Un-marking your own contribution: find the matching auto-logged
       // expense (by chipTag) and remove it too, so the budget doesn't keep
@@ -3486,17 +3677,17 @@ function chipTogglePaid(uid, btn){
       // if the entry hasn't synced into lPx yet (rare race with the
       // purchases listener), there's nothing to find and it's skipped.
       const match=lPx.find(function(p){ return p.chipTag===chipTag; });
-      if(match){
-        delPx(match.id).then(function(){
-          toast(isCW?'Wachotsedwa ndipo bajeti yakonzedwanso':'Marked as unpaid and removed from your budget','i');
-        });
-      } else {
-        toast(isCW?'Wachotsedwa':'Marked as unpaid','s');
-      }
+      delPx(match?match.id:expDocId).then(function(){
+        toast(isCW?'Wachotsedwa ndipo bajeti yakonzedwanso':'Marked as unpaid and removed from your budget','i');
+      }).catch(function(){});
     } else {
       toast(next?(isCW?'Walembedwa kuti walipira':'Marked as paid'):(isCW?'Wachotsedwa':'Marked as unpaid'),'s');
     }
-  }).catch(function(e){ if(btn) btn.disabled=false; toast('Update failed: '+(e&&e.code||'error'),'e'); });
+  }).catch(function(e){
+    if(btn) btn.disabled=false;
+    if(e && e.code==='stale-cycle') toast(isCW?'Mzere wasintha. Onaninso.':'This round has already moved on. Please refresh.','e');
+    else toast('Update failed: '+(e&&e.code||'error'),'e');
+  });
 }
 
 function chipRemind(uid){
@@ -3532,7 +3723,9 @@ function chipConfirmPayout(btn, force){
       const newContributions={};
       d.rotationOrder.forEach(function(u){ if(u!==nextRecipient) newContributions[u]={paid:false,paidAt:null,confirmedBy:null}; });
       const histEntry={cycleNumber:cur.cycleNumber, recipientUid:cur.recipientUid, amount:cur.amount, date:today(), contributions:cur.contributions};
-      payoutInfo={wasMyPayout: curUser && cur.recipientUid===curUser.uid, amount:cur.amount, groupName:d.name};
+      // Income to log = what was actually contributed (a force-confirmed short round pays out less than cur.amount).
+      const paidCount=contributors.filter(u=>cur.contributions[u]&&cur.contributions[u].paid).length;
+      payoutInfo={wasMyPayout: curUser && cur.recipientUid===curUser.uid, amount:paidCount*d.contributionAmount, groupName:d.name, cycleNumber:cur.cycleNumber, groupId:grp.id};
       tx.update(ref,{
         history: firebase.firestore.FieldValue.arrayUnion(histEntry),
         currentCycle:{
@@ -3549,7 +3742,8 @@ function chipConfirmPayout(btn, force){
     if(payoutInfo && payoutInfo.wasMyPayout){
       // Only log an income entry when the current signed-in account is the one receiving --
       // we can't write into another member's household budget.
-      addPx({item:(isCW?'Chipereganyu \u2014 '+payoutInfo.groupName:'Chipereganyu \u2014 '+payoutInfo.groupName), date:today(), timestamp:Date.now(), amount:payoutInfo.amount, userId:actU().id, type:'income', notes:payoutInfo.groupName});
+      const _ptag=payoutInfo.groupId+'#'+payoutInfo.cycleNumber+'#payout';
+      if(payoutInfo.amount>0) addPx({item:(isCW?'Chipereganyu \u2014 '+payoutInfo.groupName:'Chipereganyu \u2014 '+payoutInfo.groupName), date:today(), timestamp:Date.now(), amount:payoutInfo.amount, userId:actU().id, type:'income', notes:payoutInfo.groupName, chipTag:_ptag}, {docId:'chip_'+_hashStr(_ptag), quiet:true});
     }
     toast(isCW?'Ndalama zatumizidwa!':'Payout confirmed!','s');
   }).catch(function(e){
@@ -3563,7 +3757,7 @@ function chipForceConfirmPrompt(){
   const grp=activeChipGroup(); if(!grp||!grp.currentCycle||!curUser||curUser.uid!==grp.createdBy) return;
   const isCW=lang==='cw';
   const cc=grp.currentCycle;
-  const unpaidNames=grp.rotationOrder.filter(function(u){ return u!==cc.recipientUid && !(cc.contributions[u]&&cc.contributions[u].paid); }).map(function(u){ return (grp.members[u]||{}).name||'?'; }).join(', ');
+  const unpaidNames=grp.rotationOrder.filter(function(u){ return u!==cc.recipientUid && !(cc.contributions[u]&&cc.contributions[u].paid); }).map(function(u){ return esc((grp.members[u]||{}).name||'?'); }).join(', ');
   appConfirm(
     (isCW
       ? (unpaidNames+' sanalipire. Kutsimikizira tsopano kudzasiya mbiri yosonyeza kuti sanalipire, ndipo sizingasinthidwe. Pitirizani?')
@@ -3623,7 +3817,7 @@ function rChip(){
     (grp.rotationOrder||[]).forEach(function(uid,i){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const isAdminRow=uid===grp.createdBy;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.64rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.64rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
     });
     if(!isAdmin){
       h+='<button class="cg-link-danger" style="color:var(--mid)" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
@@ -3684,7 +3878,7 @@ function rChip(){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const paidInfo=cc.contributions[uid]||{};
       const isSelfRow = curUser && uid===curUser.uid;
-      h+='<div class="cg-row"><div class="cg-av2" style="background:'+m.color+'30">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(isSelfRow?' ('+(isCW?'Inu':'You')+')':'')+'</b><span>'+MK(grp.contributionAmount)+'</span></div>';
+      h+='<div class="cg-row"><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(isSelfRow?' ('+(isCW?'Inu':'You')+')':'')+'</b><span>'+MK(grp.contributionAmount)+'</span></div>';
       if(paidInfo.paid){
         h+='<div class="cg-pill-ok"><i data-lucide="check" style="width:10px;height:10px"></i>'+(isCW?'Walipira':'Paid')+'</div>';
       } else if(isRecipientView || isSelfRow || isAdminView){
@@ -3727,7 +3921,7 @@ function rChip(){
       // chipRemoveMember shows an explicit warning first since it means they're
       // exiting without finishing their contributions to the rest of this lap.
       const canRemove=isAdminView && uid!==grp.createdBy && !isRecipient;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(m.color||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(canMoveUp?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" style="width:11px;height:11px"></i></button>':'')+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span>'+(canRemove?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(sC(m.color)||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(canMoveUp?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" style="width:11px;height:11px"></i></button>':'')+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span>'+(canRemove?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
     });
     if(curUser && curUser.uid!==grp.createdBy){
       h+='<button class="cg-link-danger" style="color:var(--mid);margin-top:10px" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
@@ -3794,7 +3988,7 @@ function chipRemoveMember(uid){
   if(grp.status==='active' && grp.currentCycle && uid===grp.currentCycle.recipientUid){
     toast(isCW?'Simungachotse amene akulandira gawo lino. Tsimikizani kutumiza kaye.':'Can\u2019t remove the person currently receiving this round. Confirm that payout first.','e'); return;
   }
-  const nm=(grp.members[uid]||{}).name||'';
+  const nm=esc((grp.members[uid]||{}).name||'');
   const alreadyReceived = grp.status==='active' && (grp.history||[]).some(function(hh){ return hh.recipientUid===uid; });
   const doRemove=function(){
     setDot('spin');
@@ -3832,7 +4026,7 @@ function chipDeleteGroup(){
 function chipMakeAdmin(uid){
   const grp=activeChipGroup(); if(!grp||!curUser||grp.createdBy!==curUser.uid) return;
   const isCW=lang==='cw';
-  const nm=(grp.members[uid]||{}).name||'';
+  const nm=esc((grp.members[uid]||{}).name||'');
   appConfirm((isCW?'Sankhani ':'Make ')+nm+(isCW?' kukhala mtsogoleri?':' the new admin?'), function(){
     setDot('spin');
     db.collection('chipereganyu_groups').doc(grp.id).update({createdBy:uid}).then(function(){
@@ -3949,15 +4143,22 @@ function checkAndAddRecurring(){
   if(!actuallyAdd.length){ localStorage.setItem(KEY,periodStart); return; }
   let ts=Date.now();
   const uid=actU().id;
-  actuallyAdd.forEach(px=>{
-    addPx({item:px.item,date:today(),timestamp:ts++,amount:Number(px.amount)||0,
-           qty:px.qty||'',unit:px.unit||'',notes:'(auto-recurring)',userId:uid,type:'expense',recurring:true});
-  });
   localStorage.setItem(KEY,periodStart);
-  toast(lang==='cw'
-    ? actuallyAdd.length+' zinthu zofanananso zaonjezedwa kwa nthawi ino'
-    : actuallyAdd.length+' recurring item'+(actuallyAdd.length>1?'s':'')+' added for this period',
-  's');
+  // Deterministic document ids (period + item) make this idempotent across devices: if a second device runs it
+  // at the same time it writes the same documents instead of adding duplicates.
+  const _h=_hashStr;
+  Promise.all(actuallyAdd.map(px=>
+    addPx({item:px.item,date:today(),timestamp:ts++,amount:Number(px.amount)||0,
+           qty:px.qty||'',unit:px.unit||'',notes:'(auto-recurring)',userId:uid,type:'expense',cat:px.cat||catOf(px.item),recurring:true},
+          {docId:'recur_'+periodStart+'_'+_h(String(px.item)), quiet:true})
+  )).then(function(r){
+    const n=r.filter(Boolean).length;
+    if(!n) return;
+    toast(lang==='cw'
+      ? n+' zinthu zofanananso zaonjezedwa kwa nthawi ino'
+      : n+' recurring item'+(n>1?'s':'')+' added for this period',
+    's');
+  });
 }
 
 function render(){
@@ -3992,13 +4193,13 @@ function updatePill(){
 
 // ── 6-Month Spending Trend ──
 function getLast6MonthsData(){
-  const now=new Date();
+  const cur=curM(); // the budget period containing today, so the chart agrees with the hero numbers
   const months=[];
   for(let i=5;i>=0;i--){
-    let m=now.getMonth()-i, y=now.getFullYear();
-    if(m<0){m+=12;y--;}
+    let m=cur.m-i, y=cur.y;
+    while(m<0){m+=12;y--;}
     const prefix=y+'-'+String(m+1).padStart(2,'0');
-    const monthPx=lPx.filter(p=>p.date&&p.date.startsWith(prefix)&&!p.deleted);
+    const monthPx=lPx.filter(p=>p.date&&!p.deleted&&isTM(p.date,{m:m,y:y}));
     const sp=monthPx.filter(p=>p.type!=='income').reduce((s,p)=>s+Number(p.amount||0),0);
     const inc=monthPx.filter(p=>p.type==='income').reduce((s,p)=>s+Number(p.amount||0),0);
     months.push({label:tx().months[m],month:m,year:y,spent:sp,income:inc,prefix});
@@ -4015,13 +4216,15 @@ function getSpendingStreak(){
   for(let w=0;w<12;w++){
     const wEnd=new Date(now); wEnd.setDate(now.getDate()-w*7);
     const wStart=new Date(wEnd); wStart.setDate(wEnd.getDate()-7);
-    const wStr1=wStart.toISOString().split('T')[0];
-    const wStr2=wEnd.toISOString().split('T')[0];
-    const wSpent=lPx.filter(function(p){return p.date&&p.date>=wStr1&&p.date<=wStr2&&p.type!=='income'&&!p.deleted;})
+    const wStr1=localISO(wStart);
+    const wStr2=localISO(wEnd);
+    // half-open (start, end] so a boundary day isn't counted in two weeks
+    const wSpent=lPx.filter(function(p){return p.date&&p.date>wStr1&&p.date<=wStr2&&p.type!=='income'&&!p.deleted;})
       .reduce(function(s,p){return s+Number(p.amount||0);},0);
     if(wSpent<weeklyBudget&&wSpent>0) streak++;
     else if(w>0) break;
-    else if(wSpent===0&&w===0) continue;
+    else if(wSpent>0) break; // current week already over budget: no streak
+    else continue;
   }
   return streak;
 }
@@ -4059,7 +4262,8 @@ function renderTrendChart(months){
   // Bars row
   h+='<div style="display:flex;align-items:flex-end;gap:3px;height:'+BAR_H+'px;position:relative;z-index:2">';
   months.forEach(function(m){
-    const isThis=m.month===now.getMonth()&&m.year===now.getFullYear();
+    const _cp=curM();
+    const isThis=m.month===_cp.m&&m.year===_cp.y;
     const isOver=bg>0&&m.spent>bg;
     const spH=maxVal>0?Math.max(Math.round(m.spent/maxVal*BAR_H),m.spent>0?3:0):0;
     const incH=maxVal>0?Math.max(Math.round((m.income||0)/maxVal*BAR_H),(m.income||0)>0?3:0):0;
@@ -4068,7 +4272,7 @@ function renderTrendChart(months){
     const incColor=isThis?'#2E7D32':'rgba(46,125,50,.3)';
     // Each month column: tappable, navigates to that month in History
     const monthLabel=tx().months[m.month];
-    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="viewMonth={m:'+m.month+',y:'+m.year+'};go(&quot;insights&quot;);insTab=&quot;hist&quot;">';
+    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="viewMonth={m:'+m.month+',y:'+m.year+'};insTab=&quot;hist&quot;;go(&quot;insights&quot;)">';
     h+='<div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:1px;position:relative">';
     // Amount label above current month spend bar only
     if(isThis&&m.spent>0){
@@ -4099,9 +4303,12 @@ function renderTrendChart(months){
   }
   // End-of-month spending projection for current month
   if(last&&last.spent>0&&bg>0){
-    const todayD=new Date();
-    const daysInMonth=new Date(todayD.getFullYear(),todayD.getMonth()+1,0).getDate();
-    const daysPassed=todayD.getDate();
+    // Project over the current BUDGET period (calendar month, or salary-day period), not always the calendar month.
+    const _bp=getBudgetPeriod(curM());
+    const _ps=new Date(_bp.startY,_bp.startM,_bp.startD), _pe=new Date(_bp.endY,_bp.endM,_bp.endD);
+    const _t0=new Date(); _t0.setHours(0,0,0,0);
+    const daysInMonth=Math.round((_pe-_ps)/86400000)+1;
+    const daysPassed=Math.floor((_t0-_ps)/86400000)+1;
     if(daysPassed<daysInMonth&&daysPassed>0){
       const projected=Math.round(last.spent/daysPassed*daysInMonth);
       const projOver=projected>bg;
@@ -4182,7 +4389,7 @@ function rHome(){
       h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:#E65100;vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
-      h+='<span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span></div></div>';
+      h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span></div></div>';
       h+='<div class="pramt '+(isI?'inc':'exp')+'">'+(isI?'+ ':'- ')+MK(p.amount)+'</div></div>';
     });
   } else {
@@ -4379,7 +4586,7 @@ function rLog(){
   let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
   h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, koperani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
-  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" onclick="setU(\''+u.id+'\')">'+'<div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
+  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" onclick="setU(\''+u.id+'\')">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+trName(name)+'</div>';}).join('');
     if(picks)h+='<div class="fsec"><label class="fl"><i data-lucide="zap" style="width:11px;height:11px;vertical-align:-1px;color:#F9A825"></i> '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
@@ -4529,7 +4736,7 @@ function rHist(){
   h+='<div class="ftag'+(fUser==="all"?" on":"")+'\" onclick="setF(&quot;all&quot;)">'+t.all+'</div>';
   lCfg.users.forEach(function(u){
     var on=fUser===u.id;
-    h+='<div class="ftag'+(on?' on':'')+' ftag-u" onclick="setFU(this)" data-uid="'+u.id+'" style="'+(on?'background:'+u.color+';border-color:'+u.color:'')+'">'+esc(u.name)+'</div>';
+    h+='<div class="ftag'+(on?' on':'')+' ftag-u" onclick="setFU(this)" data-uid="'+u.id+'" style="'+(on?'background:'+sC(u.color)+';border-color:'+sC(u.color):'')+'">'+esc(u.name)+'</div>';
   });
   h+='</div>';
 
@@ -4554,7 +4761,7 @@ function rHist(){
         h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:#E65100;vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.58rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
-        h+='<div class="plrow2"><span class="prwho" style="background:'+u.color+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
+        h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
         h+='<div class="plact">';
         h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+p.id+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
         h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+p.id+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
@@ -4599,8 +4806,8 @@ function doDel(id){
     function(){
       db.collection('households').doc(hhId).collection('purchases').doc(id)
         .update({deletedAt:new Date().toISOString(),deleted:true})
-        .then(function(){ toast('Moved to trash.','i'); })
-        .catch(function(){ delPx(id); toast(tx().deleted); });
+        .then(function(){ _invalidateMemo(); toast('Moved to trash.','i'); })
+        .catch(function(e){ toast('Could not move to trash ('+(e&&e.code||'error')+'). Nothing was deleted.','e'); });
     }, null, true
   );
 }
@@ -4666,22 +4873,33 @@ function openEP(id){
   const t=tx(), isI=p.type==='income';
   const pt=p.timestamp?new Date(p.timestamp).toTimeString().slice(0,5):'12:00';
   let h='<div class="dh"></div><h3><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;margin-right:3px"></i> Edit Entry</h3><input type="hidden" id="ep-id" value="'+id+'"><input type="hidden" id="ep-uid" value="'+(p.userId||lCfg.users[0].id)+'">';
-  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+((p.userId||lCfg.users[0].id)===u.id?' on':'')+'" onclick="epU(this,\''+u.id+'\')"><div class="usav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
-  if(!isI)h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+lCfg.items.map(it=>'<option value="'+esc(it.name)+'" '+(p.item===it.name?'selected':'')+'>'+esc(trName(it.name))+'</option>').join('')+'</select></div>';
+  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+((p.userId||lCfg.users[0].id)===u.id?' on':'')+'" onclick="epU(this,\''+u.id+'\')"><div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
+  if(!isI){
+    // Entries logged under a custom item or a bill (e.g. "ESCOM") aren't in lCfg.items; include the entry's own item so saving doesn't silently switch it.
+    const _opts=lCfg.items.map(it=>it.name);
+    if(p.item && _opts.indexOf(p.item)<0) _opts.unshift(p.item);
+    h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+_opts.map(n=>'<option value="'+esc(n)+'" '+(p.item===n?'selected':'')+'>'+esc(trName(n))+'</option>').join('')+'</select></div>';
+  }
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+p.amount+'" inputmode="numeric"></div></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+p.date+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+pt+'"></div></div>';
   if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
-  h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+(p.notes||'').replace(/"/g,'&quot;')+'"></div>';
+  h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+esc(p.notes||'')+'"></div>';
   h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
   g('mb-ep').innerHTML=h; initIcons(); openM('mv-ep');
 }
 function epU(el,uid){ g('ep-uid').value=uid; el.closest('.usel').querySelectorAll('.usb').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
 function saveEP(isI){
-  const id=val('ep-id'), a=parseFloat(val('ep-amt'));
-  if(!a||a<=0){toast('Amount required.','e');return;}
+  const id=val('ep-id'), a=Math.round(parseFloat(val('ep-amt'))*100)/100;
+  if(!a||isNaN(a)||a<=0||a>99999999){toast('Enter a valid amount.','e');return;}
   const dStr=val('ep-date'), tStr=val('ep-time')||'12:00', ts=new Date(dStr+'T'+tStr).getTime();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dStr) || isNaN(ts)){toast('Pick a valid date.','e');return;}
   const data={date:dStr,timestamp:ts,amount:a,notes:val('ep-notes'),userId:val('ep-uid')};
-  if(!isI){data.item=val('ep-item');data.qty=val('ep-qty');data.unit=val('ep-unit');}
+  if(!isI){
+    const orig=lPx.find(x=>x.id===id);
+    data.item=val('ep-item'); data.qty=val('ep-qty'); data.unit=val('ep-unit');
+    // keep the stored category unless the item actually changed
+    if(!orig || orig.item!==data.item) data.cat=catOf(data.item);
+  }
   updPx(id,data); closeM('mv-ep'); toast(tx().updated);
 }
 
@@ -4724,7 +4942,9 @@ function rSum(){
   
   // FIX 5: Modern donut chart + category breakdown cards
   const catSpend={};
-  lCfg.items.forEach(it=>{const sp=iSpent(it.name);if(sp>0){const c=catOf(it.name);catSpend[c]=(catSpend[c]||0)+sp;}});
+  // Aggregate from the transactions themselves (not lCfg.items) so custom items and bill payments are included,
+  // and the slices add up to totSp() just like History and the PDF report.
+  lPx.forEach(p=>{ if(p.deleted||p.type==='income'||!isTM(p.date)) return; const c=catOf(p.item,p.cat); catSpend[c]=(catSpend[c]||0)+(Number(p.amount)||0); });
   const cats=Object.entries(catSpend).sort((a,b)=>b[1]-a[1]);
   h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;color:var(--p1)"></i> Category Breakdown</h2></div><div style="padding:16px">';
   if(cats.length&&tS>0){
@@ -4749,7 +4969,7 @@ function rSum(){
     });
     // Center stat
     h+='<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:14px;max-width:100%;overflow:hidden">';
-    h+=`<svg viewBox="0 0 140 140" width="100%" height="auto" style="max-width:160px;filter:drop-shadow(0 4px 18px rgba(0,0,0,.13))">
+    h+=`<svg viewBox="0 0 140 140" width="100%" style="max-width:160px;height:auto;filter:drop-shadow(0 4px 18px rgba(0,0,0,.13))">
       ${donutSegs}
       <circle cx="${cx}" cy="${cy}" r="34" fill="var(--white)"/>
       <text x="${cx}" y="${cy-6}" text-anchor="middle" font-family="Hanken Grotesk" font-weight="800" font-size="12" fill="var(--ink)">${MKs(tS)}</text>
@@ -4951,7 +5171,7 @@ function addMonthClamped(dateStr){
   d.setMonth(d.getMonth()+1);
   const daysInTarget = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
   d.setDate(Math.min(day, daysInTarget));
-  return d.toISOString().split('T')[0];
+  return localISO(d);
 }
 
 function markBillPaid(i){
@@ -4965,12 +5185,24 @@ function markBillPaid(i){
     +'<div style="font-size:.84rem;color:var(--ink);font-weight:700;margin-bottom:4px">'+esc(bill.name)+' -- '+t.confirmMarkPaid+'</div>'
     +'<div style="font-size:.74rem;color:var(--mid);line-height:1.5">'+t.confirmMarkPaidSub+'</div></div>',
     function(){
-      addPx({item:bill.name,date:today(),timestamp:Date.now(),amount:bill.amount,qty:'',unit:'',notes:t.billTracker,userId:actU().id,type:'expense',cat:'Other'});
+      // Re-find the bill by identity: the index captured when the card was rendered may be stale if the list changed meanwhile.
+      const idx=(lCfg.bills||[]).findIndex(function(b){return b.name===bill.name && b.dueDate===bill.dueDate;});
+      const amt=Number(bill.amount);
+      if(idx<0){ toast(lang==='cw'?'Bilu iyi yasintha. Yesaninso.':'This bill changed. Please try again.','e'); _stgRefresh(); return; }
+      if(!amt||amt<=0){ toast(lang==='cw'?'Ndalama ya bilu ndi yolakwika.':'This bill has no valid amount.','e'); return; }
+      const prevCfg=lCfg;
       const cfg=JSON.parse(JSON.stringify(lCfg));
-      cfg.bills[i]={...cfg.bills[i],dueDate:addMonthClamped(bill.dueDate)};
+      cfg.bills[idx]={...cfg.bills[idx],dueDate:addMonthClamped(bill.dueDate)};
       cfg.bills.sort(function(a,b){return a.dueDate.localeCompare(b.dueDate);});
-      saveCfg(cfg);
-      toast(t.billPaidToast,'s');
+      // ONE atomic batch: the expense entry and the rolled due date succeed or fail together
+      // (they used to be two separate writes, so a failure could log the expense without rolling the date, or the reverse).
+      const hhRef=db.collection('households').doc(hhId);
+      const batch=db.batch();
+      batch.set(hhRef.collection('purchases').doc(),{item:bill.name,date:today(),timestamp:Date.now(),amount:Math.round(amt*100)/100,qty:'',unit:'',notes:t.billTracker,userId:actU().id,type:'expense',cat:'Other',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      batch.update(hhRef,{'config.bills':cfg.bills});
+      lCfg=cfg; _invalidateMemo(); setDot('spin');
+      batch.commit().then(function(){ setDot(''); toast(t.billPaidToast,'s'); })
+        .catch(function(e){ lCfg=prevCfg; _invalidateMemo(); setDot('off'); toast('Could not mark as paid ('+(e&&e.code||'error')+'). Nothing was changed.','e'); render(); });
       _stgRefresh();
     }, null, false
   );
@@ -4995,9 +5227,9 @@ function openAddM(){
   g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e');
 }
-function pickC(el,pid,hid){ g(hid).value=el.style.background; document.querySelectorAll('#'+pid+' .cp').forEach(cp=>cp.classList.remove('on')); el.classList.add('on'); }
+function pickC(el,pid,hid){ g(hid).value=sC(el.style.background); document.querySelectorAll('#'+pid+' .cp').forEach(cp=>cp.classList.remove('on')); el.classList.add('on'); }
 function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast('Enter a name.','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#7B1FA2'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); _stgRefresh(); }
-function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(u.color===c?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+u.color+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
+function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(sC(u.color).toLowerCase()===String(c).toLowerCase()?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+sC(u.color)+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); _stgRefresh(); }
 function delMember(i){
@@ -5031,7 +5263,7 @@ function svEB(){ const i=parseInt(val('eb-i')),v=parseFloat(val('eb-v')); if(!v|
 function openAddGoal(){
   const t=tx(), isCW=lang==='cw';
   const minDate=new Date(); minDate.setDate(minDate.getDate()+7);
-  const minDateStr=minDate.toISOString().split('T')[0];
+  const minDateStr=localISO(minDate);
   let h='<div class="dh"></div>';
   h+='<h3><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.addGoal+'</h3>';
   h+='<div class="fsec"><label class="fl" for="g-nm">'+t.goalName+'</label>';
@@ -5137,12 +5369,12 @@ function rStg(){
     premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Upgrade</button>';
   }
   h+='<div class="prof-hdr" style="align-items:center">';
-  if(photo){h+='<div class="prof-av"><img src="'+photo+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px"></div>';}
-  else{h+='<div class="prof-av" style="background:'+u.color+'">'+initials+'</div>';}
+  if(photo && /^https:\/\//i.test(photo)){h+='<div class="prof-av"><img src="'+esc(photo)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px"></div>';}
+  else{h+='<div class="prof-av" style="background:'+sC(u.color)+'">'+esc(initials)+'</div>';}
   h+='<div class="prof-info" style="flex:1;min-width:0">';
-  h+='<div class="prof-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+displayName+'</div>';
-  if(cu&&cu.email)h+='<div class="prof-email" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cu.email+'</div>';
-  else if(cu&&cu.phoneNumber)h+='<div class="prof-email">'+cu.phoneNumber+'</div>';
+  h+='<div class="prof-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(displayName)+'</div>';
+  if(cu&&cu.email)h+='<div class="prof-email" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cu.email)+'</div>';
+  else if(cu&&cu.phoneNumber)h+='<div class="prof-email">'+esc(cu.phoneNumber)+'</div>';
   h+='</div>';
   h+=premiumChip;
   h+='</div>';
@@ -5303,7 +5535,7 @@ function stgOpenSection(sec){
     let h='<div class="page">';
     h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:var(--cr);padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):sec==='goals'?(lang==='cw'?'Zolinga zosungira':'Savings Goals'):(lang==='cw'?'Zolipira':'Bill Tracker'))+'</h2></div>';
     if(sec==='members'){
-      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+u.color+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')"><i data-lucide="pencil" style="width:12px;height:12px"></i></button><div class="umav" style="background:'+u.color+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
+      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+sC(u.color)+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" onclick="openEU('+i+')"><i data-lucide="pencil" style="width:12px;height:12px"></i></button><div class="umav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month</div></div>').join('')+'</div></div></div>';
       // Pending join requests — visible to owner
       // Check lHHDoc.owner first, fall back to ownedHouseholds on user doc for old households
       const isOwner = curUser && (
@@ -5439,7 +5671,13 @@ function buildAndDownloadCSV(fromD, toD, periodLabel){
   const totalExp=expenses.reduce((s,p)=>s+Number(p.amount||0),0);
   const net=totalInc-totalExp;
 
-  const q=v=>'"'+String(v===undefined||v===null?'':v).replace(/"/g,'""')+'"';
+  // Neutralise spreadsheet formula injection: text cells beginning with = + - @ (or tab/CR) are prefixed with an apostrophe.
+  // Plain numbers like "-5,000" are left alone.
+  const q=v=>{
+    let t=String(v===undefined||v===null?'':v);
+    if(/^[=+\-@\t\r]/.test(t) && !/^-?[\d,.]+$/.test(t)) t="'"+t;
+    return '"'+t.replace(/"/g,'""')+'"';
+  };
   const row=(...cells)=>cells.map(q).join(',')+String.fromCharCode(13,10);
   const blank=()=>String.fromCharCode(13,10);
 
@@ -5527,7 +5765,7 @@ function openExportRangePicker(format){
     monthOptions += '<option value="'+val+'">'+lbl+'</option>';
   }
   const todayStr = today();
-  const monthAgoStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()-30).toISOString().split('T')[0];
+  const monthAgoStr = localISO(new Date(now.getFullYear(), now.getMonth(), now.getDate()-30));
 
   let h = '<div class="dh"></div><h3 style="font-family:Hanken Grotesk,sans-serif;margin-bottom:14px">'+(isCW?'Sankhani Nthawi':'Choose Report Period')+'</h3>';
 
@@ -5621,9 +5859,10 @@ function buildAndDownloadPdf(fromD, toD, periodLabel){
     return;
   }
 
-  const sp = rangePx.filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+p.amount;},0);
-  const inc = rangePx.filter(function(p){return p.type==='income';}).reduce(function(s,p){return s+p.amount;},0);
-  const bg = lCfg.overallBudget;
+  const sp = rangePx.filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
+  const inc = rangePx.filter(function(p){return p.type==='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
+  const bg = Number(lCfg.overallBudget)||0;
+  const periodIsSingle = (toTime - fromTime) <= 32*86400000;
 
   // No silent cap — all matching transactions are included
   const rows = rangePx.map(function(p){
@@ -5634,20 +5873,20 @@ function buildAndDownloadPdf(fromD, toD, periodLabel){
   const catSpendPDF = {};
   rangePx.filter(function(p){return p.type!=='income';}).forEach(function(p){
     const c = catOf(p.item, p.cat);
-    catSpendPDF[c] = (catSpendPDF[c]||0) + p.amount;
+    catSpendPDF[c] = (catSpendPDF[c]||0) + Number(p.amount||0);
   });
   const catRows = Object.entries(catSpendPDF).sort(function(a,b){return b[1]-a[1];}).map(function(e){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><span>'+e[0]+'</span><span style="font-weight:700;color:#7B1FA2">MK '+Number(e[1]).toLocaleString()+'</span></div>';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><span>'+esc(e[0])+'</span><span style="font-weight:700;color:#7B1FA2">MK '+Number(e[1]).toLocaleString()+'</span></div>';
   }).join('');
 
   const memberRows = lCfg.users.map(function(u){
-    const ms = rangePx.filter(function(p){return p.userId===u.id && p.type!=='income';}).reduce(function(s,p){return s+p.amount;},0);
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:'+u.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">'+esc(u.name[0])+'</div>'+esc(u.name)+'</div><span style="font-weight:700">MK '+Number(ms).toLocaleString()+'</span></div>';
+    const ms = rangePx.filter(function(p){return p.userId===u.id && p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE7F6;font-size:12px"><div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">'+esc(u.name[0])+'</div>'+esc(u.name)+'</div><span style="font-weight:700">MK '+Number(ms).toLocaleString()+'</span></div>';
   }).join('');
 
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bajeti Yanga -- '+periodLabel+' Report</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap\');*{box-sizing:border-box;margin:0;padding:0}body{font-family:Manrope,Arial,sans-serif;background:#F8F0FF;color:#1A1A2E;padding:32px 24px;max-width:680px;margin:0 auto}.header{background:linear-gradient(135deg,#7B1FA2,#4A148C);border-radius:var(--cr);padding:24px 28px;color:#fff;margin-bottom:24px;display:flex;align-items:center;gap:20px}.logo{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}.header-info h1{font-size:24px;font-weight:800;margin-bottom:4px}.header-info p{font-size:12px;opacity:.75}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}.sum-card{background:#fff;border-radius:var(--cr);padding:16px;text-align:center;box-shadow:0 2px 12px rgba(123,31,162,.1)}.sum-val{font-size:20px;font-weight:800;color:#7B1FA2;margin-bottom:4px}.sum-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#607D8B}.sum-card.spent .sum-val{color:#B71C1C}.sum-card.income .sum-val{color:#1B5E20}.section{background:#fff;border-radius:var(--cr);padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}.section h2{font-size:14px;font-weight:800;color:#7B1FA2;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EDE7F6}.tx-table{width:100%;border-collapse:collapse}.tx-table th{background:#F3E5F5;color:#4A148C;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;border-radius:4px}.tx-table td{padding:7px 10px;border-bottom:1px solid #F3E5F5;font-size:12px}.tx-table tr:last-child td{border-bottom:none}.footer{text-align:center;font-size:10px;color:#9E9E9E;margin-top:24px;padding-top:16px;border-top:1px solid #EDE7F6}@media print{body{background:#fff;padding:16px}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}.section{box-shadow:none;border:1px solid #EDE7F6}}</style></head><body>';
-  const fullHtml = html + '<div class="header"><div class="logo"><svg width="36" height="36" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.2)"/><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg></div><div class="header-info"><h1>Bajeti Yanga</h1><p>Financial Report &bull; '+periodLabel+'<br>Household: '+hhId+' &bull; Generated: '+new Date().toLocaleDateString()+'</p></div></div>'
-    + '<div class="summary-grid"><div class="sum-card spent"><div class="sum-val">MK '+Number(sp).toLocaleString()+'</div><div class="sum-lbl">Total Spent</div></div><div class="sum-card income"><div class="sum-val">MK '+Number(inc).toLocaleString()+'</div><div class="sum-lbl">Income</div></div><div class="sum-card"><div class="sum-val">MK '+Number(Math.max(0,bg-sp)).toLocaleString()+'</div><div class="sum-lbl">Budget Remaining</div></div></div>'
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bajeti Yanga -- '+esc(periodLabel)+' Report</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap\');:root{--cr:14px}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Manrope,Arial,sans-serif;background:#F8F0FF;color:#1A1A2E;padding:32px 24px;max-width:680px;margin:0 auto}.header{background:linear-gradient(135deg,#7B1FA2,#4A148C);border-radius:var(--cr);padding:24px 28px;color:#fff;margin-bottom:24px;display:flex;align-items:center;gap:20px}.logo{width:56px;height:56px;background:rgba(255,255,255,.2);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}.header-info h1{font-size:24px;font-weight:800;margin-bottom:4px}.header-info p{font-size:12px;opacity:.75}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}.sum-card{background:#fff;border-radius:var(--cr);padding:16px;text-align:center;box-shadow:0 2px 12px rgba(123,31,162,.1)}.sum-val{font-size:20px;font-weight:800;color:#7B1FA2;margin-bottom:4px}.sum-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#607D8B}.sum-card.spent .sum-val{color:#B71C1C}.sum-card.income .sum-val{color:#1B5E20}.section{background:#fff;border-radius:var(--cr);padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}.section h2{font-size:14px;font-weight:800;color:#7B1FA2;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EDE7F6}.tx-table{width:100%;border-collapse:collapse}.tx-table th{background:#F3E5F5;color:#4A148C;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;border-radius:4px}.tx-table td{padding:7px 10px;border-bottom:1px solid #F3E5F5;font-size:12px}.tx-table tr:last-child td{border-bottom:none}.footer{text-align:center;font-size:10px;color:#9E9E9E;margin-top:24px;padding-top:16px;border-top:1px solid #EDE7F6}@media print{body{background:#fff;padding:16px}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}.section{box-shadow:none;border:1px solid #EDE7F6}}</style></head><body>';
+  const fullHtml = html + '<div class="header"><div class="logo"><svg width="36" height="36" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.2)"/><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg></div><div class="header-info"><h1>Bajeti Yanga</h1><p>Financial Report &bull; '+esc(periodLabel)+'<br>Household: '+esc(hhId)+' &bull; Generated: '+new Date().toLocaleDateString()+'</p></div></div>'
+    + '<div class="summary-grid"><div class="sum-card spent"><div class="sum-val">MK '+Number(sp).toLocaleString()+'</div><div class="sum-lbl">Total Spent</div></div><div class="sum-card income"><div class="sum-val">MK '+Number(inc).toLocaleString()+'</div><div class="sum-lbl">Income</div></div><div class="sum-card"><div class="sum-val">MK '+Number(periodIsSingle ? Math.max(0,bg-sp) : (inc-sp)).toLocaleString()+'</div><div class="sum-lbl">'+(periodIsSingle?'Budget Remaining':'Net (Income - Spent)')+'</div></div></div>'
     + '<div class="section"><h2>Spending by Category</h2>'+catRows+'</div>'
     + '<div class="section"><h2>Spending by Member</h2>'+memberRows+'</div>'
     + '<div class="section"><h2>All Transactions ('+rangePx.length+')</h2><table class="tx-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Amount</th><th>Member</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
@@ -5656,7 +5895,8 @@ function buildAndDownloadPdf(fromD, toD, periodLabel){
   const w = window.open('','_blank');
   if(w){
     w.document.write(fullHtml); w.document.close();
-    setTimeout(function(){w.print(); w.close();},600);
+    w.onafterprint = function(){ try{ w.close(); }catch(e){} };
+    setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} },800);
   } else {
     try {
       const blob = new Blob([fullHtml], {type:'text/html'});
@@ -5703,7 +5943,7 @@ function setHF(el){histFilter=el.dataset.f||'all';rHist();}
 function setHT(el){histTime=el.dataset.t||'month';rHist();}
 function openSwitch(){
   const t=tx();
-  g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?u.color:'var(--border)')+';background:'+(actU().id===u.id?u.color+'18':'var(--white)')+';cursor:pointer" onclick="swU(\''+u.id+'\')">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+u.color+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.68rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+u.color+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
+  g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?sC(u.color):'var(--border)')+';background:'+(actU().id===u.id?sC(u.color)+'18':'var(--white)')+';cursor:pointer" onclick="swU(\''+u.id+'\')">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.68rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+sC(u.color)+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
   openM('mv-u');
 }
 function swU(id){ localStorage.setItem('nb_uid',id); updatePill(); closeM('mv-u'); render(); }
@@ -5913,7 +6153,7 @@ function getPremiumStatus(){
   const expiry = cfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
   if(isPrem){
     if(expiry){
-      const expiryDate = new Date(expiry);
+      const expiryDate = _expiryEnd(expiry);
       const now = new Date();
       const expired = expiryDate < now;
       if(expired) return {isPremium:false, isTrial:false, isExpired:true, daysLeft:0};
@@ -5979,7 +6219,7 @@ function approveJoin(uid){
     const cfg = JSON.parse(JSON.stringify(lCfg));
     if(!cfg.users) cfg.users = [];
     if(!cfg.users.find(u=>u.id===uid)){
-      const usedColors = cfg.users.map(u=>u.color);
+      const usedColors = cfg.users.map(u=>sC(u.color));
       const color = MEMBER_COLORS.find(c=>!usedColors.includes(c)) || MEMBER_COLORS[cfg.users.length % MEMBER_COLORS.length];
       cfg.users.push({id: uid, name: memberName, color: color});
     }
@@ -6053,7 +6293,7 @@ function showPremiumPage(){
   if(status.isPremium && !status.isTrial){
     const expiry = lCfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
     const expiryStr = expiry ? fmtDate(expiry.split('T')[0]) : (isCW ? 'Palibe tsiku lotha' : 'No expiry set');
-    const daysLeft = expiry ? Math.max(0, Math.ceil((new Date(expiry) - new Date()) / 86400000)) : null;
+    const daysLeft = expiry ? Math.max(0, Math.ceil((_expiryEnd(expiry) - new Date()) / 86400000)) : null;
     const nearExpiry = daysLeft !== null && daysLeft <= 7;
     if(nearExpiry){
       h += '<div style="margin:16px 0;background:linear-gradient(135deg,#FFF3E0,#FFF8E1);border:1.5px solid #FFCC80;border-radius:var(--cr);padding:16px">';
@@ -6303,9 +6543,9 @@ function injectTrialStart(cfg){
 
 function copyPreviousMonth(){
   premiumGate('copy_month', function(){
-    const now=new Date(), prevM=new Date(now.getFullYear(), now.getMonth()-1, 1);
-    const prevStr=prevM.getFullYear()+'-'+String(prevM.getMonth()+1).padStart(2,'0');
-    let prevPx=lPx.filter(p=>p.date&&p.date.startsWith(prevStr)&&p.type!=='income');
+    // previous BUDGET period (respects salary day), and never copy entries sitting in the trash
+    const _cm=curM(), _pm={m:_cm.m===0?11:_cm.m-1, y:_cm.m===0?_cm.y-1:_cm.y};
+    let prevPx=lPx.filter(p=>p.date&&!p.deleted&&p.type!=='income'&&isTM(p.date,_pm));
     if(!prevPx.length){toast(lang==='cw'?'Palibe zogula za mwezi wapita':'No expenses found from last month','e');return;}
     if(prevPx.length>200){
       toast(lang==='cw'?'Kukopera 200 mwa '+prevPx.length+' (malire a chitetezo).':'Copying 200 of '+prevPx.length+' entries (limit for safety).','i');
@@ -6318,7 +6558,7 @@ function copyPreviousMonth(){
       const ref=db.collection('households').doc(hhId).collection('purchases').doc();
       batch.set(ref,{item:p.item,amount:p.amount,date:todayStr,timestamp:Date.now(),
         qty:p.qty||'',unit:p.unit||'',notes:p.notes||'',userId:p.userId,
-        type:'expense',recurring:p.recurring||false});
+        cat:p.cat||catOf(p.item),type:'expense',recurring:p.recurring||false});
     });
     batch.commit().then(function(){ toast(lang==='cw'?prevPx.length+' zolemba zakopedwa!':prevPx.length+' entries copied!','s'); }).catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message+'.','e'); });
   });
@@ -6373,11 +6613,19 @@ async function setupFCMToken(){
 }
 
 // In-app budget alert: show a browser Notification if tab is not visible
+// Returns true only if a system notification was actually requested, so callers can avoid marking a reminder as "sent" when it wasn't.
 function maybeNotify(title,body){
-  if(document.visibilityState==='visible')return; // in-app toast handles it
-  if(Notification.permission==='granted'){
-    new Notification(title,{body,icon:'/bajeti-yanga/icon-192.png',badge:'/bajeti-yanga/icon-96.png'});
-  }
+  if(document.visibilityState==='visible') return false; // in-app toast handles it
+  if(!('Notification' in window) || Notification.permission!=='granted') return false;
+  const opts={body:body,icon:'./icons/icon-192.png',badge:'./icons/icon-96.png'};
+  try{
+    // Android Chrome throws "Illegal constructor" for new Notification(); the service worker route works everywhere.
+    if('serviceWorker' in navigator && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready.then(function(reg){ return reg.showNotification(title,opts); })
+        .catch(function(){ try{ new Notification(title,opts); }catch(e){} });
+    } else { new Notification(title,opts); }
+  }catch(e){ return false; }
+  return true;
 }
 
 // Call on boot after household connects
@@ -6403,12 +6651,17 @@ function checkBillReminders(){
   let changed = false;
   lCfg.bills.forEach(function(b){
     if(!b.dueDate || notifiedToday.includes(b.name)) return;
-    const due = new Date(b.dueDate); due.setHours(0,0,0,0);
+    const due = new Date(String(b.dueDate).split('T')[0]+'T00:00:00'); // local midnight (date-only strings parse as UTC otherwise)
     const diff = Math.round((due - today2)/86400000);
     if(diff > 3) return; // not due soon enough yet
-    if(diff < 0) maybeNotify('Bajeti Yanga: Bill Overdue', b.name+' (MK '+Math.round(b.amount).toLocaleString()+') was due '+b.dueDate+'.');
-    else if(diff === 0) maybeNotify('Bajeti Yanga: Bill Due Today', b.name+' (MK '+Math.round(b.amount).toLocaleString()+') is due today.');
-    else maybeNotify('Bajeti Yanga: Bill Reminder', b.name+' (MK '+Math.round(b.amount).toLocaleString()+') is due in '+diff+' day'+(diff>1?'s':'')+'.');
+    let _title, _body;
+    if(diff < 0){ _title='Bajeti Yanga: Bill Overdue'; _body=b.name+' (MK '+Math.round(b.amount).toLocaleString()+') was due '+b.dueDate+'.'; }
+    else if(diff === 0){ _title='Bajeti Yanga: Bill Due Today'; _body=b.name+' (MK '+Math.round(b.amount).toLocaleString()+') is due today.'; }
+    else { _title='Bajeti Yanga: Bill Reminder'; _body=b.name+' (MK '+Math.round(b.amount).toLocaleString()+') is due in '+diff+' day'+(diff>1?'s':'')+'.'; }
+    let _shown = maybeNotify(_title,_body);
+    // App is open (the usual case at boot): a system notification is suppressed, so show it in-app instead of silently dropping the day's reminder.
+    if(!_shown && document.visibilityState==='visible'){ toast(_body,'i'); _shown = true; }
+    if(!_shown) return; // not delivered: try again on the next check instead of marking it done
     notifiedToday.push(b.name);
     changed = true;
   });
@@ -6520,7 +6773,7 @@ function loadChatHistory(){
   try{ chatHistory = JSON.parse(localStorage.getItem(chatStorageKey())||'[]'); }catch(e){ chatHistory=[]; }
 }
 function saveChatHistory(){
-  localStorage.setItem(chatStorageKey(), JSON.stringify(chatHistory.slice(-50)));
+  try{ localStorage.setItem(chatStorageKey(), JSON.stringify(chatHistory.slice(-50))); }catch(e){ /* storage full or blocked: chat still lives in memory and Firestore */ }
 }
 
 // ── Firestore usage helpers ──
@@ -6818,12 +7071,12 @@ function renderBubbles(){
       const pa=m.pendingAction;
       actionCard='<div class="ai-action-card" style="background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-color:#E53935">'
         +'<div class="aac-title" style="color:#B71C1C"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete this entry?</div>'
-        +'<div class="aac-item"><span class="aac-name">'+esc(pa.item||'Transaction')+'</span><span style="font-size:.72rem;color:var(--mid)">'+esc(pa.date||'')+'</span>'
+        +'<div class="aac-item"><span class="aac-name">'+esc(pa.item||'Transaction')+'</span><span style="font-size:.72rem;color:var(--mid)">'+esc(pa.date||'')+(pa.amount?' · MK '+Number(pa.amount).toLocaleString():'')+'</span>'
         +'<button class="aac-confirm" style="background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="confirmAiAction('+idx+')">Delete</button>'
         +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">Cancel</button></div>'
         +'</div>';
     }
-    if(!isU && m.pendingAction && m.pendingAction.type==='bulkLog'){
+    if(!isU && m.pendingAction && m.pendingAction.type==='bulkLog' && Array.isArray(m.pendingAction.items)){
       const pa=m.pendingAction;
       actionCard='<div class="ai-action-card">'
         +'<div class="aac-title"><i data-lucide="plus-circle" style="width:14px;height:14px"></i> Log '+pa.items.length+' item'+(pa.items.length>1?'s':'')+'?</div>'
@@ -6857,10 +7110,41 @@ function bubbleLongPress(el){ _longPressTimer=setTimeout(()=>{el.classList.add('
 function bubbleLongPressEnd(el){ clearTimeout(_longPressTimer); }
 
 // -- AI action handling (add/delete entries from chat) --
+// The model's [ACTION] JSON is untrusted input. Validate shape and types, and for deletes take the details from OUR
+// transaction (looked up by id) instead of trusting what the model wrote, so the confirm card shows what will really be deleted.
+function sanitizeAiAction(a){
+  if(!a || typeof a!=='object') return null;
+  const CATS=['Food','Household','Personal','Transport','Other'];
+  const cleanItem=function(x){
+    const name=String(x&&x.item!=null?x.item:'').trim().slice(0,80);
+    const amt=Number(x&&x.amount);
+    if(!name || !isFinite(amt) || amt<=0 || amt>99999999) return null;
+    const date=(x.date && /^\d{4}-\d{2}-\d{2}$/.test(String(x.date)))?String(x.date):today();
+    const type=(x.entryType==='income'||x.type==='income')?'income':'expense';
+    const cat=CATS.indexOf(x.cat)>=0?x.cat:catOf(name);
+    return {item:name,amount:Math.round(amt*100)/100,date:date,entryType:type,type:type,cat:cat};
+  };
+  if(a.type==='add'){
+    const it=cleanItem(a); return it?Object.assign({type:'add'},{item:it.item,amount:it.amount,date:it.date,entryType:it.entryType,cat:it.cat}):null;
+  }
+  if(a.type==='delete'){
+    const id=String(a.id||'');
+    if(!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
+    const px=lPx.find(function(x){return x.id===id && !x.deleted;});
+    if(!px) return null;
+    return {type:'delete',id:id,item:px.item,date:px.date,amount:Number(px.amount)||0};
+  }
+  if(a.type==='bulkLog'){
+    if(!Array.isArray(a.items)) return null;
+    const items=a.items.slice(0,30).map(cleanItem).filter(Boolean).map(function(it){return {item:it.item,amount:it.amount,type:it.type,cat:it.cat};});
+    return items.length?{type:'bulkLog',items:items}:null;
+  }
+  return null;
+}
 function parseAiAction(text){
   const m=text.match(/\[ACTION\]([\s\S]*?)\[\/ACTION\]/);
   if(!m) return null;
-  try{ return JSON.parse(m[1].trim()); }catch(e){ return null; }
+  try{ return sanitizeAiAction(JSON.parse(m[1].trim())); }catch(e){ return null; }
 }
 function confirmAiAction(msgIdx){
   const msg=chatHistory[msgIdx];
@@ -6871,18 +7155,20 @@ function confirmAiAction(msgIdx){
     const dStr=pa.date||today();
     const ts=now.getTime();
     const userId=actU().id;
-    addPx({item:pa.item,date:dStr,timestamp:ts,amount:Number(pa.amount),notes:'',userId,type:pa.entryType||'expense',recurring:false});
-    toast((lang==='cw'?'Cholembedwa: ':'Logged: ')+pa.item+'.','s');
+    addPx({item:pa.item,date:dStr,timestamp:ts,amount:Number(pa.amount),notes:'',userId,type:pa.entryType||'expense',cat:pa.cat||catOf(pa.item),recurring:false})
+      .then(function(ok){ if(ok) toast((lang==='cw'?'Cholembedwa: ':'Logged: ')+pa.item+'.','s'); });
   } else if(pa.type==='delete'){
-    updPx(pa.id,{deleted:true,deletedAt:Date.now()}); // soft-delete to trash
+    updPx(pa.id,{deleted:true,deletedAt:new Date().toISOString()}); // soft-delete to trash
     toast(lang==='cw'?'Chotsedwa':'Deleted','s');
   } else if(pa.type==='bulkLog'){
     let ts=Date.now();
     const userId=actU().id;
-    (pa.items||[]).forEach(function(it){
-      addPx({item:String(it.item||'').trim(),date:today(),timestamp:ts++,amount:Number(it.amount)||0,notes:'Added via Magic Log ✨',userId,type:it.type==='income'?'income':'expense',cat:it.cat||'Other',recurring:false});
+    Promise.all((pa.items||[]).map(function(it){
+      return addPx({item:String(it.item||'').trim(),date:today(),timestamp:ts++,amount:Number(it.amount)||0,notes:'Added via Magic Log ✨',userId,type:it.type==='income'?'income':'expense',cat:it.cat||'Other',recurring:false});
+    })).then(function(r){
+      const n=r.filter(Boolean).length;
+      if(n) toast(lang==='cw'?n+' zolemba zalembedwa.':n+' item'+(n>1?'s':'')+' logged.','s');
     });
-    toast(lang==='cw'?(pa.items||[]).length+' zolemba zalembedwa.':(pa.items||[]).length+' items logged.','s');
   }
   msg.pendingAction=null;
   saveChatHistory();
@@ -7128,10 +7414,10 @@ Only mention Rodart Creatives' WhatsApp support (+265 888 029 029, also in Setti
 You can add or delete log entries when the user asks. Append ONE JSON block at the very end of your reply (after your text) when an action is needed. Never put JSON mid-reply. Format:
 
 To add an expense:
-[ACTION]{"type":"add","item":"Transport","amount":5000,"date":"${now.toISOString().slice(0,10)}","entryType":"expense"}[/ACTION]
+[ACTION]{"type":"add","item":"Transport","amount":5000,"date":"${today()}","entryType":"expense"}[/ACTION]
 
 To add income:
-[ACTION]{"type":"add","item":"Salary/Income","amount":50000,"date":"${now.toISOString().slice(0,10)}","entryType":"income"}[/ACTION]
+[ACTION]{"type":"add","item":"Salary/Income","amount":50000,"date":"${today()}","entryType":"income"}[/ACTION]
 
 To delete (only after user confirms — show them the entry first and ask):
 [ACTION]{"type":"delete","id":"TRANSACTION_ID_HERE"}[/ACTION]
@@ -7205,26 +7491,26 @@ async function sendChat(){
     let lastErr = null;
 
     for (let i = 0; i <= delays.length; i++) {
+      let retryable = true; // network errors are retryable; HTTP errors only for 429/503
       try {
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Bajeti-Secret': 'BY-2025-SEC-8f4k2p9m' },
+          headers: await aiHeaders(),
           body: JSON.stringify(payload)
         });
-        const resData = await res.json();
-        
+        let resData = null;
+        try { resData = await res.json(); } catch(_) { /* non-JSON body (e.g. a 502 page) */ }
+
         if (!res.ok) {
-           lastErr = new Error(resData?.error?.message || 'API Error');
-           // Only retry on rate-limit (429) or server unavailable (503)
-           if(res.status !== 429 && res.status !== 503) throw lastErr;
-           if (i === delays.length) throw lastErr;
-        } else {
-           data = resData;
-           break;
+           lastErr = new Error(resData?.error?.message || ('API Error '+res.status));
+           retryable = (res.status === 429 || res.status === 503);
+           throw lastErr;
         }
+        data = resData;
+        break;
       } catch (err) {
         lastErr = err;
-        if (i === delays.length) throw lastErr;
+        if (!retryable || i === delays.length) throw lastErr;
       }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
@@ -7332,7 +7618,7 @@ async function scanReceiptFromChat(input){
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'},body:JSON.stringify(payload)});
+      const res=await fetch(url,{method:'POST',headers: await aiHeaders(),body:JSON.stringify(payload)});
       const data=await res.json();
       if(data.error)throw new Error(data.error.message);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
@@ -7397,7 +7683,7 @@ async function scanReceipt(input){
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'},body:JSON.stringify(payload)});
+      const res=await fetch(url,{method:'POST',headers: await aiHeaders(),body:JSON.stringify(payload)});
       const data=await res.json();
       if(data.error)throw new Error(data.error.message);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
@@ -7497,15 +7783,17 @@ async function processMagicLog() {
     const delays = [1000, 2000, 4000, 8000];
     let data = null, lastErr = null;
     for (let i = 0; i <= delays.length; i++) {
+      let retryable = true;
       try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Bajeti-Secret': 'BY-2025-SEC-8f4k2p9m' }, body: JSON.stringify(payload) });
-        const resData = await res.json();
+        const res = await fetch(url, { method: 'POST', headers: await aiHeaders(), body: JSON.stringify(payload) });
+        let resData = null; try { resData = await res.json(); } catch(_) {}
         if (!res.ok) {
-          lastErr = new Error(resData?.error?.message || 'API Error');
-          if (res.status !== 429 && res.status !== 503) throw lastErr;
-          if (i === delays.length) throw lastErr;
-        } else { data = resData; break; }
-      } catch(err) { lastErr = err; if (i === delays.length) throw lastErr; }
+          lastErr = new Error(resData?.error?.message || ('API Error '+res.status));
+          retryable = (res.status === 429 || res.status === 503);
+          throw lastErr;
+        }
+        data = resData; break;
+      } catch(err) { lastErr = err; if (!retryable || i === delays.length) throw lastErr; }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -7557,7 +7845,7 @@ function saveMagicTxs() {
       return;
     }
     const amt = Number(tx.amount) || 0;
-    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+esc(rawName)+'.','e'); skipped++; return; }
+    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+rawName+'.','e'); skipped++; return; }
     const dStr = (tx.date && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)) ? tx.date : fallbackDate;
     addPx({
       item: rawName.slice(0,100),
@@ -7609,15 +7897,17 @@ Data: ${JSON.stringify(buildSummaryData())}`;
     const delays = [1000, 2000, 4000, 8000];
     let data = null, lastErr = null;
     for (let i = 0; i <= delays.length; i++) {
+      let retryable = true;
       try {
-        const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','X-Bajeti-Secret':'BY-2025-SEC-8f4k2p9m'}, body:JSON.stringify(payload)});
-        const resData = await res.json();
+        const res = await fetch(url, {method:'POST', headers: await aiHeaders(), body:JSON.stringify(payload)});
+        let resData = null; try { resData = await res.json(); } catch(_) {}
         if (!res.ok) {
-          lastErr = new Error(resData?.error?.message || 'API Error');
-          if (res.status !== 429 && res.status !== 503) throw lastErr;
-          if (i === delays.length) throw lastErr;
-        } else { data = resData; break; }
-      } catch(err) { lastErr = err; if (i === delays.length) throw lastErr; }
+          lastErr = new Error(resData?.error?.message || ('API Error '+res.status));
+          retryable = (res.status === 429 || res.status === 503);
+          throw lastErr;
+        }
+        data = resData; break;
+      } catch(err) { lastErr = err; if (!retryable || i === delays.length) throw lastErr; }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -7664,14 +7954,20 @@ function dismissNameNotif(){ var n=document.querySelector('.name-notif'); if(n)n
 function delBillD(el){ delBill(parseInt(el.dataset.bi)); }
 function swUD(el){ swU(el.dataset.uid); }
 function openPxMD(el){ openPxM(el.dataset.pid); }
+// Auth for the AI worker: a short-lived Firebase ID token (verified server-side) instead of a shared secret baked into the page.
+async function aiHeaders(){
+  const h={'Content-Type':'application/json'};
+  try{ if(auth && auth.currentUser){ h['Authorization']='Bearer '+(await auth.currentUser.getIdToken()); } }catch(e){}
+  return h;
+}
 function viewItemD(el){ viewItem(el.dataset.iid); }
 function openPxM(id){ openEP(id); }
 function viewItem(name){
   const t=tx();
-  const txs=lPx.filter(p=>p.item===name&&p.type!=='income'&&isTM(p.date));
-  const total=txs.reduce((s,p)=>s+Number(p.amount),0);
+  const txs=lPx.filter(p=>p.item===name&&p.type!=='income'&&!p.deleted&&isTM(p.date));
+  const total=txs.reduce((s,p)=>s+Number(p.amount||0),0);
   const it=lCfg.items.find(i=>i.name===name);
-  let h='<div class="dh"></div><h3>'+ico(name)+' '+name+'</h3>';
+  let h='<div class="dh"></div><h3>'+ico(name)+' '+esc(trName(name))+'</h3>';
   h+='<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:.82rem">';
   h+='<span style="color:var(--mid)">Budget: <strong>'+MK(it?it.budget:0)+'</strong></span>';
   h+='<span style="color:var(--r1)">Spent: <strong>'+MK(total)+'</strong></span></div>';
