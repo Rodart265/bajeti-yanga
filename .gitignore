@@ -1,0 +1,8 @@
+node_modules/
+functions/node_modules/
+worker/node_modules/
+.env
+functions/.env
+functions/.env.*
+.dev.vars
+*.log
