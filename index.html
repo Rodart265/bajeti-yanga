@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Content-Security-Policy (added Oct 2026). Limits where scripts, connections and frames can come
+     from, so an injected script could not load code from, or send data to, an unknown site.
+     'unsafe-inline' is still needed because the app uses inline onclick handlers and one inline script;
+     removing those is a later job. If anything breaks after this change, delete this whole <meta> line
+     and the app goes back to how it was. (frame-ancestors cannot be set from a meta tag.) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com/recaptcha/ https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://www.gstatic.com https://*.workers.dev https://*.cloudfunctions.net https://*.run.app https://api.paychangu.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com https://pay.paychangu.com https://checkout.paychangu.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#7B1FA2">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1521,6 +1527,13 @@ const nowTime = () => { const d=new Date(); return d.toTimeString().slice(0,5); 
 // Output is HTML-escaped because dates come from Firestore and are interpolated into innerHTML in many places.
 // A date-only expiry like "2026-12-31" means "valid through the end of that day" in the user's timezone
 // (new Date("2026-12-31") is UTC midnight, which ended Premium ~2 hours into the last day in Malawi).
+// Milliseconds since epoch from a Firestore Timestamp, an ISO/date string, a number, or a Date. NaN if unusable.
+function _toMs(v){
+  if(!v) return NaN;
+  if(typeof v.toMillis==='function') return v.toMillis();
+  if(typeof v.toDate==='function') return v.toDate().getTime();
+  return new Date(v).getTime();
+}
 function _expiryEnd(e){
   const str=String(e||'');
   if(/^\d{4}-\d{2}-\d{2}$/.test(str)){ const p=str.split('-'); return new Date(+p[0],+p[1]-1,+p[2],23,59,59); }
@@ -1626,6 +1639,9 @@ function totIn()     { _ensureMemo(); return _memoIn; }
 function actU()      { return lCfg.users.find(u=>u.id===localStorage.getItem('nb_uid'))||lCfg.users[0]; }
 function uById(id)   { return lCfg.users.find(u=>u.id===id)||lCfg.users[0]; }
 function statOf(sp,bg){ if(!sp)return'none'; const r=sp/bg; return r>=1?'over':r>=.8?'near':'ok'; }
+// A household / group code as the app generates it. Anything else (quotes, markup, spaces) is refused before it can be
+// stored or placed into the page: a code arrives from another person, so it is treated as untrusted input.
+function _validCode(c){ return /^[a-z0-9_-]{3,40}$/i.test(String(c||'')); }
 function randCode(){
   const chars='abcdefghjkmnpqrstuvwxyz23456789';
   const bytes=crypto.getRandomValues(new Uint8Array(8));
@@ -2746,6 +2762,7 @@ function restoreAccount(){
   const uid = user.uid, hid = _pendingRestoreHid, FV = firebase.firestore.FieldValue;
   const userUpd = {pendingDeletion:false, deletedAt:null, restoreBefore:null};
   let step = Promise.resolve();
+  let _needsReapproval = false;
   if(hid){
     const hhRef = db.collection('households').doc(hid);
     step = hhRef.get().then(snap=>{
@@ -2756,12 +2773,14 @@ function restoreAccount(){
         userUpd.ownedHouseholds = FV.arrayUnion(hid);
         return hhRef.update({deletedAt:null, deletedBy:null, restoreBefore:null});
       }
-      // Member: deletion only removed them from memberUids, so re-add them. Best effort; rules may require the owner to re-approve.
-      return hhRef.update({memberUids: FV.arrayUnion(uid)}).catch(()=>null);
+      // Member: deletion only removed them from memberUids. The rules only let the OWNER add members, so this normally
+      // fails; remember that so we tell the person the truth below instead of a plain "Account restored!".
+      return hhRef.update({memberUids: FV.arrayUnion(uid)}).catch(()=>{ _needsReapproval = true; });
     });
   }
   step.then(()=>db.collection('users').doc(uid).update(userUpd)).then(()=>{
-    toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
+    if(_needsReapproval) toast(lang==='cw'?'Akaunti yabwezeretsedwa. Mwachotsedwa mu nyumbayi. Lowetsani kodi kuti mupemphe kulowanso.':'Account restored, but you are no longer in your household. Enter the household code to ask the owner to approve you again.','i');
+    else toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
     _pendingRestoreHid=null;
     authReg=false; bootApp();
   }).catch(()=>toast('Restore failed. Check your connection.','e'));
@@ -2889,12 +2908,12 @@ function createHHSolo(){
       return;
     }
     const code=randCode();
-    const soloCfg=injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG)));
+    const soloCfg=JSON.parse(JSON.stringify(DEF_CFG));
     const nm=(curUser&&(curUser.displayName||curUser.email||'').split('@')[0])||'Me';
     soloCfg.users=[{id:'u1',name:nm,color:'#7B1FA2'}];
     soloCfg.solo=true;
     return db.collection('households').doc(code)
-      .set({config:soloCfg,createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser.uid,solo:true,memberUids:[curUser.uid]})
+      .set(_newHouseholdDoc(uDoc.exists?uDoc.data():null, soloCfg, {solo:true}))
       .then(()=>{
         return db.collection('users').doc(curUser.uid).set({
           householdId:code,
@@ -2927,7 +2946,7 @@ function createHH(){
     }
     const code=randCode();
     return db.collection('households').doc(code)
-      .set({config:injectTrialStart(JSON.parse(JSON.stringify(DEF_CFG))),createdAt:firebase.firestore.FieldValue.serverTimestamp(),owner:curUser.uid,memberUids:[curUser.uid]})
+      .set(_newHouseholdDoc(uDoc.exists?uDoc.data():null, JSON.parse(JSON.stringify(DEF_CFG))))
       .then(()=>{
         return db.collection('users').doc(curUser.uid).set({
           householdId:code,
@@ -3008,11 +3027,10 @@ function _restoreWaitingScreen(code){
       return;
     }
     _pollCount++;
-    db.collection('households').doc(code).get()
-      .then(function(snap){
-        if(!snap.exists || !localStorage.getItem('nb_pending_join')) return;
-        const uids = snap.data().memberUids || [];
-        if(curUser && uids.includes(curUser.uid)){
+    _checkApproved(code)
+      .then(function(approved){
+        if(!localStorage.getItem('nb_pending_join')) return;
+        if(curUser && approved){
           localStorage.removeItem('nb_pending_join');
           localStorage.setItem('nb_household', code);
           _claimMembership(code);
@@ -3046,6 +3064,7 @@ function _restoreWaitingScreen(code){
 function _claimMembership(hid){
   if(!curUser) return;
   localStorage.setItem('nb_uid', curUser.uid);
+  db.collection('invites').doc(hid).collection('approved').doc(curUser.uid).delete().catch(()=>{});
   db.collection('users').doc(curUser.uid).set({
     householdId: hid,
     displayName: curUser.displayName || curUser.email || 'User'
@@ -3097,24 +3116,75 @@ function cancelPendingJoin(){
   }
 }
 
+// ── Invite stubs ─────────────────────────────────────────────────────────────
+// invites/{code} is a tiny public stub ({createdAt, expiresAt?}) so someone holding only a join code can check it
+// WITHOUT reading the household document (budgets, member names, config). Owners create it when they open the app
+// (this also covers households that pre-date it). It never throws: the app works fine without it, and a
+// permission-denied from not-yet-published rules is treated as "no stub".
+function _ensureInvite(code){
+  return db.collection('invites').doc(code).set({createdAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})
+    .then(()=>true).catch(()=>false);
+}
+function _backfillInvite(code){
+  const k='nb_inv_'+code;
+  try{ if(localStorage.getItem(k)) return; }catch(e){}
+  db.collection('invites').doc(code).get()
+    .then(s=> s.exists ? true : _ensureInvite(code))
+    .then(ok=>{ if(ok){ try{ localStorage.setItem(k,'1'); }catch(e){} } })
+    .catch(()=>{});
+}
+// Owner leaves a marker for each approved joiner so the joiner can learn they were approved even once non-members
+// can no longer read the household document. Best effort with one retry; membership itself is still decided only
+// by households.memberUids.
+function _markApproved(hid, uid){
+  const ref = db.collection('invites').doc(hid).collection('approved').doc(uid);
+  const doc = {uid:uid, approvedAt:firebase.firestore.FieldValue.serverTimestamp()};
+  return ref.set(doc).catch(()=>new Promise(r=>setTimeout(r,2500)).then(()=>ref.set(doc)).catch(()=>{}));
+}
+// Has the owner approved THIS account's join request for household `code`? True if the owner left an approval
+// marker, or the household already lists this account as a member (approvals made by older versions of the app
+// wrote no marker). permission-denied counts as "not yet"; any other error is passed on so callers can retry.
+function _checkApproved(code){
+  if(!curUser) return Promise.resolve(false);
+  const _denied = e=>{ if(e && e.code==='permission-denied') return null; throw e; };
+  return Promise.all([
+    db.collection('invites').doc(code).collection('approved').doc(curUser.uid).get().catch(_denied),
+    db.collection('households').doc(code).get().catch(_denied)
+  ]).then(r=>{
+    if(r[0] && r[0].exists) return true;
+    const uids = (r[1] && r[1].exists && r[1].data().memberUids) || [];
+    return uids.includes(curUser.uid);
+  });
+}
+
 function joinHH(){
   const code=val('join-code').trim().toLowerCase();
   if(!code){setupErr('Enter a household code.');return;}
+  if(!_validCode(code)){setupErr(lang==='cw'?'Kodi iyi siikuoneka bwino. Onaninso.':'That code does not look right. Check it with your household owner.');return;}
   if(!curUser){setupErr('Not signed in.');return;}
   if(_setupBusy) return;
   _setupLock();
   setDot('spin'); setupErr('');
-  db.collection('households').doc(code).get()
-    .then(doc=>{
-      if(!doc.exists){setDot('off');setupErr(lang==='cw'?'Kodi imeneyi sichiripo. Onani kodi ya nyumba, kapena pangani nyumba yatsopano.':'That code doesn\'t exist. Double-check it with your household owner, or create your own household to get started.');return;}
-      const hhData=doc.data();
-      if(hhData.joinCodeExpiry && Date.now() > hhData.joinCodeExpiry){
+  // Read the invite stub and the household side by side. The household read succeeds for members (and, until the rules
+  // are tightened, for any signed-in user); for a non-member it may be denied, which just means "not a member".
+  const _okOrDenied = e=>{ if(e && e.code==='permission-denied') return null; throw e; };
+  Promise.all([
+    db.collection('invites').doc(code).get().catch(_okOrDenied),
+    db.collection('households').doc(code).get().catch(_okOrDenied)
+  ])
+    .then(([inv, doc])=>{
+      const hhExists = !!(doc && doc.exists), invExists = !!(inv && inv.exists);
+      if(!hhExists && !invExists){setDot('off');setupErr(lang==='cw'?'Kodi imeneyi sichiripo. Onani kodi ya nyumba, kapena pangani nyumba yatsopano.':'That code doesn\'t exist. Double-check it with your household owner, or create your own household to get started.');return;}
+      const hhData = hhExists ? (doc.data()||{}) : {}, invData = invExists ? (inv.data()||{}) : {};
+      // The invite's expiresAt (a Firestore timestamp) is authoritative; the old joinCodeExpiry field (ms) is still honoured.
+      const _exp = invData.expiresAt ? _toMs(invData.expiresAt) : (hhData.joinCodeExpiry||0);
+      if(_exp && Date.now() > _exp){
         setDot('off');
         setupErr(lang==='cw'?'Kodi yathera. Pemphani mwini kodi ipsya.':'This household code has expired. Ask the owner to share a new one.');
         return;
       }
       // Check if already a member — if so, just connect directly
-      if(curUser && hhData.memberUids && hhData.memberUids.includes(curUser.uid)){
+      if(curUser && hhExists && hhData.memberUids && hhData.memberUids.includes(curUser.uid)){
         localStorage.setItem('nb_household',code);
         _claimMembership(code);
         hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code);
@@ -3125,6 +3195,8 @@ function joinHH(){
       // Store pending code in localStorage so reopen restores waiting screen, not app
       // Do NOT write householdId to user doc until actually approved
       localStorage.setItem('nb_pending_join', code);
+      // Clear any stale approval marker from an earlier stint, so an old marker can't look like a fresh approval.
+      db.collection('invites').doc(code).collection('approved').doc(curUser.uid).delete().catch(()=>{});
       return db.collection('households').doc(code).collection('joinRequests')
         .doc(curUser.uid).set({
           uid: curUser.uid,
@@ -3141,7 +3213,7 @@ function joinHH(){
           toast(lang==='cw'?'Pempho lotumizidwa. Mudziwa mukavomelezwa.':'Join request sent. You\'ll be notified when approved.','i');
 
           // Auto-detect approval: poll the household doc every 5 seconds
-          // We use get() not onSnapshot() — non-members have allow get but not allow listen
+          // We poll with get() not onSnapshot() — non-members can only get(), never listen
           // This avoids the permission error that occurred with onSnapshot on household doc
           // and avoids the owner needing to write to someone else's user doc
           let _approvalUnsub = null;
@@ -3155,12 +3227,10 @@ function joinHH(){
               return;
             }
             _approvalPollCount++;
-            db.collection('households').doc(code).get()
-              .then(function(snap){
+            _checkApproved(code)
+              .then(function(approved){
                 if(_approvalUnsub === false) return;
-                if(!snap.exists) return;
-                const memberUids = snap.data().memberUids || [];
-                if(curUser && memberUids.includes(curUser.uid)){
+                if(curUser && approved){
                   _approvalUnsub = false; // stop polling
                   localStorage.removeItem('nb_pending_join'); // clear pending flag
                   localStorage.setItem('nb_household', code);
@@ -3203,7 +3273,14 @@ function joinHH(){
 }
 
 function connectHH(code){
+  if(!_validCode(code)){
+    try{ localStorage.removeItem('nb_household'); }catch(e){}
+    hhId=null; g('app').classList.add('hide'); show('scr-setup');
+    toast(lang==='cw'?'Kodi ya nyumba siili bwino.':'That household code is not valid.','e');
+    return;
+  }
   hhId=code; loadChatHistory(); setDot('spin');
+  setTimeout(_resumePaymentCheck, 4000);   // finishes a Premium payment started earlier, if any
   hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
   g('app').classList.remove('hide');
   // Unsubscribe previous household document listener to prevent memory leak
@@ -3232,7 +3309,7 @@ function connectHH(code){
         : 'That household no longer exists. Create a new one or join another.', 'e');
       return;
     }
-    { const d=doc.data();
+    { const d=doc.data({serverTimestamps:'estimate'});
       // Defense-in-depth: re-validate live membership on every snapshot, not
       // only when the (separately gated) purchases listener happens to hit a
       // permission-denied later. Without this, a removed member could still
@@ -3277,6 +3354,8 @@ function connectHH(code){
       }
       setDot(''); updatePill(); render();
       scheduleInAppAlerts(); checkBillReminders();
+      // Owners make sure the household has its invite stub (invites/{code}); see _backfillInvite.
+      if(curUser && d.owner === curUser.uid) _backfillInvite(code);
       // Load pending join requests badge for owner
       // Attach once per household. (It used to be re-attached on every household snapshot, which reset the counter
       // and re-fired the "new request" toast + notification on any unrelated config change while a request was pending.)
@@ -3552,6 +3631,7 @@ function joinChipGroup(btn){
   const isCW=lang==='cw';
   const code=val('cg-code').trim().toLowerCase();
   if(!code){ toast(isCW?'Lowetsani nambala':'Please enter a code','e'); return; }
+  if(!_validCode(code)){ toast(isCW?'Nambala siikuoneka bwino':'That code does not look right','e'); return; }
   if(!curUser){ toast('Not signed in.','e'); return; }
   if(btn) btn.disabled=true;
   setDot('spin');
@@ -3804,7 +3884,7 @@ function rChip(){
   if(chipGroups.length>1){
     h+='<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px">';
     chipGroups.forEach(function(g2){
-      h+='<button class="btnG" style="white-space:nowrap;padding:6px 12px'+(g2.id===grp.id?';background:var(--p1);color:#fff;border-color:var(--p1)':'')+'" onclick="setChipActive(\''+g2.id+'\')">'+esc(g2.name)+'</button>';
+      h+='<button class="btnG" style="white-space:nowrap;padding:6px 12px'+(g2.id===grp.id?';background:var(--p1);color:#fff;border-color:var(--p1)':'')+'" data-gid="'+esc(g2.id)+'" onclick="setChipActive(this.dataset.gid)">'+esc(g2.name)+'</button>';
     });
     h+='</div>';
   }
@@ -4586,7 +4666,7 @@ function rLog(){
   let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
   h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, koperani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
-  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" onclick="setU(\''+u.id+'\')">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
+  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+trName(name)+'</div>';}).join('');
     if(picks)h+='<div class="fsec"><label class="fl"><i data-lucide="zap" style="width:11px;height:11px;vertical-align:-1px;color:#F9A825"></i> '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
@@ -4736,7 +4816,7 @@ function rHist(){
   h+='<div class="ftag'+(fUser==="all"?" on":"")+'\" onclick="setF(&quot;all&quot;)">'+t.all+'</div>';
   lCfg.users.forEach(function(u){
     var on=fUser===u.id;
-    h+='<div class="ftag'+(on?' on':'')+' ftag-u" onclick="setFU(this)" data-uid="'+u.id+'" style="'+(on?'background:'+sC(u.color)+';border-color:'+sC(u.color):'')+'">'+esc(u.name)+'</div>';
+    h+='<div class="ftag'+(on?' on':'')+' ftag-u" onclick="setFU(this)" data-uid="'+esc(u.id)+'" style="'+(on?'background:'+sC(u.color)+';border-color:'+sC(u.color):'')+'">'+esc(u.name)+'</div>';
   });
   h+='</div>';
 
@@ -4763,8 +4843,8 @@ function rHist(){
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
         h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
         h+='<div class="plact">';
-        h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+p.id+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
-        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+p.id+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
+        h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+esc(p.id)+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
+        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
         h+='</div></div></div>';
       });
     });
@@ -4830,8 +4910,8 @@ function openTrash(){
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
         h+='<div style="display:flex;gap:4px">';
-        h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px">↩ Restore</button>';
-        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+p.id+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>Forever</button>';
+        h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px">↩ Restore</button>';
+        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>Forever</button>';
         h+='</div></div></div>';
       });
     }
@@ -4872,17 +4952,17 @@ function openEP(id){
   const p=lPx.find(x=>x.id===id); if(!p)return;
   const t=tx(), isI=p.type==='income';
   const pt=p.timestamp?new Date(p.timestamp).toTimeString().slice(0,5):'12:00';
-  let h='<div class="dh"></div><h3><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;margin-right:3px"></i> Edit Entry</h3><input type="hidden" id="ep-id" value="'+id+'"><input type="hidden" id="ep-uid" value="'+(p.userId||lCfg.users[0].id)+'">';
-  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+((p.userId||lCfg.users[0].id)===u.id?' on':'')+'" onclick="epU(this,\''+u.id+'\')"><div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
+  let h='<div class="dh"></div><h3><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;margin-right:3px"></i> Edit Entry</h3><input type="hidden" id="ep-id" value="'+esc(id)+'"><input type="hidden" id="ep-uid" value="'+(p.userId||lCfg.users[0].id)+'">';
+  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+((p.userId||lCfg.users[0].id)===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="epU(this,this.dataset.uid)"><div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(!isI){
     // Entries logged under a custom item or a bill (e.g. "ESCOM") aren't in lCfg.items; include the entry's own item so saving doesn't silently switch it.
     const _opts=lCfg.items.map(it=>it.name);
     if(p.item && _opts.indexOf(p.item)<0) _opts.unshift(p.item);
     h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+_opts.map(n=>'<option value="'+esc(n)+'" '+(p.item===n?'selected':'')+'>'+esc(trName(n))+'</option>').join('')+'</select></div>';
   }
-  h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+p.amount+'" inputmode="numeric"></div></div>';
-  h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+p.date+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+pt+'"></div></div>';
-  if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
+  h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+esc(p.amount)+'" inputmode="numeric"></div></div>';
+  h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+esc(p.date)+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+esc(pt)+'"></div></div>';
+  if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+esc(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+esc(p.notes||'')+'"></div>';
   h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
   g('mb-ep').innerHTML=h; initIcons(); openM('mv-ep');
@@ -5119,8 +5199,8 @@ function openAddBill(editIndex){
     var h='<div class="dh"></div><h3><i data-lucide="alarm-clock" style="margin-right:6px;vertical-align:middle"></i>'+(isEdit?t.editBillT:t.addBill)+'</h3>';
     h+='<div class="fsec"><label class="fl">'+t.billName+'</label><input type="text" class="fi" id="bl-nm" placeholder="'+t.billNamePH+'" value="'+(existing?esc(existing.name):'')+'"></div>';
     h+='<div class="fsec"><label class="fl">'+t.iconLbl+'</label><div id="bl-ic-grid" style="display:flex;flex-wrap:wrap;gap:6px">'+_billIconGridHtml(window._billIconPick)+'</div></div>';
-    h+='<div class="fsec"><label class="fl">'+t.amountMKLbl+'</label><input type="number" class="fi" id="bl-amt" inputmode="numeric" placeholder="0" value="'+(existing?existing.amount:'')+'"></div>';
-    h+='<div class="fsec"><label class="fl">'+t.dueDateLbl+'</label><input type="date" class="fi" id="bl-due" value="'+(existing?existing.dueDate:'')+'"></div>';
+    h+='<div class="fsec"><label class="fl">'+t.amountMKLbl+'</label><input type="number" class="fi" id="bl-amt" inputmode="numeric" placeholder="0" value="'+esc(existing?existing.amount:'')+'"></div>';
+    h+='<div class="fsec"><label class="fl">'+t.dueDateLbl+'</label><input type="date" class="fi" id="bl-due" value="'+esc(existing?existing.dueDate:'')+'"></div>';
     h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveBill()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
     g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]}); initIcons(); openM('mv-u');
@@ -5567,8 +5647,8 @@ function stgOpenSection(sec){
                 rh += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#E65100;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">'+esc((jData.displayName||'?')[0].toUpperCase())+'</div>';
                 rh += '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+name+'</div>'+email+'</div>';
                 rh += '<div style="display:flex;gap:6px">';
-                rh += '<button onclick="approveJoin(\''+jd.id+'\')" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" style="width:12px;height:12px"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
-                rh += '<button onclick="declineJoin(\''+jd.id+'\')" style="background:#FFEBEE;color:#C62828;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="x" style="width:12px;height:12px"></i> '+(lang==='cw'?'Kanani':'Decline')+'</button>';
+                rh += '<button data-uid="'+esc(jd.id)+'" onclick="approveJoin(this.dataset.uid)" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" style="width:12px;height:12px"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
+                rh += '<button data-uid="'+esc(jd.id)+'" onclick="declineJoin(this.dataset.uid)" style="background:#FFEBEE;color:#C62828;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="x" style="width:12px;height:12px"></i> '+(lang==='cw'?'Kanani':'Decline')+'</button>';
                 rh += '</div></div>';
               });
               body.innerHTML = rh;
@@ -5577,7 +5657,7 @@ function stgOpenSection(sec){
         }, 300);
       }
     } else if(sec==='items'){
-      h+='<div class="obra"><label class="oblbl"><i data-lucide="home" style="color:var(--p1)"></i> '+t.overallCap+'</label><input type="number" class="obinp" id="ob-v" value="'+lCfg.overallBudget+'" inputmode="numeric" onchange="updOB(this.value)"></div>';
+      h+='<div class="obra"><label class="oblbl"><i data-lucide="home" style="color:var(--p1)"></i> '+t.overallCap+'</label><input type="number" class="obinp" id="ob-v" value="'+esc(lCfg.overallBudget)+'" inputmode="numeric" onchange="updOB(this.value)"></div>';
       h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.itemsLbl+'</h2></div>';
       h+=buildStgSortBar(t);
       const items=lCfg.items;
@@ -5943,7 +6023,7 @@ function setHF(el){histFilter=el.dataset.f||'all';rHist();}
 function setHT(el){histTime=el.dataset.t||'month';rHist();}
 function openSwitch(){
   const t=tx();
-  g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?sC(u.color):'var(--border)')+';background:'+(actU().id===u.id?sC(u.color)+'18':'var(--white)')+';cursor:pointer" onclick="swU(\''+u.id+'\')">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.68rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+sC(u.color)+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
+  g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?sC(u.color):'var(--border)')+';background:'+(actU().id===u.id?sC(u.color)+'18':'var(--white)')+';cursor:pointer" data-uid="'+esc(u.id)+'" onclick="swU(this.dataset.uid)">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.68rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+sC(u.color)+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
   openM('mv-u');
 }
 function swU(id){ localStorage.setItem('nb_uid',id); updatePill(); closeM('mv-u'); render(); }
@@ -6165,7 +6245,9 @@ function getPremiumStatus(){
   // Trial period fallback
   const started = cfg.trialStarted || (lHHDoc && lHHDoc.trialStarted) || null;
   if(!started) return {isPremium:false, isTrial:false, isExpired:false, daysLeft:0};
-  const daysUsed = Math.floor((Date.now() - new Date(started).getTime()) / 86400000);
+  const startedMs = _toMs(started);   // root trialStarted is a Firestore Timestamp; legacy config.trialStarted is an ISO string
+  if(isNaN(startedMs)) return {isPremium:false, isTrial:false, isExpired:false, daysLeft:0};
+  const daysUsed = Math.floor((Date.now() - startedMs) / 86400000);
   const daysLeft = Math.max(0, TRIAL_DAYS - daysUsed);
   return {isPremium:daysLeft>0, isTrial:true, isExpired:false, daysLeft};
 }
@@ -6236,7 +6318,8 @@ function approveJoin(uid){
       config: cfg
     });
     batch.delete(reqRef);
-    return batch.commit();
+    // Approval is committed first; the marker that lets the joiner notice it is a best-effort follow-up.
+    return batch.commit().then(()=>_markApproved(hhId, uid));
   })
     .then(()=>{
       toast(lang==='cw'?'Membala wovomerezedwa!':'Member approved!','s');
@@ -6410,17 +6493,87 @@ function showPaychanguIframe(){
   h += '<div style="font-size:.65rem;color:var(--mid)">'+plan.label+' · MK '+plan.price.toLocaleString()+' · PayChangu</div></div>';
   h += '<button onclick="closeM(\'mv-u\');showPremiumPage()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Bwelera':'Back')+'</button>';
   h += '</div>';
-  h += '<div style="font-size:.72rem;color:var(--mid);margin-bottom:8px;line-height:1.5">';
-  h += (isCW?'Lowetsani MK <strong style="color:var(--ink)">'+plan.price.toLocaleString()+'</strong> pa kalata ya PayChangu:':'Enter <strong style="color:var(--ink)">MK '+plan.price.toLocaleString()+'</strong> as the amount on the PayChangu page:');
-  h += '</div>';
-  h += '<iframe src="'+PAYCHANGU_LINK+'" style="width:100%;height:420px;border:none;border-radius:var(--cr);background:#f5f5f5" allow="payment" loading="lazy"></iframe>';
-  h += '<button onclick="showClaimScreen()" style="width:100%;margin-top:12px;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
-  h += '<i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Landilani Premim Yanga':'Claim My Premium Access');
-  h += '</button>';
-  h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Tap \'Claim\' mukamaliza kulipira pa PayChangu':'Tap Claim after completing payment on PayChangu')+'</div>';
+  if(PAYMENTS_API){
+    h += '<div style="font-size:.74rem;color:var(--mid);margin-bottom:12px;line-height:1.55">'+(isCW?'Tidzakutengerani ku PayChangu kuti mulipire MK <strong style="color:var(--ink)">'+plan.price.toLocaleString()+'</strong> ndi Airtel Money, TNM Mpamba kapena khadi.':'We will take you to PayChangu to pay <strong style="color:var(--ink)">MK '+plan.price.toLocaleString()+'</strong> with Airtel Money, TNM Mpamba or card.')+'</div>';
+    h += '<button onclick="startCheckout(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(74,20,140,.4);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><i data-lucide="lock" style="width:18px;height:18px"></i> '+(isCW?'Lipirani pa PayChangu':'Pay with PayChangu')+'</button>';
+    h += '<button onclick="claimPayment(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px"><i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Ndalipira. Tsegulani Premium':'I\'ve paid. Activate my Premium')+'</button>';
+    h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-top:8px;line-height:1.5">'+(isCW?'Premium imatseguka yokha mkati mwa mphindi zochepa mukalipira. Mukavuta, tumizani screenshot pa WhatsApp.':'Premium switches on by itself within a few minutes of paying. If anything goes wrong, send your screenshot on WhatsApp instead.')+'</div>';
+    h += '<button onclick="showClaimScreen()" style="width:100%;background:none;border:none;color:var(--mid);font-size:.72rem;font-family:inherit;cursor:pointer;padding:8px 16px;text-decoration:underline">'+(isCW?'Ndavutika. Ndituma pa WhatsApp':'Having trouble? Pay manually instead')+'</button>';
+  } else {
+    h += '<div style="font-size:.72rem;color:var(--mid);margin-bottom:8px;line-height:1.5">';
+    h += (isCW?'Lowetsani MK <strong style="color:var(--ink)">'+plan.price.toLocaleString()+'</strong> pa kalata ya PayChangu:':'Enter <strong style="color:var(--ink)">MK '+plan.price.toLocaleString()+'</strong> as the amount on the PayChangu page:');
+    h += '</div>';
+    h += '<iframe src="'+PAYCHANGU_LINK+'" style="width:100%;height:420px;border:none;border-radius:var(--cr);background:#f5f5f5" allow="payment" loading="lazy"></iframe>';
+    h += '<button onclick="showClaimScreen()" style="width:100%;margin-top:12px;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
+    h += '<i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Landilani Premim Yanga':'Claim My Premium Access');
+    h += '</button>';
+    h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Tap \'Claim\' mukamaliza kulipira pa PayChangu':'Tap Claim after completing payment on PayChangu')+'</div>';
+  }
 
   g('mb-u').innerHTML = h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
+}
+
+// ── Automatic Premium activation (PayChangu) ────────────────────────────────
+// Paste the URL printed by `firebase deploy` for the `payments` function to switch this on (see docs/ROLLOUT-2026-10.md).
+// While it is empty the app keeps the existing flow: pay on the PayChangu page, then send the screenshot on WhatsApp.
+const PAYMENTS_API = '';
+async function _paymentsCall(body){
+  const res = await fetch(PAYMENTS_API, {method:'POST', headers: await _authHeaders(), body: JSON.stringify(body)});
+  let data=null; try{ data=await res.json(); }catch(_){}
+  if(!res.ok){ const e=new Error((data&&data.error)||('HTTP '+res.status)); e.status=res.status; throw e; }
+  return data||{};
+}
+async function startCheckout(btn){
+  const isCW = lang==='cw';
+  const plan = _selectedPlan || {months:3, price:7000, label:'3 Months'};
+  if(!hhId || !curUser){ toast('Not signed in.','e'); return; }
+  if(btn) btn.disabled = true;
+  try{
+    const r = await _paymentsCall({action:'checkout', householdId:hhId, months:plan.months});
+    let host=''; try{ host=new URL(r.checkout_url).hostname; }catch(_){}
+    if(!r.tx_ref || !/(^|\.)paychangu\.com$/.test(host)) throw new Error('bad checkout response');
+    try{ localStorage.setItem('nb_pay_tx', JSON.stringify({tx:r.tx_ref, hh:hhId, at:Date.now()})); }catch(e){}
+    window.open(r.checkout_url, '_blank');
+    toast(isCW?'Malizani kulipira, kenako dinani "Ndalipira".':'Finish paying, then come back and tap "I\'ve paid".','i');
+  }catch(e){
+    toast(aiFailMessage(e,isCW) || (isCW?'Sitinathe kuyamba chilipiro. Yesaninso.':'Could not start the payment. Please try again.'),'e');
+  }finally{ if(btn) btn.disabled = false; }
+}
+// Asks the server to check the payment with PayChangu and, if it really went through, activate Premium.
+// The browser never decides this itself: the server verifies with PayChangu and writes the Premium fields.
+async function claimPayment(btn, silent){
+  const isCW = lang==='cw';
+  let pend=null; try{ pend=JSON.parse(localStorage.getItem('nb_pay_tx')||'null'); }catch(e){}
+  if(!pend || !pend.tx){ if(!silent) toast(isCW?'Palibe chilipiro chopezeka pa chipangizochi.':'No payment found on this device. Start a payment first.','e'); return false; }
+  if(btn) btn.disabled = true;
+  try{
+    const r = await _paymentsCall({action:'check', txRef:pend.tx});
+    if(r.status==='paid'){
+      try{ localStorage.removeItem('nb_pay_tx'); }catch(e){}
+      closeM('mv-u');
+      toast(isCW?'Premium yatsegulidwa! Zikomo.':'Premium activated! Thank you.','s');
+      return true;
+    }
+    if(r.status==='failed'){
+      try{ localStorage.removeItem('nb_pay_tx'); }catch(e){}
+      if(!silent) toast(isCW?'Chilipiro sichinatheke.':'That payment did not go through.','e');
+      return false;
+    }
+    if(!silent) toast(isCW?'Chilipiro sichinatsimikizidwe. Dikirani miniti ndikuyesanso. Premium imatseguka yokha mukalipira.':'Payment not confirmed yet. Wait a minute and tap again. Premium also switches on by itself once PayChangu confirms.','i');
+    return false;
+  }catch(e){
+    if(!silent) toast(aiFailMessage(e,isCW) || (isCW?'Sitinathe kuyang\'ana chilipiro. Yesaninso.':'Could not check the payment. Please try again.'),'e');
+    return false;
+  }finally{ if(btn) btn.disabled = false; }
+}
+function _resumePaymentCheck(){
+  if(!PAYMENTS_API) return;
+  try{ if(/[?&]paid=1/.test(location.search)) history.replaceState(null,'',location.pathname); }catch(e){}
+  let pend=null; try{ pend=JSON.parse(localStorage.getItem('nb_pay_tx')||'null'); }catch(e){}
+  if(!pend) return;
+  if(!pend.at || Date.now()-pend.at > 48*3600*1000){ try{ localStorage.removeItem('nb_pay_tx'); }catch(e){} return; }
+  claimPayment(null, true);
 }
 
 function showClaimScreen(){
@@ -6531,13 +6684,15 @@ function getTrialBanner(){
     +'</div>';
 }
 
-// Inject trial start date when household is created (only once)
-function injectTrialStart(cfg){
-  if(!cfg.trialStarted){
-    cfg.trialStarted = new Date().toISOString();
-    cfg.isPremium = false;
-  }
-  return cfg;
+// Builds the document for a brand-new household. The free trial starts from a SERVER timestamp at the ROOT of the
+// document: the security rules reject a trial date inside config and reject any client-supplied date, so it cannot
+// be back-dated. The trial is offered once per account: if users/{uid}.trialClaimedAt is set (stamped by the
+// onHouseholdCreated Cloud Function), no trial is started for this household.
+function _newHouseholdDoc(uData, cfg, extra){
+  const FV = firebase.firestore.FieldValue;
+  const doc = Object.assign({config:cfg, createdAt:FV.serverTimestamp(), owner:curUser.uid, memberUids:[curUser.uid]}, extra||{});
+  if(!(uData && uData.trialClaimedAt)) doc.trialStarted = FV.serverTimestamp();
+  return doc;
 }
 
 
@@ -7306,7 +7461,7 @@ async function openConvoList(){
     chatConversations.forEach((c)=>{
       const isActive=c.id===activeChatId;
       const dateStr=new Date(c.createdAt).toLocaleDateString([],{month:'short',day:'numeric'});
-      h+='<div class="chat-convo-item'+(isActive?' on':'')+'" data-cid="'+c.id+'" onclick="switchConvoById(this)">'  
+      h+='<div class="chat-convo-item'+(isActive?' on':'')+'" data-cid="'+esc(c.id)+'" onclick="switchConvoById(this)">'  
         +'<div class="chat-convo-title">'+esc(c.title)+'</div>'
         +'<span class="chat-convo-date">'+dateStr+'</span>'
         +'<button class="chat-convo-del" onclick="event.stopPropagation();delConvoById(this.closest(\'[data-cid]\')||this)" title="Delete"><i data-lucide="x" style="width:11px;height:11px"></i></button>'
@@ -7495,22 +7650,22 @@ async function sendChat(){
       try {
         const res = await fetch(url, {
           method: 'POST',
-          headers: await aiHeaders(),
+          headers: await aiHeaders('msg'),
           body: JSON.stringify(payload)
         });
         let resData = null;
         try { resData = await res.json(); } catch(_) { /* non-JSON body (e.g. a 502 page) */ }
 
         if (!res.ok) {
-           lastErr = new Error(resData?.error?.message || ('API Error '+res.status));
-           retryable = (res.status === 429 || res.status === 503);
+           lastErr = _aiHttpErr(res, resData);
+           retryable = (res.status === 503 || (res.status === 429 && lastErr.aiCode !== 'quota'));
            throw lastErr;
         }
         data = resData;
         break;
       } catch (err) {
         lastErr = err;
-        if (!retryable || i === delays.length) throw lastErr;
+        if (!retryable || (err && err.aiCode === 'auth') || i === delays.length) throw lastErr;
       }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
@@ -7537,13 +7692,7 @@ async function sendChat(){
       ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
       : 'Bajeti AI is busy right now, please try again in a moment.';
 
-    if (err.message && (err.message.includes('unregistered callers') || err.message.includes('API key not valid'))) {
-      errorMsg = 'API Key Missing! Please edit the downloaded HTML file and paste your API key inside the sendChat() function at the bottom.';
-    } else if (err.message && err.message.includes('quota')) {
-      errorMsg = isCW
-        ? 'Bajeti AI ili otanganidwa kwambiri lero. Yesaninso mawa.'
-        : 'Bajeti AI has reached its daily limit. Please try again tomorrow.';
-    }
+    errorMsg = aiFailMessage(err, isCW) || errorMsg;
 
     chatHistory.push({role:'assistant', text:errorMsg, ts:Date.now()});
   }
@@ -7618,9 +7767,9 @@ async function scanReceiptFromChat(input){
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers: await aiHeaders(),body:JSON.stringify(payload)});
-      const data=await res.json();
-      if(data.error)throw new Error(data.error.message);
+      const res=await fetch(url,{method:'POST',headers: await aiHeaders('scan'),body:JSON.stringify(payload)});
+      let data=null; try{ data=await res.json(); }catch(_){}
+      if(!res.ok || !data || data.error) throw _aiHttpErr(res, data);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
       const clean=resultText.replace(/```json|```/g,'').trim();
       let items=JSON.parse(clean);
@@ -7656,7 +7805,7 @@ async function scanReceiptFromChat(input){
       toast(lang==='cw'?'Risiti yawerekedwa!':'Receipt scanned!','s');
     }catch(err){
       const pb=document.getElementById('scan-progress-bubble'); if(pb)pb.remove();
-      const errMsg=lang==='cw'?'Pepani, sindinakwanitsa kuwerenga risiti. Yesaninso kapena lembani mwachidule.':'Sorry, I couldn\'t read that receipt. Try again or type the items manually.';
+      const errMsg=aiFailMessage(err, lang==='cw') || (lang==='cw'?'Pepani, sindinakwanitsa kuwerenga risiti. Yesaninso kapena lembani mwachidule.':'Sorry, I couldn\'t read that receipt. Try again or type the items manually.');
       chatHistory.push({role:'assistant',text:errMsg,ts:Date.now()});
       saveChatHistory();
       renderBubbles();
@@ -7683,9 +7832,9 @@ async function scanReceipt(input){
     try{
       const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers: await aiHeaders(),body:JSON.stringify(payload)});
-      const data=await res.json();
-      if(data.error)throw new Error(data.error.message);
+      const res=await fetch(url,{method:'POST',headers: await aiHeaders('scan'),body:JSON.stringify(payload)});
+      let data=null; try{ data=await res.json(); }catch(_){}
+      if(!res.ok || !data || data.error) throw _aiHttpErr(res, data);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
       const clean=resultText.replace(/```json|```/g,'').trim();
       pendingMagicTxs=JSON.parse(clean);
@@ -7707,7 +7856,7 @@ async function scanReceipt(input){
       if(resultsEl)resultsEl.innerHTML='';
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="sparkles" style="width:15px;height:15px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Tulutsani':'Extract');if(window.lucide)lucide.createIcons({nodes:[btn]});}
       _aiInFlight=false;
-      toast('Could not read receipt.','e');
+      toast(aiFailMessage(err, lang==='cw') || 'Could not read receipt.','e');
     }
   };
   reader.readAsDataURL(file);
@@ -7785,15 +7934,15 @@ async function processMagicLog() {
     for (let i = 0; i <= delays.length; i++) {
       let retryable = true;
       try {
-        const res = await fetch(url, { method: 'POST', headers: await aiHeaders(), body: JSON.stringify(payload) });
+        const res = await fetch(url, { method: 'POST', headers: await aiHeaders('magic'), body: JSON.stringify(payload) });
         let resData = null; try { resData = await res.json(); } catch(_) {}
         if (!res.ok) {
-          lastErr = new Error(resData?.error?.message || ('API Error '+res.status));
-          retryable = (res.status === 429 || res.status === 503);
+          lastErr = _aiHttpErr(res, resData);
+          retryable = (res.status === 503 || (res.status === 429 && lastErr.aiCode !== 'quota'));
           throw lastErr;
         }
         data = resData; break;
-      } catch(err) { lastErr = err; if (!retryable || i === delays.length) throw lastErr; }
+      } catch(err) { lastErr = err; if (!retryable || (err && err.aiCode === 'auth') || i === delays.length) throw lastErr; }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -7820,9 +7969,10 @@ async function processMagicLog() {
     const busyMsg = isCW
       ? 'Bajeti AI ili otanganidwa. Chonde yesaninso posachedwa.'
       : 'Bajeti AI is busy right now. Please try again in a moment.';
-    toast(busyMsg, 'e');
+    const _fm = aiFailMessage(err, isCW) || busyMsg;
+    toast(_fm, 'e');
     const resultsEl2 = g('magic-results');
-    if(resultsEl2) resultsEl2.innerHTML = '<div style="text-align:center;padding:14px;font-size:.78rem;color:var(--r1)">'+busyMsg+'</div>';
+    if(resultsEl2) resultsEl2.innerHTML = '<div style="text-align:center;padding:14px;font-size:.78rem;color:var(--r1)">'+esc(_fm)+'</div>';
     btn.disabled=false; btn.innerHTML='<i data-lucide="refresh-cw" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(isCW?'Yesaninso':'Try again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
@@ -7899,15 +8049,15 @@ Data: ${JSON.stringify(buildSummaryData())}`;
     for (let i = 0; i <= delays.length; i++) {
       let retryable = true;
       try {
-        const res = await fetch(url, {method:'POST', headers: await aiHeaders(), body:JSON.stringify(payload)});
+        const res = await fetch(url, {method:'POST', headers: await aiHeaders('summ'), body:JSON.stringify(payload)});
         let resData = null; try { resData = await res.json(); } catch(_) {}
         if (!res.ok) {
-          lastErr = new Error(resData?.error?.message || ('API Error '+res.status));
-          retryable = (res.status === 429 || res.status === 503);
+          lastErr = _aiHttpErr(res, resData);
+          retryable = (res.status === 503 || (res.status === 429 && lastErr.aiCode !== 'quota'));
           throw lastErr;
         }
         data = resData; break;
-      } catch(err) { lastErr = err; if (!retryable || i === delays.length) throw lastErr; }
+      } catch(err) { lastErr = err; if (!retryable || (err && err.aiCode === 'auth') || i === delays.length) throw lastErr; }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -7920,7 +8070,7 @@ Data: ${JSON.stringify(buildSummaryData())}`;
     const busyMsg = isCW
       ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
       : 'Bajeti AI is busy right now, please try again in a moment.';
-    toast(busyMsg,'e');
+    toast(aiFailMessage(err, isCW) || busyMsg,'e');
     btn.disabled=false; btn.innerHTML='<i data-lucide="zap" style="margin-right:4px"></i> '+(isCW?'Yesaninso':'Try Again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
@@ -7955,10 +8105,42 @@ function delBillD(el){ delBill(parseInt(el.dataset.bi)); }
 function swUD(el){ swU(el.dataset.uid); }
 function openPxMD(el){ openPxM(el.dataset.pid); }
 // Auth for the AI worker: a short-lived Firebase ID token (verified server-side) instead of a shared secret baked into the page.
-async function aiHeaders(){
+// Throws (never sends an anonymous request) when there is no usable sign-in token, so the person sees "please sign in
+// again" instead of a confusing "AI is busy". aiCode 'auth' is also what stops the retry loops from hammering the Worker.
+function _aiErr(msg, code, status){ const e=new Error(msg); e.aiCode=code; if(status) e.status=status; return e; }
+async function _authHeaders(){
   const h={'Content-Type':'application/json'};
-  try{ if(auth && auth.currentUser){ h['Authorization']='Bearer '+(await auth.currentUser.getIdToken()); } }catch(e){}
+  if(!(auth && auth.currentUser)) throw _aiErr('not signed in','auth');
+  try{ h['Authorization']='Bearer '+(await auth.currentUser.getIdToken()); }
+  catch(e){ throw _aiErr('could not refresh sign-in','auth'); }
   return h;
+}
+// feature: 'msg' | 'magic' | 'scan' | 'summ'. Together with the household id it lets the Worker apply the right daily
+// limit (free vs Premium) on the server, where it cannot be reset from the browser.
+async function aiHeaders(feature){
+  const h=await _authHeaders();
+  if(hhId) h['X-Household']=hhId;
+  if(feature) h['X-AI-Feature']=feature;
+  return h;
+}
+// Turns a failed Worker response into an Error carrying a machine-readable aiCode: 'auth' (401/403) or 'quota'
+// (429 with error.code === 'quota_exceeded'). Everything else is treated as a temporary "busy".
+function _aiHttpErr(res, resData){
+  const m = resData && resData.error && resData.error.message;
+  const e = new Error(m || ('API Error '+res.status));
+  e.status = res.status;
+  const c = resData && resData.error && (resData.error.code || resData.error.status);
+  if(res.status===401 || res.status===403) e.aiCode='auth';
+  else if(res.status===429 && c==='quota_exceeded') e.aiCode='quota';
+  return e;
+}
+// Friendly text for an AI failure, or null when it is just "busy" (callers keep their own busy wording).
+function aiFailMessage(err, isCW){
+  const code = err && err.aiCode;
+  if(code==='auth') return isCW?'Chonde lowaninso kachiwiri kuti mugwiritse ntchito Bajeti AI.':'Please sign in again to use Bajeti AI.';
+  if(code==='quota' || (err && err.message && /quota/i.test(err.message)))
+    return isCW?'Bajeti AI ili otanganidwa kwambiri lero. Yesaninso mawa.':'Bajeti AI has reached its daily limit. Please try again tomorrow.';
+  return null;
 }
 function viewItemD(el){ viewItem(el.dataset.iid); }
 function openPxM(id){ openEP(id); }

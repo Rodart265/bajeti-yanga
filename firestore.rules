@@ -1,0 +1,616 @@
+rules_version = '2';
+
+// Bajeti Yanga Firestore rules.
+// Roll-out notes live in docs/ROLLOUT-2026-10.md. Two changes below are
+// deliberately two-phase so already-installed (cached) copies of the app keep
+// working: see "PHASE B" comments in joinOpen() and the households `get` rule.
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+
+    function isMember(hhId) {
+      return request.auth != null
+        && request.auth.uid in
+           get(/databases/$(database)/documents/households/$(hhId)).data.memberUids;
+    }
+
+    function validPurchase() {
+      let d = request.resource.data;
+      return d.amount is number
+        && d.amount > 0
+        && d.amount < 100000000
+        && d.item is string
+        && d.item.size() > 0
+        && d.item.size() <= 100
+        && d.date is string
+        && d.date.size() == 10
+        && d.type in ['expense', 'income']
+        && (!('notes' in d) || (d.notes is string && d.notes.size() <= 1000));
+    }
+
+    // Validates writes to the per-household AI usage counter doc
+    // (households/{hhId}/_usage/ai). Keeps the shape/types honest so a
+    // buggy or malicious client can't stuff arbitrary data in here --
+    // note this does NOT stop a member from resetting their own counts
+    // to 0 client-side. Real quota enforcement belongs in the Worker.
+    function validUsage() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['msgCount', 'msgDate', 'convoCount', 'magicCount', 'scanCount', 'summCount'])
+        && (!('msgCount' in d) || d.msgCount is number)
+        && (!('convoCount' in d) || d.convoCount is number)
+        && (!('magicCount' in d) || d.magicCount is number)
+        && (!('scanCount' in d) || d.scanCount is number)
+        && (!('summCount' in d) || d.summCount is number)
+        && (!('msgDate' in d) || d.msgDate is string);
+    }
+
+    // Saved chat conversations. Type and size guards only, no field
+    // whitelist, so older documents with extra fields still merge cleanly.
+    function validConversation() {
+      let d = request.resource.data;
+      return (!('title' in d) || (d.title is string && d.title.size() <= 100))
+        && (!('messages' in d) || (d.messages is list && d.messages.size() <= 50));
+    }
+
+    // A join request carries exactly what the client writes, with sane sizes.
+    function validJoinRequest() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.keys().hasOnly(['uid', 'displayName', 'email', 'requestedAt'])
+        && (!('requestedAt' in d) || d.requestedAt == request.time)
+        && (!('displayName' in d) || (d.displayName is string && d.displayName.size() <= 100))
+        && (!('email' in d) || (d.email is string && d.email.size() <= 200));
+    }
+
+    // A join request may only be filed against a household that exists and,
+    // when its invite doc carries an expiry, only before that moment.
+    // PHASE A (now): a household with no invites/{code} doc yet is still
+    // joinable, so households created before invite docs existed keep working
+    // until their owner opens the app once (the app creates the doc then).
+    // PHASE B: add `&& exists(/databases/$(database)/documents/invites/$(hhId))`
+    // at the end of the return below, together with the households `get` change.
+    function joinOpen(hhId) {
+      return exists(/databases/$(database)/documents/households/$(hhId))
+        && (!exists(/databases/$(database)/documents/invites/$(hhId))
+            || inviteNotExpired(hhId));
+    }
+    // Only called once the invite doc is known to exist (3 document reads in total per join request).
+    function inviteNotExpired(hhId) {
+      let exp = get(/databases/$(database)/documents/invites/$(hhId)).data.get('expiresAt', null);
+      return exp == null || exp > request.time;
+    }
+
+    // True when the signed-in user owns household hhId.
+    function ownsHousehold(hhId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/households/$(hhId))
+        && get(/databases/$(database)/documents/households/$(hhId)).data.owner == request.auth.uid;
+    }
+
+    // Fetches the caller's /users/{uid} doc safely. Returns an empty map if
+    // the doc doesn't exist yet, instead of throwing (which would otherwise
+    // cause any rule that calls this to silently deny the whole request).
+    function userData() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : {};
+    }
+
+    function ownedCount() {
+      let u = userData();
+      return u.keys().hasAll(['ownedHouseholds']) ? u.ownedHouseholds.size() : 0;
+    }
+
+    // Premium owners may create unlimited households. The flag is a
+    // timestamp (users/{uid}.premiumUntil) that only the Admin SDK or the
+    // Console can write, so it expires on its own. Set it on the owner's
+    // user doc whenever you activate Premium for one of their households.
+    function isPremiumUser() {
+      let u = userData();
+      return u.keys().hasAll(['premiumUntil']) && u.premiumUntil > request.time;
+    }
+
+    // True when a write changes any Premium or trial field INSIDE config.
+    // Root-level fields are blocked separately in each update rule. The app
+    // reads Premium and trial state from root fields only.
+    function premiumFieldsTouched() {
+      let before = resource.data.get('config', {});
+      let after = request.resource.data.get('config', {});
+      return after.diff(before).affectedKeys()
+        .hasAny(['isPremium', 'premiumExpiry', 'premiumActivatedAt', 'trialStarted']);
+    }
+
+    // ── Chipereganyu helper functions ───────────────────────────────────────
+    // A Chipereganyu group is a rotating savings circle. Unlike households,
+    // membership here is keyed purely on the signed-in account (uid) -- one
+    // person can be in a circle with people who each belong to entirely
+    // different, unrelated households. Everything (current cycle, history)
+    // is embedded in the single group doc rather than subcollections, since
+    // group sizes and history length are both small and bounded.
+
+    // The shape of a contribution entry that has not been paid yet. Used to
+    // check that a freshly started cycle does not arrive pre-marked as paid.
+    function unpaidEntry() {
+      return {'paid': false, 'paidAt': null, 'confirmedBy': null};
+    }
+
+    // A contribution entry a member writes for THEMSELVES: exactly the three
+    // known fields; paid => server-stamped time and their own uid as
+    // confirmer; unpaid => both cleared.
+    function chipEntryOk(e) {
+      return e.keys().hasOnly(['paid', 'paidAt', 'confirmedBy'])
+        && e.keys().hasAll(['paid', 'paidAt', 'confirmedBy'])
+        && e.paid is bool
+        && (e.paid
+            ? (e.paidAt == request.time && e.confirmedBy == request.auth.uid)
+            : (e.paidAt == null && e.confirmedBy == null));
+    }
+
+    function validChipGroupCreate() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.contributionAmount is number && d.contributionAmount > 0 && d.contributionAmount < 100000000
+        && d.frequency in ['monthly', 'weekly']
+        && d.currency is string
+        && d.createdBy == request.auth.uid
+        && d.memberUids is list && d.memberUids == [request.auth.uid]
+        && d.rotationOrder is list && d.rotationOrder == [request.auth.uid]
+        && d.status == 'gathering'
+        && d.currentCycle == null
+        && d.history is list && d.history.size() == 0
+        && d.members is map
+        && d.members.keys() == [request.auth.uid]
+        && d.members[request.auth.uid].name is string
+        && d.members[request.auth.uid].name.size() > 0;
+    }
+
+    // A join is the one update anyone (not yet a member) is allowed to make:
+    // adding themselves, and only themselves, to a still-gathering group.
+    // The group is capped at 30 members and the joiner's display name must
+    // be a short, non-empty string.
+    function validChipJoin() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'gathering'
+        && after.status == 'gathering'
+        && !(request.auth.uid in before.memberUids)
+        && after.memberUids == before.memberUids.concat([request.auth.uid])
+        && after.memberUids.size() <= 30
+        && after.rotationOrder == before.rotationOrder.concat([request.auth.uid])
+        && after.members.diff(before.members).affectedKeys().hasOnly([request.auth.uid])
+        && after.members[request.auth.uid].name is string
+        && after.members[request.auth.uid].name.size() > 0
+        && after.members[request.auth.uid].name.size() <= 40
+        && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members']);
+    }
+
+    // Starting the rotation: creator only, only from 'gathering', only sets
+    // status + the first currentCycle, needs at least 2 members.
+    // dueDate is checked for shape only (string, YYYY-MM-DD length), not an
+    // exact computed value -- matching a server timestamp against a
+    // client-computed calendar date risks false rejections from clock
+    // skew or timezone edges. contributions' keys are checked exactly
+    // against the expected contributor set, and every value must be an
+    // untouched unpaid entry (values().hasOnly([...]) stands in for a loop).
+    function validChipStart() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let contributorSet = before.rotationOrder.removeAll([before.rotationOrder[0]]);
+      return before.status == 'gathering'
+        && after.status == 'active'
+        && before.rotationOrder.size() >= 2
+        && after.diff(before).affectedKeys().hasOnly(['status', 'currentCycle'])
+        && after.currentCycle.cycleNumber == 1
+        && after.currentCycle.recipientUid == before.rotationOrder[0]
+        && after.currentCycle.amount == before.contributionAmount * (before.rotationOrder.size() - 1)
+        && after.currentCycle.dueDate is string && after.currentCycle.dueDate.size() == 10
+        && after.currentCycle.contributions.keys().size() == contributorSet.size()
+        && after.currentCycle.contributions.keys().hasAll(contributorSet)
+        && after.currentCycle.contributions.values().hasOnly([unpaidEntry()]);
+    }
+
+    // Marking a contribution paid/unpaid: only the currentCycle field may
+    // change, only its contributions map may differ within that, and only
+    // one member's entry at a time (matches the UI, which toggles one
+    // person per tap). The caller must be the member whose own entry
+    // changed, the current recipient, or the admin.
+    // The set of contributors can no longer change here (no adding or removing
+    // entries), and an entry a member writes for THEMSELVES must be well formed
+    // (chipEntryOk). NOT enforced: the entry the recipient or admin writes for
+    // SOMEONE ELSE (no way to name "the one changed key" in Security Rules), so
+    // treat confirmedBy and paidAt on those as untrusted when displaying them.
+    function validChipContributionUpdate() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'active'
+        && after.status == 'active'
+        && after.diff(before).affectedKeys().hasOnly(['currentCycle'])
+        && after.currentCycle.cycleNumber == before.currentCycle.cycleNumber
+        && after.currentCycle.recipientUid == before.currentCycle.recipientUid
+        && after.currentCycle.dueDate == before.currentCycle.dueDate
+        && after.currentCycle.amount == before.currentCycle.amount
+        && after.currentCycle.contributions.keys().hasAll(before.currentCycle.contributions.keys())
+        && after.currentCycle.contributions.keys().hasOnly(before.currentCycle.contributions.keys())
+        && after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys().size() == 1
+        && (!(request.auth.uid in after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys())
+            || chipEntryOk(after.currentCycle.contributions[request.auth.uid]))
+        && (
+             request.auth.uid == before.createdBy
+             || request.auth.uid == before.currentCycle.recipientUid
+             || request.auth.uid in after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys()
+           );
+    }
+
+    // Confirming a payout: advances the cycle number and appends one
+    // history entry, to the next person in rotationOrder. Restricted to the
+    // recipient or the admin.
+    // The appended history entry's cycleNumber/recipientUid/amount must
+    // match the cycle being closed, and must carry a `contributions`
+    // snapshot equal to what was on the cycle at the moment of confirming.
+    // `collected` (optional, so older clients still work) records what was
+    // actually paid in, which can be lower than `amount` for a force
+    // confirmed round or after a member left mid-round.
+    // The NEW cycle is also checked: the right amount, a date-shaped dueDate,
+    // exactly the other members as contributors, and every entry unpaid, so
+    // whoever confirms cannot pre-mark the next round or change what it is
+    // worth. NOT enforced: that the new recipientUid is specifically the next
+    // person in rotationOrder (Security Rules have no indexOf), and that every
+    // contributor had paid (the admin may force-confirm a short round).
+    function validChipPayoutConfirm() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let newEntry = after.history[after.history.size() - 1];
+      return before.status == 'active'
+        && after.status == 'active'
+        && (request.auth.uid == before.currentCycle.recipientUid || request.auth.uid == before.createdBy)
+        && after.diff(before).affectedKeys().hasOnly(['currentCycle', 'history'])
+        && after.history.size() == before.history.size() + 1
+        && newEntry.cycleNumber == before.currentCycle.cycleNumber
+        && newEntry.recipientUid == before.currentCycle.recipientUid
+        && newEntry.amount == before.currentCycle.amount
+        && newEntry.contributions == before.currentCycle.contributions
+        && (!('collected' in newEntry)
+            || (newEntry.collected is number && newEntry.collected >= 0 && newEntry.collected <= newEntry.amount))
+        && newEntry.date is string
+        && after.currentCycle.cycleNumber == before.currentCycle.cycleNumber + 1
+        && after.currentCycle.recipientUid in before.rotationOrder
+        && after.currentCycle.recipientUid != before.currentCycle.recipientUid
+        && after.currentCycle.amount == before.contributionAmount * (before.rotationOrder.size() - 1)
+        && after.currentCycle.dueDate is string && after.currentCycle.dueDate.size() == 10
+        && after.currentCycle.contributions.keys().size() == before.rotationOrder.size() - 1
+        && after.currentCycle.contributions.keys().hasAll(before.rotationOrder.removeAll([after.currentCycle.recipientUid]))
+        && after.currentCycle.contributions.values().hasOnly([unpaidEntry()]);
+    }
+
+    // Admin-only reordering within an active rotation. Verifies this is a
+    // genuine permutation of the same members and touches nothing else.
+    // LIMITATION: it can't verify that an already-paid-out member doesn't
+    // get moved back in front of the current recipient (no loop over
+    // history). This is a shape/permutation guard, not a double-payout guard.
+    function validChipReorder() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'active'
+        && after.status == 'active'
+        && after.rotationOrder.size() == before.rotationOrder.size()
+        && after.rotationOrder.hasAll(before.rotationOrder)
+        && before.rotationOrder.hasAll(after.rotationOrder)
+        && after.diff(before).affectedKeys().hasOnly(['rotationOrder']);
+    }
+
+    // Leaving a group (self-removal) or being removed by the admin, while
+    // the group is still gathering members (rotation hasn't started).
+    function validChipMemberRemoval() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let removed = before.memberUids.removeAll(after.memberUids);
+      return before.status == 'gathering'
+        && after.status == 'gathering'
+        && removed.size() == 1
+        && before.memberUids.hasAll(after.memberUids)
+        && after.memberUids.size() == before.memberUids.size() - 1
+        && after.rotationOrder == before.rotationOrder.removeAll(removed)
+        && after.members.keys().hasOnly(after.memberUids)
+        && after.members.keys().size() == after.memberUids.size()
+        && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members']);
+    }
+
+    // Leaving or being removed from an ACTIVE rotation. Same core shape as
+    // validChipMemberRemoval, plus:
+    //   - the removed uid can't be the current cycle's unconfirmed recipient
+    //   - their entry in currentCycle.contributions is cleared along with
+    //     everything else, and nothing else about currentCycle changes
+    // currentCycle.amount is deliberately NOT recomputed, so a mid-cycle
+    // departure shows up as a shortfall (see `collected` on the history
+    // entry) rather than silently shrinking what the recipient is owed.
+    // LIMITATION: cannot verify server-side whether the removed uid already
+    // appears in `history`. That warning is client-side only.
+    function validChipActiveMemberRemoval() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let removed = before.memberUids.removeAll(after.memberUids);
+      return before.status == 'active'
+        && after.status == 'active'
+        && removed.size() == 1
+        && removed[0] != before.currentCycle.recipientUid
+        && before.memberUids.hasAll(after.memberUids)
+        && after.memberUids.size() == before.memberUids.size() - 1
+        && after.rotationOrder == before.rotationOrder.removeAll(removed)
+        && after.members.keys().hasOnly(after.memberUids)
+        && after.members.keys().size() == after.memberUids.size()
+        && after.currentCycle.cycleNumber == before.currentCycle.cycleNumber
+        && after.currentCycle.recipientUid == before.currentCycle.recipientUid
+        && after.currentCycle.dueDate == before.currentCycle.dueDate
+        && after.currentCycle.amount == before.currentCycle.amount
+        && after.currentCycle.contributions.size() == before.currentCycle.contributions.size() - 1
+        && !(removed[0] in after.currentCycle.contributions)
+        && after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys().hasOnly(removed)
+        && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members', 'currentCycle']);
+    }
+
+    // Handing admin to another current member. Only the current admin can
+    // do this, at any status, since it never touches rotation state.
+    function validChipMakeAdmin() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return after.createdBy in before.memberUids
+        && after.createdBy != before.createdBy
+        && after.diff(before).affectedKeys().hasOnly(['createdBy']);
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      // ownedHouseholds is intentionally left writable -- it's legitimately
+      // updated via arrayUnion on household creation and arrayRemove on
+      // account deletion. A user can therefore clear it to get around the
+      // free household cap. Closing that needs a Cloud Function.
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // isPremium, premiumUntil, trialClaimedAt and trialHouseholdId can only be written by the
+      // Admin SDK / Cloud Functions or the Console, never by the signed-in
+      // user. trialClaimedAt is stamped by the onHouseholdCreated function and
+      // limits each ACCOUNT to one free trial (see functions/index.js).
+      allow create: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.keys().hasAny(['isPremium', 'premiumUntil', 'trialClaimedAt', 'trialHouseholdId']);
+
+      allow update: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasAny(['isPremium', 'premiumUntil', 'trialClaimedAt', 'trialHouseholdId']);
+    }
+
+    // ── Households ────────────────────────────────────────────────────────────
+    match /households/{hhId} {
+      // Any authenticated user can GET a single household doc. This is
+      // needed for the join flow -- user must verify the code exists before
+      // submitting a join request. The household code itself is the secret.
+      // LIST (querying across households) is restricted to members/owner.
+      // PHASE B: once owners have opened the updated app (so every household
+      // has an invites/{code} doc), change `allow get` to members only:
+      //   allow get: if request.auth != null
+      //     && request.auth.uid in resource.data.memberUids;
+      // Non-members then use invites/{code} (and invites/{code}/approved/{uid})
+      // instead of reading the whole household document.
+      allow get: if request.auth != null;
+      allow list: if request.auth != null
+        && (
+          request.auth.uid in resource.data.memberUids
+          || request.auth.uid == resource.data.owner
+        );
+
+      // Any signed-in user can create a household subject to ownership limits.
+      // Free users: max 3. Premium users: unlimited.
+      // Premium fields cannot be set at creation, at the root or inside
+      // config. The trial starts from a server timestamp at the root, so the
+      // client cannot back-date it. `trialStarted` is optional: it is allowed
+      // only while the account has not already used its one trial
+      // (users/{uid}.trialClaimedAt, written by a Cloud Function). Until that
+      // function is deployed nobody has a claim, so behaviour is unchanged.
+      // The document id IS the join code. It must look like one (the app makes 8 chars of a-z/2-9), so nobody can
+      // create a household whose id carries quotes or markup that would later be pasted into the page.
+      allow create: if request.auth != null
+        && hhId.matches('^[a-z0-9]{6,20}$')
+        && request.auth.uid in request.resource.data.memberUids
+        && request.auth.uid == request.resource.data.owner
+        && request.resource.data.keys().hasAll(['memberUids', 'owner', 'config'])
+        && !request.resource.data.keys().hasAny(['isPremium', 'premiumExpiry', 'premiumActivatedAt'])
+        && request.resource.data.config is map
+        && !request.resource.data.config.keys().hasAny(['isPremium', 'premiumExpiry', 'premiumActivatedAt', 'trialStarted'])
+        && (!('trialStarted' in request.resource.data)
+            || (request.resource.data.trialStarted == request.time
+                && !userData().keys().hasAny(['trialClaimedAt'])))
+        && (isPremiumUser() || ownedCount() < 3);
+
+      // Members can update ONLY the fields listed here (an allowlist, so a
+      // sensitive field added to the schema later is protected by default).
+      // `config` covers every dotted config.* write the app makes; premium and
+      // trial fields inside config are still blocked by premiumFieldsTouched().
+      // memberUids / owner / deletedAt / deletedBy / restoreBefore and all
+      // premium or trial fields are not here, so they stay owner/admin-only.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['config', 'pushTokens'])
+        && !premiumFieldsTouched();
+
+      // Only the owner can delete.
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.owner;
+
+      // The OWNER can additionally add/remove members, including the combined
+      // memberUids + config write the approval flow does in one batch, and is
+      // the only one who can set/clear deletedAt/deletedBy/restoreBefore.
+      // Still an allowlist: premium, trial and owner fields are never writable.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.owner
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['config', 'pushTokens', 'memberUids', 'deletedAt', 'deletedBy', 'restoreBefore'])
+        && !premiumFieldsTouched();
+
+      // A non-owner MEMBER may only remove their own uid (to leave the
+      // household) -- they cannot add anyone or remove anyone else.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && request.auth.uid != resource.data.owner
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+        && resource.data.memberUids.removeAll([request.auth.uid]) == request.resource.data.memberUids;
+
+      // ── Purchases ─────────────────────────────────────────────────────────
+      match /purchases/{purchaseId} {
+        allow read: if isMember(hhId);
+        allow create: if isMember(hhId) && validPurchase();
+
+        // Re-validates amount/item/date on every update, and keeps `type`
+        // from being flipped.
+        allow update: if isMember(hhId) && validPurchase()
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['type'])
+            || request.resource.data.type == resource.data.type
+          );
+
+        // Any household member can permanently delete a trashed entry --
+        // matches update/restore, which already have no creator restriction.
+        allow delete: if isMember(hhId);
+      }
+
+      // ── AI usage counters ─────────────────────────────────────────────────
+      match /_usage/{docId} {
+        allow read: if isMember(hhId);
+        allow create, update: if isMember(hhId) && validUsage();
+        allow delete: if isMember(hhId);
+      }
+
+      // ── Saved chat conversations ──────────────────────────────────────────
+      match /_conversations/{convoId} {
+        allow read, delete: if isMember(hhId);
+        allow create, update: if isMember(hhId) && validConversation();
+      }
+
+      // ── Join requests ─────────────────────────────────────────────────────
+      // Any authenticated user can create a join request for themselves only.
+      // Document ID must equal their own UID -- no household read required.
+      match /joinRequests/{requestUid} {
+        allow create, update: if request.auth != null
+          && request.auth.uid == requestUid
+          && validJoinRequest()
+          && joinOpen(hhId);
+
+        // A requester is NOT a member yet, so isMember(hhId) alone could
+        // never match them. Owner/members can read+delete any request in the
+        // subcollection (to approve/decline). A requester can additionally
+        // read+delete ONLY the one request doc whose ID is their own uid
+        // (to cancel, and to detect a decline).
+        allow read, delete: if isMember(hhId)
+          || (request.auth != null && request.auth.uid == requestUid);
+      }
+    }
+
+    // ── Invites ───────────────────────────────────────────────────────────────
+    // A tiny public stub per household so a person who only has a join code can
+    // check the code exists / has not expired WITHOUT reading the household
+    // document (budgets, member names, config). Document id == household id ==
+    // join code. Holds only { createdAt, expiresAt? }.
+    match /invites/{code} {
+      // Knowing the code is the secret; no listing.
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create, update: if ownsHousehold(code)
+        && request.resource.data.keys().hasOnly(['createdAt', 'expiresAt'])
+        && (!('expiresAt' in request.resource.data)
+            || request.resource.data.expiresAt == null
+            || request.resource.data.expiresAt is timestamp);
+      allow delete: if ownsHousehold(code);
+
+      // The owner writes one marker per approved joiner so the joiner can learn
+      // they were approved without being able to read the household first.
+      // Membership itself is still decided only by households.memberUids.
+      match /approved/{uid} {
+        allow get: if request.auth != null
+          && (request.auth.uid == uid || ownsHousehold(code));
+        allow list: if false;
+        allow create: if ownsHousehold(code)
+          && request.resource.data.keys().hasOnly(['uid', 'approvedAt'])
+          && request.resource.data.uid == uid;
+        allow delete: if request.auth != null
+          && (request.auth.uid == uid || ownsHousehold(code));
+      }
+    }
+
+    // payments/{txRef} is written ONLY by Cloud Functions (Admin SDK bypasses
+    // rules). Intentionally no match block here, so clients are denied.
+
+    // ── Chipereganyu groups ────────────────────────────────────────────────
+    match /chipereganyu_groups/{groupId} {
+      // Same tradeoff as households: GET is open to any signed-in user
+      // (needed to verify a join code exists before joining). LIST is
+      // restricted to actual members, matching the array-contains query
+      // the app runs to find "groups I belong to".
+      allow get: if request.auth != null;
+      allow list: if request.auth != null
+        && request.auth.uid in resource.data.memberUids;
+
+      allow create: if request.auth != null && groupId.matches('^[a-z0-9]{6,20}$') && validChipGroupCreate();
+
+      // Narrow, mutually-exclusive update paths instead of one broad
+      // "any member can write anything" rule.
+
+      // Joining: the ONE update path open to someone who isn't a member yet.
+      allow update: if request.auth != null && validChipJoin();
+
+      // Starting the rotation: creator only.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && request.auth.uid == resource.data.createdBy
+        && validChipStart();
+
+      // Marking a contribution paid/unpaid. Caller restriction (self,
+      // recipient, or admin) lives inside validChipContributionUpdate.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && validChipContributionUpdate();
+
+      // Confirming a payout and advancing to the next cycle.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && validChipPayoutConfirm();
+
+      // Admin reorders upcoming members within the active rotation.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.createdBy
+        && validChipReorder();
+
+      // A member leaves the group themself, before or during the rotation.
+      // The admin can't leave this way at any status (must hand off admin
+      // or delete the group instead).
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && request.auth.uid != resource.data.createdBy
+        && !(request.auth.uid in request.resource.data.memberUids)
+        && (validChipMemberRemoval() || validChipActiveMemberRemoval());
+
+      // The admin removes someone else, at any status. Requires the admin
+      // to remain a member afterward, so this path can't remove themself.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.createdBy
+        && request.auth.uid in request.resource.data.memberUids
+        && (validChipMemberRemoval() || validChipActiveMemberRemoval());
+
+      // The admin hands off admin to someone else.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.createdBy
+        && validChipMakeAdmin();
+
+      // Only the creator can delete. Allowed while gathering, OR at any
+      // status once the group is down to a single member.
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.createdBy
+        && (resource.data.status == 'gathering' || resource.data.memberUids.size() <= 1);
+    }
+  }
+}
