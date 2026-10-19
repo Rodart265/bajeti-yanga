@@ -234,8 +234,8 @@ function restoreAccount(){
   let _needsReapproval = false;
   if(hid){
     const hhRef = db.collection('households').doc(hid);
-    step = hhRef.get().then(snap=>{
-      const d = snap.exists ? snap.data() : null;
+    step = hhRef.get().catch(e=>{ if(e && e.code==='permission-denied') _needsReapproval = true; return null; }).then(snap=>{
+      const d = snap && snap.exists ? snap.data() : null;
       if(!d) return null;
       if(d.owner === uid){
         // Owner: un-schedule the household and put it back in ownedHouseholds (deletion removed it).
@@ -862,6 +862,9 @@ function connectHH(code){
   }, err=>{
     setDot('off');
     console.warn('[connectHH] Household snapshot error:', err.code);
+    // permission-denied means this account is no longer a member (or the household is gone); the purchases listener
+    // below confirms that against the server and routes the person back to setup, so no "Sync lost" toast here.
+    if(err && err.code==='permission-denied') return;
     toast(lang==='cw'
       ? 'Kulumikizana kwathyolewa: '+(err.code||'error')+'. Yesaninso.'
       : 'Sync lost: '+(err.code||'unknown')+'. Check connection and refresh.',
@@ -902,7 +905,7 @@ function connectHH(code){
         // A single permission-denied can also be a transient auth/token hiccup, and acting on it deletes the user's
         // householdId link. So confirm against the SERVER copy of the household first, and only unlink if they're really gone from it.
         Promise.resolve(curUser && curUser.getIdToken(true)).catch(()=>{})
-          .then(()=>db.collection('households').doc(code).get({source:'server'}))
+          .then(()=>db.collection('households').doc(code).get({source:'server'}).catch(e=>{ if(e && e.code==='permission-denied') return {exists:false}; throw e; }))
           .then(snap=>{
             const dd=snap.exists?snap.data():null;
             const uidNow=curUser&&curUser.uid;
@@ -1000,4 +1003,3 @@ function addPx(p,opts){
 }
 function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error')+'.','e');setDot('off');}); }
 function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }
-
