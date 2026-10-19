@@ -1,13 +1,32 @@
 // Bajeti Yanga service worker
 // Bump this version string on every deploy to force cache invalidation.
-const V = "bajeti-v9.7.0";
+const V = "bajeti-v9.8.0";
 
 // The app shell plus everything the app actually needs to boot and render,
 // so a first-time offline visit isn't left waiting on the network for
 // scripts/fonts that were never cached.
+//
+// index.html is a small shell; the styles and the app code live in styles.css
+// and js/*.js. When you add, rename or remove a file in js/, change this list
+// AND the <script> tags at the bottom of index.html (same order: the files
+// share one global scope and must load in numbered order).
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./styles.css",
+  "./js/01-constants.js",
+  "./js/02-helpers.js",
+  "./js/03-pin.js",
+  "./js/04-auth.js",
+  "./js/05-household.js",
+  "./js/06-chipereganyu.js",
+  "./js/07-render.js",
+  "./js/08-history-summary.js",
+  "./js/09-settings.js",
+  "./js/10-legal.js",
+  "./js/11-premium.js",
+  "./js/12-chat.js",
+  "./js/13-actions-boot.js",
   "./manifest.webmanifest",
   "./icons/icon-96.png",
   "./icons/icon-192.png",
@@ -31,7 +50,11 @@ async function precache(cache, urls) {
   await Promise.all(
     urls.map(async (url) => {
       try {
-        const req = new Request(url, { mode: url.startsWith("http") ? "cors" : "same-origin" });
+        // Our own files are fetched with cache:"reload" so the offline copy is the
+        // file that is on the server right now, not a copy the browser's HTTP cache
+        // may still be holding from before this deploy.
+        const own = !url.startsWith("http");
+        const req = new Request(url, { mode: own ? "same-origin" : "cors", cache: own ? "reload" : "default" });
         const res = await fetch(req);
         if (res && (res.ok || res.type === "opaque")) {
           await cache.put(req, res);
@@ -75,9 +98,11 @@ self.addEventListener("fetch", (e) => {
 
   // HTML: network-first, so a deploy shows up right away when online;
   // fall back to the cached shell the moment the network is unavailable.
+  // cache:"no-cache" means "ask the server if it changed" (a tiny 304 reply when
+  // it has not), so the page and the files it loads always come from one deploy.
   if (isNavigation(req)) {
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-cache" })
         .then((fresh) => {
           const copy = fresh.clone();
           caches.open(V).then((c) => c.put(req, copy)).catch(() => {});
@@ -90,8 +115,28 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Everything else (JS/CSS/fonts/images): cache-first for speed, with a
-  // silent background refresh so caches don't go stale forever.
+  // Our own files (styles.css, js/*.js, icons, manifest): same idea as the HTML.
+  // Network-first and revalidated, so editing a file and deploying is enough (no
+  // need to remember a version number for it to reach people), and a file that did
+  // not change costs only a tiny 304 reply, not a download. Offline, the copy saved
+  // by the last successful load (or by the install step above) is used.
+  if (new URL(req.url).origin === self.location.origin) {
+    e.respondWith(
+      fetch(req, { cache: "no-cache" })
+        .then((fresh) => {
+          if (fresh && fresh.ok) {
+            const copy = fresh.clone();
+            caches.open(V).then((c) => c.put(req, copy)).catch(() => {});
+          }
+          return fresh;
+        })
+        .catch(() => caches.match(req).then((cached) => cached || Response.error()))
+    );
+    return;
+  }
+
+  // Everything else (fonts and third-party libraries from CDNs): cache-first for
+  // speed, with a silent background refresh so caches don't go stale forever.
   e.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
