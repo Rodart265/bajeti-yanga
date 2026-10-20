@@ -1,0 +1,162 @@
+/* glass.css — frosted-glass layer for Bajeti Yanga.
+   Load AFTER styles.css. Built on the existing tokens (--p1, --cr, --mist...),
+   so removing this one file returns the app to the flat look.
+
+   Glass only reads as glass when there is colour behind it, so the first block
+   puts a soft mesh on #app and makes #view transparent. */
+
+:root{
+  --glass-bg:rgba(255,255,255,.58);
+  --glass-bg-strong:rgba(255,255,255,.86);
+  --glass-border:rgba(255,255,255,.7);
+  --glass-edge:inset 0 1px 0 rgba(255,255,255,.75);
+  --glass-shadow:0 8px 28px rgba(74,20,140,.12);
+  --glass-blur-sm:blur(12px) saturate(150%);
+  --glass-blur:blur(24px) saturate(170%);
+  --nav-h:calc(74px + env(safe-area-inset-bottom,0px));
+}
+body.dark{
+  --glass-bg:rgba(36,32,48,.55);
+  --glass-bg-strong:rgba(30,28,42,.86);
+  --glass-border:rgba(255,255,255,.1);
+  --glass-edge:inset 0 1px 0 rgba(255,255,255,.08);
+  --glass-shadow:0 8px 28px rgba(0,0,0,.4);
+}
+
+/* ── backdrop ─────────────────────────────────────────── */
+#app{
+  position:relative;
+  background:
+    radial-gradient(60% 38% at 8% 0%,rgba(206,147,216,.55),transparent 70%),
+    radial-gradient(48% 32% at 100% 28%,rgba(129,199,132,.38),transparent 70%),
+    radial-gradient(60% 40% at 0% 100%,rgba(144,164,255,.38),transparent 70%),
+    var(--mist);
+}
+body.dark #app{
+  background:
+    radial-gradient(60% 38% at 8% 0%,rgba(123,31,162,.35),transparent 70%),
+    radial-gradient(48% 32% at 100% 30%,rgba(27,94,32,.3),transparent 70%),
+    radial-gradient(60% 40% at 0% 100%,rgba(48,63,159,.3),transparent 70%),
+    var(--mist);
+}
+#view{background:transparent}
+.page{padding-bottom:calc(var(--nav-h) + 14px)}
+
+/* ── top bar: keep the purple, round it like the dashboard header ── */
+#topbar{border-radius:0 0 24px 24px;box-shadow:0 8px 24px rgba(74,20,140,.25)}
+
+/* ── cards ───────────────────────────────────────────── */
+.card,.set-card,.glass{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur-sm);backdrop-filter:var(--glass-blur-sm);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow),var(--glass-edge);
+}
+.ch{border-bottom-color:rgba(255,255,255,.5)}
+body.dark .card,body.dark .set-card{background:var(--glass-bg)}
+body.dark .ch{border-bottom-color:rgba(255,255,255,.08)}
+
+/* ── floating glass nav (the pill from the screenshot) ── */
+#nav{
+  position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  z-index:50;gap:4px;padding:6px;border-radius:28px;
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow),var(--glass-edge);
+}
+.nb{padding:8px 2px 7px;border-radius:22px;transition:background .2s}
+.nb .nl{font-size:.66rem;letter-spacing:0;text-transform:none;font-weight:700}
+.nb.on{background:rgba(123,31,162,.13)}
+.nb.on::after{display:none}
+body.dark .nb.on{background:rgba(206,147,216,.18)}
+
+/* things that used to sit at bottom:0 now sit above the nav */
+.log-save-bar{
+  bottom:calc(var(--nav-h) - 8px);margin:0 10px;border-radius:var(--cr);
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+}
+.chat-footer{bottom:var(--nav-h)}
+.chat-msgs{padding-bottom:calc(100px + var(--nav-h))}
+
+/* ── bottom sheets ───────────────────────────────────── */
+.mb{
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);border-bottom:0;
+}
+body.dark .mb{background:var(--glass-bg-strong)}
+
+/* ══ pieces borrowed from the dashboard design ═══════════ */
+
+/* month switcher */
+.gl-month{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;margin-bottom:11px;border-radius:var(--cr)}
+.gl-month b{font-size:.84rem;font-weight:800;color:var(--ink)}
+.gl-month button{border:0;background:none;color:var(--p1);padding:6px 10px;border-radius:var(--cr-md);cursor:pointer}
+.gl-month button:active{background:rgba(123,31,162,.1)}
+
+/* hero budget card: ring + left-this-month + income/spent/entries strip */
+.gl-hero{
+  position:relative;overflow:hidden;color:#fff;border-radius:24px;padding:18px;margin-bottom:11px;
+  background:linear-gradient(135deg,#3B0764,#581C87 55%,#312E81);
+  box-shadow:0 10px 26px rgba(59,7,100,.28);
+}
+.gl-hero-top{position:relative;display:flex;align-items:center;gap:16px}
+.gl-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+.gl-ring svg{width:100%;height:100%}
+.gl-ring-track{stroke:rgba(255,255,255,.14);fill:none;stroke-width:4}
+.gl-ring-bar{stroke:#69F0AE;fill:none;stroke-width:4;stroke-linecap:round;stroke-dasharray:201;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .8s ease,stroke .3s}
+.gl-hero[data-state=near] .gl-ring-bar{stroke:#FFD54F}
+.gl-hero[data-state=over] .gl-ring-bar{stroke:#FF8A80}
+.gl-ring-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gl-ring-txt b{font-size:.92rem;font-weight:900;line-height:1}
+.gl-ring-txt span{font-size:.56rem;font-weight:700;letter-spacing:.06em;opacity:.7;margin-top:2px}
+.gl-hero-lbl{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.72}
+.gl-hero-amt{font-family:Hanken Grotesk,sans-serif;font-size:1.65rem;font-weight:900;margin-top:2px}
+.gl-hero-sub{font-size:.72rem;opacity:.75;margin-top:3px}
+.gl-metrics{position:relative;display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;padding:10px 4px;border-radius:16px;
+  background:rgba(0,0,0,.18)}
+.gl-metrics div{text-align:center}
+.gl-metrics div+div{border-left:1px solid rgba(255,255,255,.14)}
+.gl-metrics small{display:block;font-size:.6rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.7}
+.gl-metrics b{display:block;font-size:.8rem;font-weight:800;margin-top:2px}
+.gl-metrics .in{color:#69F0AE}.gl-metrics .out{color:#FFAB91}
+
+/* 2×2 stat tiles — same semantic tints as the dashboard, translucent */
+.gl-tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.gl-tile{border-radius:var(--cr);padding:12px}
+.gl-tile small{display:block;font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.gl-tile b{display:block;font-family:Hanken Grotesk,sans-serif;font-size:1.25rem;font-weight:900;margin:3px 0 1px}
+.gl-tile span{font-size:.64rem;opacity:.7}
+.gl-tile.neutral{background:#EBD5F2;color:#4A148C}
+.gl-tile.ok{background:#D5EBD7;color:#1B5E20}
+.gl-tile.near{background:#F8EBC4;color:#8D5A00}
+.gl-tile.over{background:#F6D3D3;color:#B71C1C}
+
+/* bill rows + status pills */
+.gl-bill{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:var(--cr-md);
+  background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.6)}
+.gl-bill+.gl-bill{margin-top:8px}
+.gl-bill.overdue{background:rgba(239,154,154,.25);border-color:rgba(229,115,115,.4)}
+.gl-bill.paid{opacity:.75}
+.gl-pill{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;color:#fff;vertical-align:middle;margin-left:6px}
+.gl-pill.over{background:#E53935}.gl-pill.soon{background:#F9A825;color:#3B2A00}.gl-pill.paid{background:#388E3C}.gl-pill.up{background:rgba(69,90,100,.75)}
+
+/* segmented control (Weekly / Monthly / 6-Month) */
+.gl-seg{display:inline-flex;padding:3px;border-radius:14px;background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.6)}
+.gl-seg button{border:0;background:none;padding:5px 11px;border-radius:11px;font:700 .68rem Hanken Grotesk,sans-serif;color:var(--mid);cursor:pointer;transition:all .2s}
+.gl-seg button.on{background:var(--glass-bg-strong);color:var(--p1);box-shadow:0 2px 8px rgba(74,20,140,.15)}
+
+/* ── fallbacks ───────────────────────────────────────── */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--glass-bg:rgba(255,255,255,.93);--glass-bg-strong:rgba(255,255,255,.97)}
+  body.dark{--glass-bg:rgba(36,32,48,.96);--glass-bg-strong:rgba(30,28,42,.98)}
+}
+@media (prefers-reduced-transparency:reduce){
+  :root{--glass-bg:rgba(255,255,255,.96);--glass-bg-strong:#fff}
+  body.dark{--glass-bg:#242030;--glass-bg-strong:#1E1C2A}
+  .card,.set-card,.glass,#nav,.mb,.log-save-bar{-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+@media(min-width:1024px){ #nav{left:12px;right:12px} } /* #app is already the 480px column here */
