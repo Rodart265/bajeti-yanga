@@ -293,10 +293,14 @@ function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(h
 function waCode(){ if(hhId)window.open('https://wa.me/?text='+encodeURIComponent('Join my Bajeti Yanga!\nCode: '+hhId+'\n\nOpen the app and tap Join Household.'),'_blank'); }
 
 // ── QR Code generator (no library needed — uses a minimal pure-JS QR encoder) ──
+// _qrBusy pauses detection while the "Join household?" confirm step is showing
+// (or briefly after an unrecognised QR), so one scan cannot fire twice.
+let _qrBusy = false;
+let _qrTimer = null;
+
 function openQRScanner(){
   const isCW = lang === 'cw';
-  let stream = null;
-  let scanInterval = null;
+  _qrBusy = false;
 
   let h = '<div class="dh"></div>';
   h += '<div style="display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:12px">';
@@ -316,6 +320,15 @@ function openQRScanner(){
   h += '<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-bottom:3px solid #fff;border-right:3px solid #fff;border-radius:0 0 4px 0"></div>';
   h += '</div></div>';
   h += '<canvas id="qr-canvas-scan" style="display:none"></canvas>';
+  // Confirm step: shown over the live camera after a valid household QR is read
+  h += '<div id="qr-confirm" style="display:none;position:absolute;inset:0;background:rgba(26,26,46,.82);color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;gap:6px">';
+  h += '<div style="font-size:.74rem;opacity:.75">'+(isCW?'Lowani mu nyumba iyi?':'Join this household?')+'</div>';
+  h += '<div id="qr-confirm-code" style="font-family:monospace;font-weight:800;font-size:1.5rem;letter-spacing:3px"></div>';
+  h += '<div style="width:70%;height:4px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden;margin:8px 0 12px"><div id="qr-confirm-bar" style="height:100%;width:0;background:#69F0AE;transition:width 2s linear"></div></div>';
+  h += '<div style="display:flex;gap:8px;width:100%">';
+  h += '<button onclick="qrConfirmCancel()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:1.5px solid rgba(255,255,255,.35);background:none;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer">'+(isCW?'Lekani':'Cancel')+'</button>';
+  h += '<button onclick="qrConfirmJoin()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:none;background:#fff;color:var(--p1);font-family:inherit;font-weight:800;font-size:.8rem;cursor:pointer">'+(isCW?'Lowani tsopano':'Join now')+'</button>';
+  h += '</div></div>';
   h += '</div>';
   h += '<div style="text-align:center;margin-top:10px;font-size:.72rem;color:var(--mid)" id="qr-scan-status">'+(isCW?'Ikani kamera pa QR code...':'Positioning camera on the QR code...')+'</div>';
 
@@ -339,7 +352,7 @@ function openQRScanner(){
             const detector = new BarcodeDetector({formats:['qr_code']});
             window._qrScanInterval = setInterval(async function(){
               const vid = g('qr-video');
-              if(!vid || vid.readyState < 2) return;
+              if(_qrBusy || !vid || vid.readyState < 2) return;
               try {
                 const codes = await detector.detect(vid);
                 if(codes.length > 0) handleQRResult(codes[0].rawValue);
@@ -372,7 +385,7 @@ function _startJsQRScan(video){
   if(!ctx) return;
   window._qrScanInterval = setInterval(function(){
     const vid = g('qr-video');
-    if(!vid || vid.readyState < 2 || vid.videoWidth === 0) return;
+    if(_qrBusy || !vid || vid.readyState < 2 || vid.videoWidth === 0) return;
     canvas.width = vid.videoWidth;
     canvas.height = vid.videoHeight;
     ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
@@ -391,33 +404,78 @@ function _qrCleanup(){
     }
   } catch(e){}
   if(window._qrScanInterval){ clearInterval(window._qrScanInterval); window._qrScanInterval = null; }
+  if(_qrTimer){ clearTimeout(_qrTimer); _qrTimer = null; }
+  _qrBusy = false;
 }
 function stopQRScanner(){
   _qrCleanup();
   closeM('mv-u');
 }
 
-function handleQRResult(raw){
-  stopQRScanner();
-  const isCW = lang === 'cw';
-  // Extract household code from deep link URL or treat as raw code
-  let code = raw.trim();
+// Returns a household code from a scanned QR, or null if it is not one of ours.
+// Accepts the app's own join link (same host as APP_BASE_URL, with ?join=) or a
+// bare code. Any other link or text is refused, so a stray QR cannot start a join.
+function _qrExtractCode(raw){
+  const text = String(raw || '').trim();
+  if(!text) return null;
+  let code = null;
   try {
-    const url = new URL(raw);
-    const joinParam = url.searchParams.get('join');
-    if(joinParam) code = joinParam.trim().toUpperCase();
+    const url = new URL(text);
+    if(url.host !== new URL(APP_BASE_URL).host) return null;
+    code = (url.searchParams.get('join') || '').trim();
   } catch(e){
-    // Not a URL — use as-is, uppercase
-    code = code.toUpperCase();
+    code = text; // not a URL: treat as a bare code
   }
-  if(!code){ toast(isCW?'QR code yolakwika':'Invalid QR code','e'); return; }
-  // Pre-fill the join code input
+  return _validCode(code) ? code.toUpperCase() : null;
+}
+
+function handleQRResult(raw){
+  if(_qrBusy) return;
+  const isCW = lang === 'cw';
+  const code = _qrExtractCode(raw);
+  _qrBusy = true;
+  if(!code){
+    // Not a Bajeti Yanga code: say so, wait a moment, then keep scanning.
+    const status = g('qr-scan-status');
+    if(status) status.innerHTML = '<span style="color:#E53935">'+(isCW?'Iyi si QR ya Bajeti Yanga. Yesaninso.':'That is not a Bajeti Yanga QR code. Try another.')+'</span>';
+    _qrTimer = setTimeout(function(){
+      _qrTimer = null; _qrBusy = false;
+      const st = g('qr-scan-status');
+      if(st) st.textContent = isCW ? 'Ikani kamera pa QR code...' : 'Positioning camera on the QR code...';
+    }, 1800);
+    return;
+  }
+  // Valid code: show "Join household XXXX?" over the live camera, then join on its own after 2 seconds.
+  const box = g('qr-confirm'), codeEl = g('qr-confirm-code'), bar = g('qr-confirm-bar');
+  if(!box || !codeEl || !bar){ _qrJoin(code); return; }
+  box.dataset.code = code;
+  codeEl.textContent = code;
+  bar.style.transition = 'none'; bar.style.width = '0';
+  box.style.display = 'flex';
+  void bar.offsetWidth; // restart the transition from zero
+  bar.style.transition = 'width 2s linear'; bar.style.width = '100%';
+  if(navigator.vibrate) try{ navigator.vibrate(40); }catch(e){}
+  _qrTimer = setTimeout(function(){ _qrTimer = null; _qrJoin(code); }, 2000);
+}
+function qrConfirmJoin(){
+  const box = g('qr-confirm');
+  const code = box && box.dataset.code;
+  if(_qrTimer){ clearTimeout(_qrTimer); _qrTimer = null; }
+  if(code) _qrJoin(code);
+}
+function qrConfirmCancel(){
+  if(_qrTimer){ clearTimeout(_qrTimer); _qrTimer = null; }
+  const box = g('qr-confirm'); if(box) box.style.display = 'none';
+  _qrBusy = false; // back to scanning
+}
+// Fill the code field and submit through the existing joinHH(), which already checks the code,
+// expiry, current membership and sends the owner-approval request.
+function _qrJoin(code){
+  stopQRScanner();
   const joinInp = g('join-code');
-  if(joinInp){
-    joinInp.value = code;
-    joinInp.focus();
-  }
-  toast(isCW?'Kodi yapet seka ku QR! Lowani "Lowani Nyumba Iyi".':'Code scanned! Tap "Join This Household" to continue.','s');
+  if(!joinInp){ toast(lang==='cw'?'Lowetsani kodi pamanja.':'Enter the code manually.','e'); return; }
+  joinInp.value = code;
+  joinHH();
 }
 
 function openQRCode(){
