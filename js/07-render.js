@@ -1,5 +1,5 @@
 // ===============================================
-// 8. NAV, LANG, RENDER
+// 7. NAV, LANG, RENDER
 // ===============================================
 
 function go(t){ 
@@ -618,4 +618,3 @@ function saveP(){
   }
   selItem=null; toast(t.saved); rLog();
 }
-
