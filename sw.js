@@ -1,7 +1,7 @@
 // Bajeti Yanga service worker
 // Bump this version string on every deploy to force cache invalidation.
 // Keep the number equal to APP_VERSION in js/01-constants.js (the version people see in the app).
-const V = "bajeti-v9.8.0";
+const V = "bajeti-v9.8.1";
 
 // The app shell plus everything the app actually needs to boot and render,
 // so a first-time offline visit isn't left waiting on the network for
@@ -15,6 +15,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
+  "./glass.css",
   "./js/01-constants.js",
   "./js/02-helpers.js",
   "./js/03-pin.js",
