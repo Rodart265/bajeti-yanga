@@ -56,20 +56,28 @@ body.dark #app{
 body.dark .card,body.dark .set-card{background:var(--glass-bg)}
 body.dark .ch{border-bottom-color:rgba(255,255,255,.08)}
 
-/* ── floating glass nav (the pill from the screenshot) ── */
+/* ── floating glass nav (same recipe as the SFO Tracker nav) ── */
+:root{
+  --nav-glass:rgba(255,255,255,.66);
+  --nav-glass-edge:rgba(255,255,255,.75);
+  --nav-blur:saturate(170%) blur(18px);
+}
+body.dark{--nav-glass:rgba(30,28,42,.62);--nav-glass-edge:rgba(255,255,255,.12)}
 #nav{
   position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));
-  z-index:50;gap:4px;padding:6px;border-radius:28px;
-  background:var(--glass-bg-strong);
-  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
-  border:1px solid var(--glass-border);
-  box-shadow:var(--glass-shadow),var(--glass-edge);
+  z-index:50;gap:4px;padding:6px;border-radius:24px;
+  background:var(--nav-glass);
+  -webkit-backdrop-filter:var(--nav-blur);backdrop-filter:var(--nav-blur);
+  border:1px solid var(--nav-glass-edge);
+  box-shadow:0 10px 30px rgba(23,31,28,.14),inset 0 1px 0 rgba(255,255,255,.6);
 }
-.nb{padding:8px 2px 7px;border-radius:22px;transition:background .2s}
-.nb .nl{font-size:.66rem;letter-spacing:0;text-transform:none;font-weight:700}
-.nb.on{background:rgba(123,31,162,.13)}
+.nb{min-height:56px;padding:8px 4px 7px;border-radius:18px;transition:background .2s,color .2s}
+.nb .nl{font-size:.72rem;letter-spacing:0;text-transform:none;font-weight:600}
+.nb.on{background:var(--p1-bg)}
+.nb.on .nl{font-weight:700}
 .nb.on::after{display:none}
-body.dark .nb.on{background:rgba(206,147,216,.18)}
+.nb.on .ni{transform:none}
+body.dark .nb.on{background:rgba(206,147,216,.2)}
 
 /* things that used to sit at bottom:0 now sit above the nav */
 .log-save-bar{
@@ -151,11 +159,11 @@ body.dark .mb{background:var(--glass-bg-strong)}
 
 /* ── fallbacks ───────────────────────────────────────── */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  :root{--glass-bg:rgba(255,255,255,.93);--glass-bg-strong:rgba(255,255,255,.97)}
+  :root{--glass-bg:rgba(255,255,255,.93);--glass-bg-strong:rgba(255,255,255,.97);--nav-glass:rgba(255,255,255,.96)}
   body.dark{--glass-bg:rgba(36,32,48,.96);--glass-bg-strong:rgba(30,28,42,.98)}
 }
 @media (prefers-reduced-transparency:reduce){
-  :root{--glass-bg:rgba(255,255,255,.96);--glass-bg-strong:#fff}
+  :root{--glass-bg:rgba(255,255,255,.96);--glass-bg-strong:#fff;--nav-glass:#fff}
   body.dark{--glass-bg:#242030;--glass-bg-strong:#1E1C2A}
   .card,.set-card,.glass,#nav,.mb,.log-save-bar{-webkit-backdrop-filter:none;backdrop-filter:none}
 }
