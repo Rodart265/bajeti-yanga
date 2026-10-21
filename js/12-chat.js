@@ -82,8 +82,8 @@ const CHAT_SUGGESTIONS_CW = ['Ndikuyenda bwanji mwezi uno?','Ndikuononga kwambir
 function rChat(){
   const isCW=lang==='cw';
   const placeholder=isCW?'Funsani funso pa bajeti yanu...':'Ask anything about your budget...';
-  const sendIcon='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="#fff"/></svg>';
-  const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>';
+  const sendIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>';
+  const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
   const firstName = curUser&&curUser.displayName ? curUser.displayName.split(' ')[0] : (isCW?'Bwana':'there');
   const greeting = isCW ? 'Moni, '+firstName+'!' : 'Hey, '+firstName+'!';
   const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI, your personal budget partner!";
@@ -100,12 +100,12 @@ function rChat(){
   ];
   // Build the chrome — renderBubbles() owns #chat-msgs content entirely, no heroHtml here
   g('view').innerHTML =
-    '<div style="position:relative;display:flex;flex-direction:column;height:calc(100dvh - 116px);padding:0;overflow:hidden">'
+    '<div style="position:relative;display:flex;flex-direction:column;height:100%;padding:0;overflow:hidden">'
     +'<div class="chat-wrap"><div class="chat-msgs" id="chat-msgs"></div>'
     +'<div class="chat-footer" style="position:relative">'
-    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="More options" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:38px;height:38px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35)">'+attachIcon+'</button>'
+    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="More options" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:42px;height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35)">'+attachIcon+'</button>'
     +'<textarea class="chat-input" id="chat-inp" rows="1" placeholder="'+placeholder+'" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>'
-    +'<button class="chat-send" id="chat-send" onclick="sendChat()">'+sendIcon+'</button>'
+    +'<button class="chat-send" id="chat-send" onclick="sendChat()" aria-label="Send">'+sendIcon+'</button>'
     +'</div></div></div>';
   // Render immediately with whatever is in memory — prevents blank flash
   renderBubbles();
@@ -1169,4 +1169,3 @@ Data: ${JSON.stringify(buildSummaryData())}`;
     btn.disabled=false; btn.innerHTML='<i data-lucide="zap" style="margin-right:4px"></i> '+(isCW?'Yesaninso':'Try Again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
-
