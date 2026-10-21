@@ -133,6 +133,65 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
     navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(()=>{});
   }
 
+  // -- Update prompt --
+  // sw.js calls skipWaiting() and clients.claim(), so when a deploy changes sw.js the new
+  // worker takes over the open page and 'controllerchange' fires. The page itself still
+  // holds the old HTML/CSS/JS in memory, so offer a one-tap refresh. It never reloads on
+  // its own: someone mid-entry would lose what they typed.
+  if('serviceWorker' in navigator && location.protocol!=='file:'){
+    var _hadController = !!navigator.serviceWorker.controller;
+    var _updateBarShown = false;
+    var _lastUpdateCheck = 0;
+
+    var showUpdateBar = function(){
+      if(_updateBarShown) return;
+      var app=document.getElementById('app'), view=document.getElementById('view');
+      if(!app || !view) return;
+      _updateBarShown = true;
+      var cw = (typeof lang!=='undefined' && lang==='cw');
+      var bar=document.createElement('div');
+      bar.id='sw-update-bar';
+      bar.setAttribute('role','status');
+      bar.style.cssText='flex-shrink:0;display:flex;align-items:center;gap:8px;margin:8px 12px 0;padding:5px 5px 5px 14px;'
+        +'border-radius:16px;background:var(--glass-bg-strong,var(--white,#fff));color:var(--ink,#1A1A2E);'
+        +'-webkit-backdrop-filter:saturate(170%) blur(18px);backdrop-filter:saturate(170%) blur(18px);'
+        +'border:1px solid var(--glass-border,rgba(123,31,162,.15));box-shadow:0 6px 18px rgba(74,20,140,.14);'
+        +'font:700 .78rem Hanken Grotesk,sans-serif;position:relative;z-index:5';
+      var msg=document.createElement('span');
+      msg.style.cssText='flex:1;min-width:0';
+      msg.textContent = cw ? 'Mtundu watsopano wakonzeka.' : 'New version ready.';
+      var go=document.createElement('button');
+      go.type='button';
+      go.textContent = cw ? 'Tsegulaninso' : 'Refresh';
+      go.style.cssText='min-height:40px;padding:0 16px;border:0;border-radius:12px;cursor:pointer;color:#fff;'
+        +'font:800 .78rem Hanken Grotesk,sans-serif;background:linear-gradient(145deg,var(--p2,#9C27B0),var(--p1,#7B1FA2))';
+      go.onclick=function(){ location.reload(); };
+      var x=document.createElement('button');
+      x.type='button';
+      x.setAttribute('aria-label', cw ? 'Siyani' : 'Dismiss');
+      x.textContent='\u00D7';
+      x.style.cssText='width:40px;min-height:40px;border:0;background:none;cursor:pointer;color:var(--mid,#455A64);font-size:1.3rem;line-height:1';
+      x.onclick=function(){ bar.remove(); };
+      bar.appendChild(msg); bar.appendChild(go); bar.appendChild(x);
+      app.insertBefore(bar, view);
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      // On a first-ever visit clients.claim() fires this once, and there is nothing to update.
+      if(!_hadController){ _hadController = true; return; }
+      showUpdateBar();
+    });
+
+    // An installed app is usually resumed, not reopened, so the browser never re-checks sw.js
+    // on its own. Check when the app comes back to the front (at most every 10 minutes).
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState!=='visible') return;
+      if(Date.now()-_lastUpdateCheck < 600000) return;
+      _lastUpdateCheck = Date.now();
+      navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.update().catch(function(){}); }).catch(function(){});
+    });
+  }
+
   // -- In-app Install prompt --
   window._deferredInstall=null;
   window.addEventListener('beforeinstallprompt',function(e){
@@ -159,4 +218,3 @@ function triggerInstall(){
 }
 
 // Boot only if privacy already agreed
-
