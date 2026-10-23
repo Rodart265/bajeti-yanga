@@ -102,35 +102,49 @@ function joinChipGroup(btn){
   if(btn) btn.disabled=true;
   setDot('spin');
   const ref=db.collection('chipereganyu_groups').doc(code);
+  const me=actU();
+  const patch={
+    memberUids: firebase.firestore.FieldValue.arrayUnion(curUser.uid),
+    rotationOrder: firebase.firestore.FieldValue.arrayUnion(curUser.uid)
+  };
+  patch['members.'+curUser.uid]={name:me.name, color:sC(me.color||MEMBER_COLORS[0]), joinedAt:Date.now()};
   let outcome=null;
-  // Transaction: the status check and the join happen against the same snapshot, so a join can't land
-  // after the admin has started the rotation (which would leave the new member with no contribution slot).
-  db.runTransaction(function(tx){
-    return tx.get(ref).then(function(doc){
-      if(!doc.exists) throw {code:'not-found'};
-      const d=doc.data();
-      if(Array.isArray(d.memberUids)&&d.memberUids.includes(curUser.uid)){ outcome={already:true,d:d}; return; }
-      if(d.status!=='gathering') throw {code:'already-started'};
-      const me=actU();
-      const patch={
-        memberUids: firebase.firestore.FieldValue.arrayUnion(curUser.uid),
-        rotationOrder: firebase.firestore.FieldValue.arrayUnion(curUser.uid)
-      };
-      patch['members.'+curUser.uid]={name:me.name, color:sC(me.color||MEMBER_COLORS[0]), joinedAt:Date.now()};
-      tx.update(ref,patch);
-      outcome={already:false,d:d};
+  // The group can only be READ by its members once the stricter rules are published, so a joiner does not read it.
+  // The write below is the real check: the rules accept it only if the group exists, is still gathering and has
+  // room, and they decide that on the server at the moment of the write (so a join cannot land after the admin
+  // starts the rotation). The read first is just a friendlier path: it succeeds for a member who is already in
+  // (and, under the older rules, for anyone), and a permission-denied simply means "not a member yet".
+  ref.get().catch(function(e){ if(e&&e.code==='permission-denied') return null; throw e; })
+    .then(function(doc){
+      if(doc){
+        if(!doc.exists) throw {code:'not-found'};
+        const d=doc.data();
+        if(Array.isArray(d.memberUids)&&d.memberUids.includes(curUser.uid)){ outcome={already:true,name:d.name}; return; }
+        if(d.status!=='gathering') throw {code:'already-started'};
+      }
+      return ref.update(patch).then(function(){
+        outcome={already:false,name:null};
+        // Now a member, so the group can be read: fetch its name for the welcome message. Best effort.
+        return ref.get().then(function(g2){ if(g2.exists) outcome.name=g2.data().name; }).catch(function(){});
+      }).catch(function(e){
+        // Under the stricter rules a refused join looks the same whether the code is wrong or the rotation has begun.
+        if(e&&(e.code==='permission-denied'||e.code==='not-found')) throw {code:'cannot-join'};
+        throw e;
+      });
+    })
+    .then(function(){
+      setDot(''); closeM('mv-e'); chipActiveId=code;
+      if(outcome.already) toast(isCW?'Mulili mmenemo kale':'You are already in this group','i');
+      else toast((isCW?'Mwalowa mu ':'Joined ')+(outcome.name||'Chipereganyu'),'s');
+      openChipView();
+    })
+    .catch(function(e){
+      setDot('off'); if(btn) btn.disabled=false;
+      if(e&&e.code==='not-found') toast(isCW?'Nambala sipezeka':'Code not found','e');
+      else if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale kuzungulira':'This group has already started its rotation','e');
+      else if(e&&e.code==='cannot-join') toast(isCW?'Simungalowe. Onani nambala, kapena gululi lingakhale lidayamba kale.':'Could not join. Check the code, or the group may already have started its rotation.','e');
+      else toast('Failed: '+(e&&e.code||'error'),'e');
     });
-  }).then(function(){
-    setDot(''); closeM('mv-e'); chipActiveId=code;
-    if(outcome.already) toast(isCW?'Mulili mmenemo kale':'You are already in this group','i');
-    else toast((isCW?'Mwalowa mu ':'Joined ')+(outcome.d.name||'Chipereganyu'),'s');
-    openChipView();
-  }).catch(function(e){
-    setDot('off'); if(btn) btn.disabled=false;
-    if(e&&e.code==='not-found') toast(isCW?'Nambala sipezeka':'Code not found','e');
-    else if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale kuzungulira':'This group has already started its rotation','e');
-    else toast('Failed: '+(e&&e.code||'error'),'e');
-  });
 }
 
 function startChipRotation(btn){

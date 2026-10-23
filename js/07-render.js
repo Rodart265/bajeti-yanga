@@ -529,7 +529,16 @@ function openQRCode(){
     }
   }, 100);
 }
+// selItem is a list position, which is only valid for the list it was picked from. If another device changed the
+// items meanwhile, find the same item again by id (or drop the selection if it is gone) before using it.
+function _syncSelItem(){
+  if(typeof selItem!=='number') return;
+  if(selItemKey===null){ selItemKey = lCfg.items[selItem] ? recKey(lCfg.items[selItem],selItem) : null; return; }
+  const i=recIdx(lCfg.items,selItemKey);
+  if(i<0){ selItem=null; selItemKey=null; } else selItem=i;
+}
 function rLog(){
+  _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
   h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, koperani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
@@ -577,9 +586,9 @@ function rLog(){
   if(window.lucide) lucide.createIcons({nodes:[g('view')]});
   if(logSrch) filterLogItems(logSrch);
 }
-function setLT(t){ logType=t; selItem=null; logSrch=''; rLog(); }
+function setLT(t){ logType=t; selItem=null; selItemKey=null; logSrch=''; rLog(); }
 function setU(id){ localStorage.setItem('nb_uid',id); updatePill(); rLog(); }
-function pickI(i){ selItem=i; rLog(); }
+function pickI(i){ selItem=i; selItemKey=(typeof i==='number'&&lCfg.items[i])?recKey(lCfg.items[i],i):null; rLog(); }
 function filterLogItems(q){
   logSrch=q;
   const box=document.getElementById('log-search-results'); if(!box)return;
@@ -597,6 +606,7 @@ function saveP(){
   const dStr=val('fd')||today(), tStr=val('ft')||'12:00';
   const ts=new Date(dStr+'T'+tStr).getTime();
   if(logType==='expense'){
+    _syncSelItem();
     if(selItem===null){toast(t.selItem,'e');return;}
     if(selItem==='custom'){
       const cName=(val('custom-item-name')||'').trim();

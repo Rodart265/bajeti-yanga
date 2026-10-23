@@ -405,12 +405,13 @@ function rInsights(){
 
 
 function rMGI(it,i){
+  const k=recKey(it,i);
   const sp=iSpent(it.name),st=statOf(sp,it.budget),pct=Math.min(sp/it.budget,1)*100;
   const pfcls=st==='over'?'pfover':st==='near'?'pfnear':'pfok';
   const bcls=st==='over'?'bover':st==='near'?'bnear':st==='ok'?'bok':'bnone';
   const t=tx(),btxt=st==='over'?t.over:st==='near'?t.near:st==='ok'?t.ok:t.none;
   const cc=CAT_COLORS[catOf(it.name)]||'#607D8B';
-  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB('+i+')" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button><button class="bsm bd" onclick="delIt('+i+')" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button></div></div>';
+  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button></div></div>';
 }
 
 function goalMonthsLeft(dl){ if(!dl)return null; const n=new Date(),d=new Date(dl+'T00:00:00'); const m=(d.getFullYear()-n.getFullYear())*12+(d.getMonth()-n.getMonth()); return Math.max(m,0); }
@@ -435,12 +436,14 @@ function pickBillIcon(key){
     window._billNamePreset = opt.dfltName;
   }
 }
-function openAddBill(editIndex){
+function openAddBill(editKey){
   premiumGate('bill_tracker', function(){
-    const isEdit = typeof editIndex === 'number';
-    const existing = isEdit ? (lCfg.bills && lCfg.bills[editIndex]) : null;
+    const isEdit = typeof editKey === 'string' && editKey !== '';
+    const ei = isEdit ? recIdx(lCfg.bills, editKey) : -1;
+    if(isEdit && ei < 0){ _staleRec('bill'); return; }
+    const existing = ei >= 0 ? lCfg.bills[ei] : null;
     const t=tx();
-    window._billEditIndex = isEdit ? editIndex : null;
+    window._billEditKey = isEdit ? editKey : null;
     window._billIconPick = (existing && existing.icon) || 'zap';
     window._billNamePreset = null;
     var h='<div class="dh"></div><h3><i data-lucide="alarm-clock" style="margin-right:6px;vertical-align:middle"></i>'+(isEdit?t.editBillT:t.addBill)+'</h3>';
@@ -453,7 +456,7 @@ function openAddBill(editIndex){
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]}); initIcons(); openM('mv-u');
   });
 }
-function editBill(i){ openAddBill(i); }
+function editBill(key){ openAddBill(key); }
 
 function saveBill(){
   const t=tx();
@@ -461,20 +464,25 @@ function saveBill(){
   if(!nm||!amt||!due){toast(t.fillAllFields,'e');return;}
   var cfg=JSON.parse(JSON.stringify(lCfg));
   if(!cfg.bills)cfg.bills=[];
-  const idx = window._billEditIndex;
-  if(typeof idx === 'number' && cfg.bills[idx]){
-    cfg.bills[idx] = {name:nm,amount:amt,dueDate:due,icon:ic};
+  const key = window._billEditKey;
+  const editing = typeof key === 'string' && key !== '';
+  if(editing){
+    const idx = recIdx(cfg.bills, key);       // looked up now, not when the dialog opened
+    if(idx < 0){ window._billEditKey = null; closeM('mv-u'); _staleRec('bill'); return; }
+    cfg.bills[idx] = Object.assign({}, cfg.bills[idx], {name:nm,amount:amt,dueDate:due,icon:ic});   // keeps its id
   } else {
-    cfg.bills.push({name:nm,amount:amt,dueDate:due,icon:ic});
+    cfg.bills.push({name:nm,amount:amt,dueDate:due,icon:ic});   // saveCfg gives it an id
   }
   cfg.bills.sort(function(a,b){return a.dueDate.localeCompare(b.dueDate);});
-  window._billEditIndex = null;
-  saveCfg(cfg); closeM('mv-u'); toast(typeof idx==='number'?t.billUpdated:t.billAdded); _stgRefresh();
+  window._billEditKey = null;
+  saveCfg(cfg); closeM('mv-u'); toast(editing?t.billUpdated:t.billAdded); _stgRefresh();
 }
 
-function delBill(i){
+function delBill(key){
   const t=tx();
-  const bill = lCfg.bills && lCfg.bills[i];
+  const bi = recIdx(lCfg.bills, key);
+  if(bi < 0){ _staleRec('bill'); return; }
+  const bill = lCfg.bills[bi];
   const label = bill ? bill.name : (lang==='cw'?'bili iyi':'this bill');
   appConfirm(
     '<div style="text-align:center;padding:4px 0 8px">'
@@ -483,6 +491,8 @@ function delBill(i){
     +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">'+t.removeBillQ+' <strong style="color:var(--ink)">'+esc(label)+'</strong> '+t.removeBillQ2+'</div></div>',
     function(){
       var cfg=JSON.parse(JSON.stringify(lCfg));
+      const i = recIdx(cfg.bills, key);       // looked up again now: the list may have changed while the dialog was open
+      if(i < 0){ _staleRec('bill'); return; }
       cfg.bills.splice(i,1); saveCfg(cfg); toast(t.billRemoved,'i'); _stgRefresh();
     }, null, true
   );
@@ -501,10 +511,11 @@ function addMonthClamped(dateStr){
   return localISO(d);
 }
 
-function markBillPaid(i){
+function markBillPaid(key){
   const t=tx();
-  const bill = lCfg.bills && lCfg.bills[i];
-  if(!bill) return;
+  const bi = recIdx(lCfg.bills, key);
+  if(bi < 0){ _staleRec('bill'); return; }
+  const bill = lCfg.bills[bi];
   appConfirm(
     '<div style="text-align:center;padding:4px 0 8px">'
     +'<div style="width:48px;height:48px;border-radius:var(--cr);background:#E8F5E9;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
@@ -512,8 +523,8 @@ function markBillPaid(i){
     +'<div style="font-size:.84rem;color:var(--ink);font-weight:700;margin-bottom:4px">'+esc(bill.name)+' -- '+t.confirmMarkPaid+'</div>'
     +'<div style="font-size:.74rem;color:var(--mid);line-height:1.5">'+t.confirmMarkPaidSub+'</div></div>',
     function(){
-      // Re-find the bill by identity: the index captured when the card was rendered may be stale if the list changed meanwhile.
-      const idx=(lCfg.bills||[]).findIndex(function(b){return b.name===bill.name && b.dueDate===bill.dueDate;});
+      // Re-find the bill by its id: its position may have changed while the dialog was open.
+      const idx=recIdx(lCfg.bills, key);
       const amt=Number(bill.amount);
       if(idx<0){ toast(lang==='cw'?'Bilu iyi yasintha. Yesaninso.':'This bill changed. Please try again.','e'); _stgRefresh(); return; }
       if(!amt||amt<=0){ toast(lang==='cw'?'Ndalama ya bilu ndi yolakwika.':'This bill has no valid amount.','e'); return; }
@@ -547,7 +558,24 @@ function updSalaryDay(v){
   saveCfg({...lCfg,salaryDay:n});
   toast('Salary period set: '+budgetPeriodLabel()+'.','s'); render();
 }
-function delIt(i){ appConfirm(tx().confirmDelItem+' "'+esc(lCfg.items[i].name)+'"?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); _stgRefresh(); }, null, true) }
+// Shown when the record a button pointed at is gone or was replaced (another device edited the list meanwhile).
+function _staleRec(kind){
+  const cw=lang==='cw';
+  toast(kind==='bill'?(cw?'Bilu iyi yasintha. Yesaninso.':'This bill changed. Please try again.')
+       :kind==='goal'?(cw?'Cholinga ichi chasintha. Yesaninso.':'This goal changed. Please try again.')
+       :(cw?'Chinthu ichi chasintha. Yesaninso.':'This item changed. Please try again.'),'e');
+  _stgRefresh();
+}
+function delIt(key){
+  const i0=recIdx(lCfg.items,key);
+  if(i0<0){ _staleRec('item'); return; }
+  appConfirm(tx().confirmDelItem+' "'+esc(lCfg.items[i0].name)+'"?', function(){
+    const cfg=JSON.parse(JSON.stringify(lCfg));
+    const i=recIdx(cfg.items,key);          // looked up again now: the list may have changed while the dialog was open
+    if(i<0){ _staleRec('item'); return; }
+    cfg.items.splice(i,1); saveCfg(cfg); toast(tx().itemDeleted); _stgRefresh();
+  }, null, true);
+}
 function openAddM(){
   const t=tx();
   let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
@@ -585,8 +613,8 @@ function delMember(i){
     _stgRefresh();
   }, null, true);
 }
-function openEB(i){ const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+i+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
-function svEB(){ const i=parseInt(val('eb-i')),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg));cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); _stgRefresh(); }
+function openEB(key){ const i=recIdx(lCfg.items,key); if(i<0){ _staleRec('item'); return; } const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+esc(key)+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
+function svEB(){ const key=val('eb-i'),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); const i=recIdx(cfg.items,key); if(i<0){ closeM('mv-e'); _staleRec('item'); return; } cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); _stgRefresh(); }
 function openAddGoal(){
   const t=tx(), isCW=lang==='cw';
   const minDate=new Date(); minDate.setDate(minDate.getDate()+7);
@@ -621,12 +649,13 @@ function saveGoal(){
   cfg.goals.push(goal);
   saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); _stgRefresh();
 }
-function openTopUp(i){ const gl=lCfg.goals[i],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:#2E7D32"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
-function topUpGoal(i){
+function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:#2E7D32"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function topUpGoal(key){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
   const cfg=JSON.parse(JSON.stringify(lCfg));
-  const gl=cfg.goals[i];
+  const gi=recIdx(cfg.goals,key); if(gi<0){ closeM('mv-gl'); _staleRec('goal'); return; }
+  const gl=cfg.goals[gi];
   const actual=Math.min(amt, gl.target-gl.saved);
   gl.saved=Math.min(gl.saved+amt,gl.target);
   saveCfg(cfg); closeM('mv-gl');
@@ -634,23 +663,34 @@ function topUpGoal(i){
   else toast('Goal updated! '+MK(actual)+' added.','s');
   _stgRefresh();
 }
-function openWithdraw(i){
-  const gl=lCfg.goals[i];
+function openWithdraw(key){
+  const wi=recIdx(lCfg.goals,key); if(wi<0){ _staleRec('goal'); return; }
+  const gl=lCfg.goals[wi];
   const isCW=lang==='cw';
   g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Chotsani Ndalama':'Withdraw')+': '+esc(gl.name)+'</h3>'
     +'<div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(isCW?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(isCW?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div>'
     +'<label class="fl">'+(isCW?'Ndalama Yochotsedwa (MK)':'Amount to Withdraw (MK)')+'</label>'
     +'<input type="number" class="fi" id="wd-amt" inputmode="numeric" placeholder="0"></div>'
     +'<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(isCW?'Siyani':tx().cancel)+'</button>'
-    +'<button class="btnM" style="flex:2;background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="doWithdraw('+i+')"><i data-lucide="arrow-down-circle" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Chotsani':'Withdraw')+'</button></div>';
+    +'<button class="btnM" style="flex:2;background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="doWithdraw(\''+key+'\')"><i data-lucide="arrow-down-circle" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Chotsani':'Withdraw')+'</button></div>';
   openM('mv-gl');
 }
-function doWithdraw(i){
+function doWithdraw(key){
   const amt=parseFloat(val('wd-amt')); if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
-  if(amt>lCfg.goals[i].saved){toast(lang==='cw'?'Yapitilira zomwe mwasungira':'Exceeds saved amount','e');return;}
+  const wi=recIdx(lCfg.goals,key); if(wi<0){ closeM('mv-gl'); _staleRec('goal'); return; }
+  if(amt>lCfg.goals[wi].saved){toast(lang==='cw'?'Yapitilira zomwe mwasungira':'Exceeds saved amount','e');return;}
   const cfg=JSON.parse(JSON.stringify(lCfg));
+  const i=recIdx(cfg.goals,key);
   cfg.goals[i].saved=Math.max(cfg.goals[i].saved-amt,0);
   saveCfg(cfg); closeM('mv-gl'); toast(lang==='cw'?'Ndalama yachotsedwa':'Withdrawn'); _stgRefresh();
 }
-function delGoal(i){ appConfirm(lang==='cw'?'Mukufuna kuchotsa cholinga ichi?':'Delete this goal?', function(){ const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.goals.splice(i,1); saveCfg(cfg); _stgRefresh(); }, null, true) }
+function delGoal(key){
+  if(recIdx(lCfg.goals,key)<0){ _staleRec('goal'); return; }
+  appConfirm(lang==='cw'?'Mukufuna kuchotsa cholinga ichi?':'Delete this goal?', function(){
+    const cfg=JSON.parse(JSON.stringify(lCfg));
+    const i=recIdx(cfg.goals,key);
+    if(i<0){ _staleRec('goal'); return; }
+    cfg.goals.splice(i,1); saveCfg(cfg); _stgRefresh();
+  }, null, true);
+}
 

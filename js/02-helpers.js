@@ -190,3 +190,31 @@ function dismissToast(){
 function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':''); }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
+
+
+// ── Stable ids for budget items, bills and goals ────────────────────────────
+// These live in arrays inside households/{code}.config. Buttons used to carry a list POSITION, which points at a
+// different record as soon as anyone adds, deletes or re-sorts (bills re-sort on every save) while a card or
+// dialog is open. Every record now carries an `id`, and handlers look the record up by id at the moment of the
+// action. Records written before ids existed have none until the owner's app (or any save) assigns one; until
+// then recKey() hands out "~<position>", which recIdx() accepts only while that record still has no id.
+function newRecId(prefix){ return (prefix||'r')+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function ensureRecIds(cfg){
+  let changed=false;
+  [['items','i'],['bills','b'],['goals','g']].forEach(function(p){
+    if(cfg && Array.isArray(cfg[p[0]])) cfg[p[0]].forEach(function(r){
+      if(r && typeof r==='object' && !r.id){ r.id=newRecId(p[1]); changed=true; }
+    });
+  });
+  return changed;
+}
+function cfgNeedsRecIds(cfg){
+  return !!cfg && ['items','bills','goals'].some(function(k){ return Array.isArray(cfg[k]) && cfg[k].some(function(r){ return r && typeof r==='object' && !r.id; }); });
+}
+function recKey(rec,i){ return rec && rec.id ? String(rec.id) : '~'+i; }
+function recIdx(arr,key){
+  if(!Array.isArray(arr) || key===null || key===undefined || key==='') return -1;
+  key=String(key);
+  if(key.charAt(0)==='~'){ const n=parseInt(key.slice(1),10); return (arr[n] && !arr[n].id) ? n : -1; }
+  return arr.findIndex(function(r){ return r && r.id===key; });
+}

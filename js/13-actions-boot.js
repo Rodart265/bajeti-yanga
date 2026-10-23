@@ -92,11 +92,11 @@ function viewItem(name){
   g('mb-u').innerHTML=h; initIcons(); openM('mv-u');
 }
 function openEUd(el){ openEU(parseInt(el.dataset.i)); }
-function delItd(el){ delIt(parseInt(el.dataset.i)); }
+function delItd(el){ delIt(el.dataset.i); }
 function delMemberd(el){ delMember(parseInt(el.dataset.i)); }
-function openEBd(el){ openEB(parseInt(el.dataset.i)); }
-function topUpGoald(el){ openTopUp(parseInt(el.dataset.i)); }
-function delGoald(el){ delGoal(parseInt(el.dataset.i)); }
+function openEBd(el){ openEB(el.dataset.i); }
+function topUpGoald(el){ openTopUp(el.dataset.i); }
+function delGoald(el){ delGoal(el.dataset.i); }
 
 // Initialize Lucide icons after every render
 function initIcons(){

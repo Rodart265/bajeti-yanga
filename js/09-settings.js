@@ -153,6 +153,7 @@ function rStg(){
 function showWhatsNew(){
   const isCW=lang==='cw';
   const changes=[
+    {icon:'refresh-cw',    color:'#1565C0', title:'Safer Shared Editing',      desc:'Budget items, bills and savings goals are now tracked by ID, so two people editing the same household can no longer change the wrong one by mistake.'},
     {icon:'users',         color:'#2E7D32', title:'Chipereganyu',              desc:'Run a rotating savings circle with people across households. Create or join with a code, track contributions, and payouts log straight to your budget.'},
     {icon:'user-x',        color:'#C62828', title:'Household Join Fixes',      desc:'Cancelling a join request and detecting a declined one now actually work. Removed members can no longer slip back in without a new approval.'},
     {icon:'alarm-clock',   color:'#2E7D32', title:'Bill Tracker: Mark as Paid', desc:'Tap the new checkmark on a bill to log the payment as an expense and roll the due date forward a month.'},
@@ -263,8 +264,8 @@ function stgOpenSection(sec){
         h+='<div class="goal-card" style="margin-bottom:9px'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
         h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div>';
         h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div>';
-        if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp('+i+')"><i data-lucide="arrow-up" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.topup+'</button>';
-        h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal('+i+')"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></div></div>';
+        if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.63rem" onclick="openTopUp(\''+recKey(gl,i)+'\')"><i data-lucide="arrow-up" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.topup+'</button>';
+        h+='<button class="bsm bd" style="padding:3px 7px;font-size:.63rem" onclick="delGoal(\''+recKey(gl,i)+'\')"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></div></div>';
         h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
         h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
         if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.65rem;color:#E65100;font-weight:700;background:#FFF3E0;border-radius:var(--cr-sm);padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+' needed'+(ml!==null?' · '+ml+(lang==='cw'?' miyezi':'mths left'):'')+'</div>';
@@ -288,9 +289,9 @@ function stgOpenSection(sec){
           h+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
           h+='<div class="bill-amt">'+MK(b.amount)+'</div>';
           h+='<div style="display:flex;gap:8px">';
-          h+='<button class="bsm" onclick="markBillPaid('+i+')" style="font-size:.68rem;padding:6px 9px;background:#2E7D32;color:#fff;border:none" aria-label="'+t.markPaid+'"><i data-lucide="check" style="width:13px;height:13px"></i></button>';
-          h+='<button class="bsm be" onclick="editBill('+i+')" style="font-size:.68rem;padding:6px 9px" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button>';
-          h+='<button class="bsm bd" onclick="delBill('+i+')" style="font-size:.68rem;padding:6px 9px" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>';
+          h+='<button class="bsm" onclick="markBillPaid(\''+recKey(b,i)+'\')" style="font-size:.68rem;padding:6px 9px;background:#2E7D32;color:#fff;border:none" aria-label="'+t.markPaid+'"><i data-lucide="check" style="width:13px;height:13px"></i></button>';
+          h+='<button class="bsm be" onclick="editBill(\''+recKey(b,i)+'\')" style="font-size:.68rem;padding:6px 9px" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button>';
+          h+='<button class="bsm bd" onclick="delBill(\''+recKey(b,i)+'\')" style="font-size:.68rem;padding:6px 9px" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>';
           h+='</div></div></div>';
         });
       } else {
@@ -561,7 +562,7 @@ function buildAndDownloadPdf(fromD, toD, periodLabel){
     + '<div class="section"><h2>Spending by Category</h2>'+catRows+'</div>'
     + '<div class="section"><h2>Spending by Member</h2>'+memberRows+'</div>'
     + '<div class="section"><h2>All Transactions ('+rangePx.length+')</h2><table class="tx-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Amount</th><th>Member</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-    + '<div class="footer">Bajeti Yanga v'+APP_VERSION+' &middot; &copy; 2026 Rodart Creatives &bull; Made in Malawi 🇲🇼</div></body></html>';
+    + '<div class="footer">Bajeti Yanga v'+APP_VERSION+' &middot; &copy; 2026 Rodart Creatives &bull; Made in Malawi</div></body></html>';
 
   const w = window.open('','_blank');
   if(w){

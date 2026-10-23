@@ -479,6 +479,7 @@ function getTrialBanner(){
 // onHouseholdCreated Cloud Function), no trial is started for this household.
 function _newHouseholdDoc(uData, cfg, extra){
   const FV = firebase.firestore.FieldValue;
+  ensureRecIds(cfg);   // new households start with ids on every item
   const doc = Object.assign({config:cfg, createdAt:FV.serverTimestamp(), owner:curUser.uid, memberUids:[curUser.uid]}, extra||{});
   if(!(uData && uData.trialClaimedAt)) doc.trialStarted = FV.serverTimestamp();
   return doc;

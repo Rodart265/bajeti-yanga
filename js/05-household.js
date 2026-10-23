@@ -784,8 +784,8 @@ function connectHH(code){
       // permission-denied later. Without this, a removed member could still
       // land here via the "Welcome back" shortcut (connectHH called directly,
       // no join-request involved) and briefly render real household config —
-      // the household doc itself is readable by any signed-in user by design
-      // (needed for join-code verification), so this check is the only thing
+      // until the Phase B rules are published the household doc is readable by any signed-in user
+      // (join-code verification used it), so this check is the only thing
       // standing between "removed" and "quietly still in." Only runs when
       // memberUids actually exists on the doc, to stay backward-compatible
       // with old households created before that field existed.
@@ -815,7 +815,7 @@ function connectHH(code){
       // re-added any default item a user had deleted and wrote to Firestore from inside the listener.)
       if(!lCfg.defaultsMigrated && Array.isArray(lCfg.items)){
         const _next=JSON.parse(JSON.stringify(lCfg));
-        DEF_ITEMS.filter(di=>di.name!=='Paraffin').forEach(di=>{if(!_next.items.find(it=>it.name===di.name)){_next.items.push(di);}});
+        DEF_ITEMS.filter(di=>di.name!=='Paraffin').forEach(di=>{if(!_next.items.find(it=>it.name===di.name)){_next.items.push({...di});}});
         const _pi=_next.items.findIndex(it=>it.name==='Paraffin');
         if(_pi>-1){_next.items.splice(_pi,1);}
         _next.defaultsMigrated=1;
@@ -825,6 +825,11 @@ function connectHH(code){
       scheduleInAppAlerts(); checkBillReminders();
       // Owners make sure the household has its invite stub (invites/{code}); see _backfillInvite.
       if(curUser && d.owner === curUser.uid) _backfillInvite(code);
+      // Owners give records that pre-date ids a stable id, once per session (one writer, so devices cannot race).
+      if(curUser && d.owner === curUser.uid && _idsBackfilledFor !== code && cfgNeedsRecIds(lCfg)){
+        _idsBackfilledFor = code;
+        saveCfg(JSON.parse(JSON.stringify(lCfg)));
+      }
       // Load pending join requests badge for owner
       // Attach once per household. (It used to be re-attached on every household snapshot, which reset the counter
       // and re-fired the "new request" toast + notification on any unrelated config change while a request was pending.)
@@ -896,8 +901,8 @@ function connectHH(code){
         if(unsub) unsub();
         unsub=tryConnect(null);
       } else if(err.code==='permission-denied'){
-        // The household doc itself stays readable to any signed-in user (needed for
-        // join-code verification), so it won't error out on removal -- but purchases
+        // Until the Phase B rules are published the household doc stays readable to any signed-in user, so it
+        // won't error out on removal -- but purchases
         // are gated on live memberUids membership, so this is the reliable signal
         // that this account was removed from the household. Route to a clean
         // re-request state instead of leaving them on a frozen list with a vague
@@ -971,6 +976,7 @@ function handleRemovedFromHousehold(){
 
 function saveCfg(cfg){
   if(!cfg.goals)cfg.goals=[];
+  ensureRecIds(cfg);   // any record added or still without an id gets one before it is written
   const prev=lCfg||{}; lCfg=cfg; _invalidateMemo();
   if(!hhId) return Promise.resolve();
   // Field-level update: only the top-level config keys that changed (items, bills, goals, users, ...), not the whole map.
