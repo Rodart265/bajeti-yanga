@@ -1,5 +1,10 @@
 # Plan: move items, bills and goals out of the household config arrays
 
+**Status (v9.9.0): stage 1 is done.** Items, bills and goals now carry an `id` (assigned by `saveCfg()`, and once per
+session by the household owner's app for older records), and every button and dialog finds its record by id when you
+tap, not by list position (`recKey()` / `recIdx()` in `js/02-helpers.js`, tests in `tests/ids.test.js`). Stages 2 to 6
+are still open. It was not run in a browser here, so do the id checks in the rollout guide's smoke tests.
+
 ## The problem
 
 `households/{code}.config` holds `items`, `bills`, `goals` (and `users`) as **arrays**. `saveCfg()` writes a whole
@@ -12,9 +17,9 @@ edits do not collide.
 
 ## Why this was not done in the October 2026 pass
 
-- About 30 places read or write these arrays directly in an 8,000-line single file, and edits use array indexes in
-  inline `onclick` handlers. Changing the data model means changing all of them together.
-- There is no automated test suite for `index.html`, and this work was done without being able to run the app against
+- About 30 places read or write these arrays directly across the `js/` files, and edits used array indexes in
+  inline `onclick` handlers (stage 1 replaced those with ids). Changing the data model means changing all of them together.
+- There is no automated test suite for the app screens, and this work was done without being able to run the app against
   a real Firestore. A half-working data migration on live family budgets is a worse outcome than the occasional lost edit.
 - Existing households must keep working while data is moved.
 
@@ -35,7 +40,7 @@ Document ids are generated (`doc().id`), so rows are found by id, never by posit
 
 1. **Ids first, no storage change.** Give every existing array entry a stable `id` the first time it is loaded (and
    to all new entries). Change all handlers to find rows by `id` instead of by index. This alone removes the
-   wrong-row bug and is invisible to users. (Bills' "mark paid" already finds by identity.)
+   wrong-row bug and is invisible to users. (Done in 9.9.0.)
 2. **Dual write, read old.** On every change also write the sub-collection documents. Keep reading the array. Run
    for a while to find bugs with no user impact.
 3. **Backfill.** A one-time job per household (run by the owner's app on open, guarded by a

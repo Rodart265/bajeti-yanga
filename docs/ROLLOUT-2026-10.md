@@ -1,5 +1,9 @@
 # Rollout guide (October 2026)
 
+> Updated for app version **9.9.0**. The app code is no longer one big `index.html`: it is a small `index.html`
+> shell plus `styles.css`, `glass.css` and `js/01-constants.js` to `js/13-actions-boot.js`. Where a step says to find a
+> line of code, it now names the file.
+
 Written for someone working **only from a tablet**. Every step is done in a browser (GitHub, Cloudflare, Firebase
 console, Google Cloud Console) except Step 5, which uses **Google Cloud Shell**, a terminal that runs inside the browser.
 
@@ -17,15 +21,18 @@ AI requests now carry the person's sign-in token and the **Worker** enforces the
 reset-able from the browser). The **Firestore rules** are rewritten: allow-lists instead of block-lists on households,
 a proper invite document for joining, validated chipereganyu payouts, and a block on writing premium/trial fields from
 the app. **Cloud Functions** add automatic Premium after a PayChangu payment and one free trial per account. The app
-file got an XSS clean-up, a Content-Security-Policy, and clearer AI/restore error messages.
+code got an XSS clean-up, a Content-Security-Policy, and clearer AI/restore error messages. Version 9.9.0 adds:
+stable ids for budget items, bills and goals (so two phones editing together cannot change the wrong row), a
+chipereganyu join that works with the stricter Phase B rules, and a Worker that keeps a small daily cap even when its
+KV storage is missing or failing (`QUOTA_FAIL_MODE`).
 
 ## What is deliberately NOT done yet
 
 | Item | Why | When |
 |---|---|---|
 | `migrate-premium.js` | You said you will run it later. The app still reads the old `config.isPremium` fields until then. | After Step 8 |
-| Items/bills/goals to sub-collections | Large, risky change to an 8,000-line file that cannot be tested here. Plan in `DATA-MODEL-PLAN.md`. | Separate project |
-| Rules "Phase B" (tighter join + household read) | Needs every household owner to have opened the new app once. | Step 7 |
+| Items/bills/goals to sub-collections | Stage 1 (stable ids) is done in 9.9.0. Moving them into their own documents is a large change that cannot be tested here. Plan in `DATA-MODEL-PLAN.md`. | Separate project |
+| Rules "Phase B" (tighter join + household and group read) | Prepared as `firestore.rules.phase-b`. Needs every household owner to have opened the new app once. | Step 7 |
 | Private AI chats per person | Product decision: chats are shared per household today. | Your call |
 | Removing `'unsafe-inline'` from the CSP | Needs the 240+ inline `onclick` handlers rewritten. | Separate project |
 
@@ -44,9 +51,16 @@ file got an XSS clean-up, a Content-Security-Policy, and clearer AI/restore erro
    - Secret `BAJETI_SECRET` = the old shared secret (still needed for a few days).
    - Variable `ALLOW_LEGACY_SECRET` = `true` (so people with the old cached app keep working).
    - Variable `TRUST_CONFIG_PREMIUM` = `true` (until Step 8).
+   - Variable `QUOTA_FAIL_MODE` = `degraded` (optional, this is the default). It decides what happens if the KV storage
+     in item 5 is missing or failing: `degraded` keeps a small per-day cap in the Worker's memory (`FALLBACK_DAILY_CAP`,
+     default 40), `closed` stops AI until KV works again, `open` means no limits at all (not recommended).
 5. **Storage & Databases -> KV -> Create namespace** `bajeti-quota`. Then worker **Settings -> Bindings -> Add ->
-   KV namespace**, variable name **`QUOTA`**. Without it the Worker works but cannot count, so no daily limits.
+   KV namespace**, variable name **`QUOTA`**. Without it the Worker falls back to `QUOTA_FAIL_MODE`: the limits are then
+   approximate (or AI stops, in `closed` mode).
 6. Test: open the app, send one AI chat message. It should answer.
+7. Check the counters really are being stored: Cloudflare -> **Storage & Databases -> KV** -> `bajeti-quota` ->
+   **KV Pairs**. After your test message there should be a key that looks like `u:<long id>:2026-10-21`. No key means
+   the binding in item 5 is not attached to this Worker.
 
 **Undo:** paste your backed-up old code and deploy.
 
@@ -54,8 +68,8 @@ file got an XSS clean-up, a Content-Security-Policy, and clearer AI/restore erro
 
 1. Open the PR on GitHub and read the description.
 2. Tap **Merge pull request**. GitHub Pages publishes in about a minute.
-3. Open the app once (twice if it still shows the old look). The service-worker version changed (`bajeti-v9.7.0`) so
-   the new copy replaces the old one.
+3. Open the app once (twice if it still shows the old look). The service-worker version changed (`bajeti-v9.9.0`) so
+   the new copy replaces the old one. Settings -> About shows the version you are running.
 4. **Ask every household owner to open the app once.** This quietly creates their `invites/{code}` document, which
    Step 7 relies on.
 
@@ -121,7 +135,7 @@ firebase deploy --only functions --project bajeti-yanga
    - `node test.js` should end with all tests passing.
 4. When the deploy finishes it prints a **Function URL** for `payments`. Copy it.
 5. In **PayChangu dashboard -> API & Webhooks**, set the **webhook URL** to that same URL.
-6. In GitHub (works in the mobile web editor): open `index.html`, find the line `const PAYMENTS_API = '';`, paste the
+6. In GitHub (works in the mobile web editor): open `js/11-premium.js`, find the line `const PAYMENTS_API = '';`, paste the
    URL between the quotes, **Commit** to a branch and merge, or ask me to do it.
    Until you do this the app keeps the old iframe + WhatsApp flow, so nothing breaks.
 7. **Make one real test payment** (MK 2,500) on a test household. The reason: PayChangu's documentation does not
@@ -139,26 +153,54 @@ Optional: to enforce the 3-household limit for free accounts on the server, set 
 
 - [ ] A free household hits the chat limit (10/day) and sees the limit message, not a raw error.
 - [ ] A Premium household does not.
+- [ ] The counters exist: after the tests above, the KV keys from Step 1 item 7 show counts (open one: the `total` number goes up with each AI use).
 - [ ] Sign out, then use AI: the app says to sign in again instead of a confusing error.
 
 ## Step 7. Rules Phase B (a few days after Step 2)
 
-When all active owners have opened the new app, tighten two things in `firestore.rules`. Both are described in the
-comments marked `PHASE B`:
+Phase B closes the biggest remaining privacy gap: today any signed-in person who knows a household code (or a
+chipereganyu code) can read that whole document, including budgets and member names. Phase B makes both readable by
+members only, and makes joining go through the invite document.
 
-1. In `joinOpen()`, also require that the invite document exists.
-2. Change the household `allow get` so only members can read the whole household document (non-members use
-   `invites/{code}` instead).
+The stricter rules are ready in **`firestore.rules.phase-b`**. The app in version 9.9.0 works with both the old and the
+new rules, so the order is: app first, rules later.
 
-I can prepare this as a second PR when you are ready. Do not do it earlier: households whose owner has not opened the
-new app would stop accepting joins.
+**Only do this when all of these are true:**
+
+- [ ] Version 9.9.0 or later is live (Settings -> About shows it) and has been for several days, so old cached copies
+      have been replaced. An old copy cannot join a chipereganyu under Phase B.
+- [ ] Every active household owner has opened the app at least once since 9.9.0. This quietly creates their
+      `invites/{code}` document. A household without one cannot accept new join requests under Phase B. (Spot check in
+      Firebase console -> Firestore -> Data: the `invites` collection should have one document per household code you
+      care about.)
+- [ ] Step 3 smoke tests passed on the current rules.
+
+**Publish:**
+
+1. Firebase console -> **Firestore Database -> Rules**. Select all, delete, paste the contents of
+   `firestore.rules.phase-b` (skip the comment box at the very top if you like; it is harmless). **Publish**. If the
+   editor shows a red error, do not publish.
+2. Run the smoke test again with two accounts, plus these:
+   - [ ] Account A (owner) sees their household. Account B (not a member) types A's code: the request is sent and the
+         waiting screen shows. A approves, B gets in.
+   - [ ] B types a wrong code: "That code doesn't exist".
+   - [ ] A household with an expired code: "This household code has expired".
+   - [ ] Chipereganyu: a third account joins a group that is still gathering with its code and lands inside.
+   - [ ] The same account tries to join a group whose rotation already started: "Could not join" message.
+   - [ ] Someone you removed from a household is sent back to the setup screen, not left on a frozen page.
+   - [ ] AI chat still limits a free household (the Worker reads the household with the person's own sign-in, which
+         members are still allowed to do).
+3. **Once it works**, in GitHub copy the contents of `firestore.rules.phase-b` over `firestore.rules` and delete
+   `firestore.rules.phase-b`, so the repository shows what is live.
+
+**Undo (about 20 seconds):** Rules tab -> history (clock) icon -> pick the version from before -> Publish.
 
 ## Step 8. Later, in this order
 
 1. Run `migrate-premium.js` (your step). It moves old `config.isPremium / premiumExpiry / trialStarted` to the new
    places.
 2. In Cloudflare set `TRUST_CONFIG_PREMIUM` = `false`.
-3. Ask me to remove the `config.*` fallbacks from `index.html`.
+3. Ask me to remove the `config.*` fallbacks from `getPremiumStatus()` in `js/11-premium.js`.
 4. In Cloudflare set `ALLOW_LEGACY_SECRET` = `false`, delete the `BAJETI_SECRET` secret, and treat the old secret as
    public forever (it was in the page source). Do this after a week or two, once old cached copies have updated.
 
@@ -168,7 +210,9 @@ new app would stop accepting joins.
 |---|---|---|
 | "Permission denied" everywhere after Step 3 | Rules published before the app update reached devices | Open the app twice to update; if still bad, roll back the rules |
 | AI says "not configured" | `GEMINI_MODEL` or `GEMINI_API_KEY` missing in Worker | Step 1 item 4 |
-| AI works but limits never apply | KV binding `QUOTA` missing | Step 1 item 5 |
+| AI works but limits look loose or stop at a low number (about 40 a day) | KV binding `QUOTA` missing or failing, so the Worker is in `degraded` mode | Step 1 items 5 and 7 |
+| AI says it is "temporarily unavailable" | `QUOTA_FAIL_MODE` is `closed` and KV is missing or failing | Fix the KV binding (Step 1 item 5), or set `QUOTA_FAIL_MODE` back to `degraded` |
 | Page is blank or something does not load after merge | Content-Security-Policy blocked something | Delete the `<meta http-equiv="Content-Security-Policy" ...>` line in `index.html` and tell me what broke |
-| Joiner cannot join | Owner has not opened the new app yet (no invite document) | Ask the owner to open the app once |
+| Joiner cannot join a household | Owner has not opened the new app yet (no invite document) | Ask the owner to open the app once |
+| "Could not join" on a chipereganyu | Wrong code, or the group already started its rotation (after Phase B the app cannot tell which) | Check the code with the group admin |
 | Payment taken but no Premium | Webhook did not match the reference | Tap "I've paid. Activate my Premium" in the app, wait 15 min, then check Functions logs; you can still switch Premium on by hand as before |
