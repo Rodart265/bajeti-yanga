@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
 <title>Bajeti Yanga</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-maskable-512.png">
 <!-- Fonts loaded non-blocking: preload + swap to stylesheet once fetched, so
      first paint doesn't wait on fonts.googleapis.com. -->
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -107,25 +107,44 @@ try{
      #scr-welcome, #scr-verify, #app) becomes visible. If nothing becomes
      visible within ~9s (e.g. first-ever offline visit, no cached session),
      it swaps to an offline/retry message instead of staying blank forever. -->
+<script>
+// Lite mode: phones with little memory or few cores skip the frosted-glass blur (see glass.css).
+// Force it on with localStorage nb_lite = '1', or off with '0'. Also remembers dark mode for the splash.
+(function(){
+  try{
+    var l = localStorage.getItem('nb_lite');
+    var low = (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+    if(l === '1' || (l !== '0' && low)) document.documentElement.classList.add('lite');
+    if(localStorage.getItem('nb_dark') === '1') document.documentElement.classList.add('dk');
+  }catch(e){}
+})();
+</script>
 <style>
-#boot-splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:linear-gradient(145deg,#7B1FA2,#5E1291 50%,#3D0E7A);color:#fff;font-family:'Hanken Grotesk',Arial,sans-serif;text-align:center;padding:24px;transition:opacity .25s ease}
+#boot-splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#F0EBF8;color:#1A1A2E;font-family:'Hanken Grotesk',Arial,sans-serif;text-align:center;padding:24px;overflow-y:auto;transition:opacity .25s ease}
+html.dk #boot-splash{background:#121212;color:#E0E0E0}
 #boot-splash.boot-splash-out{opacity:0;pointer-events:none}
-#boot-splash .bs-spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.28);border-top-color:#fff;animation:bs-spin .8s linear infinite}
-#boot-splash .bs-icon{width:64px;height:64px;border-radius:var(--cr);box-shadow:0 6px 18px rgba(0,0,0,.25)}
-#boot-splash .bs-title{font-weight:800;font-size:1.05rem;letter-spacing:.2px}
-#boot-splash .bs-sub{font-size:.78rem;opacity:.75;max-width:280px;line-height:1.4}
-#boot-splash .bs-retry{margin-top:6px;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:700;font-size:.82rem;padding:9px 18px;border-radius:var(--cr-md);cursor:pointer}
+#boot-splash .bs-icon{width:72px;height:72px;border-radius:18px;box-shadow:0 8px 22px rgba(74,20,140,.28);flex-shrink:0}
+#boot-splash .bs-title{font-weight:800;font-size:1.3rem;letter-spacing:.2px;margin-top:6px}
+#boot-splash .bs-tag{font-size:.8rem;color:#455A64}
+html.dk #boot-splash .bs-tag{color:#9E9E9E}
+#boot-splash .bs-spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(123,31,162,.18);border-top-color:#7B1FA2;animation:bs-spin .8s linear infinite;margin-top:14px}
+#boot-splash .bs-sub{font-size:.78rem;color:#455A64;max-width:280px;line-height:1.4}
+html.dk #boot-splash .bs-sub{color:#9E9E9E}
+#boot-splash .bs-retry{margin-top:6px;background:#7B1FA2;border:0;color:#fff;font-weight:700;font-size:.82rem;padding:10px 20px;border-radius:12px;cursor:pointer}
+@media (max-height:520px){#boot-splash{gap:6px;padding:12px}#boot-splash .bs-icon{width:52px;height:52px;border-radius:13px}#boot-splash .bs-title{font-size:1.1rem;margin-top:2px}#boot-splash .bs-spin{margin-top:6px}}
 @keyframes bs-spin{to{transform:rotate(360deg)}}
 </style>
 <div id="boot-splash">
   <svg class="bs-icon" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bajeti Yanga">
-    <rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.18)"/>
-    <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/>
-    <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/>
+    <defs><linearGradient id="bsg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7B1FA2"/><stop offset="1" stop-color="#4A148C"/></linearGradient></defs>
+    <rect width="52" height="52" rx="13" fill="url(#bsg)"/>
+    <rect x="8" y="34" width="9" height="10" rx="2.5" fill="#F5F2FA"/>
+    <rect x="21" y="24" width="9" height="20" rx="2.5" fill="#FAF8FC"/>
     <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
     <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
   </svg>
   <div class="bs-title">Bajeti Yanga</div>
+  <div class="bs-tag">Know where your Kwacha goes</div>
   <div class="bs-spin" id="boot-splash-spin"></div>
   <div class="bs-sub" id="boot-splash-msg">Loading your budget…</div>
 </div>
@@ -464,7 +483,7 @@ try{
             <polygon points="30,15 34.5,6 39,15" fill="#00E5FF"/>
           </svg>
         </div>
-        <div><div class="tb-h1" id="apt">Bajeti Yanga</div><div class="tb-sub" id="aps">Know where your Kwacha goes</div></div>
+        <div><div class="tb-h1" id="apt">Bajeti Yanga</div><div class="tb-sub" id="aps">Know where your Kwacha goes</div><button type="button" class="prem-chip" id="prem-chip" onclick="showPremiumSheet()"></button></div>
       </div>
       <div class="tb-right">
         <div class="sync-dot off" id="sync-dot"></div>
