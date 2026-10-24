@@ -52,6 +52,7 @@ function checkAndAddRecurring(){
 }
 
 function render(){
+  try{ updatePremiumChip(); }catch(e){}
   // When the chat tab is active and a conversation is open, avoid a full rChat() rebuild
   // (which would wipe the DOM and re-fetch async). Just refresh the bubbles.
   if(tab==='chat' && activeChatId && g('chat-msgs')){
@@ -73,6 +74,7 @@ function applyLang(){
 }
 function updatePill(){
   const u=actU(); if(!u)return;
+  try{ updatePremiumChip(); }catch(e){}
   // Avatar removed from topbar -- only update name pill now
   const nm=g('cur-nm');
   if(nm)nm.textContent=u.name;
@@ -219,7 +221,6 @@ function rHome(){
   const streak=getSpendingStreak();
   const isCW=lang==='cw';
   let h='<div class="page">';
-  h+=getTrialBanner();
   h+='<div class="mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
   h+='<div class="hero2">';
   h+='<div class="h2-top">';

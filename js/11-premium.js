@@ -438,39 +438,84 @@ function confirmPaymentWA(){
   showClaimScreen();
 }
 
-function getTrialBanner(){
-  const status = getPremiumStatus();
-  const isCW = lang === 'cw';
+// ---- Header status chip (replaces the old full-width banner) ------------------------------------------
+// Returns null when there is nothing to say (free plan, or Premium with plenty of time left).
+function getPremiumChipState(){
+  const s = getPremiumStatus();
+  const cw = lang === 'cw';
+  const n = s.daysLeft;
+  const days = function(){ return n + ' day' + (n === 1 ? '' : 's') + ' left'; };
+  if(s.isExpired) return {tone:'ended', icon:'lock', label: cw ? 'Premium yathera' : 'Premium ended', aria: cw ? 'Premium yathera. Dinani kuti mukonze.' : 'Premium ended. Tap for options.'};
+  if(s.isTrial && n <= 0) return {tone:'ended', icon:'lock', label: cw ? 'Mayeso athera' : 'Trial ended', aria: cw ? 'Mayeso athera. Dinani kuti mukonze.' : 'Trial ended. Tap for options.'};
+  if(s.isTrial && n <= 10) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Trial: ' + days(), aria: 'Trial: ' + days() + '. Tap for options.'};
+  if(s.isPremium && !s.isTrial && n !== null && n <= 7) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Premium: ' + days(), aria: 'Premium: ' + days() + '. Tap for options.'};
+  return null;
+}
 
-  // Expired premium — graceful downgrade prompt
-  if(status.isExpired){
-    return '<div style="background:linear-gradient(90deg,#B71C1C,#E53935);color:#fff;padding:8px 14px;border-radius:var(--cr-md);margin-bottom:10px;font-size:.76rem;font-weight:700;display:flex;justify-content:space-between;align-items:center">'
-      +'<div style="display:flex;align-items:center;gap:6px"><i data-lucide="alert-triangle" style="width:14px;height:14px"></i> '+(isCW?'Premium yathera. Ndondomeko zina zatsekeka.':'Premium expired. Some features are locked.')+'</div>'
-      +'<button onclick="showPremiumPage()" style="background:#fff;color:#B71C1C;border:none;border-radius:var(--cr-sm);padding:4px 10px;font-size:.7rem;font-weight:800;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+(isCW?'Bwezani':'Renew')+'</button>'
-      +'</div>';
+function updatePremiumChip(){
+  const chip = g('prem-chip'), bar = g('topbar');
+  if(!chip || !bar) return;
+  let st = null;
+  try{ st = getPremiumChipState(); }catch(e){ st = null; }   // lCfg may not be loaded yet
+  if(!st){
+    if(chip.dataset.k){ chip.dataset.k = ''; chip.innerHTML = ''; chip.className = 'prem-chip'; }
+    bar.classList.remove('has-chip');
+    return;
   }
+  const key = st.tone + '|' + st.label;
+  bar.classList.add('has-chip');
+  if(chip.dataset.k === key) return;        // unchanged: skip rebuilding the icon on every render
+  chip.dataset.k = key;
+  chip.className = 'prem-chip prem-' + st.tone;
+  chip.setAttribute('aria-label', st.aria);
+  chip.innerHTML = '<i data-lucide="' + st.icon + '"></i><span>' + st.label + '</span>';
+  if(window.lucide) lucide.createIcons({nodes:[chip]});
+}
 
-  // Active premium expiring within 7 days
-  if(status.isPremium && !status.isTrial && status.daysLeft !== null && status.daysLeft <= 7){
-    return '<div style="background:linear-gradient(90deg,#E65100,#FF5722);color:#fff;padding:8px 14px;border-radius:var(--cr-md);margin-bottom:10px;font-size:.76rem;font-weight:700;display:flex;justify-content:space-between;align-items:center">'
-      +'<div style="display:flex;align-items:center;gap:6px"><i data-lucide="clock" style="width:14px;height:14px"></i> '+(isCW?'Premium yatha m\'masiku '+status.daysLeft+'. Bwezani tsopano.':'Premium expires in '+status.daysLeft+' day'+(status.daysLeft===1?'':'s')+'. Renew now.')+'</div>'
-      +'<button onclick="showPremiumPage()" style="background:#fff;color:#E65100;border:none;border-radius:var(--cr-sm);padding:4px 10px;font-size:.7rem;font-weight:800;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+(isCW?'Bwezani':'Renew')+'</button>'
-      +'</div>';
-  }
+// Small lock icon for rows and buttons that need Premium. Empty when the household already has access.
+function lockBadge(size){
+  if(hasPremiumFeature()) return '';
+  size = size || 11;
+  return ' <i data-lucide="lock" class="lock-badge" style="width:' + size + 'px;height:' + size + 'px"></i>';
+}
 
-  // Trial expiry warning
-  if(!status.isTrial) return '';
-  if(status.daysLeft > 10) return '';
-  if(status.daysLeft <= 0){
-    return '<div style="background:linear-gradient(90deg,#B71C1C,#E53935);color:#fff;padding:8px 14px;border-radius:var(--cr-md);margin-bottom:10px;font-size:.76rem;font-weight:700;display:flex;justify-content:space-between;align-items:center">'
-      +'<div style="display:flex;align-items:center;gap:6px"><i data-lucide="alert-triangle" style="width:14px;height:14px"></i> '+(isCW?'Mayeso athera. Ndondomeko zina zatsekeka.':'Trial expired. Some features are locked.')+'</div>'
-      +'<button onclick="showPremiumPage()" style="background:#fff;color:#B71C1C;border:none;border-radius:var(--cr-sm);padding:4px 10px;font-size:.7rem;font-weight:800;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+(isCW?'Upgrade':'Upgrade')+'</button>'
-      +'</div>';
+// Bottom sheet opened by tapping the header chip.
+function showPremiumSheet(){
+  const s = getPremiumStatus();
+  const cw = lang === 'cw';
+  const n = s.daysLeft;
+  const ended = s.isExpired || (s.isTrial && n <= 0);
+  let title, note;
+  if(s.isExpired){
+    title = cw ? 'Premium yathera' : 'Your Premium has ended';
+    note = 'You are on the free plan. These features stay locked until you renew.';
+  } else if(ended){
+    title = cw ? 'Mayeso athera' : 'Your free trial has ended';
+    note = 'You are on the free plan. Upgrade to unlock these features again.';
+  } else if(s.isTrial){
+    title = n + ' day' + (n === 1 ? '' : 's') + ' left in your trial';
+    note = 'Upgrade before it ends so nothing gets locked.';
+  } else {
+    title = 'Premium ends in ' + n + ' day' + (n === 1 ? '' : 's');
+    note = 'Renew now so nothing gets locked.';
   }
-  return '<div style="background:linear-gradient(90deg,var(--p1),var(--p2));color:#fff;padding:8px 14px;border-radius:var(--cr-md);margin-bottom:10px;font-size:.76rem;font-weight:700;display:flex;justify-content:space-between;align-items:center">'
-    +'<div style="display:flex;align-items:center;gap:6px"><i data-lucide="gem" style="width:14px;height:14px"></i> '+(isCW?'Mayeso a Premium: masiku '+status.daysLeft+' otsala':'Premium Trial: '+status.daysLeft+' day'+(status.daysLeft===1?'':'s')+' left')+'</div>'
-    +'<button onclick="showPremiumPage()" style="background:#fff;color:var(--p1);border:none;border-radius:var(--cr-sm);padding:4px 10px;font-size:.7rem;font-weight:800;cursor:pointer;font-family:Hanken Grotesk,sans-serif">Upgrade</button>'
-    +'</div>';
+  let h = '<div class="dh"></div>';
+  h += '<div style="text-align:center;padding:8px 0 16px">';
+  h += '<div style="width:56px;height:56px;border-radius:var(--cr);background:linear-gradient(135deg,#4A148C,#7B1FA2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 6px 20px rgba(74,20,140,.35)"><i data-lucide="' + (ended ? 'lock' : 'clock') + '" style="width:26px;height:26px;color:#fff"></i></div>';
+  h += '<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:6px">' + title + '</h3>';
+  h += '<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">' + note + '</div>';
+  h += '<div style="font-size:.75rem;color:var(--mid);margin-bottom:16px;text-align:left;background:var(--mist);border-radius:var(--cr-md);padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  const mark = ended ? 'lock' : 'check';
+  [['Charts'],['PDF Export'],['Bill Tracker'],['Unlimited AI'],['Trash & Undo'],['Copy Month']].forEach(function(f){
+    h += '<div style="display:flex;align-items:center;gap:5px"><i data-lucide="' + mark + '" style="width:12px;height:12px;color:var(--p1);flex-shrink:0"></i><span>' + f[0] + '</span></div>';
+  });
+  h += '</div>';
+  h += '<button class="btnM" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="closeM(\'mv-u\');showPremiumPage()"><i data-lucide="gem" style="width:16px;height:16px"></i> ' + (s.isExpired || (!s.isTrial && s.isPremium) ? (cw ? 'Bwezani' : 'Renew Premium') : (cw ? 'Kamera Premium' : 'Upgrade to Premium')) + '</button>';
+  h += '<button onclick="closeM(\'mv-u\')" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">' + (cw ? 'Mwina Mawa' : 'Not now') + '</button>';
+  h += '</div>';
+  g('mb-u').innerHTML = h;
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
+  openM('mv-u');
 }
 
 // Builds the document for a brand-new household. The free trial starts from a SERVER timestamp at the ROOT of the

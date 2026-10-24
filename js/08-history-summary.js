@@ -29,8 +29,8 @@ function rHist(){
 
   // Action buttons row
   h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
-  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Koperani':'Copy Last Month')+' <i data-lucide="gem" style="width:10px;height:10px;vertical-align:middle;color:var(--p1)"></i></button>';
-  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Bisera':'Trash')+' <i data-lucide="gem" style="width:10px;height:10px;vertical-align:middle;color:var(--p1)"></i></button>';
+  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Koperani':'Copy Last Month')+lockBadge(10)+'</button>';
+  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Bisera':'Trash')+lockBadge(10)+'</button>';
   h+='</div>';
 
   // Running totals strip
