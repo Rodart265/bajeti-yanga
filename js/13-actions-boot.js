@@ -60,9 +60,9 @@ function _aiHttpErr(res, resData){
 // Friendly text for an AI failure, or null when it is just "busy" (callers keep their own busy wording).
 function aiFailMessage(err, isCW){
   const code = err && err.aiCode;
-  if(code==='auth') return isCW?'Chonde lowaninso kachiwiri kuti mugwiritse ntchito Bajeti AI.':'Please sign in again to use Bajeti AI.';
+  if(code==='auth') return isCW?'Chonde lowaninso kuti mugwiritse ntchito Bajeti AI.':'Please sign in again to use Bajeti AI.';
   if(code==='quota' || (err && err.message && /quota/i.test(err.message)))
-    return isCW?'Bajeti AI ili otanganidwa kwambiri lero. Yesaninso mawa.':'Bajeti AI has reached its daily limit. Please try again tomorrow.';
+    return isCW?'Bajeti AI yafika pa malire a lero. Yesaninso mawa.':'Bajeti AI has reached its daily limit. Please try again tomorrow.';
   return null;
 }
 function viewItemD(el){ viewItem(el.dataset.iid); }
@@ -86,7 +86,7 @@ function viewItem(name){
     });
     h+='</div>';
   } else {
-    h+='<div class="empty"><p>No entries this month.</p></div>';
+    h+='<div class="empty"><p>'+(lang==='cw'?'Palibe zolemba mwezi uno.':'No entries this month.')+'</p></div>';
   }
   h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button>';
   g('mb-u').innerHTML=h; initIcons(); openM('mv-u');
@@ -121,6 +121,7 @@ if(_origRender){
 // ── BOOT ────────────────────────────────────────────────────────────────────
 (function(){
   // Privacy gate removed — auth screen has policy links
+  try{ applyStaticLang(); }catch(e){}
   bootApp();
   setTimeout(checkNameChange, 2000);
   setTimeout(requestPushPermission, 8000);

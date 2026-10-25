@@ -70,7 +70,7 @@ function showUpgradePrompt(feature, status){
     h += '<div style="display:flex;align-items:center;gap:5px"><i data-lucide="'+f[0]+'" style="width:12px;height:12px;color:var(--p1);flex-shrink:0"></i><span>'+f[1]+'</span></div>';
   });
   h += '</div>';
-  h += '<button class="btnM" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="closeM(\'mv-u\');showPremiumPage()"><i data-lucide="gem" style="width:16px;height:16px"></i> '+(isCW?'Kamera Premium':'Upgrade to Premium')+'</button>';
+  h += '<button class="btnM" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="closeM(\'mv-u\');showPremiumPage()"><i data-lucide="gem" style="width:16px;height:16px"></i> '+(isCW?'Pitani ku Premium':'Upgrade to Premium')+'</button>';
   h += '<button onclick="closeM(\'mv-u\')" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">'+(isCW?'Mwina Mawa':'Maybe Later')+'</button>';
   h += '</div>';
   g('mb-u').innerHTML = h;
@@ -111,10 +111,10 @@ function approveJoin(uid){
     return batch.commit().then(()=>_markApproved(hhId, uid));
   })
     .then(()=>{
-      toast(lang==='cw'?'Membala wovomerezedwa!':'Member approved!','s');
+      toast(lang==='cw'?'Membala wavomerezedwa!':'Member approved!','s');
       stgOpenSection('members');
     })
-    .catch(e=>toast('Approval failed: '+(e&&e.code||'error')+'.','e'));
+    .catch(e=>toast((lang==='cw'?'Kuvomereza kwalephera: ':'Approval failed: ')+(e&&e.code||'error')+'.','e'));
 }
 
 function declineJoin(uid){
@@ -124,7 +124,7 @@ function declineJoin(uid){
     function(){
       db.collection('households').doc(hhId).collection('joinRequests').doc(uid).delete()
         .then(()=>{ toast(lang==='cw'?'Pempho lakanidwa.':'Request declined.','i'); stgOpenSection('members'); })
-        .catch(e=>toast('Error: '+(e&&e.code||'error')+'.','e'));
+        .catch(e=>toast((lang==='cw'?'Cholakwika: ':'Error: ')+(e&&e.code||'error')+'.','e'));
     }, null, true
   );
 }
@@ -172,7 +172,7 @@ function showPremiumPage(){
       h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
       h += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#E6510020;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:18px;height:18px;color:#E65100"></i></div>';
       h += '<div><div style="font-weight:800;font-size:.88rem;color:#BF360C">'+(isCW?'Premium Yanu Yatsala Masiku '+daysLeft:'Premium Expires in '+daysLeft+' Day'+(daysLeft===1?'':'s'))+'</div>';
-      h += '<div style="font-size:.68rem;color:#E65100">'+(isCW?'Intha':'Expires')+': '+expiryStr+'</div></div></div>';
+      h += '<div style="font-size:.68rem;color:#E65100">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+'</div></div></div>';
       h += '<div style="font-size:.76rem;color:#5D4037;line-height:1.6">'+(isCW?'Bwezerani tsopano kuti mupitirize kugwiritsa ntchito zonse za Premium mopanda kusokonezeka.':'Renew now to keep uninterrupted access to Bill Tracker, PDF export, unlimited AI, and more.')+'</div>';
       h += '</div>';
       // fall through — plan selector + Proceed to Payment button render below
@@ -181,8 +181,8 @@ function showPremiumPage(){
       h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
       h += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#2E7D3220;display:flex;align-items:center;justify-content:center"><i data-lucide="gem" style="width:18px;height:18px;color:#2E7D32"></i></div>';
       h += '<div><div style="font-weight:800;font-size:.88rem;color:#1B5E20">'+(isCW?'Premium Yanu Ikugwira Ntchito!':'Your Premium is Active!')+'</div>';
-      h += '<div style="font-size:.68rem;color:#388E3C">'+(isCW?'Intha':'Expires')+': '+expiryStr+(daysLeft!==null?' ('+daysLeft+(isCW?' tsiku':'d')+')':'')+'</div></div></div>';
-      h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:1.5px solid #A5D6A7;border-radius:var(--cr-md);padding:9px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.8rem;color:#2E7D32;cursor:pointer">'+(isCW?'Zamkani':'Close')+'</button>';
+      h += '<div style="font-size:.68rem;color:#388E3C">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+(daysLeft!==null?' ('+daysLeft+(isCW?' tsiku':'d')+')':'')+'</div></div></div>';
+      h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:1.5px solid #A5D6A7;border-radius:var(--cr-md);padding:9px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.8rem;color:#2E7D32;cursor:pointer">'+(isCW?'Tsekani':'Close')+'</button>';
       h += '</div>';
       g('mb-u').innerHTML = h;
       if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
@@ -214,7 +214,7 @@ function showPremiumPage(){
   h += '</div>';
 
   // Plan selector
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;color:var(--mid);margin-bottom:8px">'+(isCW?'Sankhani Purani':'Choose a Plan')+'</div>';
+  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;color:var(--mid);margin-bottom:8px">'+(isCW?'Sankhani Phukusi':'Choose a Plan')+'</div>';
   h += '<div style="display:flex;gap:8px;margin-bottom:16px">';
 
   // 1 Month plan
@@ -226,7 +226,7 @@ function showPremiumPage(){
 
   // 3 Month plan — highlighted
   h += '<div id="plan-3m" onclick="selectPlan(3,7000)" style="flex:1;background:linear-gradient(145deg,#4A148C,#7B1FA2);border:2px solid #CE93D8;border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;position:relative;box-shadow:0 6px 24px rgba(106,27,154,.35)">';
-  h += '<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#FFD700,#FFA000);color:#4A148C;font-size:.58rem;font-weight:900;padding:2px 10px;border-radius:var(--cr-md);white-space:nowrap;letter-spacing:.3px">'+(isCW?'BWINO KWAMBIRI':'BEST VALUE')+'</div>';
+  h += '<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#FFD700,#FFA000);color:#4A148C;font-size:.58rem;font-weight:900;padding:2px 10px;border-radius:var(--cr-md);white-space:nowrap;letter-spacing:.3px">'+(isCW?'MTENGO WABWINO':'BEST VALUE')+'</div>';
   h += '<div style="font-size:.63rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">'+(isCW?'Miyezi 3':'3 Months')+'</div>';
   h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:#fff">MK 7,000</div>';
   h += '<div style="font-size:.62rem;color:rgba(255,255,255,.65);margin-top:2px">'+(isCW?'Sungani MK 500':'Save MK 500')+'</div>';
@@ -236,7 +236,7 @@ function showPremiumPage(){
   // Why pay
   h += '<div style="border:1.5px solid #A5D6A7;background:linear-gradient(135deg,#F1F8E9,#E8F5E9);border-radius:var(--cr);padding:11px 13px;margin-bottom:16px;font-size:.76rem;color:#1B5E20;line-height:1.6;display:flex;align-items:flex-start;gap:8px">';
   h += '<i data-lucide="heart" style="width:15px;height:15px;color:#2E7D32;flex-shrink:0;margin-top:2px"></i>';
-  h += '<div><strong>'+(isCW?'Chifukwa chani kulipira?':'Why pay?')+'</strong> '+(isCW?'Bajeti Yanga imangidwa ku Malawi, yamakolo aku Malawi. Chilipiro chanu chisunga pulogalamuyi ikugwira ntchito. Palibe zotsatira, palibe kugulitsa data.':'Bajeti Yanga is built in Malawi, for Malawian families. Your subscription keeps the app running. No ads, no data selling, ever.')+'</div>';
+  h += '<div><strong>'+(isCW?'Chifukwa chani kulipira?':'Why pay?')+'</strong> '+(isCW?'Bajeti Yanga yapangidwa ku Malawi, ya mabanja a ku Malawi. Ndalama zomwe mumalipira zimathandiza kuti app ipitirize kugwira ntchito. Palibe zotsatsa, ndipo sitigulitsa deta yanu, konse.':'Bajeti Yanga is built in Malawi, for Malawian families. Your subscription keeps the app running. No ads, no data selling, ever.')+'</div>';
   h += '</div>';
 
   // Proceed button
@@ -294,9 +294,9 @@ function showPaychanguIframe(){
     h += '</div>';
     h += '<iframe src="'+PAYCHANGU_LINK+'" style="width:100%;height:420px;border:none;border-radius:var(--cr);background:#f5f5f5" allow="payment" loading="lazy"></iframe>';
     h += '<button onclick="showClaimScreen()" style="width:100%;margin-top:12px;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
-    h += '<i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Landilani Premim Yanga':'Claim My Premium Access');
+    h += '<i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Tsegulani Premium Yanga':'Claim My Premium Access');
     h += '</button>';
-    h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Tap \'Claim\' mukamaliza kulipira pa PayChangu':'Tap Claim after completing payment on PayChangu')+'</div>';
+    h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Dinani \'Tsegulani Premium Yanga\' mukamaliza kulipira pa PayChangu':'Tap Claim after completing payment on PayChangu')+'</div>';
   }
 
   g('mb-u').innerHTML = h;
@@ -316,7 +316,7 @@ async function _paymentsCall(body){
 async function startCheckout(btn){
   const isCW = lang==='cw';
   const plan = _selectedPlan || {months:3, price:7000, label:'3 Months'};
-  if(!hhId || !curUser){ toast('Not signed in.','e'); return; }
+  if(!hhId || !curUser){ toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e'); return; }
   if(btn) btn.disabled = true;
   try{
     const r = await _paymentsCall({action:'checkout', householdId:hhId, months:plan.months});
@@ -391,7 +391,7 @@ function showClaimScreen(){
   h += '<div style="width:64px;height:64px;border-radius:var(--cr);background:linear-gradient(135deg,#4A148C,#7B1FA2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 8px 24px rgba(74,20,140,.4)">';
   h += '<i data-lucide="gem" style="width:30px;height:30px;color:#fff"></i></div>';
   h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:var(--ink);margin-bottom:4px">'+(isCW?'Pafupi Kwambiri!':'You\'re Almost There!')+'</div>';
-  h += '<div style="font-size:.76rem;color:var(--mid);line-height:1.5">'+(isCW?'Gawodwani nambala ya nyumba yanu kwa ife pa WhatsApp kuti tikonze Premium yanu.':'Share your household code with us on WhatsApp so we can activate your Premium.')+'</div>';
+  h += '<div style="font-size:.76rem;color:var(--mid);line-height:1.5">'+(isCW?'Tumizani kodi ya nyumba yanu kwa ife pa WhatsApp kuti titsegule Premium yanu.':'Share your household code with us on WhatsApp so we can activate your Premium.')+'</div>';
   h += '</div>';
 
   // Plan summary
@@ -405,7 +405,7 @@ function showClaimScreen(){
   h += '<div style="font-size:.65rem;font-weight:700;color:var(--p1);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">'+(isCW?'Nambala ya Nyumba Yanu:':'Your Household Code:')+'</div>';
   h += '<div style="display:flex;align-items:center;gap:10px">';
   h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:900;font-size:1.4rem;color:var(--ink);letter-spacing:2px;flex:1">'+esc(hhId)+'</div>';
-  h += '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(hhId)+'\').then(()=>toast(\''+(isCW?'Nakopedwa!':'Copied!')+'\')).catch(()=>{})" style="background:#7B1FA2;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:4px"><i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Kopani':'Copy')+'</button>';
+  h += '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(hhId)+'\').then(()=>toast(\''+(isCW?'Yakopedwa!':'Copied!')+'\')).catch(()=>{})" style="background:#7B1FA2;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:4px"><i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Koperani':'Copy')+'</button>';
   h += '</div></div>';
 
   // WhatsApp instruction
@@ -414,7 +414,7 @@ function showClaimScreen(){
   h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:#25D36620;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="message-circle" style="width:16px;height:16px;color:#25D366"></i></div>';
   h += '<div>';
   h += '<div style="font-weight:800;font-size:.8rem;color:#1B5E20;margin-bottom:3px">'+(isCW?'Tumizani Screenshot pa WhatsApp':'Send Payment Screenshot on WhatsApp')+'</div>';
-  h += '<div style="font-size:.7rem;color:#388E3C;line-height:1.5">'+(isCW?'Tumizani screenshot ya chilipiro chanu ndi nambala ya nyumba kwa +265 888 029 029. Tikokonzani Premium mkati mwa maola 24.':'Send your payment screenshot and household code to +265 888 029 029. We will activate your Premium within 24 hours.')+'</div>';
+  h += '<div style="font-size:.7rem;color:#388E3C;line-height:1.5">'+(isCW?'Tumizani screenshot ya chilipiro chanu ndi nambala ya nyumba kwa +265 888 029 029. Tidzatsegula Premium yanu mkati mwa maola 24.':'Send your payment screenshot and household code to +265 888 029 029. We will activate your Premium within 24 hours.')+'</div>';
   h += '</div></div></div>';
 
   // WhatsApp CTA button
@@ -425,10 +425,10 @@ function showClaimScreen(){
     +'[Please find my payment screenshot attached]'
   );
   h += '<button onclick="window.open(\'https://wa.me/265888029029?text='+waMsg+'\',\'_blank\')" style="width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.9rem;cursor:pointer;box-shadow:0 6px 20px rgba(37,211,102,.35);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">';
-  h += '<i data-lucide="message-circle" style="width:18px;height:18px"></i> '+(isCW?'Landilani Premium Yanga':'Claim My Premium Access');
+  h += '<i data-lucide="message-circle" style="width:18px;height:18px"></i> '+(isCW?'Tsegulani Premium Yanga':'Claim My Premium Access');
   h += '</button>';
-  h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-bottom:4px">'+(isCW?'Tikokonzani mkati mwa maola 24 mukatumiza.':'We activate within 24 hours of receiving your message.')+'</div>';
-  h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px">'+(isCW?'Tiyeni':'Done')+'</button>';
+  h += '<div style="font-size:.65rem;color:var(--mid);text-align:center;margin-bottom:4px">'+(isCW?'Tidzatsegula mkati mwa maola 24 mukatitumizira uthenga.':'We activate within 24 hours of receiving your message.')+'</div>';
+  h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px">'+(isCW?'Zatheka':'Done')+'</button>';
 
   g('mb-u').innerHTML = h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
@@ -445,8 +445,8 @@ function getPremiumChipState(){
   const cw = lang === 'cw';
   const n = s.daysLeft;
   const days = function(){ return n + ' day' + (n === 1 ? '' : 's') + ' left'; };
-  if(s.isExpired) return {tone:'ended', icon:'lock', label: cw ? 'Premium yathera' : 'Premium ended', aria: cw ? 'Premium yathera. Dinani kuti mukonze.' : 'Premium ended. Tap for options.'};
-  if(s.isTrial && n <= 0) return {tone:'ended', icon:'lock', label: cw ? 'Mayeso athera' : 'Trial ended', aria: cw ? 'Mayeso athera. Dinani kuti mukonze.' : 'Trial ended. Tap for options.'};
+  if(s.isExpired) return {tone:'ended', icon:'lock', label: cw ? 'Premium yatha' : 'Premium ended', aria: cw ? 'Premium yatha. Dinani kuti mukonze.' : 'Premium ended. Tap for options.'};
+  if(s.isTrial && n <= 0) return {tone:'ended', icon:'lock', label: cw ? 'Nthawi yoyesera yatha' : 'Trial ended', aria: cw ? 'Nthawi yoyesera yatha. Dinani kuti mukonze.' : 'Trial ended. Tap for options.'};
   if(s.isTrial && n <= 10) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Trial: ' + days(), aria: 'Trial: ' + days() + '. Tap for options.'};
   if(s.isPremium && !s.isTrial && n !== null && n <= 7) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Premium: ' + days(), aria: 'Premium: ' + days() + '. Tap for options.'};
   return null;
@@ -487,10 +487,10 @@ function showPremiumSheet(){
   const ended = s.isExpired || (s.isTrial && n <= 0);
   let title, note;
   if(s.isExpired){
-    title = cw ? 'Premium yathera' : 'Your Premium has ended';
+    title = cw ? 'Premium yatha' : 'Your Premium has ended';
     note = 'You are on the free plan. These features stay locked until you renew.';
   } else if(ended){
-    title = cw ? 'Mayeso athera' : 'Your free trial has ended';
+    title = cw ? 'Nthawi yanu yoyesera yaulere yatha' : 'Your free trial has ended';
     note = 'You are on the free plan. Upgrade to unlock these features again.';
   } else if(s.isTrial){
     title = n + ' day' + (n === 1 ? '' : 's') + ' left in your trial';
@@ -510,7 +510,7 @@ function showPremiumSheet(){
     h += '<div style="display:flex;align-items:center;gap:5px"><i data-lucide="' + mark + '" style="width:12px;height:12px;color:var(--p1);flex-shrink:0"></i><span>' + f[0] + '</span></div>';
   });
   h += '</div>';
-  h += '<button class="btnM" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="closeM(\'mv-u\');showPremiumPage()"><i data-lucide="gem" style="width:16px;height:16px"></i> ' + (s.isExpired || (!s.isTrial && s.isPremium) ? (cw ? 'Bwezani' : 'Renew Premium') : (cw ? 'Kamera Premium' : 'Upgrade to Premium')) + '</button>';
+  h += '<button class="btnM" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="closeM(\'mv-u\');showPremiumPage()"><i data-lucide="gem" style="width:16px;height:16px"></i> ' + (s.isExpired || (!s.isTrial && s.isPremium) ? (cw ? 'Konzaninso Premium' : 'Renew Premium') : (cw ? 'Pitani ku Premium' : 'Upgrade to Premium')) + '</button>';
   h += '<button onclick="closeM(\'mv-u\')" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">' + (cw ? 'Mwina Mawa' : 'Not now') + '</button>';
   h += '</div>';
   g('mb-u').innerHTML = h;
@@ -734,7 +734,7 @@ window.addEventListener('offline', function(){
   toast(msg,'i');
 });
 window.addEventListener('online', function(){
-  toast(lang==='cw' ? 'Mwalumikizidwanso. Kusinkhroni...' : 'Back online -- syncing...','s');
+  toast(lang==='cw' ? 'Mwalumikizidwanso -- deta ikusungidwa...' : 'Back online -- syncing...','s');
 });
 
 

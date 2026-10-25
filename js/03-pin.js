@@ -10,7 +10,7 @@ function showPIN(_skipHistoryPush) {
   if(!_skipHistoryPush && window._pushOnboardScreen){ _pushOnboardScreen('pin', _pinBackTarget); _pinBackTarget=null; }
   const sub=g('pin-sub');
   const isCW=lang==='cw';
-  if(sub) sub.textContent=pinMode==='set'?(isCW?'Sankhani PIN yanu yapama.':'Choose a 4-digit PIN.'):pinMode==='confirm'?(isCW?'Tsimikizani PIN yanu.':'Confirm your PIN.'):(isCW?'Lowetsani PIN yanu.':'Enter your PIN to continue.');
+  if(sub) sub.textContent=pinMode==='set'?(isCW?'Sankhani PIN ya manambala 4.':'Choose a 4-digit PIN.'):pinMode==='confirm'?(isCW?'Tsimikizani PIN yanu.':'Confirm your PIN.'):(isCW?'Lowetsani PIN yanu.':'Enter your PIN to continue.');
   const hint=g('pin-hint');
   if(hint) hint.style.display=pinMode==='check'?'flex':'none';
   // Show fingerprint key in keypad when biometrics available
@@ -66,7 +66,7 @@ function pinK(k) {
           const hid = hhId || _pendingHid;
           if(!hhId && hid){ hhId=hid; _pendingHid=null; connectHH(hid); }
           else { g('app').classList.remove('hide'); }
-        } else { pinEntry=''; updDots(); toast('Wrong PIN.','e'); }
+        } else { pinEntry=''; updDots(); toast((lang==='cw'?'PIN yolakwika.':'Wrong PIN.'),'e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
       } else if(pinMode==='confirm'){
@@ -75,7 +75,7 @@ function pinK(k) {
           localStorage.setItem('nb_pin',result.salt+':'+result.hash);
           hidePIN(); g('app').classList.remove('hide'); toast(tx().pinOn); pinMode='check'; go('stg');
         } else {
-          pinEntry=''; pinMode='set'; showPIN(); toast('PINs did not match.','e');
+          pinEntry=''; pinMode='set'; showPIN(); toast((lang==='cw'?'Ma-PIN awiriwo sakufanana.':'PINs did not match.'),'e');
         }
       }
     },160);
@@ -96,7 +96,7 @@ async function pinFgtNoPassword(){
     if(!ok){ toast(lang==='cw'?'Kuti musinthe PIN, tulukani ndi kulowanso ndi nambala yanu ya foni.':'To reset your PIN, sign out and sign back in with your phone number.','i'); return; }
     localStorage.removeItem('nb_pin');
     hidePIN();
-    toast('Verified! Set a new PIN.','s');
+    toast((lang==='cw'?'Zatsimikizika! Ikani PIN yatsopano.':'Verified! Set a new PIN.'),'s');
     setTimeout(()=>{ pinMode='set'; showPIN(); },400);
   }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
 }
@@ -105,9 +105,9 @@ function pinFgt(){
   const box=g('mb-confirm');
   const isCW=lang==='cw';
   const ph=isCW?'Mawu achinsinsi':'Account password';
-  const ttl=isCW?'Munaiwala PIN?':'Forgot your PIN?';
+  const ttl=isCW?'Mwaiwala PIN yanu?':'Forgot your PIN?';
   const sub=isCW?'Lowetsani mawu achinsinsi kuti mutsimikizire, ndiyeno muike PIN yatsopano.':'Enter your account password to verify your identity, then set a new PIN.';
-  const cancel=isCW?'Siyani':'Cancel';
+  const cancel=isCW?'Letsani':'Cancel';
   const verify=isCW?'Tsimikizani':'Verify & Reset';
   box.innerHTML='<div style="text-align:center;padding:6px 0 10px">'
     +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#EDE7F6;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
@@ -131,13 +131,13 @@ async function pinFgtVerify(){
   const pw=(g('pin-fgt-pw')||{}).value||'';
   const errEl=g('pin-fgt-err');
   if(!pw){ if(errEl){errEl.style.display='block';errEl.textContent='Please enter your password.';} return; }
-  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast('Cannot verify. Please sign in again.','e'); return; }
+  if(!curUser||!curUser.email){ closeM('mv-confirm'); toast((lang==='cw'?'Sitinathe kutsimikizira. Chonde lowaninso.':'Cannot verify. Please sign in again.'),'e'); return; }
   try{
     const cred=firebase.auth.EmailAuthProvider.credential(curUser.email,pw);
     await curUser.reauthenticateWithCredential(cred);
     localStorage.removeItem('nb_pin');
     closeM('mv-confirm'); hidePIN();
-    toast('Verified! Set a new PIN.','s');
+    toast((lang==='cw'?'Zatsimikizika! Ikani PIN yatsopano.':'Verified! Set a new PIN.'),'s');
     setTimeout(()=>{ pinMode='set'; showPIN(); },400);
   }catch(e){
     if(errEl){
@@ -164,9 +164,9 @@ function _fromB64url(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length
 
 async function registerBio(){
   const avail = await _bioAvailable();
-  if(!avail){ toast('No biometric sensor found on this device.','e'); return; }
+  if(!avail){ toast((lang==='cw'?'Palibe sensa ya biometric yomwe yapezeka pa chipangizochi.':'No biometric sensor found on this device.'),'e'); return; }
   const isSecure = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
-  if(!isSecure){ toast('Biometrics needs HTTPS. Host the app on a secure URL to enable fingerprint unlock.','e'); return; }
+  if(!isSecure){ toast((lang==='cw'?'Kutsegula ndi chala kumafuna adilesi yotetezeka (HTTPS).':'Biometrics needs HTTPS. Host the app on a secure URL to enable fingerprint unlock.'),'e'); return; }
   try{
     const uid = curUser ? curUser.uid : 'local';
     const cred = await navigator.credentials.create({
@@ -192,11 +192,11 @@ async function registerBio(){
     localStorage.removeItem('nb_bio_enabled');
     localStorage.removeItem('nb_bio_token');
     localStorage.removeItem('nb_bio_sig');
-    toast('Fingerprint registered','s');
+    toast((lang==='cw'?'Chala chalembetsedwa':'Fingerprint registered'),'s');
     go('stg');
   }catch(e){
-    if(e.name==='NotAllowedError') toast('Registration cancelled.','e');
-    else toast('Setup failed: '+(e.message||e.name)+'.','e');
+    if(e.name==='NotAllowedError') toast((lang==='cw'?'Kulembetsa kwaletsedwa.':'Registration cancelled.'),'e');
+    else toast((lang==='cw'?'Kukhazikitsa kwalephera: ':'Setup failed: ')+(e.message||e.name)+'.','e');
   }
 }
 
@@ -254,16 +254,16 @@ function _bioAutoFailed(){
 }
 
 async function tryBioUnlock(){
-  if(!curUser){ toast('Please wait, loading...','e'); return; }
+  if(!curUser){ toast((lang==='cw'?'Chonde dikirani...':'Please wait, loading...'),'e'); return; }
   const hid = hhId || _pendingHid;
-  if(!hid){ toast('Session not ready. Enter PIN.','e'); return; }
-  toast('Waiting for fingerprint...','i');
+  if(!hid){ toast((lang==='cw'?'Chonde lowetsani PIN yanu.':'Session not ready. Enter PIN.'),'e'); return; }
+  toast((lang==='cw'?'Tikudikira chala chanu...':'Waiting for fingerprint...'),'i');
   const ok = await checkBio();
   if(ok){
     hidePIN();
     if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); }
-    toast('Welcome back!','s');
-  } else { toast('Biometric failed. Use your PIN.','e'); }
+    toast((lang==='cw'?'Takulandirani!':'Welcome back!'),'s');
+  } else { toast((lang==='cw'?'Biometric yakanika. Gwiritsani ntchito PIN yanu.':'Biometric failed. Use your PIN.'),'e'); }
 }
 
 async function triggerBio(){
@@ -307,7 +307,7 @@ document.addEventListener('visibilitychange', function(){
 function removeBio(){
   requestSecurityVerification(function(){
     ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig','nb_bio_origin','nb_bio_fail_count'].forEach(k=>localStorage.removeItem(k));
-    toast('Biometrics removed.','i');
+    toast((lang==='cw'?'Biometric yachotsedwa.':'Biometrics removed.'),'i');
     go('stg');
   });
 }
@@ -342,12 +342,12 @@ function _openSecurityPinVerify(onVerified){
     +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#E8F5E9;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
     +'<i data-lucide="shield-check" style="width:26px;height:26px;color:#2E7D32"></i></div>'
     +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+(isCW?'Tsimikizani PIN yanu':'Confirm your PIN')+'</div>'
-    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zoteteza, lowetsani PIN yanu yamakono.':'To change your security settings, enter your current PIN.')+'</div>'
+    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zosankha za chitetezo, lowetsani PIN yanu yamakono.':'To change your security settings, enter your current PIN.')+'</div>'
     +'<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="fi" id="sec-pin-verify" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:1.2rem;margin-bottom:10px">'
     +'<div id="sec-pin-verify-err" style="display:none;font-size:.75rem;color:#C62828;margin-bottom:8px"></div>'
     +'</div>'
     +'<div style="display:flex;gap:8px">'
-    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Siyani':'Cancel')+'</button>'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Letsani':'Cancel')+'</button>'
     +'<button class="btnM" style="flex:2" onclick="_secPinVerifySubmit()"><i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
@@ -373,7 +373,7 @@ async function _secPinVerifySubmit(){
 async function _secVerifyNoPassword(onVerified){
   try{
     const ok=await _reauthWithoutPassword();
-    if(!ok){ toast(lang==='cw'?'Tulukani ndi kulowanso ndi nambala yanu ya foni kuti musinthe zoteteza.':'To change security settings, sign out and sign back in with your phone number.','i'); return; }
+    if(!ok){ toast(lang==='cw'?'Tulukani ndi kulowanso ndi nambala yanu ya foni kuti musinthe zosankha za chitetezo.':'To change security settings, sign out and sign back in with your phone number.','i'); return; }
     if(onVerified) onVerified();
   }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
 }
@@ -386,12 +386,12 @@ function _openSecurityPasswordVerify(onVerified){
     +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#EDE7F6;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
     +'<i data-lucide="key" style="width:26px;height:26px;color:#7B1FA2"></i></div>'
     +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+(isCW?'Tsimikizani ndi mawu achinsinsi':'Confirm with your password')+'</div>'
-    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zoteteza, lowetsani mawu achinsinsi a akaunti yanu.':'To change your security settings, enter your account password.')+'</div>'
+    +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zosankha za chitetezo, lowetsani mawu achinsinsi a akaunti yanu.':'To change your security settings, enter your account password.')+'</div>'
     +'<input type="password" class="fi" id="sec-pw-verify" placeholder="'+(isCW?'Mawu achinsinsi':'Password')+'" style="margin-bottom:10px">'
     +'<div id="sec-pw-verify-err" style="display:none;font-size:.75rem;color:#C62828;margin-bottom:8px;text-align:left"></div>'
     +'</div>'
     +'<div style="display:flex;gap:8px">'
-    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Siyani':'Cancel')+'</button>'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Letsani':'Cancel')+'</button>'
     +'<button class="btnM" style="flex:2" onclick="_secPwVerifySubmit()"><i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
@@ -420,7 +420,7 @@ async function _secPwVerifySubmit(){
 
 // -- Delete Account --
 function openDeleteAccount(){
-  if(!curUser){toast('Not signed in.','e');return;}
+  if(!curUser){toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e');return;}
   const isCWdel = lang === 'cw';
   const firstName = curUser.displayName ? esc(curUser.displayName.split(' ')[0]) : (isCWdel ? 'akaunti yanu' : 'your account');
   // Step 1 — warning modal
@@ -444,7 +444,7 @@ function openDeleteAccount(){
 }
 
 function _confirmDeleteAccount(){
-  if(!curUser){toast('Not signed in.','e');return;}
+  if(!curUser){toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e');return;}
   const uid = curUser.uid;
   const FV = firebase.firestore.FieldValue;
   // One atomic batch: either the household and the user doc are both updated or neither is, so a failure
@@ -476,7 +476,7 @@ function _confirmDeleteAccount(){
     if(unsub){unsub();unsub=null;}
     if(unsubHH){unsubHH();unsubHH=null;}
     if(unsubJoinBadge){unsubJoinBadge();unsubJoinBadge=null;}
-    toast(lang==='cw'?'Akaunti ikuthetsedwa. Muli ndi masiku 30 kuti muibweze.':'Account scheduled for deletion. You have 30 days to restore it.','i');
+    toast(lang==='cw'?'Akaunti yanu idzachotsedwa. Mutha kuibwezeretsa mkati mwa masiku 30.':'Account scheduled for deletion. You have 30 days to restore it.','i');
     setTimeout(()=>{
       chatHistory=[];
       // FIX: do NOT delete the Auth user here — doing so made the "30 days to
@@ -491,7 +491,7 @@ function _confirmDeleteAccount(){
       hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[];
       show('scr-auth');
     },2000);
-  }).catch(()=>toast('Could not schedule deletion. Check your connection and try again.','e'));
+  }).catch(()=>toast((lang==='cw'?'Sitinathe kukonza kuchotsa akaunti. Onani intaneti yanu ndipo yesaninso.':'Could not schedule deletion. Check your connection and try again.'),'e'));
 }
 function removePIN(){
   requestSecurityVerification(function(){

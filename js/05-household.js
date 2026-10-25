@@ -16,12 +16,12 @@ function showWelcome(hid, hhName){
   const titleEl = g('welcome-title');
   const avatarEl = g('welcome-avatar');
   const btnLabel = g('welcome-btn-label');
-  if(nameEl) nameEl.textContent = hhName || 'Your Household';
-  if(subEl) subEl.textContent = hid ? hid : 'Your household';
-  if(subMain) subMain.textContent = firstName ? 'Good to see you again, '+firstName+'.' : 'Good to see you again.';
-  if(titleEl) titleEl.textContent = firstName ? 'Welcome back, '+firstName+'!' : 'Welcome back!';
+  if(nameEl) nameEl.textContent = hhName || (lang==='cw'?'Nyumba Yanu':'Your Household');
+  if(subEl) subEl.textContent = hid ? hid : (lang==='cw'?'Nyumba yanu':'Your household');
+  if(subMain) subMain.textContent = lang==='cw' ? (firstName ? 'Ndakondwa kukuonaninso, '+firstName+'.' : 'Ndakondwa kukuonaninso.') : (firstName ? 'Good to see you again, '+firstName+'.' : 'Good to see you again.');
+  if(titleEl) titleEl.textContent = lang==='cw' ? (firstName ? 'Takulandirani, '+firstName+'!' : 'Takulandirani!') : (firstName ? 'Welcome back, '+firstName+'!' : 'Welcome back!');
   if(avatarEl) avatarEl.textContent = firstName ? firstName[0].toUpperCase() : '?';
-  if(btnLabel) btnLabel.textContent = firstName ? 'Continue as '+firstName : 'Continue';
+  if(btnLabel) btnLabel.textContent = lang==='cw' ? (firstName ? 'Pitirizani ngati '+firstName : 'Pitirizani') : (firstName ? 'Continue as '+firstName : 'Continue');
   hide('scr-auth'); hide('scr-setup'); hide('scr-pin');
   g('app').classList.add('hide');
   show('scr-welcome');
@@ -165,7 +165,7 @@ function bootApp(){
                   joinInp.scrollIntoView({behavior:'smooth', block:'center'});
                   joinInp.focus();
                   // Show a toast so the user knows what happened
-                  toast(lang==='cw'?'Kodi yolowera yatsegulidwa kuchokera ku QR code.':'Join code loaded from QR code. Tap "Join This Household" to continue.','i');
+                  toast(lang==='cw'?'Kodi yatengedwa kuchokera ku QR code. Dinani "Lowani Nyumba Iyi" kuti mupitirize.':'Join code loaded from QR code. Tap "Join This Household" to continue.','i');
                 }
                 _pendingJoinCode = null;
               }, 400);
@@ -218,7 +218,7 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
   } else {
     box.innerHTML = '<div style="text-align:center;padding:10px 0">'
       +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+(isCW?'Akaunti Yachotsedwa':'Account No Longer Recoverable')+'</div>'
-      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(isCW?'Nthawi ya masiku 30 yathera. Akaunti iyi sichingathe kubwezeretsedwanso.':'The 30-day recovery window has passed. This account can no longer be restored.')+'</div>'
+      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(isCW?'Nthawi ya masiku 30 yatha. Akaunti iyi siingathe kubwezeretsedwanso.':'The 30-day recovery window has passed. This account can no longer be restored.')+'</div>'
       +'<button class="btnG" style="width:100%" onclick="auth.signOut()">'+(isCW?'Tsekani':'Close')+'</button>'
       +'</div>';
   }
@@ -227,7 +227,7 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
 
 function restoreAccount(){
   const user = auth.currentUser;
-  if(!user){ toast('Not signed in.','e'); return; }
+  if(!user){ toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e'); return; }
   const uid = user.uid, hid = _pendingRestoreHid, FV = firebase.firestore.FieldValue;
   const userUpd = {pendingDeletion:false, deletedAt:null, restoreBefore:null};
   let step = Promise.resolve();
@@ -252,7 +252,7 @@ function restoreAccount(){
     else toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
     _pendingRestoreHid=null;
     authReg=false; bootApp();
-  }).catch(()=>toast('Restore failed. Check your connection.','e'));
+  }).catch(()=>toast((lang==='cw'?'Kubwezeretsa kwalephera. Onani intaneti yanu.':'Restore failed. Check your connection.'),'e'));
 }
 
 // Guards createHHSolo()/createHH()/joinHH() against double-submission: these three
@@ -323,7 +323,7 @@ function renderSetupJoinForm(){
       +'</div>'
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:12px">'
-      +'<input class="setup-in" id="join-code" placeholder="'+(isCW?'Bzalani kodi ya nyumba…':'Paste household code…')+'" maxlength="20" style="flex:1;margin-bottom:0">'
+      +'<input class="setup-in" id="join-code" placeholder="'+(isCW?'Ikani kodi ya nyumba apa…':'Paste household code…')+'" maxlength="20" style="flex:1;margin-bottom:0">'
       +'<button onclick="openQRScanner()" style="flex-shrink:0;width:48px;height:48px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Scan QR Code">'
         +'<i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i></button>'
     +'</div>'
@@ -423,7 +423,7 @@ function createHH(){
           ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
         },{merge:true});
       })
-      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yopangidwa!':'Household created!','s'); })
+      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yapangidwa!':'Household created!','s'); })
       .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
     });
   }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
@@ -444,8 +444,8 @@ function renderSetupJoinWaiting(code, justSubmitted){
   const heading = g('setup-heading'); if(heading) heading.style.display='none';
   const isCW = lang === 'cw';
   const subText = justSubmitted
-    ? (isCW?'Pempho lanu latumizidwa. Mudziwa mukavomelezwa.':'Your request has been sent. You\'ll connect automatically once the owner approves.')
-    : (isCW?'Pempho lanu litumizidwa. Mudziwa mukavomelezwa.':'Your request is still pending. You\'ll connect automatically once the owner approves.');
+    ? (isCW?'Pempho lanu latumizidwa. Mudzalumikizidwa nokha mwini nyumba akakuvomerezani.':'Your request has been sent. You\'ll connect automatically once the owner approves.')
+    : (isCW?'Pempho lanu latumizidwa. Mudzalumikizidwa nokha mwini nyumba akakuvomerezani.':'Your request is still pending. You\'ll connect automatically once the owner approves.');
   setupBox.innerHTML =
     '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
     +'<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#4A148C,#6A1B9A,#8E24AA);border-radius:0 0 24px 24px;position:relative;overflow:hidden">'
@@ -561,7 +561,7 @@ function switchHousehold(){
       g('app').classList.add('hide');
       hide('scr-auth'); hide('scr-pin'); hide('scr-verify');
       show('scr-setup');
-      toast(lang==='cw'?'Lowani nyumba yatsopano.':'Choose or create a household to continue.','i');
+      toast(lang==='cw'?'Sankhani kapena pangani nyumba kuti mupitirize.':'Choose or create a household to continue.','i');
     },
     lang==='cw'?'Inde, Siyani':'Yes, Leave',
     true
@@ -649,7 +649,7 @@ function joinHH(){
       const _exp = invData.expiresAt ? _toMs(invData.expiresAt) : (hhData.joinCodeExpiry||0);
       if(_exp && Date.now() > _exp){
         setDot('off');
-        setupErr(lang==='cw'?'Kodi yathera. Pemphani mwini kodi ipsya.':'This household code has expired. Ask the owner to share a new one.');
+        setupErr(lang==='cw'?'Kodi iyi yatha. Pemphani mwini nyumba kuti akupatseni kodi yatsopano.':'This household code has expired. Ask the owner to share a new one.');
         return;
       }
       // Check if already a member — if so, just connect directly
@@ -679,7 +679,7 @@ function joinHH(){
           g('app').classList.add('hide');
           show('scr-setup');
           renderSetupJoinWaiting(code, true);
-          toast(lang==='cw'?'Pempho lotumizidwa. Mudziwa mukavomelezwa.':'Join request sent. You\'ll be notified when approved.','i');
+          toast(lang==='cw'?'Pempho latumizidwa. Mudzadziwitsidwa mukavomerezedwa.':'Join request sent. You\'ll be notified when approved.','i');
 
           // Auto-detect approval: poll the household doc every 5 seconds
           // We poll with get() not onSnapshot() — non-members can only get(), never listen
@@ -856,11 +856,11 @@ function connectHH(code){
         const _ps = getPremiumStatus();
         const _isCW = lang === 'cw';
         if(_ps.isExpired){
-          setTimeout(()=>toast(_isCW?'Premium yathera. Bwezani kuti mupitirire ntchito zonse.':'Your Premium has expired. Renew to restore full access.','e'),1500);
+          setTimeout(()=>toast(_isCW?'Premium yatha. Konzaninso Premium kuti mupitirire ntchito zonse.':'Your Premium has expired. Renew to restore full access.','e'),1500);
         } else if(_ps.isPremium && !_ps.isTrial && _ps.daysLeft !== null && _ps.daysLeft <= 7){
           setTimeout(()=>toast(_isCW?'Premium yatha m\'masiku '+_ps.daysLeft+'. Bwezani tsopano.':'Premium expires in '+_ps.daysLeft+' day'+(_ps.daysLeft===1?'':'s')+'. Renew soon.','i'),1500);
         } else if(_ps.isTrial && _ps.daysLeft <= 7 && _ps.daysLeft > 0){
-          setTimeout(()=>toast(_isCW?'Mayeso a Premium: masiku '+_ps.daysLeft+' otsala.':'Premium trial: '+_ps.daysLeft+' day'+(_ps.daysLeft===1?'':'s')+' left.','i'),1500);
+          setTimeout(()=>toast(_isCW?'Nthawi yoyesera ya Premium: masiku '+_ps.daysLeft+' otsala.':'Premium trial: '+_ps.daysLeft+' day'+(_ps.daysLeft===1?'':'s')+' left.','i'),1500);
         }
       }
     }
@@ -917,10 +917,10 @@ function connectHH(code){
             const isMember = !!dd && (dd.owner===uidNow || !Array.isArray(dd.memberUids) || dd.memberUids.includes(uidNow));
             if(!snap.exists || !isMember){ handleRemovedFromHousehold(); return; }
             if(!_permRetried){ _permRetried=true; if(unsub) unsub(); unsub=tryConnect(null); }
-            else { toast('Cannot load entries (permission denied). Please sign out and in again.','e'); setDot('off'); }
+            else { toast((lang==='cw'?'Sitingathe kutsegula zolemba (mulibe chilolezo). Tulukani ndipo lowaninso.':'Cannot load entries (permission denied). Please sign out and in again.'),'e'); setDot('off'); }
           })
-          .catch(()=>{ toast('Connection problem. Please check your network.','e'); setDot('off'); });
-      } else { toast('Connection lost: '+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
+          .catch(()=>{ toast((lang==='cw'?'Pali vuto la intaneti. Onani netiweki yanu.':'Connection problem. Please check your network.'),'e'); setDot('off'); });
+      } else { toast((lang==='cw'?'Intaneti yachoka: ':'Connection lost: ')+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
     });
   };
   // No server-side orderBy: Firestore silently drops documents that lack the ordered field (older entries), and we sort client-side anyway.
@@ -985,15 +985,15 @@ function saveCfg(cfg){
   Object.keys(prev).forEach(k=>{ if(!(k in cfg)) upd['config.'+k]=FV.delete(); });
   if(!Object.keys(upd).length) return Promise.resolve();
   setDot('spin');
-  return db.collection('households').doc(hhId).update(upd).then(()=>setDot('')).catch(e=>{toast('Settings sync failed: '+(e&&e.code||'error')+'.','e');setDot('off');});
+  return db.collection('households').doc(hhId).update(upd).then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kusunga zosintha kwalephera: ':'Settings sync failed: ')+(e&&e.code||'error')+'.','e');setDot('off');});
 }
 // Returns a Promise<boolean> (true = saved) so callers that chain several writes can tell whether this one worked.
 // opts.docId makes the write idempotent (same id => same document), used to stop two devices both adding the same recurring entry.
 function addPx(p,opts){
   opts=opts||{};
-  if(!hhId){toast('Not connected.','e');return Promise.resolve(false);}
+  if(!hhId){toast((lang==='cw'?'Simunalumikizidwe.':'Not connected.'),'e');return Promise.resolve(false);}
   const amt=Number(p.amount);
-  if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Please enter a valid amount','e');return Promise.resolve(false);}
+  if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Please enter a valid amount','e');return Promise.resolve(false);}
   const itemName=String(p.item||'').trim();
   if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return Promise.resolve(false);}
   setDot('spin');
@@ -1007,5 +1007,5 @@ function addPx(p,opts){
     return false;
   });
 }
-function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast('Update failed: '+(e&&e.code||'error')+'.','e');setDot('off');}); }
-function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast('Delete failed: '+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }
+function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error')+'.','e');setDot('off');}); }
+function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kuchotsa kwalephera: ':'Delete failed: ')+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }

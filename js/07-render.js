@@ -61,7 +61,6 @@ function render(){
   ({home:rHome,log:rLog,hist:rHist,sum:rSum,insights:rInsights,stg:rStg,chat:rChat,chip:rChip})[tab]?.();
 }
 function toggleLang(){
-  if(lang==='en'){ toast('Chichewa is not available right now.','i'); return; } // TEMP -- pause, see note near `let lang` above
   lang=lang==='en'?'cw':'en'; localStorage.setItem('nb_lang',lang); const btn=g('lbtn'); if(btn)btn.textContent=lang==='en'?'CW':'EN'; applyLang(); render();
 }
 function applyLang(){
@@ -69,8 +68,23 @@ function applyLang(){
   const apt=g('apt'); if(apt)apt.textContent=t.appTitle;
   const aps=g('aps'); if(aps)aps.textContent=t.appSub;
   const _ab=g('auth-sub'); if(_ab)_ab.textContent=t.appSub;
-  [['nl-h',t.home],['nl-l',t.log],['nl-ins',lang==='cw'?'Zochitika':'Insights'],['nl-ch',lang==='cw'?'Bajeti AI':'Bajeti AI'],['nl-st',lang==='cw'?'Akaunti':'Profile']].forEach(([id,v])=>{const el=g(id);if(el)el.textContent=v;});
+  [['nl-h',t.home],['nl-l',t.log],['nl-ins',lang==='cw'?'Kuwunika':'Insights'],['nl-ch',lang==='cw'?'Bajeti AI':'Bajeti AI'],['nl-st',lang==='cw'?'Akaunti':'Profile']].forEach(([id,v])=>{const el=g(id);if(el)el.textContent=v;});
   updatePill();
+  applyStaticLang();
+}
+// Static text in index.html (sign-in and setup screens) carries its Chichewa in data-cw.
+// The English is remembered in data-en the first time, so switching back restores it exactly.
+function applyStaticLang(){
+  document.querySelectorAll('[data-cw]').forEach(function(el){
+    if(el.dataset.en===undefined) el.dataset.en=el.textContent;
+    el.textContent = lang==='cw' ? el.dataset.cw : el.dataset.en;
+  });
+  const as=g('auth-sub'); if(as && lang==='cw') as.textContent=tx().appSub;
+  const b=g('a-em-btn'); if(b && !b.disabled) b.textContent=authBtnLabel(b.dataset.mode==='register');
+  const sw=g('a-sw');
+  if(sw){ const reg=(b&&b.dataset.mode==='register');
+    sw.innerHTML=lang==='cw'?(reg?"Mukulemba kale? <span onclick=\"aTab('login')\">Takulandirani kubwerera</span>":"Ndinu watsopano pa Bajeti Yanga? <span onclick=\"aTab('register')\">Yambani kulemba</span>"):(reg?"Already tracking? <span onclick=\"aTab('login')\">Welcome back</span>":"New to Bajeti Yanga? <span onclick=\"aTab('register')\">Start tracking</span>");
+  }
 }
 function updatePill(){
   const u=actU(); if(!u)return;
@@ -133,13 +147,13 @@ function renderTrendChart(months){
   let h='<div class="card" style="overflow:hidden">';
   h+='<div class="ch">';
   h+='<h2><i data-lucide="trending-up" style="width:16px;height:16px;margin-right:6px;color:var(--p1)"></i>';
-  h+=(isCW?'Kuona kwa Miyezi 6':'6-Month Overview')+'</h2>';
+  h+=(isCW?'Chidule cha Miyezi 6':'6-Month Overview')+'</h2>';
   // Inline legend — Spent + Income
   h+='<div style="display:flex;gap:8px;align-items:center">';
   h+='<span style="display:inline-flex;align-items:center;gap:3px;font-size:.58rem;font-weight:700;color:var(--mid)">';
-  h+='<span style="width:8px;height:8px;border-radius:2px;background:var(--p1);display:inline-block"></span>'+(isCW?'Zogula':'Spent')+'</span>';
+  h+='<span style="width:8px;height:8px;border-radius:2px;background:var(--p1);display:inline-block"></span>'+(isCW?'Zotuluka':'Spent')+'</span>';
   h+='<span style="display:inline-flex;align-items:center;gap:3px;font-size:.58rem;font-weight:700;color:var(--mid)">';
-  h+='<span style="width:8px;height:8px;border-radius:2px;background:#2E7D32;display:inline-block"></span>'+(isCW?'Malipiro':'Income')+'</span>';
+  h+='<span style="width:8px;height:8px;border-radius:2px;background:#2E7D32;display:inline-block"></span>'+(isCW?'Ndalama Zolowa':'Income')+'</span>';
   h+='</div></div>';
   h+='<div style="padding:12px 14px 10px">';
   // Chart area with budget reference line
@@ -191,7 +205,7 @@ function renderTrendChart(months){
     const up=chg>0;
     h+='<div class="bdiff-badge '+(up?'bdiff-dn':'bdiff-up')+'">'+(up?'&uarr;':'&darr;')+Math.abs(chg)+'% vs last mo</div>';
   } else {
-    h+='<div style="font-size:.63rem;color:var(--mid)"><i data-lucide="bar-chart-2" style="width:11px;height:11px;margin-right:3px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Gawani pa mwezi':'Monthly trend')+'</div>';
+    h+='<div style="font-size:.63rem;color:var(--mid)"><i data-lucide="bar-chart-2" style="width:11px;height:11px;margin-right:3px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Momwe Zikuyendera Mwezi ndi Mwezi':'Monthly trend')+'</div>';
   }
   // End-of-month spending projection for current month
   if(last&&last.spent>0&&bg>0){
@@ -242,14 +256,14 @@ function rHome(){
   if(streak>=2){
     const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
     const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';
-    const streakMsg=streak>=8?(isCW?'Masabata '+streak+' opitilira bajeti!':streak+' weeks strong!')
-      :streak>=4?(isCW?'Bwino kwambiri! Masabata '+streak:('Great work! '+streak+' wks under budget'))
-      :(isCW?'Masabata 2 opitilira bajeti!':'2 weeks under budget!');
-    h+='<div class="streak-chip"><div class="streak-ico" style="width:36px;height:36px;border-radius:var(--cr-md);background:'+streakColor+'1A;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+streakIcon+'" style="width:18px;height:18px;color:'+streakColor+'"></i></div><div class="streak-main"><div class="streak-ttl">'+(isCW?'Cholowetsa Bajeti':'Budget Streak')+'</div><div class="streak-sub">'+streakMsg+'</div></div></div>';
+    const streakMsg=streak>=8?(isCW?'Masabata '+streak+' motsatizana! Zabwino kwambiri!':streak+' weeks strong!')
+      :streak>=4?(isCW?'Mwachita bwino! Masabata '+streak+' osapitirira bajeti':('Great work! '+streak+' wks under budget'))
+      :(isCW?'Masabata 2 osapitirira bajeti!':'2 weeks under budget!');
+    h+='<div class="streak-chip"><div class="streak-ico" style="width:36px;height:36px;border-radius:var(--cr-md);background:'+streakColor+'1A;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+streakIcon+'" style="width:18px;height:18px;color:'+streakColor+'"></i></div><div class="streak-main"><div class="streak-ttl">'+(isCW?'Kutsatira Bajeti Motsatizana':'Budget Streak')+'</div><div class="streak-sub">'+streakMsg+'</div></div></div>';
   }
   h+='<div class="chips"><div class="chip cP"><div class="chip-lbl">'+(isCW?'Zogulidwa':'Purchases')+'</div><div class="chip-val">'+cnt+'</div><div class="chip-sub">'+(isCW?'mwezi uno':'this month')+'</div></div>';
-  h+='<div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yavuka':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
-  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
+  h+='<div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yapitirira':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
+  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi ndi Malire':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
   h+='<div class="chip cG"><div class="chip-lbl">'+(isCW?'Zabwino':'On Track')+'</div><div class="chip-val">'+ok+'</div><div class="chip-sub">'+t.chipItems+'</div></div></div>';
   const _billsDue=(lCfg.bills||[]).map(function(b){
     const due=new Date(b.dueDate);due.setHours(0,0,0,0);
@@ -308,7 +322,7 @@ function openQRScanner(){
   h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:#F3E5F5;display:flex;align-items:center;justify-content:center"><i data-lucide="scan-line" style="width:16px;height:16px;color:var(--p1)"></i></div>';
   h += '<div style="flex:1"><div style="font-weight:800;font-size:.88rem">'+(isCW?'Skani QR Code':'Scan QR Code')+'</div>';
   h += '<div style="font-size:.65rem;color:var(--mid)">'+(isCW?'Ikani kamera pa QR code ya nyumba':'Point camera at a household QR code')+'</div></div>';
-  h += '<button onclick="stopQRScanner()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Lekani':'Cancel')+'</button>';
+  h += '<button onclick="stopQRScanner()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Letsani':'Cancel')+'</button>';
   h += '</div>';
   h += '<div style="position:relative;width:100%;border-radius:var(--cr);overflow:hidden;background:#000;aspect-ratio:1">';
   h += '<video id="qr-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>';
@@ -327,7 +341,7 @@ function openQRScanner(){
   h += '<div id="qr-confirm-code" style="font-family:monospace;font-weight:800;font-size:1.5rem;letter-spacing:3px"></div>';
   h += '<div style="width:70%;height:4px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden;margin:8px 0 12px"><div id="qr-confirm-bar" style="height:100%;width:0;background:#69F0AE;transition:width 2s linear"></div></div>';
   h += '<div style="display:flex;gap:8px;width:100%">';
-  h += '<button onclick="qrConfirmCancel()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:1.5px solid rgba(255,255,255,.35);background:none;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer">'+(isCW?'Lekani':'Cancel')+'</button>';
+  h += '<button onclick="qrConfirmCancel()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:1.5px solid rgba(255,255,255,.35);background:none;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer">'+(isCW?'Letsani':'Cancel')+'</button>';
   h += '<button onclick="qrConfirmJoin()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:none;background:#fff;color:var(--p1);font-family:inherit;font-weight:800;font-size:.8rem;cursor:pointer">'+(isCW?'Lowani tsopano':'Join now')+'</button>';
   h += '</div></div>';
   h += '</div>';
@@ -378,7 +392,7 @@ function openQRScanner(){
 function _startJsQRScan(video){
   if(!window.jsQR){
     const status = g('qr-scan-status');
-    if(status) status.textContent = lang==='cw'?'Skani siilolezedwa pa browser iyi. Lowetsani kodi mwine.':'QR scanning not supported on this browser. Enter the code manually.';
+    if(status) status.textContent = lang==='cw'?'Kujambula QR code sikugwira ntchito pa browser iyi. Lowetsani kodi pamanja.':'QR scanning not supported on this browser. Enter the code manually.';
     return;
   }
   const canvas = g('qr-canvas-scan');
@@ -480,13 +494,13 @@ function _qrJoin(code){
 }
 
 function openQRCode(){
-  if(!hhId){ toast('No household code.','e'); return; }
+  if(!hhId){ toast((lang==='cw'?'Palibe kodi ya nyumba.':'No household code.'),'e'); return; }
   const isCW=lang==='cw';
   const joinUrl=APP_BASE_URL+'?join='+encodeURIComponent(hhId);
   let h='<div class="dh"></div>';
   h+='<h3><i data-lucide="qr-code" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Kodi ya QR':'QR Code')+'</h3>';
   h+='<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px;line-height:1.5">';
-  h+=(isCW?'Gwiritsani ntchito QR code kuti musonkhanitsa anthu a nyumba yanu msanga.':'Scan this QR code to join your household instantly. Opens Bajeti Yanga with the code pre-filled.')+'</p>';
+  h+=(isCW?'Jambulani QR code iyi kuti mulowe mu nyumba mwamsanga. Bajeti Yanga imatseguka ndi kodi yoikidwa kale.':'Scan this QR code to join your household instantly. Opens Bajeti Yanga with the code pre-filled.')+'</p>';
   h+='<div style="display:flex;justify-content:center;margin-bottom:16px">';
   h+='<div style="background:#fff;border-radius:var(--cr);padding:16px;box-shadow:0 4px 24px rgba(123,31,162,.15);border:2px solid var(--border)">';
   h+='<div id="qr-canvas" style="width:200px;height:200px;border-radius:var(--cr-sm);display:flex;align-items:center;justify-content:center"></div>';
@@ -499,7 +513,7 @@ function openQRCode(){
   h+='</div>';
   h+='<button onclick="waCode();closeM(&quot;mv-u&quot;)" style="width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:var(--cr-md);font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">';
   h+='<i data-lucide="send" style="width:14px;height:14px"></i> '+(isCW?'Tumizani pa WhatsApp':'Share via WhatsApp')+'</button>';
-  h+='<button onclick="closeM(&quot;mv-u&quot;)" class="btnG" style="width:100%">'+(isCW?'Lekani':'Close')+'</button>';
+  h+='<button onclick="closeM(&quot;mv-u&quot;)" class="btnG" style="width:100%">'+(isCW?'Tsekani':'Close')+'</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
@@ -520,13 +534,13 @@ function openQRCode(){
       } catch(e) {
         el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
           +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.1rem;letter-spacing:2px">'+esc(hhId)+'</div>'
-          +'<div>QR unavailable offline.<br>Copy the code above.</div></div>';
+          +'<div>'+(lang==='cw'?'QR code sipezeka popanda intaneti.':'QR unavailable offline.')+'<br>'+(lang==='cw'?'Koperani kodi ili pamwambapa.':'Copy the code above.')+'</div></div>';
       }
     } else {
       // qrcode.js not loaded — show code as fallback
       el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
         +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.2rem;letter-spacing:2px;color:#4A148C">'+esc(hhId)+'</div>'
-        +'<div>Copy the code above to share.</div></div>';
+        +'<div>'+(lang==='cw'?'Koperani kodi ili pamwambapa kuti mugawane.':'Copy the code above to share.')+'</div></div>';
     }
   }, 100);
 }
@@ -542,7 +556,7 @@ function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
-  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, koperani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
+  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
@@ -560,7 +574,7 @@ function rLog(){
     if(selItem==='custom'){
       h+='<div class="fsec" style="background:var(--mist);border-radius:var(--cr-md);padding:12px;margin-bottom:4px">'
         +'<label class="fl" style="margin-bottom:6px"><i data-lucide="pencil" style="width:10px;height:10px;vertical-align:-1px"></i> '+(lang==='cw'?'Dzina la Chinthu':'Item Name')+'</label>'
-        +'<input type="text" class="fi" id="custom-item-name" placeholder="e.g. Medicine, Bus fare..." style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
+        +'<input type="text" class="fi" id="custom-item-name" placeholder="'+(lang==='cw'?'Mwachitsanzo: Mankhwala, Ndalama ya basi...':'e.g. Medicine, Bus fare...')+'" style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
         +'<label class="fl" style="margin-bottom:6px">'+(lang==='cw'?'Gulu':'Category')+'</label>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="custom-cat-grid">'
         +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>').join('')
@@ -568,7 +582,7 @@ function rLog(){
         +'<label style="display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;color:var(--mid);cursor:pointer">'
         +'<input type="checkbox" id="custom-save-perm" onchange="g(\'custom-budget-row\').style.display=this.checked?\'block\':\'none\'" style="width:16px;height:16px;accent-color:var(--p1)">'
         +(lang==='cw'?'Sungani mu mndandanda wanga':'Save to my items list')+'</label>'
-        +'<div id="custom-budget-row" style="display:none;margin-top:8px"><input type="number" class="fi" id="custom-budget" placeholder="Monthly budget (MK)" inputmode="numeric"></div>'
+        +'<div id="custom-budget-row" style="display:none;margin-top:8px"><input type="number" class="fi" id="custom-budget" placeholder="'+(lang==='cw'?'Bajeti ya mwezi (MK)':'Monthly budget (MK)')+'" inputmode="numeric"></div>'
         +'</div>';
     }
     if(hint){const sp=iSpent(hint.name);h+='<div class="bhint"><div class="bh"><div class="bhl">'+t.budget+'</div><div class="bhv">'+MK(hint.budget)+'</div></div><div class="bh"><div class="bhl">'+t.spent+'</div><div class="bhv">'+MK(sp)+'</div></div><div class="bh"><div class="bhl">'+t.left+'</div><div class="bhv" style="color:'+(hint.budget-sp<0?'#B71C1C':'inherit')+'">'+MK(hint.budget-sp)+'</div></div></div>';}
@@ -602,7 +616,7 @@ function filterLogItems(q){
 }
 function saveP(){
   const t=tx(), a=parseFloat(val('fa'));
-  if(!a||isNaN(a)||a<=0){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Enter a valid amount','e');return;}
+  if(!a||isNaN(a)||a<=0){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Enter a valid amount','e');return;}
   if(a>99999999){toast(lang==='cw'?'Ndalama yakula kwambiri':'Amount is too large','e');return;}
   const dStr=val('fd')||today(), tStr=val('ft')||'12:00';
   const ts=new Date(dStr+'T'+tStr).getTime();
@@ -622,7 +636,7 @@ function saveP(){
       addPx({item:cName,date:dStr,timestamp:ts,amount:a,qty:val('fq')||'',unit:val('fu')||'',notes:val('fn')||'',userId:actU().id,type:'expense',cat:customCat,recurring:(g('frc')||{}).checked||false});
       selItem=null; customCat='Other'; toast(t.saved); rLog(); return;
     }
-    if(!lCfg.items[selItem]){toast('Item no longer exists. Please re-select.','e');selItem=null;rLog();return;}
+    if(!lCfg.items[selItem]){toast((lang==='cw'?'Chinthuchi sichikupezekanso. Sankhaninso.':'Item no longer exists. Please re-select.'),'e');selItem=null;rLog();return;}
     addPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
   } else {
     addPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});

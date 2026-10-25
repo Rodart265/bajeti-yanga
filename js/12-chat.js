@@ -61,15 +61,15 @@ function showConvoLimitWall(count){
   let h='<div class="dh"></div>';
   h+='<div style="text-align:center;padding:10px 0 16px">';
   h+='<div style="margin-bottom:8px"><i data-lucide="message-circle" style="width:38px;height:38px;color:var(--mid);opacity:.6"></i></div>';
-  h+='<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:6px">Conversation Limit Reached</h3>';
-  h+='<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">Free accounts can save up to <strong>'+FREE_MAX_CONVOS+' conversations</strong>. You have '+count+'/'+FREE_MAX_CONVOS+' used.</div>';
+  h+='<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:6px">'+(lang==='cw'?'Mwafika pa Malire a Zokambirana':'Conversation Limit Reached')+'</h3>';
+  h+='<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">'+(lang==='cw'?'Akaunti zaulere zimasunga zokambirana mpaka <strong>'+FREE_MAX_CONVOS+'</strong>. Mwagwiritsa '+count+'/'+FREE_MAX_CONVOS+'.':'Free accounts can save up to <strong>'+FREE_MAX_CONVOS+' conversations</strong>. You have '+count+'/'+FREE_MAX_CONVOS+' used.')+'</div>';
   h+='<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 12px;margin-bottom:14px;font-size:.76rem;color:var(--mid);text-align:left">';
   h+='To start a new conversation, either:<br>';
   h+='<strong style="color:var(--ink)">• Delete</strong> an existing conversation<br>';
   h+='<strong style="color:var(--p1)">• Upgrade to Premium</strong> for unlimited conversations';
   h+='</div>';
-  h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(&quot;mv-u&quot;);showPremiumPage()">Upgrade for Unlimited Chats</button>';
-  h+='<button onclick="closeM(&quot;mv-u&quot;);openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">Manage Existing Chats</button>';
+  h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(&quot;mv-u&quot;);showPremiumPage()">'+(lang==='cw'?'Pitani ku Premium kuti musunge zokambirana zopanda malire':'Upgrade for Unlimited Chats')+'</button>';
+  h+='<button onclick="closeM(&quot;mv-u&quot;);openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">'+(lang==='cw'?'Sinthani Zokambirana Zomwe Zilipo':'Manage Existing Chats')+'</button>';
   h+='</div>';
   g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
@@ -84,8 +84,8 @@ function rChat(){
   const placeholder=isCW?'Funsani funso pa bajeti yanu...':'Ask anything about your budget...';
   const sendIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>';
   const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
-  const firstName = curUser&&curUser.displayName ? curUser.displayName.split(' ')[0] : (isCW?'Bwana':'there');
-  const greeting = isCW ? 'Moni, '+firstName+'!' : 'Hey, '+firstName+'!';
+  const firstName = curUser&&curUser.displayName ? curUser.displayName.split(' ')[0] : (isCW?'kumeneko':'there');
+  const greeting = isCW ? (curUser&&curUser.displayName ? 'Moni, '+firstName+'!' : 'Moni kumeneko!') : 'Hey, '+firstName+'!';
   const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI, your personal budget partner!";
   const suggestions = isCW ? [
     {icon:'trending-up',color:'#1B5E20',txt:'Kodi ndikuchita bwanji mwezi uno?'},
@@ -153,8 +153,8 @@ function toggleChatSheet(e){
   sheet.innerHTML=
     '<div class="chat-action-row" onclick="sheet_magicLog()">'
       +'<div class="chat-action-ico" style="background:#F3E5F5"><i data-lucide="wand-2" style="color:var(--p1)"></i></div>'
-      +'<div><div style="font-weight:700">'+(isCW?'Lowetsani mwamsanga':'Magic Log')+'</div>'
-      +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Kopelani mawu, AI itenga zinthu':'Paste text, AI extracts items')+'</div></div>'
+      +'<div><div style="font-weight:700">'+(isCW?'Magic Log':'Magic Log')+'</div>'
+      +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Ikani mawu, AI itenga zinthu':'Paste text, AI extracts items')+'</div></div>'
     +'</div>'
     +'<div class="chat-action-row" onclick="sheet_scan()">'
       +'<div class="chat-action-ico" style="background:#E8F5E9"><i data-lucide="camera" style="color:var(--g1)"></i></div>'
@@ -166,7 +166,7 @@ function toggleChatSheet(e){
       +'<div><div style="font-weight:700">'+(isCW?'Chidule cha AI':'AI Summary')+'</div>'
       +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Pezani ndemanga yazachuma chanu':'Get your financial review')+'</div></div>'
     +'</div>'
-    +'<div class="chat-action-row" onclick="sheet_convos()">'+'<div class="chat-action-ico" style="background:#FFF3E0"><i data-lucide="message-square" style="color:#E65100"></i></div>'+'<div><div style="font-weight:700">'+(isCW?'Ziyankhulo':'Conversations')+'</div>'+'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Sungani ziyankhulo':'Manage saved chats')+'</div></div>'+'</div>';
+    +'<div class="chat-action-row" onclick="sheet_convos()">'+'<div class="chat-action-ico" style="background:#FFF3E0"><i data-lucide="message-square" style="color:#E65100"></i></div>'+'<div><div style="font-weight:700">'+(isCW?'Zokambirana':'Conversations')+'</div>'+'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Sinthani zokambirana zosungidwa':'Manage saved chats')+'</div></div>'+'</div>';
   const footer=document.querySelector('.chat-footer');
   footer.style.position='relative';
   footer.appendChild(sheet);
@@ -193,7 +193,7 @@ function sheet_scan(){
     +'<label class="magic-tile" style="flex-direction:row;padding:13px">'
     +'<i data-lucide="image" style="width:16px;height:16px"></i> '+(lang==="cw"?"Sankhani kuchokera ku Gallery":"Choose from Gallery")+'<input type="file" accept="image/*" id="scan-gallery-modal" style="display:none" onchange="scanReceiptFromChat(this);closeM(\'mv-u\')"></label>'
     +'</div>'
-    +'<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(\'mv-u\')">'+(lang==="cw"?"Lekani":"Cancel")+'</button>';
+    +'<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(\'mv-u\')">'+(lang==="cw"?"Letsani":"Cancel")+'</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
@@ -237,8 +237,8 @@ function renderBubbles(){
   if(!chatHistory.length){
     const isCW=lang==='cw';
     const u=actU();
-    const firstName=curUser&&curUser.displayName?curUser.displayName.split(' ')[0]:(isCW?'Bwana':'there');
-    const greeting=isCW?'Moni, '+firstName+'!':'Hey, '+firstName+'!';
+    const firstName=curUser&&curUser.displayName?curUser.displayName.split(' ')[0]:(isCW?'kumeneko':'there');
+    const greeting=isCW?(curUser&&curUser.displayName?'Moni, '+firstName+'!':'Moni kumeneko!'):'Hey, '+firstName+'!';
     const subText=isCW?'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!':"I'm Bajeti AI, your personal budget partner!";
     const suggs=isCW?[
       {icon:'trending-up',color:'#1B5E20',txt:'Kodi ndikuchita bwanji mwezi uno?'},
@@ -323,7 +323,7 @@ function renderBubbles(){
         +'<div class="aac-title" style="color:#B71C1C"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete this entry?</div>'
         +'<div class="aac-item"><span class="aac-name">'+esc(pa.item||'Transaction')+'</span><span style="font-size:.72rem;color:var(--mid)">'+esc(pa.date||'')+(pa.amount?' · MK '+Number(pa.amount).toLocaleString():'')+'</span>'
         +'<button class="aac-confirm" style="background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="confirmAiAction('+idx+')">Delete</button>'
-        +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">Cancel</button></div>'
+        +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">'+(lang==='cw'?'Letsani':'Cancel')+'</button></div>'
         +'</div>';
     }
     if(!isU && m.pendingAction && m.pendingAction.type==='bulkLog' && Array.isArray(m.pendingAction.items)){
@@ -548,9 +548,9 @@ async function openConvoList(){
     ? '<span style="font-size:.72rem;color:var(--g1);font-weight:700;padding:2px 8px;background:#E8F5E9;border-radius:var(--cr-sm);margin-left:auto">∞ Unlimited</span>'
     : '<span style="font-size:.72rem;color:var(--mid);font-weight:700;padding:2px 8px;background:var(--mist);border-radius:var(--cr-sm);margin-left:auto">'+count+'/'+FREE_MAX_CONVOS+' used</span>';
   let h='<div class="dh"></div>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0"><i data-lucide="message-square" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>Conversations</h3>'+usageLine+'</div>';
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0"><i data-lucide="message-square" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(lang==='cw'?'Zokambirana':'Conversations')+'</h3>'+usageLine+'</div>';
   if(!chatConversations.length){
-    h+='<p style="font-size:.82rem;color:var(--mid);text-align:center;padding:20px 0">No saved conversations yet.</p>';
+    h+='<p style="font-size:.82rem;color:var(--mid);text-align:center;padding:20px 0">'+(lang==='cw'?'Palibe zokambirana zosungidwa pano.':'No saved conversations yet.')+'</p>';
   } else {
     h+='<div class="chat-convo-list">';
     chatConversations.forEach((c)=>{
@@ -693,13 +693,13 @@ Last 15 transactions (with IDs): ${JSON.stringify(recentWithIds)}`;
 
 async function sendChat(){
   if(chatBusy)return;
-  if(_aiInFlight){toast('Please wait.','e');return;}
+  if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
   // Check free tier AI limit from Firestore (device-switch safe)
   const status=getPremiumStatus();
   if(!status.isPremium){
     const used = await getAiUsageTodayFS('msg');
     if(used >= FREE_DAILY_MSGS){
-      toast('Daily AI limit reached ('+FREE_DAILY_MSGS+'/day). Upgrade for unlimited!','e');
+      toast((lang==='cw'?'Malire a AI a lero afika (':'Daily AI limit reached (')+FREE_DAILY_MSGS+'/day). Upgrade for unlimited!','e');
       showUpgradePrompt('unlimited_ai',status);
       return;
     }
@@ -822,7 +822,7 @@ function openMagicLog() {
   h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:.68rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'kapena lembani':'or type')+'</span><div style="flex:1;height:1px;background:var(--border)"></div></div>';
   h += '<textarea class="fi" id="magic-input" rows="4" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula 5k ufa ndi 2k pa mabasi.':'e.g. Spent 5k on maize and 2k on transport.')+'" style="resize:none;margin-bottom:10px;"></textarea>';
   h += '<div id="magic-results" style="margin-bottom:10px;"></div>';
-  h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#7B1FA2,#F57F17);display:flex;align-items:center;justify-content:center;gap:6px" onclick="processMagicLog()"><i data-lucide="sparkles" style="width:15px;height:15px"></i> '+(lang==='cw'?'Tulutsani':'Extract')+'</button></div>';
+  h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#7B1FA2,#F57F17);display:flex;align-items:center;justify-content:center;gap:6px" onclick="processMagicLog()"><i data-lucide="sparkles" style="width:15px;height:15px"></i> '+(lang==='cw'?'Werengani':'Extract')+'</button></div>';
   g('mb-magic').innerHTML = h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-magic')]});
   openM('mv-magic');
@@ -888,7 +888,7 @@ async function scanReceiptFromChat(input){
       // Build result message and save to chat history
       let msg=(lang==='cw'?'&#10024; Ndasankha zinthu '+items.length+' pachithunzi cha risiti:':'&#10024; Found '+items.length+' item(s) from your receipt:')+'\n\n';
       items.forEach(function(tx){msg+='\u2022 **'+String(tx.item||'')+'**: MK '+Number(tx.amount||0).toLocaleString()+'\n';});
-      msg+='\n'+(lang==='cw'?'Kodi mufune kuzigwiritsira ntchito? Ndingathe kuzilembera.':'Want me to log these? Just say "log them" and I\'ll add them to your expenses.');
+      msg+='\n'+(lang==='cw'?'Mukufuna kuti ndizilembe? Nenani kuti "zilembeni" ndipo ndiziwonjezera ku zotuluka zanu.':'Want me to log these? Just say "log them" and I\'ll add them to your expenses.');
 
       const msgObj={role:'assistant',text:msg,ts:Date.now(),pendingAction:{type:'bulkLog',items:items}};
       chatHistory.push(msgObj);
@@ -897,10 +897,10 @@ async function scanReceiptFromChat(input){
       renderBubbles();
 
       pendingMagicTxs=items;
-      toast(lang==='cw'?'Risiti yawerekedwa!':'Receipt scanned!','s');
+      toast(lang==='cw'?'Risiti yajambulidwa!':'Receipt scanned!','s');
     }catch(err){
       const pb=document.getElementById('scan-progress-bubble'); if(pb)pb.remove();
-      const errMsg=aiFailMessage(err, lang==='cw') || (lang==='cw'?'Pepani, sindinakwanitsa kuwerenga risiti. Yesaninso kapena lembani mwachidule.':'Sorry, I couldn\'t read that receipt. Try again or type the items manually.');
+      const errMsg=aiFailMessage(err, lang==='cw') || (lang==='cw'?'Pepani, sindinakwanitsa kuwerenga risiti. Yesaninso kapena lembani pamanja.':'Sorry, I couldn\'t read that receipt. Try again or type the items manually.');
       chatHistory.push({role:'assistant',text:errMsg,ts:Date.now()});
       saveChatHistory();
       renderBubbles();
@@ -911,8 +911,8 @@ async function scanReceiptFromChat(input){
 
 async function scanReceipt(input){
   if(!input.files||!input.files[0])return;
-  if(_aiInFlight){toast('Please wait.','e');return;}
-  const _ss=getPremiumStatus();if(!_ss.isPremium){const _su=await getAiUsageTodayFS('scan');if(_su>=FREE_DAILY_SCAN){toast('Receipt scan limit ('+FREE_DAILY_SCAN+'/day) reached.','e');return;}}
+  if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
+  const _ss=getPremiumStatus();if(!_ss.isPremium){const _su=await getAiUsageTodayFS('scan');if(_su>=FREE_DAILY_SCAN){toast((lang==='cw'?'Malire ojambula risiti afika (':'Receipt scan limit (')+FREE_DAILY_SCAN+'/day) reached.','e');return;}}
   _aiInFlight=true;
   const file=input.files[0];
   const resultsEl=g('magic-results');
@@ -976,7 +976,7 @@ function renderMagicResults(){
      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:'+(isKnown?'0':'9px')+'">'
      +'<div style="flex:1;min-width:0">'
      +'<div style="font-size:.88rem;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px">'+esc(String(tx.item||''))+'</div>'
-     +(isKnown?'<div style="font-size:.66rem;color:var(--p1);font-weight:700">✓ In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.66rem;color:var(--mid);font-weight:600">Pick a category</div>')
+     +(isKnown?'<div style="font-size:.66rem;color:var(--p1);font-weight:700">✓ In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.66rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'Sankhani gulu':'Pick a category')+'</div>')
      +'</div>'
      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">'
      +'<span style="font-size:.84rem;font-weight:800;color:'+(tx.type==='income'?'var(--g1)':'var(--r1)')+'">MK '+Number(tx.amount||0).toLocaleString()+'</span>'
@@ -1001,9 +1001,9 @@ function setMagicTxCat(idx,cat){
 }
 async function processMagicLog() {
   const input=val('magic-input').trim();
-  if(!input){toast('Please enter some text.','e');return;}
-  if(_aiInFlight){toast('Please wait.','e');return;}
-  const _ms=getPremiumStatus(); if(!_ms.isPremium){const _mu=await getAiUsageTodayFS('magic'); if(_mu>=FREE_DAILY_MAGIC){toast('Magic Log limit ('+FREE_DAILY_MAGIC+'/day) reached.','e');return;}}
+  if(!input){toast((lang==='cw'?'Chonde lembani mawu.':'Please enter some text.'),'e');return;}
+  if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
+  const _ms=getPremiumStatus(); if(!_ms.isPremium){const _mu=await getAiUsageTodayFS('magic'); if(_mu>=FREE_DAILY_MAGIC){toast((lang==='cw'?'Malire a Magic Log afika (':'Magic Log limit (')+FREE_DAILY_MAGIC+'/day) reached.','e');return;}}
   _aiInFlight=true;
   const btn=g('magic-btn-process');
   btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="spin-ico" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Kuwerenga...':'Extracting...'); if(window.lucide)lucide.createIcons({nodes:[btn]});
@@ -1090,7 +1090,7 @@ function saveMagicTxs() {
       return;
     }
     const amt = Number(tx.amount) || 0;
-    if(amt <= 0 || amt > 99999999){ toast('Skipped invalid amount: '+rawName+'.','e'); skipped++; return; }
+    if(amt <= 0 || amt > 99999999){ toast((lang==='cw'?'Ndalama yolakwika yadumphidwa: ':'Skipped invalid amount: ')+rawName+'.','e'); skipped++; return; }
     const dStr = (tx.date && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)) ? tx.date : fallbackDate;
     addPx({
       item: rawName.slice(0,100),
@@ -1106,7 +1106,7 @@ function saveMagicTxs() {
   });
   if (saved > 0) {
     closeM('mv-magic');
-    toast('Transactions Saved!','s');
+    toast((lang==='cw'?'Zolemba zasungidwa!':'Transactions Saved!'),'s');
     insTab='hist'; go('insights');
   }
 }
@@ -1127,9 +1127,9 @@ function buildSummaryData(){
   return {member:me.name, overallBudget:lCfg.overallBudget, totalSpent:spent, totalIncome:income, items};
 }
 async function generateAiSummary() {
-  if(_aiInFlight){toast('Please wait.','e');return;}
+  if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
   const _s=getPremiumStatus();
-  if(!_s.isPremium){ const _u=await getAiUsageTodayFS('summ'); if(_u>=FREE_DAILY_SUMM){toast('AI Summary limit ('+FREE_DAILY_SUMM+'/day) reached.','e');return;} }
+  if(!_s.isPremium){ const _u=await getAiUsageTodayFS('summ'); if(_u>=FREE_DAILY_SUMM){toast((lang==='cw'?'Malire a Chidule cha AI afika (':'AI Summary limit (')+FREE_DAILY_SUMM+'/day) reached.','e');return;} }
   _aiInFlight=true;
   const btn=g('ai-sum-btn'),box=g('ai-sum-box');
   btn.disabled=true; btn.innerHTML='<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});

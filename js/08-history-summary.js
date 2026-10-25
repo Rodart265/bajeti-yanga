@@ -29,16 +29,16 @@ function rHist(){
 
   // Action buttons row
   h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
-  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Koperani':'Copy Last Month')+lockBadge(10)+'</button>';
-  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Bisera':'Trash')+lockBadge(10)+'</button>';
+  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Koperani za Mwezi Wapita':'Copy Last Month')+lockBadge(10)+'</button>';
+  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zochotsedwa':'Trash')+lockBadge(10)+'</button>';
   h+='</div>';
 
   // Running totals strip
   if(list.length>0){
     h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
-    if(listInc>0) h+='<div style="flex:1;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#1B5E20">Income</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#2E7D32">+'+MKs(listInc)+'</div></div>';
-    if(listExp>0) h+='<div style="flex:1;background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#B71C1C">Spent</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#C62828">'+MKs(listExp)+'</div></div>';
-    h+='<div style="flex:1;background:var(--mist);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">Entries</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
+    if(listInc>0) h+='<div style="flex:1;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#1B5E20">'+(lang==='cw'?'Ndalama Zolowa':'Income')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#2E7D32">+'+MKs(listInc)+'</div></div>';
+    if(listExp>0) h+='<div style="flex:1;background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#B71C1C">'+(lang==='cw'?'Zotuluka':'Spent')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#C62828">'+MKs(listExp)+'</div></div>';
+    h+='<div style="flex:1;background:var(--mist);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">'+(lang==='cw'?'Zolemba':'Entries')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
     h+='</div>';
   }
 
@@ -55,7 +55,7 @@ function rHist(){
   h+='<div class="hist-filter">';
   h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zolowa':'Income')+'</button>';
-  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zogula':'Expenses')+'</button>';
+  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zotuluka':'Expenses')+'</button>';
   h+='</div>';
 
   // User filter tags
@@ -96,7 +96,7 @@ function rHist(){
       });
     });
   } else {
-    h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><p><strong>'+(isCW?'Palibe zolemba.':'No entries found.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Yambani kulemba.':'Try a different filter or time range.')+'</span></p></div>';
+    h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><p><strong>'+(isCW?'Palibe zolemba.':'No entries found.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Yesani fyuluta ina kapena nthawi ina.':'Try a different filter or time range.')+'</span></p></div>';
   }
   h+='</div>';
   g('view').innerHTML=h;
@@ -129,12 +129,12 @@ function doDel(id){
     '<div style="text-align:center;padding:4px 0 8px">'
     +'<div style="width:48px;height:48px;border-radius:var(--cr);background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
     +'<i data-lucide="trash-2" style="width:24px;height:24px;color:#C62828"></i></div>'
-    +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">Delete <strong style="color:var(--ink)">'+label+'</strong>? It will be moved to trash and recoverable for 30 days.</div></div>',
+    +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">'+(lang==='cw'?'Chotsani':'Delete')+' <strong style="color:var(--ink)">'+label+'</strong>? '+(lang==='cw'?'Chidzasamutsidwa ku zochotsedwa ndipo mutha kuchibweza mkati mwa masiku 30.':'It will be moved to trash and recoverable for 30 days.')+'</div></div>',
     function(){
       db.collection('households').doc(hhId).collection('purchases').doc(id)
         .update({deletedAt:new Date().toISOString(),deleted:true})
-        .then(function(){ _invalidateMemo(); toast('Moved to trash.','i'); })
-        .catch(function(e){ toast('Could not move to trash ('+(e&&e.code||'error')+'). Nothing was deleted.','e'); });
+        .then(function(){ _invalidateMemo(); toast((lang==='cw'?'Chasamutsidwa ku zochotsedwa.':'Moved to trash.'),'i'); })
+        .catch(function(e){ toast((lang==='cw'?'Sitinathe kuchisamutsira ku zochotsedwa (':'Could not move to trash (')+(e&&e.code||'error')+'). Nothing was deleted.','e'); });
     }, null, true
   );
 }
@@ -144,7 +144,7 @@ function openTrash(){
     const trashed=lPx.filter(function(p){return p.deleted;});
     let h='<div class="dh"></div><h3><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Trash</h3>';
     if(!trashed.length){
-      h+='<div class="empty" style="padding:14px 0"><div class="ei"><i data-lucide="check-circle" style="width:32px;height:32px;color:var(--g2)"></i></div><p>Trash is empty</p></div>';
+      h+='<div class="empty" style="padding:14px 0"><div class="ei"><i data-lucide="check-circle" style="width:32px;height:32px;color:var(--g2)"></i></div><p>'+(lang==='cw'?'Palibe zochotsedwa':'Trash is empty')+'</p></div>';
     } else {
       h+='<p style="font-size:.72rem;color:var(--mid);margin-bottom:10px">Items are permanently deleted after 30 days.</p>';
       trashed.forEach(function(p){
@@ -158,7 +158,7 @@ function openTrash(){
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
         h+='<div style="display:flex;gap:4px">';
         h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px">↩ Restore</button>';
-        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>Forever</button>';
+        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>'+(lang==='cw'?'Kwamuyaya':'Forever')+'</button>';
         h+='</div></div></div>';
       });
     }
@@ -170,8 +170,8 @@ function openTrash(){
 function restoreTrash(id){
   db.collection('households').doc(hhId).collection('purchases').doc(id)
     .update({deletedAt:null,deleted:false})
-    .then(function(){ closeM('mv-u'); toast('Restored!','s'); })
-    .catch(function(e){ toast('Error: '+e.message+'.','e'); });
+    .then(function(){ closeM('mv-u'); toast((lang==='cw'?'Zabwezeretsedwa!':'Restored!'),'s'); })
+    .catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message+'.','e'); });
 }
 function permaDeleteD(el){ permaDelete(el.dataset.pid); }
 function permaDelete(id){
@@ -205,7 +205,7 @@ function openEP(id){
     // Entries logged under a custom item or a bill (e.g. "ESCOM") aren't in lCfg.items; include the entry's own item so saving doesn't silently switch it.
     const _opts=lCfg.items.map(it=>it.name);
     if(p.item && _opts.indexOf(p.item)<0) _opts.unshift(p.item);
-    h+='<div class="fsec"><label class="fl">Item</label><select class="fs" id="ep-item">'+_opts.map(n=>'<option value="'+esc(n)+'" '+(p.item===n?'selected':'')+'>'+esc(trName(n))+'</option>').join('')+'</select></div>';
+    h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Chinthu':'Item')+'</label><select class="fs" id="ep-item">'+_opts.map(n=>'<option value="'+esc(n)+'" '+(p.item===n?'selected':'')+'>'+esc(trName(n))+'</option>').join('')+'</select></div>';
   }
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+esc(p.amount)+'" inputmode="numeric"></div></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+esc(p.date)+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+esc(pt)+'"></div></div>';
@@ -217,9 +217,9 @@ function openEP(id){
 function epU(el,uid){ g('ep-uid').value=uid; el.closest('.usel').querySelectorAll('.usb').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
 function saveEP(isI){
   const id=val('ep-id'), a=Math.round(parseFloat(val('ep-amt'))*100)/100;
-  if(!a||isNaN(a)||a<=0||a>99999999){toast('Enter a valid amount.','e');return;}
+  if(!a||isNaN(a)||a<=0||a>99999999){toast((lang==='cw'?'Lowetsani ndalama yolondola.':'Enter a valid amount.'),'e');return;}
   const dStr=val('ep-date'), tStr=val('ep-time')||'12:00', ts=new Date(dStr+'T'+tStr).getTime();
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(dStr) || isNaN(ts)){toast('Pick a valid date.','e');return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dStr) || isNaN(ts)){toast((lang==='cw'?'Sankhani tsiku lolondola.':'Pick a valid date.'),'e');return;}
   const data={date:dStr,timestamp:ts,amount:a,notes:val('ep-notes'),userId:val('ep-uid')};
   if(!isI){
     const orig=lPx.find(x=>x.id===id);
@@ -247,7 +247,7 @@ function toggleSumZero(){
     if(btn){
       const zeroCount = lCfg.items.filter(it=>iSpent(it.name)<=0).length;
       btn.innerHTML = '<i data-lucide="chevron-up" style="width:14px;height:14px" id="sum-chevron"></i>'
-        +(isCW?'Bisa zinthu za zero':'Show less');
+        +(isCW?'Onetsani zochepa':'Show less');
     }
   } else {
     el.classList.add('hide');
@@ -300,7 +300,7 @@ function rSum(){
       ${donutSegs}
       <circle cx="${cx}" cy="${cy}" r="34" fill="var(--white)"/>
       <text x="${cx}" y="${cy-6}" text-anchor="middle" font-family="Hanken Grotesk" font-weight="800" font-size="12" fill="var(--ink)">${MKs(tS)}</text>
-      <text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.5" fill="var(--mid)">${lang==='cw'?'zotumiziwa':'total spent'}</text>
+      <text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.5" fill="var(--mid)">${lang==='cw'?'zonse zotuluka':'total spent'}</text>
     </svg>`;
     h+='</div>';
     // Category cards with animated progress bars
@@ -540,23 +540,23 @@ function markBillPaid(key){
       batch.update(hhRef,{'config.bills':cfg.bills});
       lCfg=cfg; _invalidateMemo(); setDot('spin');
       batch.commit().then(function(){ setDot(''); toast(t.billPaidToast,'s'); })
-        .catch(function(e){ lCfg=prevCfg; _invalidateMemo(); setDot('off'); toast('Could not mark as paid ('+(e&&e.code||'error')+'). Nothing was changed.','e'); render(); });
+        .catch(function(e){ lCfg=prevCfg; _invalidateMemo(); setDot('off'); toast((lang==='cw'?'Sitinathe kulemba kuti yalipidwa (':'Could not mark as paid (')+(e&&e.code||'error')+'). Nothing was changed.','e'); render(); });
       _stgRefresh();
     }, null, false
   );
 }
 
-function updOB(v){ const n=parseFloat(v); if(!n||isNaN(n)||n<=0||n>99999999){toast(lang==='cw'?'Lowetsani ndalama yabwino':'Enter a valid budget','e');return;} saveCfg({...lCfg,overallBudget:n}); }
+function updOB(v){ const n=parseFloat(v); if(!n||isNaN(n)||n<=0||n>99999999){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Enter a valid budget','e');return;} saveCfg({...lCfg,overallBudget:n}); }
 function toggleSalaryPanel(){ _sdPanelOpen = !_sdPanelOpen; _stgRefresh(); }
 function updSalaryDay(v){
   if(v===''||v===null||v===undefined||v==='0'){
     saveCfg({...lCfg,salaryDay:0});
-    toast('Reset to calendar month.','s'); render(); return;
+    toast((lang==='cw'?'Yabwerera ku mwezi wa kalendala.':'Reset to calendar month.'),'s'); render(); return;
   }
   const n=parseInt(v,10);
-  if(isNaN(n)||n<1||n>28){ toast('Enter a day between 1 and 28.','e'); return; }
+  if(isNaN(n)||n<1||n>28){ toast((lang==='cw'?'Lowetsani tsiku pakati pa 1 ndi 28.':'Enter a day between 1 and 28.'),'e'); return; }
   saveCfg({...lCfg,salaryDay:n});
-  toast('Salary period set: '+budgetPeriodLabel()+'.','s'); render();
+  toast((lang==='cw'?'Nthawi ya malipiro yakhazikitsidwa: ':'Salary period set: ')+budgetPeriodLabel()+'.','s'); render();
 }
 // Shown when the record a button pointed at is gone or was replaced (another device edited the list meanwhile).
 function _staleRec(kind){
@@ -607,14 +607,14 @@ function delMember(i){
     if(member && hhId && lHHDoc && lHHDoc.memberUids && lHHDoc.memberUids.includes(member.id) && member.id!==lHHDoc.owner){
       db.collection('households').doc(hhId).update({
         memberUids: firebase.firestore.FieldValue.arrayRemove(member.id)
-      }).catch(function(e){ toast('Access revoke failed: '+(e&&e.code||'error')+'.','e'); });
+      }).catch(function(e){ toast((lang==='cw'?'Kuchotsa chilolezo kwalephera: ':'Access revoke failed: ')+(e&&e.code||'error')+'.','e'); });
     }
     toast(tx().deleted);
     _stgRefresh();
   }, null, true);
 }
 function openEB(key){ const i=recIdx(lCfg.items,key); if(i<0){ _staleRec('item'); return; } const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+esc(key)+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
-function svEB(){ const key=val('eb-i'),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yabwino':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); const i=recIdx(cfg.items,key); if(i<0){ closeM('mv-e'); _staleRec('item'); return; } cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); _stgRefresh(); }
+function svEB(){ const key=val('eb-i'),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yolondola':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); const i=recIdx(cfg.items,key); if(i<0){ closeM('mv-e'); _staleRec('item'); return; } cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); _stgRefresh(); }
 function openAddGoal(){
   const t=tx(), isCW=lang==='cw';
   const minDate=new Date(); minDate.setDate(minDate.getDate()+7);
@@ -622,12 +622,12 @@ function openAddGoal(){
   let h='<div class="dh"></div>';
   h+='<h3><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.addGoal+'</h3>';
   h+='<div class="fsec"><label class="fl" for="g-nm">'+t.goalName+'</label>';
-  h+='<input type="text" class="fi" id="g-nm" placeholder="e.g. New TV, School Fees..."></div>';
+  h+='<input type="text" class="fi" id="g-nm" placeholder="'+(lang==='cw'?'Mwachitsanzo: TV yatsopano, Ndalama za sukulu...':'e.g. New TV, School Fees...')+'"></div>';
   h+='<div class="fsec"><label class="fl" for="g-tg">'+t.goalTarget+'</label>';
   h+='<input type="number" class="fi" id="g-tg" inputmode="numeric" placeholder="e.g. 150000"></div>';
   h+='<div class="fsec"><label class="fl" for="g-sv">'+t.goalSaved+' (optional)</label>';
   h+='<input type="number" class="fi" id="g-sv" inputmode="numeric" placeholder="0"></div>';
-  h+='<div class="fsec"><label class="fl" for="g-dl">'+(isCW?'Tsiku lofika (osankha)':'Target Deadline (optional)')+'</label>';
+  h+='<div class="fsec"><label class="fl" for="g-dl">'+(isCW?'Tsiku Lomaliza (Ngati mukufuna)':'Target Deadline (optional)')+'</label>';
   h+='<input type="date" class="fi" id="g-dl" min="'+minDateStr+'"></div>';
   h+='<div style="display:flex;gap:8px">';
   h+='<button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+t.cancel+'</button>';
@@ -640,14 +640,14 @@ function saveGoal(){
   const nm=val('g-nm').trim(), tg=parseFloat(val('g-tg')), sv=parseFloat(val('g-sv'))||0, dl=val('g-dl')||'';
   const isCW=lang==='cw';
   if(!nm){toast(isCW?'Lowetsani dzina la cholinga':'Enter a goal name','e');return;}
-  if(!tg||isNaN(tg)||tg<=0||tg>99999999){toast(isCW?'Lowetsani ndalama yabwino':'Enter a valid target amount','e');return;}
-  if(sv<0||sv>tg){toast(isCW?'Ndalama yosungidwa yachuluka':'Saved amount cannot exceed target','e');return;}
+  if(!tg||isNaN(tg)||tg<=0||tg>99999999){toast(isCW?'Lowetsani ndalama yolondola':'Enter a valid target amount','e');return;}
+  if(sv<0||sv>tg){toast(isCW?'Ndalama yosungidwa siyenera kupitirira cholinga':'Saved amount cannot exceed target','e');return;}
   const cfg=JSON.parse(JSON.stringify(lCfg));
   if(!cfg.goals) cfg.goals=[];
   const goal={name:nm,target:tg,saved:sv};
   if(dl) goal.deadline=dl;
   cfg.goals.push(goal);
-  saveCfg(cfg); closeM('mv-gl'); toast('Goal added!'); _stgRefresh();
+  saveCfg(cfg); closeM('mv-gl'); toast((lang==='cw'?'Cholinga chaonjezedwa!':'Goal added!')); _stgRefresh();
 }
 function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:#2E7D32"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(key){
@@ -659,30 +659,30 @@ function topUpGoal(key){
   const actual=Math.min(amt, gl.target-gl.saved);
   gl.saved=Math.min(gl.saved+amt,gl.target);
   saveCfg(cfg); closeM('mv-gl');
-  if(gl.saved>=gl.target) toast('Goal complete! '+gl.name+' reached!','s');
-  else toast('Goal updated! '+MK(actual)+' added.','s');
+  if(gl.saved>=gl.target) toast(lang==='cw'?'Cholinga chakwaniritsidwa: '+gl.name+'!':'Goal complete! '+gl.name+' reached!','s');
+  else toast(lang==='cw'?'Cholinga chasinthidwa! Ndalama '+MK(actual)+' yawonjezedwa.':'Goal updated! '+MK(actual)+' added.','s');
   _stgRefresh();
 }
 function openWithdraw(key){
   const wi=recIdx(lCfg.goals,key); if(wi<0){ _staleRec('goal'); return; }
   const gl=lCfg.goals[wi];
   const isCW=lang==='cw';
-  g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Chotsani Ndalama':'Withdraw')+': '+esc(gl.name)+'</h3>'
+  g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Tengani Ndalama':'Withdraw')+': '+esc(gl.name)+'</h3>'
     +'<div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(isCW?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(isCW?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div>'
     +'<label class="fl">'+(isCW?'Ndalama Yochotsedwa (MK)':'Amount to Withdraw (MK)')+'</label>'
     +'<input type="number" class="fi" id="wd-amt" inputmode="numeric" placeholder="0"></div>'
-    +'<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(isCW?'Siyani':tx().cancel)+'</button>'
-    +'<button class="btnM" style="flex:2;background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="doWithdraw(\''+key+'\')"><i data-lucide="arrow-down-circle" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Chotsani':'Withdraw')+'</button></div>';
+    +'<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(isCW?'Letsani':tx().cancel)+'</button>'
+    +'<button class="btnM" style="flex:2;background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="doWithdraw(\''+key+'\')"><i data-lucide="arrow-down-circle" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Tengani':'Withdraw')+'</button></div>';
   openM('mv-gl');
 }
 function doWithdraw(key){
   const amt=parseFloat(val('wd-amt')); if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
   const wi=recIdx(lCfg.goals,key); if(wi<0){ closeM('mv-gl'); _staleRec('goal'); return; }
-  if(amt>lCfg.goals[wi].saved){toast(lang==='cw'?'Yapitilira zomwe mwasungira':'Exceeds saved amount','e');return;}
+  if(amt>lCfg.goals[wi].saved){toast(lang==='cw'?'Yapitirira zomwe mwasungira':'Exceeds saved amount','e');return;}
   const cfg=JSON.parse(JSON.stringify(lCfg));
   const i=recIdx(cfg.goals,key);
   cfg.goals[i].saved=Math.max(cfg.goals[i].saved-amt,0);
-  saveCfg(cfg); closeM('mv-gl'); toast(lang==='cw'?'Ndalama yachotsedwa':'Withdrawn'); _stgRefresh();
+  saveCfg(cfg); closeM('mv-gl'); toast(lang==='cw'?'Ndalama yatengedwa':'Withdrawn'); _stgRefresh();
 }
 function delGoal(key){
   if(recIdx(lCfg.goals,key)<0){ _staleRec('goal'); return; }

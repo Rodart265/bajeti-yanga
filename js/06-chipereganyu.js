@@ -53,7 +53,7 @@ function openChipCreate(){
   h+='<div class="fsec"><label class="fl">'+(isCW?'Dzina la gulu':'Group name')+'</label><input type="text" class="fi" id="cg-name" placeholder="e.g. Family Chipereganyu"></div>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Ndalama pa munthu aliyense':'Contribution per member')+'</label><input type="number" class="fi" id="cg-amt" inputmode="numeric" placeholder="5000"></div>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Kangati':'Frequency')+'</label><div class="usel"><div class="usb on" id="cg-freq-monthly" onclick="chipPickFreq(\'monthly\')" style="flex:1"><div class="usnm">'+(isCW?'Mwezi ndi mwezi':'Monthly')+'</div></div><div class="usb" id="cg-freq-weekly" onclick="chipPickFreq(\'weekly\')" style="flex:1"><div class="usnm">'+(isCW?'Sabata ndi sabata':'Weekly')+'</div></div></div><input type="hidden" id="cg-freq" value="monthly"></div>';
-  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Lekani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
 
@@ -63,8 +63,8 @@ function saveChipCreate(btn){
   const amt=Number(val('cg-amt'));
   const freq=val('cg-freq')||'monthly';
   if(!name){ toast(isCW?'Lowetsani dzina la gulu':'Please enter a group name','e'); return; }
-  if(!amt||amt<=0||isNaN(amt)){ toast(isCW?'Lowetsani ndalama yabwino':'Please enter a valid amount','e'); return; }
-  if(!curUser){ toast('Not signed in.','e'); return; }
+  if(!amt||amt<=0||isNaN(amt)){ toast(isCW?'Lowetsani ndalama yolondola':'Please enter a valid amount','e'); return; }
+  if(!curUser){ toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e'); return; }
   const code=randCode();
   const me=actU();
   const doc={
@@ -82,14 +82,14 @@ function saveChipCreate(btn){
     setDot(''); closeM('mv-e'); chipActiveId=code;
     toast(isCW?'Chipereganyu chapangidwa! Gawani nambala '+code+' ndi anzanu.':'Chipereganyu created! Share code '+code+' with your group.','s');
     openChipView();
-  }).catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }).catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
 }
 
 function openChipJoin(){
   const isCW=lang==='cw';
   let h='<div class="dh"></div><h3><i data-lucide="log-in" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>'+(isCW?'Lowani mu Chipereganyu':'Join a Chipereganyu')+'</h3>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Nambala yolowera':'Group code')+'</label><input type="text" class="fi" id="cg-code" placeholder="e.g. a2f9k3xz" autocapitalize="none" autocorrect="off"></div>';
-  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Lekani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="joinChipGroup(this)"><i data-lucide="log-in" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Lowani':'Join')+'</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="joinChipGroup(this)"><i data-lucide="log-in" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Lowani':'Join')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
 
@@ -98,7 +98,7 @@ function joinChipGroup(btn){
   const code=val('cg-code').trim().toLowerCase();
   if(!code){ toast(isCW?'Lowetsani nambala':'Please enter a code','e'); return; }
   if(!_validCode(code)){ toast(isCW?'Nambala siikuoneka bwino':'That code does not look right','e'); return; }
-  if(!curUser){ toast('Not signed in.','e'); return; }
+  if(!curUser){ toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e'); return; }
   if(btn) btn.disabled=true;
   setDot('spin');
   const ref=db.collection('chipereganyu_groups').doc(code);
@@ -143,7 +143,7 @@ function joinChipGroup(btn){
       if(e&&e.code==='not-found') toast(isCW?'Nambala sipezeka':'Code not found','e');
       else if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale kuzungulira':'This group has already started its rotation','e');
       else if(e&&e.code==='cannot-join') toast(isCW?'Simungalowe. Onani nambala, kapena gululi lingakhale lidayamba kale.':'Could not join. Check the code, or the group may already have started its rotation.','e');
-      else toast('Failed: '+(e&&e.code||'error'),'e');
+      else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
     });
 }
 
@@ -151,7 +151,7 @@ function startChipRotation(btn){
   const grp=activeChipGroup(); if(!grp) return;
   const isCW=lang==='cw';
   if(!curUser||grp.createdBy!==curUser.uid){ toast(isCW?'Ndi mtsogoleri yekha amene angayambe':'Only the group admin can start this','e'); return; }
-  if(!grp.rotationOrder||grp.rotationOrder.length<2){ toast(isCW?'Muyenera membala osachepera 2 kuti muyambe':'You need at least 2 members to start','e'); return; }
+  if(!grp.rotationOrder||grp.rotationOrder.length<2){ toast(isCW?'Muyenera kukhala ndi mamembala osachepera awiri kuti muyambe':'You need at least 2 members to start','e'); return; }
   if(btn) btn.disabled=true;
   setDot('spin');
   const ref=db.collection('chipereganyu_groups').doc(grp.id);
@@ -182,7 +182,7 @@ function startChipRotation(btn){
       setDot('off'); if(btn) btn.disabled=false;
       if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale':'This group has already started','i');
       else if(e&&e.code==='too-few') toast(isCW?'Muyenera membala osachepera 2 kuti muyambe':'You need at least 2 members to start','e');
-      else toast('Failed: '+(e&&e.code||'error'),'e');
+      else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
     });
 }
 
@@ -238,15 +238,15 @@ function chipTogglePaid(uid, btn){
       // purchases listener), there's nothing to find and it's skipped.
       const match=lPx.find(function(p){ return p.chipTag===chipTag; });
       delPx(match?match.id:expDocId).then(function(){
-        toast(isCW?'Wachotsedwa ndipo bajeti yakonzedwanso':'Marked as unpaid and removed from your budget','i');
+        toast(isCW?'Walembedwa kuti sanalipire, ndipo ndalamayo yachotsedwa ku bajeti yanu':'Marked as unpaid and removed from your budget','i');
       }).catch(function(){});
     } else {
-      toast(next?(isCW?'Walembedwa kuti walipira':'Marked as paid'):(isCW?'Wachotsedwa':'Marked as unpaid'),'s');
+      toast(next?(isCW?'Walembedwa kuti walipira':'Marked as paid'):(isCW?'Walembedwa kuti sanalipire':'Marked as unpaid'),'s');
     }
   }).catch(function(e){
     if(btn) btn.disabled=false;
-    if(e && e.code==='stale-cycle') toast(isCW?'Mzere wasintha. Onaninso.':'This round has already moved on. Please refresh.','e');
-    else toast('Update failed: '+(e&&e.code||'error'),'e');
+    if(e && e.code==='stale-cycle') toast(isCW?'Gawoli lasintha kale. Pangani refresh.':'This round has already moved on. Please refresh.','e');
+    else toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error'),'e');
   });
 }
 
@@ -305,11 +305,11 @@ function chipConfirmPayout(btn, force){
       const _ptag=payoutInfo.groupId+'#'+payoutInfo.cycleNumber+'#payout';
       if(payoutInfo.amount>0) addPx({item:(isCW?'Chipereganyu \u2014 '+payoutInfo.groupName:'Chipereganyu \u2014 '+payoutInfo.groupName), date:today(), timestamp:Date.now(), amount:payoutInfo.amount, userId:actU().id, type:'income', notes:payoutInfo.groupName, chipTag:_ptag}, {docId:'chip_'+_hashStr(_ptag), quiet:true});
     }
-    toast(isCW?'Ndalama zatumizidwa!':'Payout confirmed!','s');
+    toast(isCW?'Ndalama zatsimikizidwa!':'Payout confirmed!','s');
   }).catch(function(e){
     setDot('off'); if(btn) btn.disabled=false;
     if(e && e.code==='not-all-paid') toast(isCW?'Onse asanalipire':'Not everyone has paid yet','e');
-    else toast('Failed: '+(e&&e.code||'error'),'e');
+    else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
   });
 }
 
@@ -336,7 +336,7 @@ function renderChipHomeCard(){
   const grp=activeChipGroup(); if(!grp) return '';
   if(grp.status!=='active'||!grp.currentCycle){
     const n=Object.keys(grp.members||{}).length;
-    return '<div class="cg-home-card" onclick="openChipView()"><div class="cg-empty-ico" style="width:46px;height:46px;background:var(--p1-bg)"><i data-lucide="users" style="width:20px;height:20px;color:var(--p1)"></i></div><div class="cg-home-main"><div class="cg-home-ttl">'+esc(grp.name)+'</div><div class="cg-home-sub">'+n+' '+(isCW?'alowa \u00b7 akudikira mtsogoleri':'joined \u00b7 gathering members')+'</div></div><i data-lucide="chevron-right" style="color:var(--p1);flex-shrink:0"></i></div>';
+    return '<div class="cg-home-card" onclick="openChipView()"><div class="cg-empty-ico" style="width:46px;height:46px;background:var(--p1-bg)"><i data-lucide="users" style="width:20px;height:20px;color:var(--p1)"></i></div><div class="cg-home-main"><div class="cg-home-ttl">'+esc(grp.name)+'</div><div class="cg-home-sub">'+n+' '+(isCW?'alowa \u00b7 akusonkhana':'joined \u00b7 gathering members')+'</div></div><i data-lucide="chevron-right" style="color:var(--p1);flex-shrink:0"></i></div>';
   }
   const cc=grp.currentCycle;
   const contributors=grp.rotationOrder.filter(u=>u!==cc.recipientUid);
@@ -357,7 +357,7 @@ function rChip(){
   }
   let h='<div class="page">';
   h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
-  h+='<div class="cg-back" style="flex:1" onclick="go(\'home\')"><i data-lucide="chevron-left"></i><div><div class="cg-title">'+esc(grp.name)+'</div><div class="cg-sub">'+(Object.keys(grp.members||{}).length)+' '+(isCW?'membala':'members')+'</div></div></div>';
+  h+='<div class="cg-back" style="flex:1" onclick="go(\'home\')"><i data-lucide="chevron-left"></i><div><div class="cg-title">'+esc(grp.name)+'</div><div class="cg-sub">'+(Object.keys(grp.members||{}).length)+' '+(isCW?((Object.keys(grp.members||{}).length)===1?'membala':'mamembala'):'members')+'</div></div></div>';
   h+='<button class="btnG" style="padding:7px 10px" onclick="openChipEntry()"><i data-lucide="plus" style="width:13px;height:13px"></i></button>';
   h+='</div>';
 
@@ -371,7 +371,7 @@ function rChip(){
 
   if(grp.status!=='active'||!grp.currentCycle){
     const isAdmin = curUser && grp.createdBy===curUser.uid;
-    h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="width:15px;height:15px;margin-right:5px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Akudikira membala':'Gathering members')+'</h2></div><div class="cb">';
+    h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="width:15px;height:15px;margin-right:5px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Akusonkhanitsa mamembala':'Gathering members')+'</h2></div><div class="cb">';
     h+='<div class="cg-code-box">'+grp.id+'</div>';
     h+='<div style="display:flex;gap:8px;margin-bottom:14px"><button class="btnG" style="flex:1" onclick="cpChipCode(\''+grp.id+'\')"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Koperani':'Copy')+'</button><button class="btnG" style="flex:1" onclick="waChipCode(\''+grp.id+'\')"><i data-lucide="share-2" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>WhatsApp</button></div>';
     (grp.rotationOrder||[]).forEach(function(uid,i){
@@ -384,7 +384,7 @@ function rChip(){
     }
     if(isAdmin){
       h+='<button class="cg-cta on" onclick="startChipRotation(this)" style="margin-top:10px"><i data-lucide="play" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Yambani Chipereganyu':'Start Chipereganyu')+'</button>';
-      if((grp.rotationOrder||[]).length<2) h+='<p style="font-size:.7rem;color:var(--mid);text-align:center;margin-top:8px">'+(isCW?'Muyenera membala osachepera 2 kuti muyambe.':'You need at least 2 members to start.')+'</p>';
+      if((grp.rotationOrder||[]).length<2) h+='<p style="font-size:.7rem;color:var(--mid);text-align:center;margin-top:8px">'+(isCW?'Muyenera kukhala ndi mamembala osachepera awiri kuti muyambe.':'You need at least 2 members to start.')+'</p>';
     } else {
       h+='<p style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Mukudikira mtsogoleri kuti ayambe.':'Waiting for the admin to start the rotation.')+'</p>';
     }
@@ -406,7 +406,7 @@ function rChip(){
   h+='<div style="text-align:center;margin-bottom:6px"><span class="cg-code-pill" onclick="cpChipCode(\''+grp.id+'\')" title="'+(isCW?'Kopelani nambala':'Tap to copy code')+'"><i data-lucide="hash" style="width:11px;height:11px"></i>'+grp.id+'<i data-lucide="copy" style="width:11px;height:11px"></i></span></div>';
   h+='<div class="cg-wheel">';
   h+='<svg class="cg-ring" width="250" height="250" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="50" cy="50" r="48" fill="none" stroke="var(--g1)" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+(circ*(1-pct)).toFixed(1)+'" style="transition:stroke-dashoffset .5s"/></svg>';
-  h+='<div class="cg-pot"><div class="cg-pot-lbl">'+(isCW?'Gawo ':'Round ')+cc.cycleNumber+'</div><div class="cg-pot-val">'+MK(collected)+'</div><div class="cg-pot-sub">'+(isCW?'pa ':'of ')+MK(cc.amount)+'</div></div>';
+  h+='<div class="cg-pot"><div class="cg-pot-lbl">'+(isCW?'Gawo ':'Round ')+cc.cycleNumber+'</div><div class="cg-pot-val">'+MK(collected)+'</div><div class="cg-pot-sub">'+(isCW?'mwa ':'of ')+MK(cc.amount)+'</div></div>';
   grp.rotationOrder.forEach(function(uid,i){
     const ang=(i*(360/grp.rotationOrder.length)-90)*Math.PI/180, R=38;
     const left=(50+R*Math.cos(ang))+'%', top=(50+R*Math.sin(ang))+'%';
@@ -423,7 +423,7 @@ function rChip(){
   });
   h+='</div>';
 
-  h+='<div class="cg-status"><div class="cg-status-1">'+esc(recipientName.split(' ')[0])+(isCW?'\u2019s gawo lolandira':'\u2019s turn to receive')+'</div><div class="cg-status-2"><i data-lucide="clock" style="width:12px;height:12px"></i>'+(isCW?'Tsiku ':'Due ')+fmtDate(cc.dueDate)+' \u00b7 '+paidCount+'/'+contributors.length+' '+(isCW?'alipira':'paid')+'</div></div>';
+  h+='<div class="cg-status"><div class="cg-status-1">'+(isCW?'Ndi nthawi ya '+esc(recipientName.split(' ')[0])+' yolandira':esc(recipientName.split(' ')[0])+'\u2019s turn to receive')+'</div><div class="cg-status-2"><i data-lucide="clock" style="width:12px;height:12px"></i>'+(isCW?'Lipira pofika ':'Due ')+fmtDate(cc.dueDate)+' \u00b7 '+paidCount+'/'+contributors.length+' '+(isCW?'alipira':'paid')+'</div></div>';
 
   h+='<div class="cg-tabs">';
   h+='<button class="cg-tab'+(chipTab==='cycle'?' on':'')+'" onclick="setChipTab(\'cycle\')">'+(isCW?'Gawo lino':'This cycle')+'</button>';
@@ -528,7 +528,7 @@ function chipLeaveGroup(){
     }
     db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
       setDot(''); chipActiveId=null; toast(isCW?'Mwatuluka mu gulu':'Left the group','i'); go('home');
-    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
   };
   if(alreadyReceived){
     // They've already taken a payout this lap but the lap isn't done, so
@@ -536,7 +536,7 @@ function chipLeaveGroup(){
     // toward everyone else's turn. Can't be prevented outright (no bank
     // integration to hold them to it), but this makes the tradeoff explicit
     // instead of a silent, clean-looking exit.
-    appConfirm(isCW?'Mudalandira kale gawo mu mzere uno musanamalize kulipira ena onse. Ngati mutuluka tsopano, sitingathe kukumbutsani kudzera mu app. Mutuluke bwanji?':'You already received a payout this lap and haven\u2019t finished contributing to everyone else\u2019s turn yet. Leaving now means the app can\u2019t collect that from you going forward. Leave anyway?', doLeave, isCW?'Tulukani chonse':'Leave anyway', true);
+    appConfirm(isCW?'Mudalandira kale ndalama pa gawo lino ndipo simunamalize kulipira ena onse. Mukatuluka tsopano, app sidzathanso kutola ndalama zimenezo. Mutulukebe?':'You already received a payout this lap and haven\u2019t finished contributing to everyone else\u2019s turn yet. Leaving now means the app can\u2019t collect that from you going forward. Leave anyway?', doLeave, isCW?'Tulukani chonse':'Leave anyway', true);
   } else {
     appConfirm(isCW?'Mutuluka mu gululi?':'Leave this group?', doLeave, isCW?'Tulukani':'Leave', true);
   }
@@ -562,10 +562,10 @@ function chipRemoveMember(uid){
     }
     db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
       setDot(''); toast(isCW?'Wachotsedwa':'Removed','i');
-    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
   };
   if(alreadyReceived){
-    appConfirm((isCW?'Katswiri, '+nm+' analandira kale gawo mu mzere uno musanamalize kulipira ena onse. Kuchotsa tsopano kutanthauza kuti simungathe kukumbutsanso pa app. Chotsani chonse?':nm+' already received a payout this lap and hasn\u2019t finished contributing to everyone else\u2019s turn yet. Removing them now means the app can\u2019t collect that going forward. Remove anyway?'), doRemove, isCW?'Chotsani chonse':'Remove anyway', true);
+    appConfirm((isCW?nm+' walandira kale ndalama pa gawo lino ndipo sanamalize kulipira ena onse. Mukamuchotsa tsopano, app sidzathanso kutola ndalama zimenezo. Mumuchotsebe?':nm+' already received a payout this lap and hasn\u2019t finished contributing to everyone else\u2019s turn yet. Removing them now means the app can\u2019t collect that going forward. Remove anyway?'), doRemove, isCW?'Chotsani chonse':'Remove anyway', true);
   } else {
     appConfirm((isCW?'Chotsani ':'Remove ')+nm+(isCW?' mgululi?':' from the group?'), doRemove, isCW?'Chotsani':'Remove', true);
   }
@@ -579,7 +579,7 @@ function chipDeleteGroup(){
     setDot('spin');
     db.collection('chipereganyu_groups').doc(grp.id).delete().then(function(){
       setDot(''); chipActiveId=null; toast(isCW?'Gulu lachotsedwa':'Group deleted','i'); go('home');
-    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
   }, isCW?'Chotsani':'Delete', true);
 }
 
@@ -591,7 +591,7 @@ function chipMakeAdmin(uid){
     setDot('spin');
     db.collection('chipereganyu_groups').doc(grp.id).update({createdBy:uid}).then(function(){
       setDot(''); toast(isCW?'Mtsogoleri watsopano wasankhidwa':'New admin set','i');
-    }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
   }, isCW?'Sankhani':'Make admin', false);
 }
 
@@ -631,14 +631,14 @@ function chipMoveUp(uid){
   setDot('spin');
   db.collection('chipereganyu_groups').doc(grp.id).update({rotationOrder:order}).then(function(){
     setDot(''); toast(isCW?'Dongosolo lasinthidwa':'Rotation order updated','i');
-  }).catch(function(e){ setDot('off'); toast('Failed: '+(e&&e.code||'error'),'e'); });
+  }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
 }
 
 
 function appConfirm(msg, onOk, okLabel, danger){
   const isCW = lang === 'cw';
   const isGenericDelete = danger && !okLabel;
-  const cancelLabel = isGenericDelete ? (isCW?'Ayi, sungani':'No, keep it') : (isCW?'Lekani':'Cancel');
+  const cancelLabel = isGenericDelete ? (isCW?'Ayi, sungani':'No, keep it') : (isCW?'Letsani':'Cancel');
   const confirmLabel = okLabel || (danger ? (isCW?'Inde, Chotsani!':'Yes, Delete!') : (isCW?'Tsimikizani':'Confirm'));
   const box=g('mb-confirm');
   box.innerHTML='<div class="dh"></div>'
@@ -664,7 +664,7 @@ function logout(){
   authReg=false;
   auth.signOut().catch(()=>{});
   chatHistory=[]; 
-  toast('See you soon!','i');
+  toast((lang==='cw'?'Tionana posachedwa!':'See you soon!'),'i');
   }, 'Sign Out', true);
 }
 

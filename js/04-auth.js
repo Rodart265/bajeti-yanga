@@ -40,8 +40,8 @@ function aTab(mode){
   if(nmf)nmf.classList.toggle('hide',!isReg);
   if(pw2f)pw2f.classList.toggle('hide',!isReg);
   if(fgtL)fgtL.style.display=isReg?'none':'block';
-  if(btn)btn.textContent=isReg?'Start Tracking':'Welcome Back';
-  if(sw)sw.innerHTML=isReg?"Already tracking? <span onclick=\"aTab('login')\">Welcome back</span>":"New to Bajeti Yanga? <span onclick=\"aTab('register')\">Start tracking</span>";
+  if(btn){btn.dataset.mode=isReg?'register':'login';btn.textContent=authBtnLabel(isReg);}
+  if(sw)sw.innerHTML=lang==='cw'?(isReg?"Mukulemba kale? <span onclick=\"aTab('login')\">Takulandirani kubwerera</span>":"Ndinu watsopano pa Bajeti Yanga? <span onclick=\"aTab('register')\">Yambani kulemba</span>"):(isReg?"Already tracking? <span onclick=\"aTab('login')\">Welcome back</span>":"New to Bajeti Yanga? <span onclick=\"aTab('register')\">Start tracking</span>");
   // Show/hide password requirements box
   const reqs = g('pw-reqs');
   if(reqs) reqs.style.display = isReg ? 'flex' : 'none';
@@ -118,27 +118,27 @@ function fmtAErr(code){
     'auth/invalid-action-code':      'This link is invalid or has already been used.',
   };
   const cw = {
-    'auth/user-not-found':           'Akaunti yosapezeka ndi imeli iyi. Onani imeli kapena pangani akaunti yatsopano.',
+    'auth/user-not-found':           'Akaunti yosapezeka ndi imelo iyi. Onani imelo kapena pangani akaunti yatsopano.',
     'auth/wrong-password':           'Mawu achinsinsi olakwika. Yesaninso.',
-    'auth/invalid-credential':       'Imeli kapena mawu achinsinsi olakwika. Yesaninso.',
-    'auth/invalid-login-credentials':'Imeli kapena mawu achinsinsi olakwika. Yesaninso.',
-    'auth/email-already-in-use':     'Imeli iyi yalembetsedwa kale. Yesani kulowa.',
-    'auth/invalid-email':            'Lowetsani imeli yabwino.',
+    'auth/invalid-credential':       'Imelo kapena mawu achinsinsi olakwika. Yesaninso.',
+    'auth/invalid-login-credentials':'Imelo kapena mawu achinsinsi olakwika. Yesaninso.',
+    'auth/email-already-in-use':     'Imelo iyi yalembetsedwa kale. Yesani kulowa.',
+    'auth/invalid-email':            'Lowetsani imelo yolondola.',
     'auth/weak-password':            'Mawu achinsinsi ayenera kukhala ndi zilembo 6 kapena kupitirira.',
-    'auth/too-many-requests':        'Mayeso ochuluka. Dikirani mphindi zingapo ndipo yesaninso.',
+    'auth/too-many-requests':        'Mwayesa kambirimbiri. Dikirani mphindi zingapo kenako yesaninso.',
     'auth/invalid-verification-code':'Kodi ya OTP yolakwika. Onani ndipo yesaninso.',
-    'auth/code-expired':             'OTP yathera. Pemphani ipsya.',
-    'auth/invalid-phone-number':     'Nambala ya foni yolakwika. Pakuwayireni nambala ya dziko (mwachitsanzo +265).',
+    'auth/code-expired':             'OTP yatha. Pemphani yatsopano.',
+    'auth/invalid-phone-number':     'Nambala ya foni ndi yolakwika. Phatikizani nambala ya dziko (mwachitsanzo +265).',
     'auth/network-request-failed':   'Vuto la intaneti. Onani kulumikizana kwanu ndipo yesaninso.',
     'auth/operation-not-allowed':    'Njira iyi ya kulowa siilolezedwa. Lankhulani ndi thandizo.',
     'auth/popup-blocked':            'Popup idakanidwa. Lolani ma popup mu browser ndipo yesaninso.',
     'auth/cancelled-popup-request':  'Kulowa kudaimitsiwa. Yesaninso.',
-    'auth/account-exists-with-different-credential': 'Akaunti ilipo ndi imeli iyi kugwiritsa ntchito njira ina (mwachitsanzo Google). Yesani kulowa ndi njira imeneyo.',
+    'auth/account-exists-with-different-credential': 'Akaunti ilipo ndi imelo iyi kugwiritsa ntchito njira ina (mwachitsanzo Google). Yesani kulowa ndi njira imeneyo.',
     'auth/missing-password':         'Lowetsani mawu achinsinsi.',
-    'auth/missing-email':            'Lowetsani imeli yanu.',
+    'auth/missing-email':            'Lowetsani imelo yanu.',
     'auth/requires-recent-login':    'Chifukwa cha chitetezo, tulukani ndipo lowani pomwe.',
     'auth/user-disabled':            'Akaunti iyi yatsekedwa. Lankhulani thandizo pa +265 888 029 029.',
-    'auth/expired-action-code':      'Ulalo uwu wathera. Pemphani watsopano.',
+    'auth/expired-action-code':      'Ulalo uwu watha. Pemphani watsopano.',
     'auth/invalid-action-code':      'Ulalo uwu ndi wopanda pake kapena wagwiritsidwa ntchito kale.',
   };
   const map = isCW ? cw : en;
@@ -147,16 +147,17 @@ function fmtAErr(code){
   // the raw "auth/whatever-it-is" string to the user.
   return map[code] || (isCW ? 'Chinachake chinalakwika. Yesaninso.' : 'Something went wrong. Please try again.');
 }
+function authBtnLabel(isReg){ return lang==='cw'?(isReg?'Yambani Kulemba':'Takulandirani Kubwerera'):(isReg?'Start Tracking':'Welcome Back'); }
 function doEmailAuth(){
   const email=val('a-em').trim(), pass=val('a-pw');
-  if(!email||!pass){ showAErr('Please fill in email and password.'); return; }
-  const btn=g('a-em-btn'), isReg=btn&&btn.textContent==='Start Tracking';
-  if(btn){btn.disabled=true;btn.textContent='Please wait...';}
+  if(!email||!pass){ showAErr((lang==='cw'?'Lowetsani imelo ndi mawu achinsinsi.':'Please fill in email and password.')); return; }
+  const btn=g('a-em-btn'), isReg=!!(btn&&btn.dataset.mode==='register');
+  if(btn){btn.disabled=true;btn.textContent=(lang==='cw'?'Chonde dikirani...':'Please wait...');}
   showAErr('');
   if(isReg){
     const p2=val('a-pw2'), nm=val('a-nm').trim();
-    if(pass!==p2){ showAErr('Passwords do not match.'); if(btn){btn.disabled=false;btn.textContent='Start Tracking';} return; }
-    if(pass.length<6){ showAErr('Password must be at least 6 characters.'); if(btn){btn.disabled=false;btn.textContent='Start Tracking';} return; }
+    if(pass!==p2){ showAErr((lang==='cw'?'Mawu achinsinsi sakufanana.':'Passwords do not match.')); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} return; }
+    if(pass.length<6){ showAErr((lang==='cw'?'Mawu achinsinsi ayenera kukhala ndi zilembo zosachepera 6.':'Password must be at least 6 characters.')); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} return; }
     auth.createUserWithEmailAndPassword(email,pass)
       .then(cred=>{
         const user=cred.user;
@@ -170,18 +171,18 @@ function doEmailAuth(){
       .then(user=>{
         // Stay signed in on the verify screen: Resend / "I Have Verified" need auth.currentUser, and
         // onAuthStateChanged already blocks unverified email users from reaching the app.
-        if(btn){btn.disabled=false;btn.textContent='Start Tracking';}
+        if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);}
         showVerifyScreen(email);
       })
-      .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent='Start Tracking';} });
+      .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} });
   } else {
     auth.signInWithEmailAndPassword(email,pass)
-      .then(()=>{ if(btn){btn.disabled=false;btn.textContent='Welcome Back';} })
-      .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent='Welcome Back';} });
+      .then(()=>{ if(btn){btn.disabled=false;btn.textContent=authBtnLabel(false);} })
+      .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(false);} });
   }
 }
 function doFgt(){
-  const em=val('fgt-em').trim(); if(!em){showAErr('Enter your email address.');return;}
+  const em=val('fgt-em').trim(); if(!em){showAErr((lang==='cw'?'Lowetsani imelo yanu.':'Enter your email address.'));return;}
   const btn=g('fgt-btn'); if(btn){btn.disabled=true;btn.textContent='Sending...';}
   showAErr('');
   auth.sendPasswordResetEmail(em)
@@ -205,12 +206,12 @@ function showVerifyScreen(email){
   const contLbl = g('verify-continue-lbl');
   const resendLbl = g('verify-resend-lbl');
   const backLbl = g('verify-back-lbl');
-  if(titleEl) titleEl.textContent = isCW ? 'Onani Imeli Yanu' : 'Check Your Email';
-  if(subEl) subEl.textContent = isCW ? 'Tatumiza ulalo wotsimikizira imeli yanu.' : 'We sent a verification link to your email.';
-  if(bodyEl) bodyEl.textContent = isCW ? 'Dinani ulalo mu imeli imeneyo kuti mutsimikizire akaunti yanu. Onani spam folder ngati simuwona.' : 'Click the link in that email to verify your account. Check your spam folder if you do not see it.';
-  if(contLbl) contLbl.textContent = isCW ? 'Ndinawonetsa. Pitirizani' : 'I Have Verified. Continue';
-  if(resendLbl) resendLbl.textContent = isCW ? 'Tumizaninso Imeli' : 'Resend Verification Email';
-  if(backLbl) backLbl.textContent = isCW ? 'Bwelera ku Kulowa' : 'Back to Login';
+  if(titleEl) titleEl.textContent = isCW ? 'Onani Imelo Yanu' : 'Check Your Email';
+  if(subEl) subEl.textContent = isCW ? 'Tatumiza ulalo wotsimikizira imelo yanu.' : 'We sent a verification link to your email.';
+  if(bodyEl) bodyEl.textContent = isCW ? 'Dinani ulalo mu imelo imeneyo kuti mutsimikizire akaunti yanu. Onani spam folder ngati simuwona.' : 'Click the link in that email to verify your account. Check your spam folder if you do not see it.';
+  if(contLbl) contLbl.textContent = isCW ? 'Ndatsimikiza. Pitilizani' : 'I Have Verified. Continue';
+  if(resendLbl) resendLbl.textContent = isCW ? 'Tumizaninso Imelo' : 'Resend Verification Email';
+  if(backLbl) backLbl.textContent = isCW ? 'Bwererani Kulowa' : 'Back to Login';
   const emailEl = g('verify-email-display');
   if(emailEl) emailEl.textContent = email || '';
   const msgEl = g('verify-msg'); if(msgEl) msgEl.textContent = '';
@@ -232,7 +233,7 @@ function checkVerification(){
   if(!user){
     // User not signed in — ask them to log in again
     if(msgEl) msgEl.textContent='Please log in to continue.';
-    if(btn){btn.disabled=false; const _l2=g('verify-continue-lbl'); if(_l2) _l2.textContent=(lang==='cw'?'Ndinawonetsa. Pitirizani':'I Have Verified. Continue');}
+    if(btn){btn.disabled=false; const _l2=g('verify-continue-lbl'); if(_l2) _l2.textContent=(lang==='cw'?'Ndatsimikiza. Pitirizani':'I Have Verified. Continue');}
     backToLogin();
     return;
   }
@@ -244,13 +245,13 @@ function checkVerification(){
       authReg=false;
       bootApp();
     } else {
-      if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent=isCW2?'Imeli siitsimikiziridwa. Onani inbox yanu ndipo dinani ulalo, kenako yesaninso.':'Email not verified yet. Check your inbox and click the link, then try again.';}
-      if(btn){btn.disabled=false; const lbl=g('verify-continue-lbl'); if(lbl) lbl.textContent=isCW2?'Ndinawonetsa. Pitirizani':'I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+      if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent=isCW2?'Imelo siitsimikiziridwa. Onani inbox yanu ndipo dinani ulalo, kenako yesaninso.':'Email not verified yet. Check your inbox and click the link, then try again.';}
+      if(btn){btn.disabled=false; const lbl=g('verify-continue-lbl'); if(lbl) lbl.textContent=isCW2?'Ndatsimikiza. Pitirizani':'I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
     }
   }).catch(()=>{
     const isCW3 = lang === 'cw';
     if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent=isCW3?'Sitinathe kuwonetsa. Onani kulumikizana kwanu.':'Could not check. Check your internet connection.';}
-    if(btn){btn.disabled=false; const lbl=g('verify-continue-lbl'); if(lbl) lbl.textContent=isCW3?'Ndinawonetsa. Pitirizani':'I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+    if(btn){btn.disabled=false; const lbl=g('verify-continue-lbl'); if(lbl) lbl.textContent=isCW3?'Ndatsimikiza. Pitirizani':'I Have Verified. Continue'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
   });
 }
 
@@ -272,7 +273,7 @@ function resendVerification(){
       _resendCooldown=Date.now()+60000;
       localStorage.setItem('nb_resend_cd', String(_resendCooldown));
       const msgEl=g('verify-msg');
-      if(msgEl){msgEl.style.color='#C8E6C9';msgEl.textContent=isCW?'Imeli yotumizidwa! Onani inbox yanu.':'Verification email sent! Check your inbox.';}
+      if(msgEl){msgEl.style.color='#C8E6C9';msgEl.textContent=isCW?'Imelo yatumizidwa! Onani inbox yanu.':'Verification email sent! Check your inbox.';}
       if(btn){btn.disabled=false;}
     })
     .catch(e=>{
@@ -289,13 +290,13 @@ function backToLogin(){
   aTab('login');
 }
 function doGoogle(){
-  if(!auth){toast('Not ready.','e');return;}
+  if(!auth){toast((lang==='cw'?'Sizinakonzeke.':'Not ready.'),'e');return;}
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
     .catch(e=>{ if(e.code!=='auth/popup-closed-by-user')showAErr(fmtAErr(e.code)); });
 }
 function sendOTP(){
   const cc=val('a-cc')||'+265', num=val('a-ph').replace(/\s/g,'');
-  if(!num){showAErr('Enter your phone number.');return;}
+  if(!num){showAErr((lang==='cw'?'Lowetsani nambala yanu ya foni.':'Enter your phone number.'));return;}
   const btn=g('a-otp-btn'); if(btn){btn.disabled=true;btn.textContent='Sending...';}
   showAErr('');
   if(!rcapV) rcapV=new firebase.auth.RecaptchaVerifier('recaptcha-container',{size:'invisible',callback:()=>{}});
@@ -305,7 +306,7 @@ function sendOTP(){
       show('a-ph-s2'); hide('a-ph-s1');
       const ob0=g('ob0'); if(ob0)ob0.focus();
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
-      toast('OTP sent!','i');
+      toast((lang==='cw'?'Nambala yotsimikizira yatumizidwa!':'OTP sent!'),'i');
     })
     .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});} if(rcapV){rcapV.clear();rcapV=null;} });
 }
@@ -316,8 +317,8 @@ function otpN(el,idx){
 }
 function vfyOTP(){
   const code=[0,1,2,3,4,5].map(i=>(g('ob'+i)||{}).value||'').join('');
-  if(code.length!==6){showAErr('Enter all 6 digits.');return;}
-  if(!confResult){showAErr('Session expired. Go back and try again.');return;}
+  if(code.length!==6){showAErr((lang==='cw'?'Lowetsani manambala onse 6.':'Enter all 6 digits.'));return;}
+  if(!confResult){showAErr((lang==='cw'?'Nthawi yatha. Bwererani ndipo yesaninso.':'Session expired. Go back and try again.'));return;}
   showAErr('');
   confResult.confirm(code).catch(e=>showAErr(fmtAErr(e.code)));
 }

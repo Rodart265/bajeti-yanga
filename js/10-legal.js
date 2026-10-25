@@ -57,9 +57,9 @@ function openTerms(){
 function openPrivacySheet(){
   const isCW = lang==='cw';
   const chips = polChips([
-    ['lock','#7B1FA2',isCW?'Yosungidwa mosalala':'Encrypted storage'],
+    ['lock','#7B1FA2',isCW?'Zosungidwa motetezeka':'Encrypted storage'],
     ['ban','#E65100',isCW?'Sitigulitsa deta':'No data selling'],
-    ['trash-2','#2E7D32',isCW?'Chotsani nthawi ina':'Delete anytime']
+    ['trash-2','#2E7D32',isCW?'Chotsani nthawi iliyonse':'Delete anytime']
   ]);
   let s = polSection(1,'database','#1565C0','Data We Collect','We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality.');
   s += polSection(2,'settings','#00695C','How We Use Your Data','Your data is used exclusively to provide the budgeting features. AI features process spending summaries temporarily; this data is not retained beyond the request.');
@@ -204,7 +204,7 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
     window._deferredInstall=null;
     var btn=document.getElementById('install-fab');
     if(btn){btn.style.display='none';}
-    if(typeof toast==='function')toast('App installed! &#127881;.','s');
+    if(typeof toast==='function')toast(lang==='cw'?'App yaikidwa! &#127881;.':'App installed! &#127881;.','s');
   });
 })();
 
