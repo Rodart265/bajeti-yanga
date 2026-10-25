@@ -211,15 +211,15 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   <div class="auth-sub" id="auth-sub">Finally know where your money goes 💜</div>
   <div class="auth-card">
     <div class="auth-tabs">
-      <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)">Welcome Back</button>
-      <button class="auth-tab" id="at-reg" onclick="aTab(&quot;register&quot;)">Start Tracking</button>
+      <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)" data-cw="Takulandirani Kubwerera">Welcome Back</button>
+      <button class="auth-tab" id="at-reg" onclick="aTab(&quot;register&quot;)" data-cw="Yambani Kulemba">Start Tracking</button>
     </div>
     <div id="a-err" class="a-err"></div>
     <!-- Forgot panel -->
     <div id="a-fgt" class="hide">
       <button class="a-back" onclick="showFgt(false)"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back</button>
-      <p style="color:rgba(255,255,255,.78);font-size:.82rem;margin-bottom:14px;line-height:1.5">Enter your email and we will send a reset link.</p>
-      <label class="a-label">Email</label>
+      <p style="color:rgba(255,255,255,.78);font-size:.82rem;margin-bottom:14px;line-height:1.5" data-cw="Lowetsani imelo yanu ndipo tikutumizirani link yosinthira mawu achinsinsi.">Enter your email and we will send a reset link.</p>
+      <label class="a-label" data-cw="Imelo">Email</label>
       <input class="a-input" id="fgt-em" type="email" placeholder="you@example.com">
       <button class="a-btn" id="fgt-btn" onclick="doFgt()"><i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link</button>
       <div id="fgt-ok" class="a-ok"><i data-lucide="check-circle" style="width:13px;height:13px;margin-right:5px;vertical-align:middle;color:#A5D6A7"></i> Reset email sent! Check your inbox.</div>
@@ -233,12 +233,12 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
       <!-- Email -->
       <div id="a-em-p">
         <div id="a-nm-f" class="hide">
-          <label class="a-label">Your Name</label>
+          <label class="a-label" data-cw="Dzina Lanu">Your Name</label>
           <input class="a-input" id="a-nm" type="text" placeholder="e.g. Chisomo Banda">
         </div>
-        <label class="a-label">Email Address</label>
+        <label class="a-label" data-cw="Imelo">Email Address</label>
         <input class="a-input" id="a-em" type="email" placeholder="you@example.com" autocomplete="email">
-        <label class="a-label">Password</label>
+        <label class="a-label" data-cw="Mawu Achinsinsi">Password</label>
         <div class="pw-wrap">
           <input class="a-input" id="a-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="current-password" oninput="validatePwReqs(this.value)">
           <button class="pw-eye" type="button" onclick="tgPW('a-pw',this)"><i data-lucide="eye"></i></button>
@@ -252,16 +252,16 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
           </div>
           <div id="req-space" style="display:flex;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
             <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-space-ico"></i>
-            <span>No spaces at the start or end</span>
+            <span data-cw="Musasiye malo opanda kanthu poyamba kapena pomaliza">No spaces at the start or end</span>
           </div>
           <div id="req-match" style="display:none;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
             <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-match-ico"></i>
-            <span>Passwords match</span>
+            <span data-cw="Mawu achinsinsi akufanana">Passwords match</span>
           </div>
         </div>
-        <div class="forgot-link" id="a-fgt-lnk"><button onclick="showFgt(true)" type="button">Forgot password?</button></div>
+        <div class="forgot-link" id="a-fgt-lnk"><button onclick="showFgt(true)" type="button" data-cw="Mwaiwala mawu achinsinsi?">Forgot password?</button></div>
         <div id="a-pw2-f" class="hide">
-          <label class="a-label">Confirm Password</label>
+          <label class="a-label" data-cw="Tsimikizani Mawu Achinsinsi">Confirm Password</label>
           <div class="pw-wrap">
             <input class="a-input" id="a-pw2" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" oninput="validatePwReqs(null,true)">
             <button class="pw-eye" type="button" onclick="tgPW('a-pw2',this)"><i data-lucide="eye"></i></button>
@@ -277,7 +277,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
       <!-- Phone -->
       <div id="a-ph-p" class="hide">
         <div id="a-ph-s1">
-          <label class="a-label">Phone Number</label>
+          <label class="a-label" data-cw="Nambala ya Foni">Phone Number</label>
           <div class="ph-row">
             <input class="a-input" id="a-cc" value="+265" style="width:80px;flex-shrink:0;margin-bottom:0">
             <input class="a-input" id="a-ph" type="tel" placeholder="888 123 456" style="flex:1;margin-bottom:0">
@@ -327,8 +327,8 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     </svg>
   </div>
   <div id="setup-heading" class="setup-title-wrap">
-  <div class="setup-title" style="font-size:1.8rem;margin-bottom:6px">Set Up Bajeti Yanga</div>
-  <div class="setup-sub" style="margin-bottom:28px">Your money, your rules. Choose how you want to get started.</div>
+  <div class="setup-title" style="font-size:1.8rem;margin-bottom:6px" data-cw="Konzani Bajeti Yanga">Set Up Bajeti Yanga</div>
+  <div class="setup-sub" style="margin-bottom:28px" data-cw="Ndalama zanu, malamulo anu. Sankhani momwe mukufunira kuyamba.">Your money, your rules. Choose how you want to get started.</div>
   </div>
 
   <!-- Solo option -->
@@ -338,8 +338,8 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
         <i data-lucide="user" style="color:#fff;width:22px;height:22px"></i>
       </div>
       <div style="flex:1">
-        <div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:#fff;margin-bottom:2px">Just Me</div>
-        <div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4">Track your own spending solo. Add family later anytime.</div>
+        <div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:#fff;margin-bottom:2px" data-cw="Ndekha">Just Me</div>
+        <div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4" data-cw="Tsatirani ndalama zomwe mumagwiritsa ntchito nokha. Muonjezera anthu patsogolo.">Track your own spending solo. Add family later anytime.</div>
       </div>
       <i data-lucide="chevron-right" style="color:rgba(255,255,255,.5);flex-shrink:0"></i>
     </div>
