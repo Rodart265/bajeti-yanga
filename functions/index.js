@@ -7,6 +7,7 @@
 //                         GET  ?tx_ref=...      -> the customer's browser coming back from PayChangu
 //   reconcilePayments   every 15 minutes, settles any payment whose webhook was missed
 //   onHouseholdCreated  keeps it to one free trial per account (and, if switched on, the free household cap)
+//   admin               HTTPS. The one door for the admin console (docs: admin console plan). Google sign-in + ADMIN_EMAILS only.
 
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
@@ -16,6 +17,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const lib = require('./lib');
+const adminLib = require('./admin');
 
 initializeApp();
 const db = getFirestore();
@@ -25,6 +27,9 @@ const PAYCHANGU_WEBHOOK_SECRET = defineSecret('PAYCHANGU_WEBHOOK_SECRET');  // P
 const APP_URL = defineString('APP_URL', { default: 'https://rodart265.github.io/bajeti-yanga/' });
 const ALLOWED_ORIGINS = defineString('ALLOWED_ORIGINS', { default: 'https://rodart265.github.io' });
 const ENFORCE_HOUSEHOLD_CAP = defineString('ENFORCE_HOUSEHOLD_CAP', { default: 'false' });
+const ADMIN_EMAILS = defineString('ADMIN_EMAILS', { default: '' });                    // comma-separated Google emails; empty = nobody
+const ADMIN_ENABLED = defineString('ADMIN_ENABLED', { default: 'true' });              // 'false' + redeploy = console off
+const ADMIN_VIEW_ENTRIES = defineString('ADMIN_VIEW_ENTRIES', { default: 'false' });   // 'true' lets the console show recent entries
 
 // Must match where your Firestore database lives for the trigger to deploy (see the rollout guide).
 const REGION = process.env.FUNCTION_REGION || 'us-central1';
@@ -130,5 +135,38 @@ exports.onHouseholdCreated = onDocumentCreated(
       enforceCap: ENFORCE_HOUSEHOLD_CAP.value() === 'true',
     });
     if (out.stripped || out.removed) console.log('household', event.params.householdId, JSON.stringify(out));
+  }
+);
+
+exports.admin = onRequest(
+  { region: REGION, invoker: 'public', timeoutSeconds: 60, maxInstances: 3 },
+  async (req, res) => {
+    cors(req, res);
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+    const m = /^Bearer (.+)$/.exec(req.get('authorization') || '');
+    if (!m) { res.status(401).json({ error: 'Please sign in.' }); return; }
+    let decoded;
+    try { decoded = await getAuth().verifyIdToken(m[1], true); }          // true = also refuse revoked sessions
+    catch (_) { res.status(401).json({ error: 'Please sign in again.' }); return; }
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const gate = adminLib.authorize({
+      decoded, adminEmails: adminLib.parseAdmins(ADMIN_EMAILS.value()), enabled: ADMIN_ENABLED.value() !== 'false',
+      nowMs: Date.now(), needFresh: adminLib.needsFresh(body.action),
+    });
+    if (!gate.ok) {
+      console.warn('admin refused', decoded.email, gate.code);
+      res.status(gate.code).json({ error: gate.error, needsFreshSignIn: !!gate.needsFreshSignIn }); return;
+    }
+    try {
+      const out = await adminLib.handle({
+        action: body.action, params: body.params, now: Date.now(), viewEntries: ADMIN_VIEW_ENTRIES.value() === 'true',
+        store: adminLib.firestoreStore({ db, auth: getAuth() }),
+      });
+      res.status(out.code).json(out.body);
+    } catch (e) {
+      console.error('admin error', body.action, e);
+      res.status(500).json({ error: 'Something went wrong.' });
+    }
   }
 );
