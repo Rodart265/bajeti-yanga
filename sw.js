@@ -1,7 +1,7 @@
 // Bajeti Yanga service worker
 // Bump this version string on every deploy to force cache invalidation.
 // Keep the number equal to APP_VERSION in js/01-constants.js (the version people see in the app).
-const V = "bajeti-v9.10.2";
+const V = "bajeti-v9.11.0";
 
 // The app shell plus everything the app actually needs to boot and render,
 // so a first-time offline visit isn't left waiting on the network for
@@ -37,7 +37,7 @@ const APP_SHELL = [
 ];
 
 const RUNTIME_SEED = [
-  "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap",
+  "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap",
   "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
   "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js",
   "https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js",

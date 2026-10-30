@@ -8,14 +8,14 @@
 :root{
   --glass-bg:rgba(255,255,255,.58);
   --glass-bg-strong:rgba(255,255,255,.86);
-  --glass-border:rgba(255,255,255,.7);
+  --glass-border:var(--border);
   --glass-edge:inset 0 1px 0 rgba(255,255,255,.75);
-  --glass-shadow:0 8px 28px rgba(74,20,140,.12);
+  --glass-shadow:var(--sh);
   --glass-blur-sm:blur(12px) saturate(150%);
   --glass-blur:blur(24px) saturate(170%);
   /* Scrolling content (cards, sheets, save bar) uses these near-solid fills instead of live blur.
      Blur on every card made budget Android GPUs draw streaks (Insights screen). */
-  --card-glass:rgba(255,255,255,.84);
+  --card-glass:#FFFFFF;
   --sheet-glass:rgba(255,255,255,.97);
   --nav-h:calc(74px + env(safe-area-inset-bottom,0px));
 }
@@ -30,21 +30,8 @@ body.dark{
 }
 
 /* ── backdrop ─────────────────────────────────────────── */
-#app{
-  position:relative;
-  background:
-    radial-gradient(60% 38% at 8% 0%,rgba(206,147,216,.55),transparent 70%),
-    radial-gradient(48% 32% at 100% 28%,rgba(129,199,132,.38),transparent 70%),
-    radial-gradient(60% 40% at 0% 100%,rgba(144,164,255,.38),transparent 70%),
-    var(--mist);
-}
-body.dark #app{
-  background:
-    radial-gradient(60% 38% at 8% 0%,rgba(123,31,162,.35),transparent 70%),
-    radial-gradient(48% 32% at 100% 30%,rgba(27,94,32,.3),transparent 70%),
-    radial-gradient(60% 40% at 0% 100%,rgba(48,63,159,.3),transparent 70%),
-    var(--mist);
-}
+/* Direction A: a plain warm canvas instead of the coloured mesh; colour lives in the hero, buttons and tints. */
+#app{position:relative;background:var(--mist)}
 #view{background:transparent}
 .page{padding-bottom:calc(var(--nav-h) + 14px)}
 
@@ -57,9 +44,9 @@ body.dark #app{
   border:1px solid var(--glass-border);
   box-shadow:var(--glass-shadow),var(--glass-edge);
 }
-.ch{border-bottom-color:rgba(255,255,255,.5)}
+.ch{border-bottom-color:var(--border)}
 body.dark .card,body.dark .set-card{background:var(--card-glass)}
-body.dark .ch{border-bottom-color:rgba(255,255,255,.08)}
+body.dark .ch{border-bottom-color:var(--border)}
 
 /* ── floating glass nav (same recipe as the SFO Tracker nav) ── */
 :root{
@@ -82,7 +69,7 @@ body.dark{--nav-glass:rgba(30,28,42,.92);--nav-glass-edge:rgba(255,255,255,.12)}
 .nb.on .nl{font-weight:700}
 .nb.on::after{display:none}
 .nb.on .ni{transform:none}
-body.dark .nb.on{background:rgba(206,147,216,.2)}
+body.dark .nb.on{background:var(--p1-bg)}
 
 /* things that used to sit at bottom:0 now sit above the nav */
 .log-save-bar{
@@ -218,7 +205,6 @@ html.lite{--nav-glass:rgba(255,255,255,.94);--nav-glass-edge:rgba(255,255,255,.9
 html.lite body.dark{--nav-glass:rgba(30,28,42,.96)}
 html.lite .card,html.lite .set-card,html.lite .glass{box-shadow:0 2px 8px rgba(74,20,140,.10)}
 html.lite #topbar::before{display:none}
-html.lite .prem-chip::after{animation:none}
 
 /* ══ Premium status chip (header) and lock badges ═══════════ */
 .prem-chip{display:none;align-items:center;gap:5px;margin-top:3px;max-width:100%;padding:3px 10px 3px 7px;border-radius:99px;
@@ -228,9 +214,5 @@ html.lite .prem-chip::after{animation:none}
 #topbar.has-chip #aps{display:none}
 .prem-chip svg{width:12px;height:12px;flex-shrink:0}
 .prem-chip:active{opacity:.8}
-.prem-chip.prem-ended{background:rgba(255,255,255,.95);border-color:transparent;color:#B71C1C}
-.prem-chip.prem-soon{background:#FFE0B2;border-color:transparent;color:#8D4B00}
-.prem-chip.prem-ended::after{content:'';width:6px;height:6px;border-radius:50%;background:#E53935;flex-shrink:0;animation:prem-pulse 2s ease-out infinite}
-@keyframes prem-pulse{0%{box-shadow:0 0 0 0 rgba(229,57,53,.5)}70%{box-shadow:0 0 0 6px rgba(229,57,53,0)}100%{box-shadow:0 0 0 0 rgba(229,57,53,0)}}
-@media (prefers-reduced-motion:reduce){.prem-chip.prem-ended::after{animation:none}}
+.prem-chip.prem-soon{background:var(--gold-bg);border-color:transparent;color:var(--gold-ink)}
 .lock-badge{vertical-align:middle;color:var(--p1);margin-left:3px}
