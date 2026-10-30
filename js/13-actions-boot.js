@@ -75,14 +75,14 @@ function viewItem(name){
   let h='<div class="dh"></div><h3>'+ico(name)+' '+esc(trName(name))+'</h3>';
   h+='<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:.82rem">';
   h+='<span style="color:var(--mid)">Budget: <strong>'+MK(it?it.budget:0)+'</strong></span>';
-  h+='<span style="color:var(--r1)">Spent: <strong>'+MK(total)+'</strong></span></div>';
+  h+='<span style="color:var(--neg)">Spent: <strong>'+MK(total)+'</strong></span></div>';
   if(txs.length){
     h+='<div style="display:flex;flex-direction:column;gap:7px">';
     txs.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(p=>{
       const u=uById(p.userId);
       h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;padding:8px 10px;background:var(--mist);border-radius:10px">';
       h+='<div><div style="font-weight:700">'+fmtDate(p.date)+'</div><div style="color:var(--mid)">'+esc(u.name)+(p.notes?' · '+esc(p.notes):'')+'</div></div>';
-      h+='<span style="color:var(--r1);font-weight:700">'+MK(p.amount)+'</span></div>';
+      h+='<span style="color:var(--neg);font-weight:700">'+MK(p.amount)+'</span></div>';
     });
     h+='</div>';
   } else {

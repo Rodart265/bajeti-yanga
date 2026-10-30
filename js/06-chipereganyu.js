@@ -469,7 +469,7 @@ function rChip(){
       const receivedBefore=paidOutUids.indexOf(uid)>-1;
       const isUpcoming=!isRecipient && !receivedBefore;
       const label=isRecipient?(isCW?'Akulandira tsopano':'Receiving now'):(receivedBefore?(isCW?'Analandira':'Received'):(isCW?'Akudikira':'Upcoming'));
-      const color=isRecipient?'var(--p1)':(receivedBefore?'var(--g1)':'var(--mid)');
+      const color=isRecipient?'var(--p1-text)':(receivedBefore?'var(--pos)':'var(--mid)');
       // Only offer "move up" when the row right above is also upcoming --
       // i.e. not the current recipient or someone already paid this lap --
       // since those are frozen and chipMoveUp will refuse to cross them anyway.

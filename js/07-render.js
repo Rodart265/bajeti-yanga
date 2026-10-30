@@ -279,7 +279,7 @@ function rHome(){
   }).filter(function(x){return x.diff<=7;}).sort(function(a,b){return a.diff-b.diff;}).slice(0,3);
   if(getPremiumStatus().isPremium && _billsDue.length){
     h+='<div class="card" style="border:1px solid #FFE0B2;cursor:pointer" onclick="go(&quot;stg&quot;);stgOpenSection(&quot;bills&quot;)">';
-    h+='<div class="ch" style="padding-bottom:2px"><h2 style="font-size:.84rem"><i data-lucide="alarm-clock" style="width:14px;height:14px;margin-right:5px;vertical-align:middle;color:#E65100"></i>'+t.billsDueSoon+'</h2><span class="stg-chev">›</span></div>';
+    h+='<div class="ch" style="padding-bottom:2px"><h2 style="font-size:.84rem"><i data-lucide="alarm-clock" style="width:14px;height:14px;margin-right:5px;vertical-align:middle;color:var(--gold-ink)"></i>'+t.billsDueSoon+'</h2><span class="stg-chev">›</span></div>';
     h+='<div class="cb" style="padding:0 15px 10px">';
     _billsDue.forEach(function(x){
       const b=x.b,diff=x.diff,urgent=diff<=3;
@@ -298,7 +298,7 @@ function rHome(){
       const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
       h+='<div class="pri">';
       h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
-      h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:#E65100;vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
+      h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
       h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span></div></div>';
@@ -326,9 +326,9 @@ function openQRScanner(){
 
   let h = '<div class="dh"></div>';
   h += '<div style="display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:12px">';
-  h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:#F3E5F5;display:flex;align-items:center;justify-content:center"><i data-lucide="scan-line" style="width:16px;height:16px;color:var(--p1)"></i></div>';
+  h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center"><i data-lucide="scan-line" style="width:16px;height:16px;color:var(--p1-text)"></i></div>';
   h += '<div style="flex:1"><div style="font-weight:800;font-size:.88rem">'+(isCW?'Skani QR Code':'Scan QR Code')+'</div>';
-  h += '<div style="font-size:.65rem;color:var(--mid)">'+(isCW?'Ikani kamera pa QR code ya nyumba':'Point camera at a household QR code')+'</div></div>';
+  h += '<div style="font-size:.72rem;color:var(--mid)">'+(isCW?'Ikani kamera pa QR code ya nyumba':'Point camera at a household QR code')+'</div></div>';
   h += '<button onclick="stopQRScanner()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Letsani':'Cancel')+'</button>';
   h += '</div>';
   h += '<div style="position:relative;width:100%;border-radius:var(--cr);overflow:hidden;background:#000;aspect-ratio:1">';
@@ -349,7 +349,7 @@ function openQRScanner(){
   h += '<div style="width:70%;height:4px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden;margin:8px 0 12px"><div id="qr-confirm-bar" style="height:100%;width:0;background:#69F0AE;transition:width 2s linear"></div></div>';
   h += '<div style="display:flex;gap:8px;width:100%">';
   h += '<button onclick="qrConfirmCancel()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:1.5px solid rgba(255,255,255,.35);background:none;color:#fff;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer">'+(isCW?'Letsani':'Cancel')+'</button>';
-  h += '<button onclick="qrConfirmJoin()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:none;background:#fff;color:var(--p1);font-family:inherit;font-weight:800;font-size:.8rem;cursor:pointer">'+(isCW?'Lowani tsopano':'Join now')+'</button>';
+  h += '<button onclick="qrConfirmJoin()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:none;background:#fff;color:var(--p1-text);font-family:inherit;font-weight:800;font-size:.8rem;cursor:pointer">'+(isCW?'Lowani tsopano':'Join now')+'</button>';
   h += '</div></div>';
   h += '</div>';
   h += '<div style="text-align:center;margin-top:10px;font-size:.72rem;color:var(--mid)" id="qr-scan-status">'+(isCW?'Ikani kamera pa QR code...':'Positioning camera on the QR code...')+'</div>';
@@ -391,7 +391,7 @@ function openQRScanner(){
       .catch(function(err){
         const status = g('qr-scan-status');
         const isCW2 = lang === 'cw';
-        if(status) status.innerHTML = '<span style="color:#E53935">'+(isCW2?'Kamera siilolezedwa. Lolani kamera ndipo yesaninso.':'Camera access denied. Please allow camera access and try again.')+'</span>';
+        if(status) status.innerHTML = '<span style="color:var(--neg)">'+(isCW2?'Kamera siilolezedwa. Lolani kamera ndipo yesaninso.':'Camera access denied. Please allow camera access and try again.')+'</span>';
       });
   }, 200);
 }
@@ -459,7 +459,7 @@ function handleQRResult(raw){
   if(!code){
     // Not a Bajeti Yanga code: say so, wait a moment, then keep scanning.
     const status = g('qr-scan-status');
-    if(status) status.innerHTML = '<span style="color:#E53935">'+(isCW?'Iyi si QR ya Bajeti Yanga. Yesaninso.':'That is not a Bajeti Yanga QR code. Try another.')+'</span>';
+    if(status) status.innerHTML = '<span style="color:var(--neg)">'+(isCW?'Iyi si QR ya Bajeti Yanga. Yesaninso.':'That is not a Bajeti Yanga QR code. Try another.')+'</span>';
     _qrTimer = setTimeout(function(){
       _qrTimer = null; _qrBusy = false;
       const st = g('qr-scan-status');
@@ -505,7 +505,7 @@ function openQRCode(){
   const isCW=lang==='cw';
   const joinUrl=APP_BASE_URL+'?join='+encodeURIComponent(hhId);
   let h='<div class="dh"></div>';
-  h+='<h3><i data-lucide="qr-code" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Kodi ya QR':'QR Code')+'</h3>';
+  h+='<h3><i data-lucide="qr-code" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1-text)"></i>'+(isCW?'Kodi ya QR':'QR Code')+'</h3>';
   h+='<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px;line-height:1.5">';
   h+=(isCW?'Jambulani QR code iyi kuti mulowe mu nyumba mwamsanga. Bajeti Yanga imatseguka ndi kodi yoikidwa kale.':'Scan this QR code to join your household instantly. Opens Bajeti Yanga with the code pre-filled.')+'</p>';
   h+='<div style="display:flex;justify-content:center;margin-bottom:16px">';
@@ -513,7 +513,7 @@ function openQRCode(){
   h+='<div id="qr-canvas" style="width:200px;height:200px;border-radius:var(--cr-sm);display:flex;align-items:center;justify-content:center"></div>';
   h+='</div></div>';
   h+='<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
-  h+='<div><div style="font-size:.66rem;font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Kodi ya Nyumba':'Household Code')+'</div>';
+  h+='<div><div style="font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Kodi ya Nyumba':'Household Code')+'</div>';
   h+='<div style="font-family:monospace;font-weight:800;font-size:1.1rem;color:var(--ink);letter-spacing:2px">'+hhId+'</div></div>';
   h+='<button onclick="cpCode()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-md);padding:8px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:5px">';
   h+='<i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Koperani':'Copy')+'</button>';
@@ -539,14 +539,14 @@ function openQRCode(){
           correctLevel: QRCode.CorrectLevel.M
         });
       } catch(e) {
-        el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
+        el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:var(--mid)">'
           +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.1rem;letter-spacing:2px">'+esc(hhId)+'</div>'
           +'<div>'+(lang==='cw'?'QR code sipezeka popanda intaneti.':'QR unavailable offline.')+'<br>'+(lang==='cw'?'Koperani kodi ili pamwambapa.':'Copy the code above.')+'</div></div>';
       }
     } else {
       // qrcode.js not loaded — show code as fallback
-      el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:#607D8B">'
-        +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.2rem;letter-spacing:2px;color:#4A148C">'+esc(hhId)+'</div>'
+      el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.75rem;color:var(--mid)">'
+        +'<div style="font-weight:800;margin-bottom:6px;font-family:monospace;font-size:1.2rem;letter-spacing:2px;color:var(--p1-deep)">'+esc(hhId)+'</div>'
         +'<div>'+(lang==='cw'?'Koperani kodi ili pamwambapa kuti mugawane.':'Copy the code above to share.')+'</div></div>';
     }
   }, 100);
@@ -562,7 +562,7 @@ function _syncSelItem(){
 function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
-  let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.logTitle+'</h2></div><div class="cb">';
+  let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
   h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
@@ -584,7 +584,7 @@ function rLog(){
         +'<input type="text" class="fi" id="custom-item-name" placeholder="'+(lang==='cw'?'Mwachitsanzo: Mankhwala, Ndalama ya basi...':'e.g. Medicine, Bus fare...')+'" style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
         +'<label class="fl" style="margin-bottom:6px">'+(lang==='cw'?'Gulu':'Category')+'</label>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="custom-cat-grid">'
-        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>').join('')
+        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>').join('')
         +'</div>'
         +'<label style="display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;color:var(--mid);cursor:pointer">'
         +'<input type="checkbox" id="custom-save-perm" onchange="g(\'custom-budget-row\').style.display=this.checked?\'block\':\'none\'" style="width:16px;height:16px;accent-color:var(--p1)">'

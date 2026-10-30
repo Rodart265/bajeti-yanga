@@ -27,16 +27,16 @@ function rHist(){
 
   // Action buttons row
   h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
-  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Koperani za Mwezi Wapita':'Copy Last Month')+lockBadge(10)+'</button>';
+  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> '+(isCW?'Koperani za Mwezi Wapita':'Copy Last Month')+lockBadge(10)+'</button>';
   h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zochotsedwa':'Trash')+lockBadge(10)+'</button>';
   h+='</div>';
 
   // Running totals strip
   if(list.length>0){
     h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
-    if(listInc>0) h+='<div style="flex:1;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#1B5E20">'+(lang==='cw'?'Ndalama Zolowa':'Income')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#2E7D32">+'+MKs(listInc)+'</div></div>';
-    if(listExp>0) h+='<div style="flex:1;background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#B71C1C">'+(lang==='cw'?'Zotuluka':'Spent')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:#C62828">'+MKs(listExp)+'</div></div>';
-    h+='<div style="flex:1;background:var(--mist);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">'+(lang==='cw'?'Zolemba':'Entries')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
+    if(listInc>0) h+='<div style="flex:1;background:var(--pos-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--pos)">'+(lang==='cw'?'Ndalama Zolowa':'Income')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--pos)">+'+MKs(listInc)+'</div></div>';
+    if(listExp>0) h+='<div style="flex:1;background:var(--neg-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--neg)">'+(lang==='cw'?'Zotuluka':'Spent')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--neg)">'+MKs(listExp)+'</div></div>';
+    h+='<div style="flex:1;background:var(--mist);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">'+(lang==='cw'?'Zolemba':'Entries')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
     h+='</div>';
   }
 
@@ -51,7 +51,7 @@ function rHist(){
   h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='</div>';
   h+='<div class="hist-filter">';
-  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> '+(isCW?'Zonse':'All')+'</button>';
+  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zolowa':'Income')+'</button>';
   h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zotuluka':'Expenses')+'</button>';
   h+='</div>';
@@ -72,8 +72,8 @@ function rHist(){
     Object.keys(byDate).sort().reverse().forEach(function(date){
       var dayExp=byDate[date].filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
       h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 2px 4px;border-bottom:1.5px solid var(--border);margin-bottom:4px">';
-      h+='<span style="font-size:.66rem;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px">'+fmtDate(date)+'</span>';
-      if(dayExp>0)h+='<span style="font-size:.67rem;font-weight:700;color:var(--r1)">− '+MKs(dayExp)+'</span>';
+      h+='<span style="font-size:.72rem;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px">'+fmtDate(date)+'</span>';
+      if(dayExp>0)h+='<span style="font-size:.72rem;font-weight:700;color:var(--neg)">− '+MKs(dayExp)+'</span>';
       h+='</div>';
       byDate[date].forEach(function(p){
         var u=uById(p.userId), isI=p.type==='income';
@@ -83,10 +83,10 @@ function rHist(){
         h+='<div class="pli'+(isI?' income-e':'')+'">';
         h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
         h+='<div class="plb"><div class="pltop">';
-        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:#E65100;vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.58rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
+        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
-        h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.63rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
+        h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
         h+='<div class="plact">';
         h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+esc(p.id)+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
         h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
@@ -140,8 +140,8 @@ function doDel(id){
   const label = esc(trName(p.item)) + (p.amount?' ('+MK(p.amount)+')':'');
   appConfirm(
     '<div style="text-align:center;padding:4px 0 8px">'
-    +'<div style="width:48px;height:48px;border-radius:var(--cr);background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
-    +'<i data-lucide="trash-2" style="width:24px;height:24px;color:#C62828"></i></div>'
+    +'<div style="width:48px;height:48px;border-radius:var(--cr);background:var(--neg-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
+    +'<i data-lucide="trash-2" style="width:24px;height:24px;color:var(--neg)"></i></div>'
     +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">'+(lang==='cw'?'Chotsani':'Delete')+' <strong style="color:var(--ink)">'+label+'</strong>? '+(lang==='cw'?'Chidzasamutsidwa ku zochotsedwa ndipo mutha kuchibweza mkati mwa masiku 30.':'It will be moved to trash and recoverable for 30 days.')+'</div></div>',
     function(){
       db.collection('households').doc(hhId).collection('purchases').doc(id)
@@ -170,8 +170,8 @@ function openTrash(){
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
         h+='<div style="display:flex;gap:4px">';
-        h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px">↩ Restore</button>';
-        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:.62rem;padding:2px 8px;color:#C62828;border-color:#C62828"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>'+(lang==='cw'?'Kwamuyaya':'Forever')+'</button>';
+        h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+esc(p.id)+'" style="font-size:.72rem;padding:2px 8px">↩ Restore</button>';
+        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:.72rem;padding:2px 8px;color:var(--neg);border-color:var(--neg)"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>'+(lang==='cw'?'Kwamuyaya':'Forever')+'</button>';
         h+='</div></div></div>';
       });
     }
@@ -286,7 +286,7 @@ function rSum(){
   // and the slices add up to totSp() just like History and the PDF report.
   lPx.forEach(p=>{ if(p.deleted||p.type==='income'||!isTM(p.date)) return; const c=catOf(p.item,p.cat); catSpend[c]=(catSpend[c]||0)+(Number(p.amount)||0); });
   const cats=Object.entries(catSpend).sort((a,b)=>b[1]-a[1]);
-  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;color:var(--p1)"></i> Category Breakdown</h2></div><div style="padding:16px">';
+  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;color:var(--p1-text)"></i> Category Breakdown</h2></div><div style="padding:16px">';
   if(cats.length&&tS>0){
     const PC={Food:'#7B1FA2',Household:'#1565C0',Personal:'#E91E63',Transport:'#E65100',Other:'#5D4037'};
     // Build donut SVG
@@ -329,7 +329,7 @@ function rSum(){
           </div>
           <div style="flex:1">
             <div style="font-size:.82rem;font-weight:700;color:var(--ink)">${t.cats[cat]||cat}</div>
-            <div style="font-size:.67rem;color:var(--mid);margin-top:1px">${pct}% of spending</div>
+            <div style="font-size:.72rem;color:var(--mid);margin-top:1px">${pct}% of spending</div>
           </div>
           <div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.88rem;color:${clr}">${MK(val_)}</div>
         </div>
@@ -352,7 +352,7 @@ function rSum(){
     return '<div class="sumi"><div class="sir1"><div class="sil"><span style="font-size:1.05rem">'+ico(it.name)+'</span><span class="siname">'+esc(trName(it.name))+'</span></div><span class="sibadge '+arr[1]+'">'+arr[2]+'</span></div><div class="sir2"><span>'+t.budget+': <strong>'+MK(it.budget)+'</strong></span><span>'+t.spent+': <strong>'+MK(sp)+'</strong></span><span style="color:'+(rem<0?'var(--r1)':'inherit')+'">'+t.left+': <strong>'+MK(rem)+'</strong></span></div><div class="pb"><div class="pf '+arr[0]+'" style="width:'+Math.min(pct*100,100)+'%"></div></div></div>';
   }
 
-  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.sumTitle+'</h2></div>';
+  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.sumTitle+'</h2></div>';
 
   if(activeItems.length === 0){
     // No spending yet — show a helpful empty state instead of 31 zero rows
@@ -368,7 +368,7 @@ function rSum(){
       zeroItems.forEach(it => { h += renderSumItem(it); });
       h += '</div>';
       h += '<div style="text-align:center;padding:10px 0 6px">'
-        +'<button id="sum-show-all-btn" onclick="toggleSumZero()" style="background:none;border:none;color:var(--p1);font-size:.76rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:inline-flex;align-items:center;gap:4px">'
+        +'<button id="sum-show-all-btn" onclick="toggleSumZero()" style="background:none;border:none;color:var(--p1-text);font-size:.76rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:inline-flex;align-items:center;gap:4px">'
         +'<i data-lucide="chevron-down" style="width:14px;height:14px" id="sum-chevron"></i>'
         +(lang==='cw'?'Onani zinthu zonse '+lCfg.items.length:'Show all '+lCfg.items.length+' items')
         +'</button></div>';
@@ -380,11 +380,11 @@ function rSum(){
     h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2></div><div class="cb">';
     lCfg.goals.forEach((gl,i)=>{
       const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target,mn=goalMonthlyNeed(gl),ml=goalMonthsLeft(gl.deadline);
-      h+='<div class="goal-card" onclick="go(&quot;stg&quot;);stgOpenSection(&quot;goals&quot;)" style="cursor:pointer'+(done?';background:linear-gradient(135deg,#E8F5E9,#C8E6C9)':'')+'">';
-      h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:#1B5E20"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div><div class="goal-pct"'+(done?' style="color:#1B5E20"':'')+'>'+Math.round(pct*100)+'%</div></div>';
+      h+='<div class="goal-card" onclick="go(&quot;stg&quot;);stgOpenSection(&quot;goals&quot;)" style="cursor:pointer'+(done?';background:var(--pos-bg)':'')+'">';
+      h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:var(--pos)"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div><div class="goal-pct"'+(done?' style="color:var(--pos)"':'')+'>'+Math.round(pct*100)+'%</div></div>';
       h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
       h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
-      if(!done&&mn!==null)h+='<div style="margin-top:5px;font-size:.63rem;color:#E65100;font-weight:700"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'mo')+(ml?' · '+ml+(lang==='cw'?' miyezi':' mths'):'')+'</div>';
+      if(!done&&mn!==null)h+='<div style="margin-top:5px;font-size:.72rem;color:var(--gold-ink);font-weight:700"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'mo')+(ml?' · '+ml+(lang==='cw'?' miyezi':' mths'):'')+'</div>';
       h+='</div>';
     });
     h+='</div></div>';
@@ -416,7 +416,7 @@ function rMGI(it,i){
   const bcls=st==='over'?'bover':st==='near'?'bnear':st==='ok'?'bok':'bnone';
   const t=tx(),btxt=st==='over'?t.over:st==='near'?t.near:st==='ok'?t.ok:t.none;
   const cc=CAT_COLORS[catOf(it.name)]||'#607D8B';
-  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.55rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button></div></div>';
+  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.72rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button></div></div>';
 }
 
 function goalMonthsLeft(dl){ if(!dl)return null; const n=new Date(),d=new Date(dl+'T00:00:00'); const m=(d.getFullYear()-n.getFullYear())*12+(d.getMonth()-n.getMonth()); return Math.max(m,0); }
@@ -425,7 +425,7 @@ const BILL_ICON_OPTS=[{key:'zap',label:'Electricity',dfltName:'ESCOM'},{key:'dro
 function _billIconGridHtml(selected){
   return BILL_ICON_OPTS.map(function(o){
     const sel = o.key===selected;
-    return '<button type="button" data-k="'+o.key+'" onclick="pickBillIcon(this.dataset.k)" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+o.key+'" style="width:13px;height:13px"></i> '+o.label+'</button>';
+    return '<button type="button" data-k="'+o.key+'" onclick="pickBillIcon(this.dataset.k)" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+o.key+'" style="width:13px;height:13px"></i> '+o.label+'</button>';
   }).join('');
 }
 function pickBillIcon(key){
@@ -491,8 +491,8 @@ function delBill(key){
   const label = bill ? bill.name : (lang==='cw'?'bili iyi':'this bill');
   appConfirm(
     '<div style="text-align:center;padding:4px 0 8px">'
-    +'<div style="width:48px;height:48px;border-radius:var(--cr);background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
-    +'<i data-lucide="trash-2" style="width:24px;height:24px;color:#C62828"></i></div>'
+    +'<div style="width:48px;height:48px;border-radius:var(--cr);background:var(--neg-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
+    +'<i data-lucide="trash-2" style="width:24px;height:24px;color:var(--neg)"></i></div>'
     +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">'+t.removeBillQ+' <strong style="color:var(--ink)">'+esc(label)+'</strong> '+t.removeBillQ2+'</div></div>',
     function(){
       var cfg=JSON.parse(JSON.stringify(lCfg));
@@ -523,8 +523,8 @@ function markBillPaid(key){
   const bill = lCfg.bills[bi];
   appConfirm(
     '<div style="text-align:center;padding:4px 0 8px">'
-    +'<div style="width:48px;height:48px;border-radius:var(--cr);background:#E8F5E9;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
-    +'<i data-lucide="check-circle" style="width:24px;height:24px;color:#2E7D32"></i></div>'
+    +'<div style="width:48px;height:48px;border-radius:var(--cr);background:var(--pos-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 10px">'
+    +'<i data-lucide="check-circle" style="width:24px;height:24px;color:var(--pos)"></i></div>'
     +'<div style="font-size:.84rem;color:var(--ink);font-weight:700;margin-bottom:4px">'+esc(bill.name)+' -- '+t.confirmMarkPaid+'</div>'
     +'<div style="font-size:.74rem;color:var(--mid);line-height:1.5">'+t.confirmMarkPaidSub+'</div></div>',
     function(){
@@ -622,13 +622,13 @@ function delIt(key){
 }
 function openAddM(){
   const t=tx();
-  let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
+  let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
   g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e');
 }
 function pickC(el,pid,hid){ g(hid).value=sC(el.style.background); document.querySelectorAll('#'+pid+' .cp').forEach(cp=>cp.classList.remove('on')); el.classList.add('on'); }
 function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast('Enter a name.','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#7B1FA2'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); _stgRefresh(); }
-function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(sC(u.color).toLowerCase()===String(c).toLowerCase()?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+sC(u.color)+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
+function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(sC(u.color).toLowerCase()===String(c).toLowerCase()?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+sC(u.color)+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); _stgRefresh(); }
 function delMember(i){
@@ -693,7 +693,7 @@ function saveGoal(){
   cfg.goals.push(goal);
   saveCfg(cfg); closeM('mv-gl'); toast((lang==='cw'?'Cholinga chaonjezedwa!':'Goal added!')); _stgRefresh();
 }
-function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:#2E7D32"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:var(--pos)"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(key){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}

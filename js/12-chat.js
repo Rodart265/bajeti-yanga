@@ -66,7 +66,7 @@ function showConvoLimitWall(count){
   h+='<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 12px;margin-bottom:14px;font-size:.76rem;color:var(--mid);text-align:left">';
   h+='To start a new conversation, either:<br>';
   h+='<strong style="color:var(--ink)">• Delete</strong> an existing conversation<br>';
-  h+='<strong style="color:var(--p1)">• Upgrade to Premium</strong> for unlimited conversations';
+  h+='<strong style="color:var(--p1-text)">• Upgrade to Premium</strong> for unlimited conversations';
   h+='</div>';
   h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(&quot;mv-u&quot;);showPremiumPage()">'+(lang==='cw'?'Pitani ku Premium kuti musunge zokambirana zopanda malire':'Upgrade for Unlimited Chats')+'</button>';
   h+='<button onclick="closeM(&quot;mv-u&quot;);openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">'+(lang==='cw'?'Sinthani Zokambirana Zomwe Zilipo':'Manage Existing Chats')+'</button>';
@@ -152,12 +152,12 @@ function toggleChatSheet(e){
   sheet.className='chat-action-sheet';
   sheet.innerHTML=
     '<div class="chat-action-row" onclick="sheet_magicLog()">'
-      +'<div class="chat-action-ico" style="background:#F3E5F5"><i data-lucide="wand-2" style="color:var(--p1)"></i></div>'
+      +'<div class="chat-action-ico" style="background:var(--p1-bg)"><i data-lucide="wand-2" style="color:var(--p1-text)"></i></div>'
       +'<div><div style="font-weight:700">'+(isCW?'Magic Log':'Magic Log')+'</div>'
       +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Ikani mawu, AI itenga zinthu':'Paste text, AI extracts items')+'</div></div>'
     +'</div>'
     +'<div class="chat-action-row" onclick="sheet_scan()">'
-      +'<div class="chat-action-ico" style="background:#E8F5E9"><i data-lucide="camera" style="color:var(--g1)"></i></div>'
+      +'<div class="chat-action-ico" style="background:var(--pos-bg)"><i data-lucide="camera" style="color:var(--pos)"></i></div>'
       +'<div><div style="font-weight:700">'+(isCW?'Jambulani risiti':'Scan Receipt')+'</div>'
       +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Chithunzi → AI imawerenga chinthu':'Photo → AI reads items')+'</div></div>'
     +'</div>'
@@ -166,7 +166,7 @@ function toggleChatSheet(e){
       +'<div><div style="font-weight:700">'+(isCW?'Chidule cha AI':'AI Summary')+'</div>'
       +'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Pezani ndemanga yazachuma chanu':'Get your financial review')+'</div></div>'
     +'</div>'
-    +'<div class="chat-action-row" onclick="sheet_convos()">'+'<div class="chat-action-ico" style="background:#FFF3E0"><i data-lucide="message-square" style="color:#E65100"></i></div>'+'<div><div style="font-weight:700">'+(isCW?'Zokambirana':'Conversations')+'</div>'+'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Sinthani zokambirana zosungidwa':'Manage saved chats')+'</div></div>'+'</div>';
+    +'<div class="chat-action-row" onclick="sheet_convos()">'+'<div class="chat-action-ico" style="background:var(--gold-bg)"><i data-lucide="message-square" style="color:var(--gold-ink)"></i></div>'+'<div><div style="font-weight:700">'+(isCW?'Zokambirana':'Conversations')+'</div>'+'<div style="font-size:.72rem;color:var(--mid);font-weight:400">'+(isCW?'Sinthani zokambirana zosungidwa':'Manage saved chats')+'</div></div>'+'</div>';
   const footer=document.querySelector('.chat-footer');
   footer.style.position='relative';
   footer.appendChild(sheet);
@@ -185,7 +185,7 @@ function sheet_scan(){
   }
   // Open dedicated scan receipt modal
   const h='<div class="dh"></div>'
-    +'<h3><i data-lucide="camera" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(lang==="cw"?"Skani Risiti":"Scan Receipt")+'</h3>'
+    +'<h3><i data-lucide="camera" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1-text)"></i>'+(lang==="cw"?"Skani Risiti":"Scan Receipt")+'</h3>'
     +'<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px">'+(lang==="cw"?"Sankhani chithunzi cha risiti kapena ngodya yanu yosindikizidwa.":"Choose a photo of your receipt or printed invoice to extract expenses.")+'</p>'
     +'<div style="display:flex;flex-direction:column;gap:10px">'
     +'<label class="magic-tile" style="flex-direction:row;padding:13px">'
@@ -225,9 +225,9 @@ function renderBubbles(){
   const hdr = document.createElement('div');
   hdr.className='chat-convo-header';
   const usageTag = isPrem
-    ? '<span style="font-size:.65rem;color:var(--g1);font-weight:700;padding:2px 7px;background:#E8F5E9;border-radius:8px">∞ Unlimited</span>'
-    : '<span id="convo-count-indicator" style="font-size:.65rem;color:var(--mid);font-weight:700;padding:2px 7px;background:var(--mist);border-radius:8px">…/'+FREE_MAX_CONVOS+' chats</span>';
-  hdr.innerHTML='<button onclick="openConvoList()" style="background:none;border:none;cursor:pointer;color:var(--p1);padding:2px 6px;border-radius:6px;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px"><i data-lucide="list" style="width:13px;height:13px"></i> Chats</button>'
+    ? '<span style="font-size:.72rem;color:var(--pos);font-weight:700;padding:2px 7px;background:var(--pos-bg);border-radius:8px">∞ Unlimited</span>'
+    : '<span id="convo-count-indicator" style="font-size:.72rem;color:var(--mid);font-weight:700;padding:2px 7px;background:var(--mist);border-radius:8px">…/'+FREE_MAX_CONVOS+' chats</span>';
+  hdr.innerHTML='<button onclick="openConvoList()" style="background:none;border:none;cursor:pointer;color:var(--p1-text);padding:2px 6px;border-radius:6px;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px"><i data-lucide="list" style="width:13px;height:13px"></i> Chats</button>'
     +'<div class="chat-convo-header-title">'+(convo?esc(convo.title):'Chat')+'</div>'
     +'<div style="display:flex;align-items:center;gap:6px">'+usageTag+'<button class="chat-new-btn" onclick="startNewConversation()">+ New</button></div>';
   el.parentElement.insertBefore(hdr, el);
@@ -256,7 +256,7 @@ function renderBubbles(){
       +'<div style="width:68px;height:68px;background:linear-gradient(135deg,#4A148C,#7B1FA2);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 24px rgba(123,31,162,.28)">'
       +'<svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg>'
       +'</div>'
-      +'<div style="font-family:Hanken Grotesk,sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1);margin-bottom:5px">'+greeting+'</div>'
+      +'<div style="font-family:Hanken Grotesk,sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1-text);margin-bottom:5px">'+greeting+'</div>'
       +'<div style="font-size:.8rem;color:var(--mid);max-width:240px;line-height:1.5">'+subText+'</div>'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 4px;flex-shrink:0">'
@@ -301,7 +301,7 @@ function renderBubbles(){
       else label=msgDate.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short',year:msgDate.getFullYear()!==now.getFullYear()?'numeric':undefined});
       dateSep='<div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px;padding:0 4px">'
         +'<div style="flex:1;height:1px;background:var(--border)"></div>'
-        +'<span style="font-size:.68rem;font-weight:700;color:var(--mid);white-space:nowrap;padding:2px 8px;background:var(--mist);border-radius:10px">'+label+'</span>'
+        +'<span style="font-size:.72rem;font-weight:700;color:var(--mid);white-space:nowrap;padding:2px 8px;background:var(--mist);border-radius:10px">'+label+'</span>'
         +'<div style="flex:1;height:1px;background:var(--border)"></div>'
         +'</div>';
     }
@@ -319,8 +319,8 @@ function renderBubbles(){
     }
     if(!isU && m.pendingAction && m.pendingAction.type==='delete'){
       const pa=m.pendingAction;
-      actionCard='<div class="ai-action-card" style="background:linear-gradient(135deg,#FFEBEE,#FFCDD2);border-color:#E53935">'
-        +'<div class="aac-title" style="color:#B71C1C"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete this entry?</div>'
+      actionCard='<div class="ai-action-card" style="background:var(--neg-bg);border-color:var(--neg)">'
+        +'<div class="aac-title" style="color:var(--neg)"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete this entry?</div>'
         +'<div class="aac-item"><span class="aac-name">'+esc(pa.item||'Transaction')+'</span><span style="font-size:.72rem;color:var(--mid)">'+esc(pa.date||'')+(pa.amount?' · MK '+Number(pa.amount).toLocaleString():'')+'</span>'
         +'<button class="aac-confirm" style="background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="confirmAiAction('+idx+')">Delete</button>'
         +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">'+(lang==='cw'?'Letsani':'Cancel')+'</button></div>'
@@ -545,10 +545,10 @@ async function openConvoList(){
   const isPrem=hasPremiumFeature('chat_conversations');
   const count = await getConvoCountFS();
   const usageLine = isPrem
-    ? '<span style="font-size:.72rem;color:var(--g1);font-weight:700;padding:2px 8px;background:#E8F5E9;border-radius:var(--cr-sm);margin-left:auto">∞ Unlimited</span>'
+    ? '<span style="font-size:.72rem;color:var(--pos);font-weight:700;padding:2px 8px;background:var(--pos-bg);border-radius:var(--cr-sm);margin-left:auto">∞ Unlimited</span>'
     : '<span style="font-size:.72rem;color:var(--mid);font-weight:700;padding:2px 8px;background:var(--mist);border-radius:var(--cr-sm);margin-left:auto">'+count+'/'+FREE_MAX_CONVOS+' used</span>';
   let h='<div class="dh"></div>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0"><i data-lucide="message-square" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1)"></i>'+(lang==='cw'?'Zokambirana':'Conversations')+'</h3>'+usageLine+'</div>';
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0"><i data-lucide="message-square" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1-text)"></i>'+(lang==='cw'?'Zokambirana':'Conversations')+'</h3>'+usageLine+'</div>';
   if(!chatConversations.length){
     h+='<p style="font-size:.82rem;color:var(--mid);text-align:center;padding:20px 0">'+(lang==='cw'?'Palibe zokambirana zosungidwa pano.':'No saved conversations yet.')+'</p>';
   } else {
@@ -819,7 +819,7 @@ function openMagicLog() {
   }
   h += '</div>';
 
-  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:.68rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'kapena lembani':'or type')+'</span><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:.72rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'kapena lembani':'or type')+'</span><div style="flex:1;height:1px;background:var(--border)"></div></div>';
   h += '<textarea class="fi" id="magic-input" rows="4" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula 5k ufa ndi 2k pa mabasi.':'e.g. Spent 5k on maize and 2k on transport.')+'" style="resize:none;margin-bottom:10px;"></textarea>';
   h += '<div id="magic-results" style="margin-bottom:10px;"></div>';
   h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#7B1FA2,#F57F17);display:flex;align-items:center;justify-content:center;gap:6px" onclick="processMagicLog()"><i data-lucide="sparkles" style="width:15px;height:15px"></i> '+(lang==='cw'?'Werengani':'Extract')+'</button></div>';
@@ -976,14 +976,14 @@ function renderMagicResults(){
      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:'+(isKnown?'0':'9px')+'">'
      +'<div style="flex:1;min-width:0">'
      +'<div style="font-size:.88rem;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px">'+esc(String(tx.item||''))+'</div>'
-     +(isKnown?'<div style="font-size:.66rem;color:var(--p1);font-weight:700">✓ In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.66rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'Sankhani gulu':'Pick a category')+'</div>')
+     +(isKnown?'<div style="font-size:.72rem;color:var(--p1-text);font-weight:700">✓ In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.72rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'Sankhani gulu':'Pick a category')+'</div>')
      +'</div>'
      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">'
-     +'<span style="font-size:.84rem;font-weight:800;color:'+(tx.type==='income'?'var(--g1)':'var(--r1)')+'">MK '+Number(tx.amount||0).toLocaleString()+'</span>'
-     +(ok?'<span style="color:var(--p1)">✓</span>':'')+'</div></div>';
+     +'<span style="font-size:.84rem;font-weight:800;color:'+(tx.type==='income'?'var(--pos)':'var(--neg)')+'">MK '+Number(tx.amount||0).toLocaleString()+'</span>'
+     +(ok?'<span style="color:var(--p1-text)">✓</span>':'')+'</div></div>';
     if(!isKnown){
       h+='<div style="display:flex;flex-wrap:wrap;gap:5px">';
-      CAT_OPTS.forEach(ct=>{const sel=tx.cat===ct.key;h+='<button data-cat="'+ct.key+'" onclick="setMagicTxCat('+idx+',\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>';});
+      CAT_OPTS.forEach(ct=>{const sel=tx.cat===ct.key;h+='<button data-cat="'+ct.key+'" onclick="setMagicTxCat('+idx+',\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>';});
       h+='</div>';
     }
     h+='</div>';
@@ -1067,7 +1067,7 @@ async function processMagicLog() {
     const _fm = aiFailMessage(err, isCW) || busyMsg;
     toast(_fm, 'e');
     const resultsEl2 = g('magic-results');
-    if(resultsEl2) resultsEl2.innerHTML = '<div style="text-align:center;padding:14px;font-size:.78rem;color:var(--r1)">'+esc(_fm)+'</div>';
+    if(resultsEl2) resultsEl2.innerHTML = '<div style="text-align:center;padding:14px;font-size:.78rem;color:var(--neg)">'+esc(_fm)+'</div>';
     btn.disabled=false; btn.innerHTML='<i data-lucide="refresh-cw" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(isCW?'Yesaninso':'Try again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
   }
 }
@@ -1157,7 +1157,7 @@ Data: ${JSON.stringify(buildSummaryData())}`;
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if(!_s.isPremium) incAiUsageTodayFS('summ');
-    box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1)"></i> AI Insight:</b><br>'+mdLite(reply||'')+'</div>';
+    box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> AI Insight:</b><br>'+mdLite(reply||'')+'</div>';
     if(window.lucide)lucide.createIcons({nodes:[box]});
     box.classList.remove('hide'); btn.style.display='none'; _aiInFlight=false;
   }catch(err){
