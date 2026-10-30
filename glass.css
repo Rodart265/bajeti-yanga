@@ -86,10 +86,13 @@ body.dark .nb.on{background:rgba(206,147,216,.2)}
 
 /* things that used to sit at bottom:0 now sit above the nav */
 .log-save-bar{
-  bottom:calc(var(--nav-h) - 8px);margin:0 10px;border-radius:var(--cr);
+  bottom:calc(var(--nav-h) + 6px);margin:0 10px;border-radius:var(--cr);
   background:var(--sheet-glass);
   border:1px solid var(--glass-border);
+  padding:6px;
 }
+/* Slim Save button: 44px tall instead of ~47px plus a 10px frame, so it covers less of the form */
+.log-save-bar .btnM{min-height:44px;padding:10px 14px;font-size:.88rem;box-shadow:none}
 
 /* ── bottom sheets ───────────────────────────────────── */
 .mb{
