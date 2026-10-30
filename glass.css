@@ -63,11 +63,11 @@ body.dark .ch{border-bottom-color:rgba(255,255,255,.08)}
 
 /* ── floating glass nav (same recipe as the SFO Tracker nav) ── */
 :root{
-  --nav-glass:rgba(255,255,255,.66);
+  --nav-glass:rgba(255,255,255,.94); /* near-opaque so page text never shows through the bar; the blur is a bonus */
   --nav-glass-edge:rgba(255,255,255,.75);
   --nav-blur:blur(14px);
 }
-body.dark{--nav-glass:rgba(30,28,42,.62);--nav-glass-edge:rgba(255,255,255,.12)}
+body.dark{--nav-glass:rgba(30,28,42,.92);--nav-glass-edge:rgba(255,255,255,.12)}
 #nav{
   position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));
   z-index:50;gap:4px;padding:6px;border-radius:24px;

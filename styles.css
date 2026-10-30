@@ -222,7 +222,6 @@ html,body{height:100%;overflow:hidden;background:var(--mist);font-family:Hanken 
   #app{max-width:480px;margin:0 auto;position:relative;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 12px 48px rgba(0,0,0,.18)}
   .ov{justify-content:center}
   .mb{max-width:480px;margin:0 auto}
-  #install-fab{right:calc(50% - 240px + 16px)}
 }
 #app.hide{display:none}
 #topbar{background:linear-gradient(135deg,var(--p1),var(--p2));padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;position:relative;overflow:hidden}
@@ -805,3 +804,25 @@ body.dark .chat-action-row:active{background:#2A2A2A}
 .cg-row-x{background:none;border:none;color:var(--mid);cursor:pointer;padding:4px;flex-shrink:0;display:flex;align-items:center}
 .cg-link-danger{display:block;width:100%;text-align:center;background:none;border:none;color:var(--r2);font-size:.72rem;font-weight:700;font-family:Hanken Grotesk,sans-serif;padding:10px 0 2px;cursor:pointer}
 
+
+/* ── Install banner (top of Home) ── */
+.inst-banner{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:var(--cr);padding:10px 4px 10px 12px;margin-bottom:11px;box-shadow:var(--sh)}
+.inst-ico{width:38px;height:38px;border-radius:var(--cr-md);background:var(--p1-bg);color:var(--p1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.inst-ico svg{width:20px;height:20px}
+.inst-body{flex:1;min-width:0}
+.inst-ttl{font-size:.84rem;font-weight:800;color:var(--ink)}
+.inst-sub{font-size:.72rem;color:var(--mid);margin-top:1px;line-height:1.3}
+.inst-btn{min-height:44px;padding:0 14px;border:none;border-radius:var(--cr-md);background:var(--p1);color:#fff;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.78rem;cursor:pointer;flex-shrink:0}
+.inst-x{width:44px;height:44px;border:none;background:none;color:var(--mid);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.inst-x svg{width:18px;height:18px}
+
+/* ── Budget cap field ── */
+.cap-field{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.cap-mk{font-size:.78rem;font-weight:700;color:var(--mid)}
+.cap-inp{width:112px;min-height:44px;padding:8px 10px;border:2px solid var(--border);border-radius:var(--cr-sm);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.9rem;color:var(--ink);background:var(--white);text-align:right;outline:none}
+.cap-inp:focus{border-color:var(--p1)}
+.cap-st{flex-basis:100%;text-align:right;font-size:.72rem;font-weight:700;min-height:1em;color:var(--mid)}
+.cap-st.ok{color:var(--g1)}
+.cap-st.err{color:var(--r1)}
+body.dark .cap-st.ok{color:#81C784}
+body.dark .cap-st.err{color:#EF9A9A}
