@@ -635,7 +635,16 @@ function filterLogItems(q){
   box.innerHTML='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">'+matches.map(o=>'<div class="ic'+(selItem===o.i?' on':'')+'" style="flex-direction:row;justify-content:flex-start;text-align:left;padding:8px 10px" onclick="pickID(this)" data-i="'+o.i+'"><div class="ic-ico">'+ico(o.it.name)+'</div><div class="ic-nm">'+esc(trName(o.it.name))+'</div></div>').join('')+'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
 }
+// Ignore a second tap on Save for a moment, so a double tap cannot add the same entry twice.
+let _saveBusy=false;
 function saveP(){
+  if(_saveBusy) return;
+  _saveBusy=true;
+  const b=document.querySelector('.log-save-bar .btnM'); if(b) b.disabled=true;
+  setTimeout(function(){ _saveBusy=false; const b2=document.querySelector('.log-save-bar .btnM'); if(b2) b2.disabled=false; },1200);
+  _saveP0();
+}
+function _saveP0(){
   const t=tx(), a=parseFloat(val('fa'));
   if(!a||isNaN(a)||a<=0){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Enter a valid amount','e');return;}
   if(a>99999999){toast(lang==='cw'?'Ndalama yakula kwambiri':'Amount is too large','e');return;}
