@@ -13,7 +13,7 @@ function polChips(items){
 function polSection(num,icon,color,title,body,isLast){
   return '<div style="display:flex;gap:12px;padding:14px 0'+(isLast?'':';border-bottom:1px solid #F0EBF8')+'">'
     +'<div style="width:34px;height:34px;border-radius:var(--cr-md);background:'+color+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+icon+'" style="width:17px;height:17px;color:'+color+'"></i></div>'
-    +'<div style="flex:1;min-width:0"><div style="font-family:Syne,sans-serif;font-size:.86rem;font-weight:800;color:#3D0E7A;margin-bottom:5px">'+num+'. '+title+'</div>'
+    +'<div style="flex:1;min-width:0"><div style="font-family:Hanken Grotesk,sans-serif;font-size:.86rem;font-weight:800;color:#3D0E7A;margin-bottom:5px">'+num+'. '+title+'</div>'
     +'<div style="font-size:.78rem;color:#555;line-height:1.65">'+body+'</div></div></div>';
 }
 function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
@@ -27,7 +27,7 @@ function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
     +'<button onclick="document.getElementById(\''+id+'\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--cr);padding:7px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back</button>'
     +'<div style="display:flex;align-items:center;gap:11px">'
     +'<div style="width:42px;height:42px;border-radius:var(--cr-md);background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+iconBadge+'" style="width:21px;height:21px;color:#fff"></i></div>'
-    +'<div><h1 style="font-family:Syne,sans-serif;font-size:1.25rem;font-weight:800;color:#fff;margin-bottom:2px">'+heading+'</h1>'
+    +'<div><h1 style="font-family:Hanken Grotesk,sans-serif;font-size:1.25rem;font-weight:800;color:#fff;margin-bottom:2px">'+heading+'</h1>'
     +'<p style="font-size:.7rem;color:rgba(255,255,255,.65)">'+subtitle+'</p></div>'
     +'</div></div>'
     +'<div style="padding:20px">'

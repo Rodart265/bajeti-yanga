@@ -856,7 +856,7 @@ function connectHH(code){
         const _ps = getPremiumStatus();
         const _isCW = lang === 'cw';
         if(_ps.isExpired){
-          setTimeout(()=>toast(_isCW?'Premium yatha. Konzaninso Premium kuti mupitirire ntchito zonse.':'Your Premium has expired. Renew to restore full access.','e'),1500);
+          setTimeout(()=>toast(_isCW?'Premium yatha. Konzaninso Premium kuti mupitirire ntchito zonse.':'Your Premium has expired. Renew to restore full access.','i'),1500);
         } else if(_ps.isPremium && !_ps.isTrial && _ps.daysLeft !== null && _ps.daysLeft <= 7){
           setTimeout(()=>toast(_isCW?'Premium yatha m\'masiku '+_ps.daysLeft+'. Bwezani tsopano.':'Premium expires in '+_ps.daysLeft+' day'+(_ps.daysLeft===1?'':'s')+'. Renew soon.','i'),1500);
         } else if(_ps.isTrial && _ps.daysLeft <= 7 && _ps.daysLeft > 0){

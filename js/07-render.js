@@ -156,79 +156,62 @@ function getSpendingStreak(){
   return streak;
 }
 
+// Month switcher shared by Home, History and Summary: 44px Lucide chevrons, a real disabled state, translated labels.
+function monthNav(cls){
+  const cw=lang==='cw', cur=isCurM();
+  return '<div class="'+(cls||'mnav')+'">'
+    +'<button type="button" class="mnbtn" aria-label="'+(cw?'Mwezi wapitawo':'Previous month')+'" onclick="prevM()"><i data-lucide="chevron-left"></i></button>'
+    +'<span class="mnlbl" aria-live="polite">'+esc(mName())+'</span>'
+    +'<button type="button" class="mnbtn" aria-label="'+(cw?'Mwezi wotsatira':'Next month')+'"'+(cur?' disabled aria-disabled="true"':'')+' onclick="nextM()"><i data-lucide="chevron-right"></i></button>'
+    +'</div>';
+}
+function _num(n){ return Math.round(n||0).toLocaleString('en-US'); }
 function renderTrendChart(months){
   if(!months||!months.length) return '';
   const isCW=lang==='cw';
-  // Use max of both spent AND income to scale the chart
-  const maxVal=Math.max.apply(null,months.map(function(m){return Math.max(m.spent,m.income||0);}));
-  if(maxVal<=0) return '';
-  const now=new Date();
   const bg=lCfg.overallBudget||0;
-  const BAR_H=104; // chart column height in px
-  let h='<div class="card" style="overflow:hidden">';
-  h+='<div class="ch">';
-  h+='<h2><i data-lucide="trending-up" style="width:16px;height:16px;margin-right:6px;color:var(--p1)"></i>';
-  h+=(isCW?'Chidule cha Miyezi 6':'6-Month Overview')+'</h2>';
-  // Inline legend — Spent + Income
-  h+='<div style="display:flex;gap:8px;align-items:center">';
-  h+='<span style="display:inline-flex;align-items:center;gap:3px;font-size:.58rem;font-weight:700;color:var(--mid)">';
-  h+='<span style="width:8px;height:8px;border-radius:2px;background:var(--p1);display:inline-block"></span>'+(isCW?'Zotuluka':'Spent')+'</span>';
-  h+='<span style="display:inline-flex;align-items:center;gap:3px;font-size:.58rem;font-weight:700;color:var(--mid)">';
-  h+='<span style="width:8px;height:8px;border-radius:2px;background:#2E7D32;display:inline-block"></span>'+(isCW?'Ndalama Zolowa':'Income')+'</span>';
-  h+='</div></div>';
-  h+='<div style="padding:12px 14px 10px">';
-  // Chart area with budget reference line
-  h+='<div style="position:relative;height:'+BAR_H+'px;margin-bottom:8px">';
-  // Dashed budget reference line
+  const hasData=function(m){ return m.spent>0||(m.income||0)>0; };
+  const withData=months.filter(hasData);
+  if(!withData.length) return '';
+  // With little history, draw only the months that have entries (always including the latest) instead of empty columns.
+  const sparse=withData.length<3;
+  const cols=sparse?months.filter(function(m,i){ return hasData(m)||i===months.length-1; }):months;
+  const maxVal=Math.max.apply(null,cols.map(function(m){return Math.max(m.spent,m.income||0);}).concat([bg]));
+  if(maxVal<=0) return '';
+  const BAR_H=104, cp=curM();
+  let h='<div class="card tcard">';
+  h+='<div class="ch"><h2><i data-lucide="trending-up" class="h2-ico"></i>'+(isCW?'Miyezi 6 yapitayi':'Last 6 months')+'</h2>';
+  h+='<div class="tc-leg"><span><i class="tc-sw tc-sw-sp"></i>'+(isCW?'Zotuluka':'Spent')+'</span><span><i class="tc-sw tc-sw-in"></i>'+(isCW?'Ndalama Zolowa':'Income')+'</span></div></div>';
+  h+='<div class="tc-body"><div class="tc-plot" style="height:'+BAR_H+'px">';
   if(bg>0){
-    const budgetLineH=Math.min(Math.round(bg/maxVal*BAR_H),BAR_H-4);
-    h+='<div style="position:absolute;left:0;right:0;bottom:'+budgetLineH+'px;border-top:1.5px dashed rgba(123,31,162,.35);z-index:1;pointer-events:none">';
-    h+='<span style="position:absolute;right:0;top:-9px;font-size:.5rem;font-weight:800;color:var(--p1);opacity:.7;background:var(--surface);padding:0 3px;border-radius:3px">'+(isCW?'Bajeti':'Budget')+'</span>';
-    h+='</div>';
+    const lineH=Math.min(Math.round(bg/maxVal*BAR_H),BAR_H-2);
+    h+='<div class="tc-line" style="bottom:'+lineH+'px"><span class="tc-bud">'+(isCW?'Bajeti':'Budget')+' MK '+_num(bg)+'</span></div>';
   }
-  // Bars row
-  h+='<div style="display:flex;align-items:flex-end;gap:3px;height:'+BAR_H+'px;position:relative;z-index:2">';
-  months.forEach(function(m){
-    const _cp=curM();
-    const isThis=m.month===_cp.m&&m.year===_cp.y;
+  h+='<div class="tc-bars">';
+  cols.forEach(function(m){
+    const isThis=m.month===cp.m&&m.year===cp.y;
     const isOver=bg>0&&m.spent>bg;
-    const spH=maxVal>0?Math.max(Math.round(m.spent/maxVal*BAR_H),m.spent>0?3:0):0;
-    const incH=maxVal>0?Math.max(Math.round((m.income||0)/maxVal*BAR_H),(m.income||0)>0?3:0):0;
-    const spColor=isThis?(isOver?'linear-gradient(180deg,#FF5252,#C62828)':'linear-gradient(180deg,var(--p2),var(--p1))'):(isOver?'rgba(198,40,40,.4)':'rgba(123,31,162,.22)');
-    const spShadow=isThis&&!isOver?';box-shadow:0 2px 8px rgba(123,31,162,.35)':'';
-    const incColor=isThis?'#2E7D32':'rgba(46,125,50,.3)';
-    // Each month column: tappable, navigates to that month in History
-    const monthLabel=tx().months[m.month];
-    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="viewMonth={m:'+m.month+',y:'+m.year+'};insTab=&quot;hist&quot;;go(&quot;insights&quot;)">';
-    h+='<div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:1px;position:relative">';
-    // Amount label above current month spend bar only
-    if(isThis&&m.spent>0){
-      h+='<div style="position:absolute;bottom:calc(100% + 2px);left:0;right:0;text-align:center;font-size:.5rem;font-weight:800;color:var(--p1);white-space:nowrap">'+MKs(m.spent)+'</div>';
-    }
-    // Spend bar (takes ~60% of column width)
-    h+='<div style="flex:3;height:'+spH+'px;background:'+spColor+';border-radius:4px 4px 2px 2px'+spShadow+'"></div>';
-    // Income bar (takes ~40% of column width — only shown when income exists)
-    if(m.income>0){
-      h+='<div style="flex:2;height:'+incH+'px;background:'+incColor+';border-radius:4px 4px 2px 2px"></div>';
-    } else {
-      h+='<div style="flex:2"></div>';
-    }
-    h+='</div>';
-    h+='<div style="font-size:.58rem;font-weight:700;color:'+(isThis?'var(--p1)':'var(--mid)')+'">'+(isThis?'<strong>':'')+monthLabel+(isThis?'</strong>':'')+'</div>';
-    h+='</div>';
+    const spH=Math.max(Math.round(m.spent/maxVal*BAR_H),m.spent>0?3:0);
+    const incH=Math.max(Math.round((m.income||0)/maxVal*BAR_H),(m.income||0)>0?3:0);
+    const name=tx().months[m.month];
+    const label=name+': '+(isCW?'zotuluka MK ':'spent MK ')+_num(m.spent)+((m.income||0)>0?(isCW?', ndalama zolowa MK ':', income MK ')+_num(m.income):'');
+    h+='<button type="button" class="tc-col'+(isThis?' now':'')+'" aria-label="'+esc(label)+'" onclick="viewMonth={m:'+m.month+',y:'+m.year+'};insTab=&quot;hist&quot;;go(&quot;insights&quot;)">';
+    h+='<span class="tc-pair">';
+    if(isThis&&m.spent>0) h+='<span class="tc-amt">'+MKs(m.spent)+'</span>';
+    h+='<span class="tc-sp'+(isThis?' now':'')+(isOver?' over':'')+'" style="height:'+spH+'px"></span>';
+    h+=(m.income>0?'<span class="tc-in'+(isThis?' now':'')+'" style="height:'+incH+'px"></span>':'<span class="tc-in-empty"></span>');
+    h+='</span><span class="tc-mo">'+esc(name)+'</span></button>';
   });
-  h+='</div></div>'; // close bars row + relative wrapper
-  // Footer: month-over-month change badge + current month projection
-  h+='<div style="display:flex;justify-content:space-between;align-items:center">';
-  const last=months[5],prev=months[4];
+  h+='</div></div>';
+  if(sparse) h+='<div class="tc-note">'+(isCW?'Chithunzichi chidzakula mukamalemba miyezi yambiri.':'Your trend grows as you log more months.')+'</div>';
+  h+='<div class="tc-foot">';
+  const last=months[months.length-1], prev=months[months.length-2];
   if(last&&prev&&prev.spent>0){
-    const chg=Math.round((last.spent-prev.spent)/prev.spent*100);
-    const up=chg>0;
-    h+='<div class="bdiff-badge '+(up?'bdiff-dn':'bdiff-up')+'">'+(up?'&uarr;':'&darr;')+Math.abs(chg)+'% vs last mo</div>';
+    const chg=Math.round((last.spent-prev.spent)/prev.spent*100), up=chg>0;
+    h+='<div class="bdiff-badge '+(up?'bdiff-dn':'bdiff-up')+'">'+(up?'&uarr;':'&darr;')+Math.abs(chg)+'% '+(isCW?'poyerekeza ndi mwezi wapitawo':'vs last month')+'</div>';
   } else {
-    h+='<div style="font-size:.63rem;color:var(--mid)"><i data-lucide="bar-chart-2" style="width:11px;height:11px;margin-right:3px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Momwe Zikuyendera Mwezi ndi Mwezi':'Monthly trend')+'</div>';
+    h+='<div class="tc-trend"><i data-lucide="bar-chart-2"></i>'+(isCW?'Momwe Zikuyendera Mwezi ndi Mwezi':'Monthly trend')+'</div>';
   }
-  // End-of-month spending projection for current month
   if(last&&last.spent>0&&bg>0){
     // Project over the current BUDGET period (calendar month, or salary-day period), not always the calendar month.
     const _bp=getBudgetPeriod(curM());
@@ -238,16 +221,17 @@ function renderTrendChart(months){
     const daysPassed=Math.floor((_t0-_ps)/86400000)+1;
     if(daysPassed<daysInMonth&&daysPassed>0){
       const projected=Math.round(last.spent/daysPassed*daysInMonth);
-      const projOver=projected>bg;
-      h+='<div style="font-size:.6rem;font-weight:800;color:'+(projOver?'#C62828':'#2E7D32')+'">&#8594; '+MKs(projected)+' proj.</div>';
+      h+='<div class="tc-proj '+(projected>bg?'over':'ok')+'">'+(isCW?'Akuyembekezeka: MK ':'On pace for MK ')+_num(projected)+'</div>';
     }
   }
   h+='</div></div></div>';
   return h;
 }
 function rHome(){
-  const t=tx(), sp=totSp(), inc=totIn(), bg=lCfg.overallBudget, rem=bg-sp, pct=bg>0?Math.min(sp/bg,1):0;
-  const circ=2*Math.PI*32, off=circ*(1-pct), stroke=pct>=1?'#FF5252':pct>=.8?'#FFD54F':'#69F0AE';
+  const t=tx(), sp=totSp(), inc=totIn(), bg=lCfg.overallBudget, rem=bg-sp;
+  const pctRaw=bg>0?sp/bg:0, arc=Math.min(pctRaw,1), isOver=rem<0;
+  const circ=2*Math.PI*32, off=circ*(1-arc);
+  const stroke=isOver?'#FFB4A8':pctRaw>=.8?'#F5C451':'#A8E6BF';
   const recent=lPx.filter(p=>isTM(p.date)&&!p.deleted).slice(0,5);
   const over=lCfg.items.filter(it=>iSpent(it.name)>it.budget).length;
   const near=lCfg.items.filter(it=>{const r=iSpent(it.name)/it.budget;return r>=.8&&r<1;}).length;
@@ -255,22 +239,23 @@ function rHome(){
   const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income'&&!p.deleted).length;
   const streak=getSpendingStreak();
   const isCW=lang==='cw';
+  const balNum=_num(Math.abs(rem));
   let h='<div class="page">';
   if(typeof installBannerHtml==='function') h+=installBannerHtml();
-  h+='<div class="mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
-  h+='<div class="hero2">';
+  h+=monthNav('mnav');
+  h+='<div class="hero2'+(isOver?' is-over':'')+'">';
   h+='<div class="h2-top">';
-  h+='<div class="h2-ring"><svg viewBox="0 0 80 80" width="78" height="78" style="transform:rotate(-90deg)"><circle fill="none" stroke="rgba(255,255,255,.14)" stroke-width="8" cx="40" cy="40" r="32"/><circle fill="none" stroke="'+stroke+'" stroke-width="8" stroke-linecap="round" cx="40" cy="40" r="32" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
-  h+='<div class="h2-rlbl"><b>'+Math.round(pct*100)+'%</b><span>used</span></div></div>';
+  h+='<div class="h2-ring" role="img" aria-label="'+Math.round(pctRaw*100)+'% '+(isCW?'zagwiritsidwa':'used')+'"><svg viewBox="0 0 80 80" width="78" height="78" style="transform:rotate(-90deg)" aria-hidden="true"><circle fill="none" stroke="rgba(255,255,255,.18)" stroke-width="8" cx="40" cy="40" r="32"/><circle fill="none" stroke="'+stroke+'" stroke-width="8" stroke-linecap="round" cx="40" cy="40" r="32" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
+  h+='<div class="h2-rlbl"><b>'+Math.round(pctRaw*100)+'%</b><span>'+(isCW?'zagwiritsidwa':'used')+'</span></div></div>';
   h+='<div class="h2-main">';
-  h+='<div class="h2-lbl">'+t.left+' this month</div>';
-  h+='<div class="h2-bal'+(rem<0?' danger':'')+'">'+( rem<0?'- '+MKs(-rem):MKs(rem))+'</div>';
-  h+='<div class="h2-sub">'+(isCW?'pa bajeti ya ':'of ')+MKs(bg)+' '+t.monthlyBudget+'</div>';
+  h+='<div class="h2-lbl">'+(isOver?(isCW?'Mwapitirira bajeti ndi':'Over budget by'):t.left+' '+(isCW?'mwezi uno':'this month'))+'</div>';
+  h+='<div class="h2-bal'+(isOver?' danger':'')+(balNum.length>=9?' long':'')+'"><span class="h2-cur">MK</span><span class="h2-num">'+balNum+'</span></div>';
+  h+='<div class="h2-sub">'+(isCW?'pa MK '+_num(bg)+' ya bajeti ya mwezi':'of MK '+_num(bg)+' monthly budget')+'</div>';
   h+='</div></div>';
   h+='<div class="h2-cols">';
-  h+='<div class="h2-col"><div class="h2-cl">'+t.income+'</div><div class="h2-cv gc">'+MKs(inc)+'</div></div>';
+  h+='<div class="h2-col"><div class="h2-cl">'+t.income+'</div><div class="h2-cv gc">'+MK(inc)+'</div></div>';
   h+='<div class="h2-div"></div>';
-  h+='<div class="h2-col"><div class="h2-cl">'+t.spent+'</div><div class="h2-cv rc">'+MKs(sp)+'</div></div>';
+  h+='<div class="h2-col"><div class="h2-cl">'+t.spent+'</div><div class="h2-cv rc">'+MK(sp)+'</div></div>';
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cnt+'</div></div>';
   h+='</div></div>';

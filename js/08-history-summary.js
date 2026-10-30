@@ -22,9 +22,7 @@ function rHist(){
 
   // Month navigation when in month mode
   if(histTime==='month'){
-    h+='<div class="hist-mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button>';
-    h+='<span class="mnlbl"><i data-lucide="calendar-days" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span>';
-    h+='<button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
+    h+=monthNav('mnav hist-mnav');
   }
 
   // Action buttons row
@@ -277,7 +275,7 @@ function toggleSumZero(){
 
 function rSum(){
   const t=tx(), tB=lCfg.items.reduce((s,it)=>s+it.budget,0), tS=totSp();
-  let h='<div class="page"><div class="mnav"><button class="mnbtn" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="bar-chart-2" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+mName()+'</span><button class="mnbtn" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
+  let h='<div class="page">'+monthNav('mnav');
   
   h+='<button class="magic-btn" id="ai-sum-btn" onclick="generateAiSummary()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:white;border:none;"><i data-lucide="zap" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(lang==='cw'?'Chidule cha AI':'Get AI Financial Review')+'</button>';
   h+='<div id="ai-sum-box" class="hide"></div>';

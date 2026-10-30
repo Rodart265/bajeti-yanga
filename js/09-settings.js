@@ -16,8 +16,8 @@ function rStg(){
   let premiumChip = '';
   if(pStatus.isExpired){
     premiumChip = '<button onclick="showPremiumPage()" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0">'
-      +'<span style="display:inline-flex;align-items:center;gap:4px;background:#FFEBEE;color:#B71C1C;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="alert-triangle" style="width:11px;height:11px;color:#C62828"></i> '+(lang==='cw'?'Yatha':'Expired')+'</span>'
-      +'<span style="font-size:.58rem;color:#C62828;font-weight:700;white-space:nowrap">'+(lang==='cw'?'Dinani kuti mukonzenso':'Tap to renew')+'</span>'
+      +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;border-radius:var(--cr-md);white-space:nowrap;min-height:36px">'+(lang==='cw'?'Konzaninso':'Renew')+'</span>'
+      +'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">'+(lang==='cw'?'Premium yatha':'Premium ended')+'</span>'
       +'</button>';
   } else if(pStatus.isPremium && !pStatus.isTrial){
     const expiry = lCfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
@@ -25,19 +25,19 @@ function rStg(){
     const nearExpiry = pStatus.daysLeft !== null && pStatus.daysLeft <= 7;
     if(nearExpiry){
       premiumChip = '<button onclick="showPremiumPage()" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0">'
-        +'<span style="display:inline-flex;align-items:center;gap:4px;background:#FFF3E0;color:#E65100;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="clock" style="width:11px;height:11px;color:#E65100"></i> '+pStatus.daysLeft+'d left</span>'
-        +'<span style="font-size:.58rem;color:#E65100;white-space:nowrap">'+(lang==='cw'?'Bwezani tsopano':'Tap to renew')+'</span>'
+        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold-ink);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="clock" style="width:11px;height:11px"></i> '+pStatus.daysLeft+'d left</span>'
+        +'<span style="font-size:.72rem;color:var(--gold-ink);white-space:nowrap">'+(lang==='cw'?'Bwezani tsopano':'Tap to renew')+'</span>'
         +'</button>';
     } else {
       premiumChip = '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">'
-        +'<span style="display:inline-flex;align-items:center;gap:4px;background:#E8F5E9;color:#1B5E20;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px;color:#2E7D32"></i> Premium</span>'
-        +(expiryStr?'<span style="font-size:.58rem;color:var(--mid);white-space:nowrap">Until '+expiryStr+'</span>':'')
+        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--pos-bg);color:var(--pos);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Premium</span>'
+        +(expiryStr?'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">Until '+expiryStr+'</span>':'')
         +'</div>';
     }
   } else if(pStatus.isPremium && pStatus.isTrial){
-    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:#F3E5F5;color:var(--p1);font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Trial · '+pStatus.daysLeft+'d</button>';
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Trial · '+pStatus.daysLeft+'d</button>';
   } else {
-    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Upgrade</button>';
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;min-height:36px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Upgrade</button>';
   }
   h+='<div class="prof-hdr" style="align-items:center">';
   if(photo && /^https:\/\//i.test(photo)){h+='<div class="prof-av"><img src="'+esc(photo)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px"></div>';}

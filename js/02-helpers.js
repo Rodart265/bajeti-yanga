@@ -187,7 +187,10 @@ function dismissToast(){
   el.classList.remove('on');
   clearTimeout(window._toastTimer);
 }
-function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':''); }
+function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':'');
+  const cw=(typeof lang!=='undefined'&&lang==='cw');
+  const lbl=s==='off'?(cw?'Palibe intaneti':'Not connected'):s==='spin'?(cw?'Ikusunga…':'Saving…'):(cw?'Zasungidwa':'Synced');
+  d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl; }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
 

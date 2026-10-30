@@ -256,7 +256,7 @@ function renderBubbles(){
       +'<div style="width:68px;height:68px;background:linear-gradient(135deg,#4A148C,#7B1FA2);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 24px rgba(123,31,162,.28)">'
       +'<svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg>'
       +'</div>'
-      +'<div style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1);margin-bottom:5px">'+greeting+'</div>'
+      +'<div style="font-family:Hanken Grotesk,sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1);margin-bottom:5px">'+greeting+'</div>'
       +'<div style="font-size:.8rem;color:var(--mid);max-width:240px;line-height:1.5">'+subText+'</div>'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 4px;flex-shrink:0">'

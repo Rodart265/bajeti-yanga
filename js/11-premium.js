@@ -445,9 +445,9 @@ function getPremiumChipState(){
   const cw = lang === 'cw';
   const n = s.daysLeft;
   const days = function(){ return n + ' day' + (n === 1 ? '' : 's') + ' left'; };
-  if(s.isExpired) return {tone:'ended', icon:'lock', label: cw ? 'Premium yatha' : 'Premium ended', aria: cw ? 'Premium yatha. Dinani kuti mukonze.' : 'Premium ended. Tap for options.'};
-  if(s.isTrial && n <= 0) return {tone:'ended', icon:'lock', label: cw ? 'Nthawi yoyesera yatha' : 'Trial ended', aria: cw ? 'Nthawi yoyesera yatha. Dinani kuti mukonze.' : 'Trial ended. Tap for options.'};
-  if(s.isTrial && n <= 10) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Trial: ' + days(), aria: 'Trial: ' + days() + '. Tap for options.'};
+  // An ended plan is shown calmly in Profile only (no header chip, no alarm colours).
+  if(s.isExpired || (s.isTrial && n <= 0)) return null;
+  if(s.isTrial && n <= 7) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Trial: ' + days(), aria: 'Trial: ' + days() + '. Tap for options.'};
   if(s.isPremium && !s.isTrial && n !== null && n <= 7) return {tone:'soon', icon:'clock', label: cw ? 'Masiku ' + n + ' otsala' : 'Premium: ' + days(), aria: 'Premium: ' + days() + '. Tap for options.'};
   return null;
 }
