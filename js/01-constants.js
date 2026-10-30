@@ -142,7 +142,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.10.0';
+const APP_VERSION = '9.10.1';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
@@ -170,7 +170,7 @@ let sortMode = 'cat', srchQ = '', logType = 'expense', histFilter = 'all', histT
 // same drill-down instead of bouncing to the Settings hub.
 let _stgSection = null;
 let _sdPanelOpen = false; // Salary Day panel in Settings: collapsed by default, expands on tap
-function _stgRefresh(){ if(_stgSection){ stgOpenSection(_stgSection); } else { rStg(); } }
+function _stgRefresh(){ if(_stgSection){ stgOpenSection(_stgSection, true); } else { rStg(); } }
 // Live listener for the owner's pending-join-requests panel, so a request that's
 // cancelled or declined disappears immediately instead of needing a manual refresh.
 let _joinReqUnsub = null;

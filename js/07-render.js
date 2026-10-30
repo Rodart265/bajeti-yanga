@@ -5,6 +5,7 @@
 function go(t){ 
   tab=t; srchQ=''; logType='expense'; 
   if(t!=='stg'){ _stgSection=null; _stopJoinReqListener(); }
+  else _stgSection=null; // tapping the Profile tab itself always opens the hub
   // Reset month view when navigating to Home so users always see current month
   if(t==='home'){ viewMonth=null; _invalidateMemo(); }
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); 
@@ -58,8 +59,28 @@ function render(){
   if(tab==='chat' && activeChatId && g('chat-msgs')){
     renderBubbles(); return;
   }
+  // A Profile drill-down (members, items, goals, bills) is redrawn in place, not replaced by the hub.
+  if(tab==='stg' && _stgSection){ stgOpenSection(_stgSection, true); return; }
   ({home:rHome,log:rLog,hist:rHist,sum:rSum,insights:rInsights,stg:rStg,chat:rChat,chip:rChip})[tab]?.();
 }
+// Redraw for a live data update (a Firestore snapshot). If the person is typing in a form field, or has a
+// half-filled Log form, the redraw waits so it cannot wipe what they are entering; it runs once they are done.
+let _pendingLive=false;
+function _userIsEditing(){
+  if(tab==='chat') return false;
+  const v=g('view'), a=document.activeElement;
+  if(v && a && v.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+  if(tab==='log'){ const fa=g('fa'), fn=g('fn'); if((fa&&fa.value)||(fn&&fn.value)) return true; }
+  return false;
+}
+function renderLive(){
+  if(_userIsEditing()){ _pendingLive=true; return; }
+  _pendingLive=false; render();
+}
+document.addEventListener('focusout', function(){
+  if(!_pendingLive) return;
+  setTimeout(function(){ if(_pendingLive && !_userIsEditing()){ _pendingLive=false; render(); } }, 300);
+});
 function toggleLang(){
   lang=lang==='en'?'cw':'en'; localStorage.setItem('nb_lang',lang); const btn=g('lbtn'); if(btn)btn.textContent=lang==='en'?'CW':'EN'; applyLang(); render();
 }
@@ -225,7 +246,7 @@ function renderTrendChart(months){
   return h;
 }
 function rHome(){
-  const t=tx(), sp=totSp(), inc=totIn(), bg=lCfg.overallBudget, rem=bg-sp, pct=Math.min(sp/bg,1);
+  const t=tx(), sp=totSp(), inc=totIn(), bg=lCfg.overallBudget, rem=bg-sp, pct=bg>0?Math.min(sp/bg,1):0;
   const circ=2*Math.PI*32, off=circ*(1-pct), stroke=pct>=1?'#FF5252':pct>=.8?'#FFD54F':'#69F0AE';
   const recent=lPx.filter(p=>isTM(p.date)&&!p.deleted).slice(0,5);
   const over=lCfg.items.filter(it=>iSpent(it.name)>it.budget).length;
@@ -235,6 +256,7 @@ function rHome(){
   const streak=getSpendingStreak();
   const isCW=lang==='cw';
   let h='<div class="page">';
+  if(typeof installBannerHtml==='function') h+=installBannerHtml();
   h+='<div class="mnav"><button class="mnbtn" aria-label="Previous month" onclick="prevM()">&#9664;</button><span class="mnlbl"><i data-lucide="calendar" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+mName()+'</span><button class="mnbtn" aria-label="Next month" onclick="nextM()" style="opacity:'+(isCurM()?'.3':'1')+'">&#9654;</button></div>';
   h+='<div class="hero2">';
   h+='<div class="h2-top">';
@@ -252,7 +274,7 @@ function rHome(){
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cnt+'</div></div>';
   h+='</div></div>';
-  h+=renderChipHomeCard();
+  h+='<div id="chip-home-slot">'+renderChipHomeCard()+'</div>';
   if(streak>=2){
     const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
     const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';
@@ -302,7 +324,7 @@ function rHome(){
     h+='<p><strong>'+(isCW?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span></p></div>';
   }
   h+='</div></div></div>';
-  g('view').innerHTML=h;
+  setView(h);
 }
 function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(hhId).then(()=>toast(tx().codeCopied,'i')).catch(()=>toast(tx().codeCopied,'i'));} }
 function waCode(){ if(hhId)window.open('https://wa.me/?text='+encodeURIComponent('Join my Bajeti Yanga!\nCode: '+hhId+'\n\nOpen the app and tap Join Household.'),'_blank'); }
@@ -597,8 +619,7 @@ function rLog(){
   if(logType==='expense')h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><input type="checkbox" id="frc" style="width:17px;height:17px;accent-color:var(--p1)"><label for="frc" style="font-size:.78rem;font-weight:600;color:var(--mid)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.recurrYes+'</label></div>';
   h+='</div></div></div>';
   h+='<div class="log-save-bar"><button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
-  g('view').innerHTML=h;
-  if(window.lucide) lucide.createIcons({nodes:[g('view')]});
+  setView(h);
   if(logSrch) filterLogItems(logSrch);
 }
 function setLT(t){ logType=t; selItem=null; selItemKey=null; logSrch=''; rLog(); }

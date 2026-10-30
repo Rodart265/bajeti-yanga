@@ -821,7 +821,7 @@ function connectHH(code){
         _next.defaultsMigrated=1;
         saveCfg(_next);
       }
-      setDot(''); updatePill(); render();
+      setDot(''); updatePill(); renderLive();
       scheduleInAppAlerts(); checkBillReminders();
       // Owners make sure the household has its invite stub (invites/{code}); see _backfillInvite.
       if(curUser && d.owner === curUser.uid) _backfillInvite(code);
@@ -892,7 +892,7 @@ function connectHH(code){
         return (b.date||'').localeCompare(a.date||'');
       });
       _invalidateMemo(); // Clear performance cache when data changes
-      setDot(''); render();
+      setDot(''); renderLive();
       clearTimeout(window._recurTimer);
       window._recurTimer = setTimeout(checkAndAddRecurring, 2500);
     }, err=>{
@@ -941,7 +941,12 @@ function startChipListener(){
       chipGroups.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
       if(chipActiveId && !chipGroups.some(g=>g.id===chipActiveId)) chipActiveId=null;
       if(!chipActiveId && chipGroups.length) chipActiveId=chipGroups[0].id;
-      if(tab==='home') rHome();
+      if(tab==='home'){
+        // Only the Chipereganyu card can have changed: replace that node, not the whole of Home.
+        const slot=g('chip-home-slot');
+        if(slot){ slot.innerHTML=renderChipHomeCard(); try{ if(window.lucide) lucide.createIcons({nodes:[slot]}); }catch(e){} }
+        else rHome();
+      }
       if(tab==='chip') rChip();
     }, function(err){ console.warn('[chip] listener error:', err && err.code); });
 }
@@ -985,7 +990,12 @@ function saveCfg(cfg){
   Object.keys(prev).forEach(k=>{ if(!(k in cfg)) upd['config.'+k]=FV.delete(); });
   if(!Object.keys(upd).length) return Promise.resolve();
   setDot('spin');
-  return db.collection('households').doc(hhId).update(upd).then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kusunga zosintha kwalephera: ':'Settings sync failed: ')+(e&&e.code||'error')+'.','e');setDot('off');});
+  return db.collection('households').doc(hhId).update(upd).then(()=>{setDot('');return true;}).catch(e=>{
+    toast((lang==='cw'?'Kusunga zosintha kwalephera: ':'Settings sync failed: ')+(e&&e.code||'error')+'.','e');setDot('off');
+    // The write was rejected, so put the previous settings back (only if nothing newer replaced ours meanwhile).
+    if(lCfg===cfg){ lCfg=prev; _invalidateMemo(); try{ renderLive(); }catch(x){} }
+    return false;
+  });
 }
 // Returns a Promise<boolean> (true = saved) so callers that chain several writes can tell whether this one worked.
 // opts.docId makes the write idempotent (same id => same document), used to stop two devices both adding the same recurring entry.

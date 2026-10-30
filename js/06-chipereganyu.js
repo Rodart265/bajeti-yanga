@@ -353,7 +353,7 @@ function rChip(){
   if(!grp){
     let h0='<div class="page"><div class="cg-back" onclick="go(\'home\')"><i data-lucide="chevron-left"></i><div class="cg-title">Chipereganyu</div></div>';
     h0+='<div class="empty"><p><strong>'+(isCW?'Mulibe gulu lililonse.':'No group yet.')+'</strong></p></div></div>';
-    g('view').innerHTML=h0; initIcons(); return;
+    setView(h0); return;
   }
   let h='<div class="page">';
   h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
@@ -392,7 +392,7 @@ function rChip(){
       h+='<button class="cg-link-danger" onclick="chipDeleteGroup()">'+(isCW?'Chotsani gulu lino':'Delete this group')+'</button>';
     }
     h+='</div></div></div>';
-    g('view').innerHTML=h; initIcons(); return;
+    setView(h); return;
   }
 
   const cc=grp.currentCycle;
@@ -502,7 +502,7 @@ function rChip(){
   }
 
   h+='</div>';
-  g('view').innerHTML=h; initIcons();
+  setView(h);
 }
 
 function cpChipCode(code){ navigator.clipboard && navigator.clipboard.writeText(code).then(()=>toast(lang==='cw'?'Nambala yakoperedwa':'Code copied','i')).catch(()=>toast(lang==='cw'?'Nambala yakoperedwa':'Code copied','i')); }

@@ -193,28 +193,105 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
   }
 
   // -- In-app Install prompt --
+  // States: standalone (already installed, show nothing), available (browser gave us a prompt), ios (Safari has
+  // no prompt, show steps), other (no prompt yet: the Profile row still explains how). A prompt can only be used
+  // once, so after it is shown (accepted or not) the saved event is dropped.
   window._deferredInstall=null;
   window.addEventListener('beforeinstallprompt',function(e){
     e.preventDefault();
     window._deferredInstall=e;
-    var btn=document.getElementById('install-fab');
-    if(btn){btn.style.display='flex';}
+    refreshInstallUI();
   });
   window.addEventListener('appinstalled',function(){
     window._deferredInstall=null;
-    var btn=document.getElementById('install-fab');
-    if(btn){btn.style.display='none';}
-    if(typeof toast==='function')toast(lang==='cw'?'App yaikidwa! &#127881;.':'App installed! &#127881;.','s');
+    window._justInstalled=true;
+    if(typeof toast==='function')toast(lang==='cw'?'App yaikidwa!':'App installed!','s');
+    refreshInstallUI();
   });
 })();
 
+function installIsStandalone(){
+  try{
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if(window.navigator.standalone) return true;
+    if(window._justInstalled) return true;
+  }catch(e){}
+  return false;
+}
+function installIsIOS(){
+  const ua=navigator.userAgent||'';
+  return /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints>1);
+}
+// 'standalone' | 'available' | 'ios' | 'other'
+function installState(){
+  if(installIsStandalone()) return 'standalone';
+  if(window._deferredInstall) return 'available';
+  if(installIsIOS()) return 'ios';
+  return 'other';
+}
+const INSTALL_COOLDOWN_MS = 14*24*60*60*1000; // a dismissed banner stays hidden for 14 days
+function installBannerDismissed(){
+  try{ const t=parseInt(localStorage.getItem('nb_install_dismissed')||'0',10); return !!t && (Date.now()-t)<INSTALL_COOLDOWN_MS; }
+  catch(e){ return false; }
+}
+function dismissInstallBanner(){
+  try{ localStorage.setItem('nb_install_dismissed', String(Date.now())); }catch(e){}
+  const b=document.getElementById('install-banner'); if(b) b.remove();
+}
+// Banner shown at the top of Home: only when an install is really possible and not recently dismissed.
+function installBannerHtml(){
+  const st=installState();
+  if(!(st==='available'||st==='ios') || installBannerDismissed()) return '';
+  const cw=lang==='cw';
+  return '<div class="inst-banner" id="install-banner">'
+    +'<div class="inst-ico"><i data-lucide="download"></i></div>'
+    +'<div class="inst-body"><div class="inst-ttl">'+(cw?'Ikani Bajeti Yanga':'Install Bajeti Yanga')+'</div>'
+    +'<div class="inst-sub">'+(cw?'Imatseguka mwachangu ndipo imagwira ntchito popanda intaneti.':'Opens faster and works offline.')+'</div></div>'
+    +'<button type="button" class="inst-btn" onclick="triggerInstall()">'+(cw?'Ikani':'Install')+'</button>'
+    +'<button type="button" class="inst-x" onclick="dismissInstallBanner()" aria-label="'+(cw?'Tsekani uthenga woyika':'Dismiss install banner')+'"><i data-lucide="x"></i></button>'
+    +'</div>';
+}
+// Row in Profile > General. Always there until the app is installed, so it works after the banner is dismissed.
+function installRowHtml(){
+  if(installState()==='standalone') return '';
+  const cw=lang==='cw';
+  return '<div class="stg-row" onclick="triggerInstall()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="download" style="color:var(--p1)"></i></div>'
+    +'<div class="stg-row-body"><div class="stg-row-lbl">'+(cw?'Ikani pulogalamu':'Install app')+'</div>'
+    +'<div class="stg-row-sub">'+(cw?'Imatseguka mwachangu ndipo imagwira ntchito popanda intaneti':'Opens faster and works offline')+'</div></div>'
+    +'<div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+}
+function refreshInstallUI(){
+  try{
+    const b=document.getElementById('install-banner');
+    if(tab==='home'||(tab==='stg'&&!_stgSection)){ if(typeof render==='function') render(); }
+    else if(b && installState()==='standalone') b.remove();
+  }catch(e){}
+}
 function triggerInstall(){
-  if(window._deferredInstall){
-    window._deferredInstall.prompt();
-    window._deferredInstall.userChoice.then(function(r){
-      if(r.outcome==='accepted'){window._deferredInstall=null;}
-    });
+  const ev=window._deferredInstall;
+  if(ev){
+    window._deferredInstall=null; // a saved prompt works only once
+    try{
+      ev.prompt();
+      ev.userChoice.then(function(r){
+        if(r && r.outcome!=='accepted'){ try{ localStorage.setItem('nb_install_dismissed', String(Date.now())); }catch(e){} }
+        refreshInstallUI();
+      }).catch(function(){ refreshInstallUI(); });
+    }catch(e){ refreshInstallUI(); showInstallHelp(); }
+    return;
   }
+  showInstallHelp();
+}
+// No browser prompt available (iOS, or the prompt was already used): say how to install by hand.
+function showInstallHelp(){
+  const cw=lang==='cw', ios=installIsIOS();
+  const steps = ios
+    ? (cw?'Dinani batani la Share, kenako dinani Add to Home Screen.':'Tap the Share button, then tap Add to Home Screen.')
+    : (cw?'Tsegulani menyu ya msakatuli (madontho atatu), kenako dinani Install app kapena Add to Home screen.':'Open the browser menu (the three dots), then tap Install app or Add to Home screen.');
+  const h='<div class="dh"></div><h3>'+(cw?'Ikani Bajeti Yanga':'Install Bajeti Yanga')+'</h3>'
+    +'<p style="font-size:.84rem;line-height:1.5;color:var(--mid);margin:6px 0 14px">'+esc(steps)+'</p>'
+    +'<button class="btnM" onclick="closeM(&quot;mv-u&quot;)">'+(cw?'Zatheka':'Got it')+'</button>';
+  g('mb-u').innerHTML=h; if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]}); openM('mv-u');
 }
 
 // Boot only if privacy already agreed

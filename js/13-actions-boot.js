@@ -108,6 +108,13 @@ function initIcons(){
     } 
   }catch(e){ console.warn('[initIcons] Lucide error:', e); }
 }
+// Single way to put a screen into #view: sets the HTML and draws its Lucide icons in the same step, so no screen
+// can show blank icon placeholders. Every r* function and the live-update listeners end with this.
+function setView(html){
+  const v=g('view'); if(!v) return;
+  v.innerHTML=html;
+  try{ if(window.lucide) lucide.createIcons({nodes:[v]}); }catch(e){ console.warn('[setView] Lucide error:', e); }
+}
 const _origRender = typeof render==='function' ? render : null;
 if(_origRender){
   render = function(){

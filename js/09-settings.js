@@ -56,6 +56,7 @@ function rStg(){
   h+='<div class="stg-row" onclick="toggleLang()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="globe" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chiyankhulo':'Language')+'</div></div><div class="stg-row-right"><span class="stg-row-val">'+(lang==='en'?'English':'Chichewa')+'</span><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="'+(isDark?'sun':'moon')+'" style="width:16px;height:16px;color:var(--ix1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mdima':'Dark Mode')+'</div></div><label class="toggle-sw" style="margin:0"><input type="checkbox" '+(isDark?'checked':'')+' onchange="tgDark(this.checked)"><div class="toggle-tr"></div></label></div>';
   h+='<div class="stg-row" onclick="openNotifs()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="bell" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zidziwitso':'Notifications')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  if(typeof installRowHtml==='function') h+=installRowHtml();
   h+='</div>';
 
   // -- Household --
@@ -70,7 +71,7 @@ function rStg(){
   // Bill Tracker
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="bills"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="alarm-clock" style="color:var(--o1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.billTracker+lockBadge(11)+'</div><div class="stg-row-sub">'+((lCfg.bills&&lCfg.bills.length)||0)+' '+(lang==='cw'?'zolipira':'bills')+(pStatus.isPremium?'':' · Premium')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Overall budget
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="wallet" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Yonse ya Mwezi':'Monthly Budget Cap')+'</div></div><div class="stg-row-right"><input type="number" style="width:90px;text-align:right;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:4px 7px;font-size:.78rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:700" value="'+lCfg.overallBudget+'" inputmode="numeric" onchange="updOB(this.value)"></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="wallet" style="color:var(--p1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Yonse ya Mwezi':'Monthly Budget Cap')+'</div></div><div class="stg-row-right">'+budgetCapField('cap-prof')+'</div></div>';
   // Salary Day / Budget Period -- collapsed by default. Tapping the row reveals
   // both the active-period detail and the day input inside the same panel,
   // instead of having the input and detail always sitting in the settings list.
@@ -146,8 +147,7 @@ function rStg(){
 
   h+='<button class="stg-logout" onclick="logout()"><i data-lucide="log-out" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i> '+t.logout+'</button>';
   h+='</div>';
-  g('view').innerHTML=h;
-  if(window.lucide) lucide.createIcons({nodes:[g('view')]});
+  setView(h);
 }
 
 function showWhatsNew(){
@@ -189,7 +189,8 @@ function buildStgSortBar(t){
   const modes=[['cat',ic('layout-grid')+t.sortCat],['az',t.sortAZ],['over',ic('alert-circle')+t.sortOver],['spend',ic('flame')+t.sortSpend]];
   return '<div class="sort-bar">'+modes.map(function(m){return '<div class="sb'+(sortMode===m[0]?' on':'')+'" onclick="sortAndStg(\''+m[0]+'\')" >'+m[1]+'</div>';}).join('')+'</div>';
 }
-function stgOpenSection(sec){
+// keep=true redraws the section that is already open (no new history entry).
+function stgOpenSection(sec, keep){
   if(sec==='bills' && !getPremiumStatus().isPremium){
     premiumGate('bill_tracker', function(){ stgOpenSection('bills'); });
     return;
@@ -202,7 +203,7 @@ function stgOpenSection(sec){
     // Give this drill-down its own history entry so device back returns to the
     // main Settings list (the entry pushed when the Settings tab was opened)
     // instead of falling out of the app entirely.
-    try{ history.pushState({tab:'stg',section:sec},'',(location.pathname||'/')); }catch(e){}
+    if(!keep){ try{ history.pushState({tab:'stg',section:sec},'',(location.pathname||'/')); }catch(e){} }
     const t=tx();
     let h='<div class="page">';
     h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:var(--cr);padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):sec==='goals'?(lang==='cw'?'Zolinga zosungira':'Savings Goals'):(lang==='cw'?'Zolipira':'Bill Tracker'))+'</h2></div>';
@@ -249,7 +250,7 @@ function stgOpenSection(sec){
         }, 300);
       }
     } else if(sec==='items'){
-      h+='<div class="obra"><label class="oblbl"><i data-lucide="home" style="color:var(--p1)"></i> '+t.overallCap+'</label><input type="number" class="obinp" id="ob-v" value="'+esc(lCfg.overallBudget)+'" inputmode="numeric" onchange="updOB(this.value)"></div>';
+      h+='<div class="obra"><label class="oblbl" for="cap-items"><i data-lucide="home" style="color:var(--p1)"></i> '+t.overallCap+'</label>'+budgetCapField('cap-items')+'</div>';
       h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i> '+t.itemsLbl+'</h2></div>';
       h+=buildStgSortBar(t);
       const items=lCfg.items;
@@ -300,8 +301,7 @@ function stgOpenSection(sec){
       h+='</div></div>';
     }
     h+='</div>';
-    g('view').innerHTML=h;
-    if(window.lucide) lucide.createIcons({nodes:[g('view')]});
+    setView(h);
   }
 }
 function sortAndStg(s){sortMode=s;stgOpenSection('items');}

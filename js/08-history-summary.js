@@ -99,12 +99,27 @@ function rHist(){
     h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><p><strong>'+(isCW?'Palibe zolemba.':'No entries found.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Yesani fyuluta ina kapena nthawi ina.':'Try a different filter or time range.')+'</span></p></div>';
   }
   h+='</div>';
-  g('view').innerHTML=h;
+  setView(_insBar()+h);
 }
 
 function doSrch(v){ srchQ=v; _doSrchDebounced(); }
 let _srchTimer=null;
-function _doSrchDebounced(){ clearTimeout(_srchTimer); _srchTimer=setTimeout(()=>rHist(),180); }
+// The search box is rebuilt along with the list, so put the cursor back where the person was typing
+// (otherwise the keyboard closes after every pause). Does nothing if they have moved to another screen.
+function _doSrchDebounced(){
+  clearTimeout(_srchTimer);
+  _srchTimer=setTimeout(function(){
+    if(!(tab==='hist'||(tab==='insights'&&insTab==='hist'))) return;
+    const a=document.activeElement;
+    const hadFocus=!!(a&&a.closest&&a.closest('.srch-wrap'));
+    const pos=hadFocus&&typeof a.selectionStart==='number'?a.selectionStart:null;
+    rHist();
+    if(hadFocus){
+      const inp=document.querySelector('#view .srch-wrap input');
+      if(inp){ inp.focus(); try{ const p=pos===null?inp.value.length:pos; inp.setSelectionRange(p,p); }catch(e){} }
+    }
+  },180);
+}
 function isInTimeRange(dateStr){
   if(histTime==='all') return true;
   const d=new Date(dateStr), now=new Date();
@@ -377,33 +392,25 @@ function rSum(){
     h+='</div></div>';
   }
   h+='</div>';
-  g('view').innerHTML=h;
+  setView(_insBar()+h);
 }
 
 // ── Insights (merged History + Summary) ──
 let insTab='summary'; // default sub-tab
-function rInsights(){
+// Summary / History tab bar. rHist and rSum add it themselves while the Insights tab is open, so a filter or
+// search that redraws History directly keeps the bar.
+function _insBar(){
+  if(tab!=='insights') return '';
   const isCW=lang==='cw';
   const tabs=[
     {k:'summary',lbl:isCW?'<i data-lucide="pie-chart" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Chidule':'<i data-lucide="pie-chart" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Summary'},
     {k:'hist',   lbl:isCW?'<i data-lucide="history" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Mbiri':'<i data-lucide="history" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> History'}
   ];
-  const tabBar='<div class="ins-tabs">'+tabs.map(t=>'<button class="ins-tab'+(insTab===t.k?' on':'')+'" onclick="insTab=\''+t.k+'\';rInsights()">'+t.lbl+'</button>').join('')+'</div>';
-  if(insTab==='hist'){
-    // Render history inline with tabbar prepended
-    rHist();
-    const v=g('view');
-    if(v) v.innerHTML=tabBar+v.innerHTML;
-  } else {
-    // Render summary inline with tabbar prepended
-    rSum();
-    const v=g('view');
-    if(v) v.innerHTML=tabBar+v.innerHTML;
-  }
+  return '<div class="ins-tabs">'+tabs.map(t=>'<button class="ins-tab'+(insTab===t.k?' on':'')+'" onclick="insTab=\''+t.k+'\';rInsights()">'+t.lbl+'</button>').join('')+'</div>';
 }
-
-
-
+function rInsights(){
+  if(insTab==='hist') rHist(); else rSum();
+}
 function rMGI(it,i){
   const k=recKey(it,i);
   const sp=iSpent(it.name),st=statOf(sp,it.budget),pct=Math.min(sp/it.budget,1)*100;
@@ -546,7 +553,46 @@ function markBillPaid(key){
   );
 }
 
-function updOB(v){ const n=parseFloat(v); if(!n||isNaN(n)||n<=0||n>99999999){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Enter a valid budget','e');return;} saveCfg({...lCfg,overallBudget:n}); }
+// ── Monthly budget cap field (one component, used in Profile and in Items & Budgets) ──
+const CAP_MAX = 99999999;
+function _capFmt(n){ return Number(n||0).toLocaleString('en-US'); }
+function budgetCapField(id){
+  const cw=lang==='cw';
+  return '<span class="cap-field"><span class="cap-mk" aria-hidden="true">MK</span>'
+    +'<input type="text" inputmode="numeric" autocomplete="off" class="cap-inp" id="'+id+'" value="'+esc(_capFmt(lCfg.overallBudget))+'"'
+    +' aria-label="'+(cw?'Malire a Mwezi (MK)':'Monthly budget cap (MK)')+'" aria-describedby="'+id+'-st"'
+    +' oninput="capInput(this)" onchange="commitBudgetCap(this)" onkeydown="if(event.key===&quot;Enter&quot;){this.blur();}">'
+    +'<span class="cap-st" id="'+id+'-st" role="status" aria-live="polite"></span></span>';
+}
+// Shows thousands separators while typing; only digits are kept.
+function capInput(el){
+  const digits=el.value.replace(/[^\d]/g,'').slice(0,8);
+  el.value=digits?_capFmt(parseInt(digits,10)):'';
+}
+function _capStatus(el,txt,kind){
+  const st=document.getElementById(el.id+'-st'); if(!st) return;
+  st.textContent=txt||''; st.className='cap-st'+(kind?' '+kind:'');
+  clearTimeout(st._t); if(kind==='ok') st._t=setTimeout(function(){ st.textContent=''; st.className='cap-st'; },2500);
+}
+function commitBudgetCap(el){
+  const cw=lang==='cw';
+  const n=parseInt(el.value.replace(/[^\d]/g,''),10);
+  const prev=lCfg.overallBudget;
+  if(!n||isNaN(n)||n<=0||n>CAP_MAX){
+    toast(cw?'Lowetsani ndalama yolondola':'Enter a valid budget','e');
+    el.value=_capFmt(prev); _capStatus(el,cw?'Sizinasungidwe':'Not saved','err'); return;
+  }
+  el.value=_capFmt(n);
+  if(n===prev) return;
+  const offline = typeof navigator!=='undefined' && navigator.onLine===false;
+  _capStatus(el, offline?(cw?'Zidzasungidwa mukalumikizidwa':'Will sync when online'):(cw?'Kusunga…':'Saving…'), 'busy');
+  const id=el.id;
+  Promise.resolve(saveCfg({...lCfg,overallBudget:n})).then(function(ok){
+    const cur=document.getElementById(id); if(!cur) return;
+    if(ok===false){ cur.value=_capFmt(lCfg.overallBudget); _capStatus(cur,cw?'Sizinasungidwe':'Not saved','err'); }
+    else _capStatus(cur,cw?'Zasungidwa':'Saved','ok');
+  });
+}
 function toggleSalaryPanel(){ _sdPanelOpen = !_sdPanelOpen; _stgRefresh(); }
 function updSalaryDay(v){
   if(v===''||v===null||v===undefined||v==='0'){
