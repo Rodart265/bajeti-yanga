@@ -152,30 +152,35 @@ function rStg(){
 
 function showWhatsNew(){
   const isCW=lang==='cw';
+  // Plain-language notes for the people using the app. Every entry has English and Chichewa (the Chichewa wording needs native review).
   const changes=[
-    {icon:'refresh-cw',    color:'#1565C0', title:'Safer Shared Editing',      desc:'Budget items, bills and savings goals are now tracked by ID, so two people editing the same household can no longer change the wrong one by mistake.'},
-    {icon:'users',         color:'#2E7D32', title:'Chipereganyu',              desc:'Run a rotating savings circle with people across households. Create or join with a code, track contributions, and payouts log straight to your budget.'},
-    {icon:'user-x',        color:'#C62828', title:'Household Join Fixes',      desc:'Cancelling a join request and detecting a declined one now actually work. Removed members can no longer slip back in without a new approval.'},
-    {icon:'alarm-clock',   color:'#2E7D32', title:'Bill Tracker: Mark as Paid', desc:'Tap the new checkmark on a bill to log the payment as an expense and roll the due date forward a month.'},
-    {icon:'zap',           color:'#7B1FA2', title:'Faster, Focused Quick Pick', desc:'Trimmed down to your most-used staples so logging an entry is quicker.'},
-    {icon:'shield-check',  color:'#1565C0', title:'Safer Member Removal',       desc:'Removing a household member now also revokes their access, not just their name from the list.'},
-    {icon:'save',          color:'#1565C0', title:'Sticky Save Button',        desc:'The Save button on the Log screen now stays visible while you scroll.'},
-    {icon:'bell',          color:'#7B1FA2', title:'Bills Due Soon on Home',    desc:'Upcoming bills now surface on the Home screen when they are due.'},
-    {icon:'zap',           color:'#F57F17', title:'Faster Boot Splash',        desc:'The app icon now appears reliably every time you open the app.'},
-    {icon:'languages',     color:'#607D8B', title:'Chichewa Paused',           desc:'Temporarily turned off while we improve translation quality. English works as normal.'},
+    {icon:'layout-grid', en:['A fresh look','Warmer colours, one clean font, and a new Home screen that shows what is left this month more clearly.'],
+                         cw:['Maonekedwe atsopano','Mitundu yofunda, zilembo zomveka, ndi tsamba la Pakhomo latsopano lomwe likuonetsa bwino ndalama zotsala mwezi uno.']},
+    {icon:'trending-up', en:['Clearer 6-month chart','Your budget line is labelled, and a note shows where you are on pace to finish the month.'],
+                         cw:['Chithunzi cha miyezi 6 chomveka bwino','Mzere wa bajeti walembedwa, ndipo mukuona kumene mukuyembekezeka kutha mwezi.']},
+    {icon:'moon',        en:['Easier to read in dark mode','Text and badges are brighter and larger across the app.'],
+                         cw:['Kuwerenga bwino mu mdima','Zolemba ndi zizindikiro zaonekera bwino ndi zazikulu pa tsamba lililonse.']},
+    {icon:'wifi',        en:['Faster start, works offline','The app opens sooner on slow connections and keeps working without internet.'],
+                         cw:['Kuyamba mwachangu, kumagwira popanda intaneti','Pulogalamu imatseguka msanga ngakhale intaneti ikhale yocheperapo, ndipo imagwira popanda intaneti.']},
+    {icon:'download',    en:['Install Bajeti Yanga','Add it to your home screen from Home or Profile so it opens quicker.'],
+                         cw:['Ikani Bajeti Yanga','Ikani pa sikirini yanu kuchokera pa Pakhomo kapena Akaunti kuti itsegule mofulumira.']},
+    {icon:'shield-check',en:['Fixes','Budget cap saves reliably, the Log Save button is smaller, and typing no longer loses your entry when data syncs.'],
+                         cw:['Kukonza zolakwika','Malire a bajeti amasungidwa bwino, batani la Sungani ndi laling\'ono, ndipo zomwe mukulemba sizitayika deta ikasinthana.']},
   ];
+
   let h='<div class="dh"></div>';
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
   h+='<div style="width:44px;height:44px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;flex-shrink:0">';
   h+='<i data-lucide="sparkles" style="width:22px;height:22px;color:#fff"></i></div>';
-  h+='<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">What\'s New in v'+APP_VERSION+'</div>';
-  h+='<div style="font-size:.7rem;color:var(--mid)">'+(lang==='cw'?'Zatsopano':'Release notes')+'</div></div></div>';
+  h+='<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(lang==='cw'?'Zatsopano mu v':'What\'s New in v')+APP_VERSION+'</div>';
+  h+='<div style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Zomwe zasintha':'Release notes')+'</div></div></div>';
   changes.forEach(function(c){
+    const tx2=isCW?c.cw:c.en;
     h+='<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">';
-    h+='<div style="width:36px;height:36px;border-radius:var(--cr-md);background:'+c.color+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
-    h+='<i data-lucide="'+c.icon+'" style="width:18px;height:18px;color:'+c.color+'"></i></div>';
-    h+='<div style="flex:1"><div style="font-weight:700;font-size:.82rem;color:var(--ink)">'+c.title+'</div>';
-    h+='<div style="font-size:.72rem;color:var(--mid);margin-top:1px;line-height:1.45">'+c.desc+'</div></div></div>';
+    h+='<div style="width:36px;height:36px;border-radius:var(--cr-md);background:var(--p1-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    h+='<i data-lucide="'+c.icon+'" style="width:18px;height:18px;color:var(--p1-text)"></i></div>';
+    h+='<div style="flex:1"><div style="font-weight:700;font-size:.875rem;color:var(--ink)">'+tx2[0]+'</div>';
+    h+='<div style="font-size:.8125rem;color:var(--mid);margin-top:1px;line-height:1.45">'+tx2[1]+'</div></div></div>';
   });
   h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(&quot;mv-u&quot;)">'+(lang==='cw'?'Tsekani':'Close')+'</button>';
   g('mb-u').innerHTML=h;
