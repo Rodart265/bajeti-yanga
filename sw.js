@@ -1,7 +1,7 @@
 // Bajeti Yanga service worker
 // Bump this version string on every deploy to force cache invalidation.
 // Keep the number equal to APP_VERSION in js/01-constants.js (the version people see in the app).
-const V = "bajeti-v9.14.0";
+const V = "bajeti-v9.14.1";
 // Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
 // deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
 // every release made each phone download ~400 KB of Firebase again over mobile data.
