@@ -110,9 +110,22 @@ function initIcons(){
 }
 // Single way to put a screen into #view: sets the HTML and draws its Lucide icons in the same step, so no screen
 // can show blank icon placeholders. Every r* function and the live-update listeners end with this.
+// Clickable divs and spans become keyboard-reachable buttons: role, tab stop, and Enter/Space to activate.
+function a11yPass(root){
+  try{
+    (root||document).querySelectorAll('[onclick]:not(button):not(a):not(input):not(select):not(textarea):not(label):not([role]):not(.ov)').forEach(function(e){
+      e.setAttribute('role','button'); e.setAttribute('tabindex','0');
+    });
+  }catch(e){}
+}
+document.addEventListener('keydown',function(e){
+  if((e.key==='Enter'||e.key===' ') && e.target && e.target.getAttribute && e.target.getAttribute('role')==='button' && e.target.tagName!=='BUTTON'){
+    e.preventDefault(); e.target.click();
+  }
+});
 function setView(html){
   const v=g('view'); if(!v) return;
-  v.innerHTML=html;
+  v.innerHTML=html; a11yPass(v);
   try{ if(window.lucide) lucide.createIcons({nodes:[v]}); }catch(e){ console.warn('[setView] Lucide error:', e); }
 }
 const _origRender = typeof render==='function' ? render : null;
@@ -130,6 +143,13 @@ if(_origRender){
   // Privacy gate removed — auth screen has policy links
   try{ applyStaticLang(); }catch(e){}
   bootApp();
+  // Still on the first loading screen after 12 s: say so, and offer a retry instead of an endless spinner.
+  setTimeout(function(){
+    const v=g('view'); const ld=v&&v.querySelector('.loading');
+    if(!ld || g('app').classList.contains('hide')) return;
+    const cw=(typeof lang!=='undefined'&&lang==='cw');
+    ld.innerHTML='<div style="text-align:center;padding:24px 16px"><div style="font-weight:700;color:var(--ink);margin-bottom:6px">'+(cw?'Zikutenga nthawi yayitali':'This is taking longer than usual')+'</div><div style="font-size:.8125rem;color:var(--mid);margin-bottom:14px">'+(cw?'Onani intaneti yanu, kenako yesaninso.':'Check your connection, then try again.')+'</div><button class="btnG" onclick="location.reload()">'+(cw?'Yesaninso':'Try again')+'</button></div>';
+  }, 12000);
   setTimeout(checkNameChange, 2000);
   setTimeout(requestPushPermission, 8000);
 })();

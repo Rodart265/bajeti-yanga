@@ -298,7 +298,7 @@ function rHome(){
       const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
       h+='<div class="pri">';
       h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
-      h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="This entry needs a proper name" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
+      h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
       h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span></div></div>';
@@ -574,7 +574,7 @@ function rLog(){
       +'<div id="log-search-results"></div>';
     if(selItem!==null&&selItem!=='custom'){
       const si=lCfg.items[selItem];
-      if(si)h+='<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:var(--cr-md);padding:8px 12px;margin-bottom:8px"><div style="font-size:1.05rem">'+ico(si.name)+'</div><div style="flex:1;font-weight:700;font-size:.82rem;color:var(--ink)">'+esc(trName(si.name))+'</div><button onclick="pickI(null)" style="border:none;background:none;color:var(--mid);cursor:pointer;padding:2px" aria-label="Clear selection"><i data-lucide="x" style="width:15px;height:15px"></i></button></div>';
+      if(si)h+='<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:var(--cr-md);padding:8px 12px;margin-bottom:8px"><div style="font-size:1.05rem">'+ico(si.name)+'</div><div style="flex:1;font-weight:700;font-size:.82rem;color:var(--ink)">'+esc(trName(si.name))+'</div><button onclick="pickI(null)" style="border:none;background:none;color:var(--mid);cursor:pointer;padding:2px" aria-label="'+L('Clear selection','Chotsani chosankhidwa')+'"><i data-lucide="x" style="width:15px;height:15px"></i></button></div>';
     }
     h+='<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" style="border-style:dashed;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 10px"><div class="ic-ico"><i data-lucide="pencil" style="width:16px;height:16px"></i></div><div class="ic-nm">'+(lang==='cw'?'Chinthu Chinanso':'Custom item')+'</div></div>'
       +'</div>';

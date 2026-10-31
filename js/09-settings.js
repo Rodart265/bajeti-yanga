@@ -625,13 +625,31 @@ function swU(id){ localStorage.setItem('nb_uid',id); updatePill(); closeM('mv-u'
 // popstate handler below.
 let _openModalStack = [];
 let _modalCloseCallbacks = {};
-function openM(id, onClose){ g(id).classList.add('open'); _openModalStack=_openModalStack.filter(x=>x!==id); _openModalStack.push(id); if(onClose) _modalCloseCallbacks[id]=onClose; }
+let _modalOpener = {};
+function openM(id, onClose){
+  const el=g(id); el.classList.add('open'); _openModalStack=_openModalStack.filter(x=>x!==id); _openModalStack.push(id); if(onClose) _modalCloseCallbacks[id]=onClose;
+  // Screen readers and keyboards: announce it as a dialog, move focus into it, and remember where to return.
+  el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true');
+  _modalOpener[id]=document.activeElement;
+  setTimeout(function(){
+    if(!el.classList.contains('open')) return;
+    const box=el.querySelector('.mb')||el;
+    if(!box.hasAttribute('tabindex')) box.setAttribute('tabindex','-1');
+    a11yPass(box);
+    try{ box.focus({preventScroll:true}); }catch(e){}
+  },60);
+}
 function closeM(id){
   g(id).classList.remove('open');
+  const op=_modalOpener[id]; delete _modalOpener[id];
+  if(op && op.focus && document.contains(op)){ try{ op.focus({preventScroll:true}); }catch(e){} }
   _openModalStack=_openModalStack.filter(x=>x!==id);
   const cb = _modalCloseCallbacks[id];
   if(cb){ delete _modalCloseCallbacks[id]; cb(); } // e.g. release a camera stream, whether closed via button or device-back
 }
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && _openModalStack.length){ e.preventDefault(); closeM(_openModalStack[_openModalStack.length-1]); }
+});
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{
   if(e.target===o){
     if(window._qrScanInterval){ stopQRScanner(); }

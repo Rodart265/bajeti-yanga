@@ -103,9 +103,9 @@ function rChat(){
     '<div style="position:relative;display:flex;flex-direction:column;height:100%;padding:0;overflow:hidden">'
     +'<div class="chat-wrap"><div class="chat-msgs" id="chat-msgs"></div>'
     +'<div class="chat-footer" style="position:relative">'
-    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="More options" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:42px;height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35)">'+attachIcon+'</button>'
+    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="'+L('More options','Zina zambiri')+'" aria-label="'+L('More options','Zina zambiri')+'" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:42px;height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35)">'+attachIcon+'</button>'
     +'<textarea class="chat-input" id="chat-inp" rows="1" placeholder="'+placeholder+'" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>'
-    +'<button class="chat-send" id="chat-send" onclick="sendChat()" aria-label="Send">'+sendIcon+'</button>'
+    +'<button class="chat-send" id="chat-send" onclick="sendChat()" aria-label="'+L('Send','Tumizani')+'">'+sendIcon+'</button>'
     +'</div></div></div>';
   // Render immediately with whatever is in memory — prevents blank flash
   renderBubbles();
@@ -280,7 +280,7 @@ function renderBubbles(){
     const ts=m.ts ? new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
     const label=isU?'You':'Bajeti AI';
     // Delete button
-    const delBtn='<button class="bubble-del-btn" onclick="deleteMessage('+idx+')" title="Delete message"><i data-lucide="x" style="width:11px;height:11px"></i></button>';
+    const delBtn='<button class="bubble-del-btn" onclick="deleteMessage('+idx+')" title="'+L('Delete message','Chotsani uthenga')+'" aria-label="'+L('Delete message','Chotsani uthenga')+'"><i data-lucide="x" style="width:11px;height:11px"></i></button>';
 
     // Date separator logic
     let dateSep='';
@@ -559,7 +559,7 @@ async function openConvoList(){
       h+='<div class="chat-convo-item'+(isActive?' on':'')+'" data-cid="'+esc(c.id)+'" onclick="switchConvoById(this)">'  
         +'<div class="chat-convo-title">'+esc(c.title)+'</div>'
         +'<span class="chat-convo-date">'+dateStr+'</span>'
-        +'<button class="chat-convo-del" onclick="event.stopPropagation();delConvoById(this.closest(\'[data-cid]\')||this)" title="Delete"><i data-lucide="x" style="width:11px;height:11px"></i></button>'
+        +'<button class="chat-convo-del" onclick="event.stopPropagation();delConvoById(this.closest(\'[data-cid]\')||this)" title="'+L('Delete','Chotsani')+'" aria-label="'+L('Delete','Chotsani')+'"><i data-lucide="x" style="width:11px;height:11px"></i></button>'
         +'</div>';
     });
     h+='</div>';
@@ -946,7 +946,7 @@ async function scanReceipt(input){
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Save All '+pendingMagicTxs.length+' Items'; if(window.lucide)lucide.createIcons({nodes:[btn]}); btn.setAttribute('onclick','saveMagicTxs()');}
       if(!getPremiumStatus().isPremium) incAiUsageTodayFS('scan');
       _aiInFlight=false;
-      toast('Receipt scanned!','s');
+      toast(lang==='cw'?'Risiti yawerengedwa!':'Receipt scanned!','s');
     }catch(err){
       if(resultsEl)resultsEl.innerHTML='';
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="sparkles" style="width:15px;height:15px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Tulutsani':'Extract');if(window.lucide)lucide.createIcons({nodes:[btn]});}

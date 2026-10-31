@@ -324,7 +324,7 @@ function renderSetupJoinForm(){
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:12px">'
       +'<input class="setup-in" id="join-code" placeholder="'+(isCW?'Ikani kodi ya nyumba apa…':'Paste household code…')+'" maxlength="20" style="flex:1;margin-bottom:0">'
-      +'<button onclick="openQRScanner()" style="flex-shrink:0;width:48px;height:48px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Scan QR Code">'
+      +'<button onclick="openQRScanner()" style="flex-shrink:0;width:48px;height:48px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="'+L('Scan QR code','Jambulani QR kodi')+'" aria-label="'+L('Scan QR code','Jambulani QR kodi')+'">'
         +'<i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i></button>'
     +'</div>'
     +'<button class="setup-btn" style="width:100%;margin-top:0;padding:13px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="joinHH()">'
@@ -361,7 +361,7 @@ function _canCreateAnotherHousehold(ownedHH){
 }
 
 function createHHSolo(){
-  if(!curUser){setupErr('Not signed in.');return;}
+  if(!curUser){setupErr(lang==='cw'?'Simunalowe muakaunti.':'Not signed in.');return;}
   if(_setupBusy) return;
   _setupLock();
   setDot('spin'); setupErr('');
@@ -391,14 +391,14 @@ function createHHSolo(){
         },{merge:true});
       })
       .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Takulandirani! Muli wokonzeka.':'Welcome! You\'re all set.','s'); })
-      .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+      .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); });
     });
-  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
+  }).catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); })
   .finally(()=>{ _setupUnlock(); });
 }
 
 function createHH(){
-  if(!curUser){setupErr('Not signed in.');return;}
+  if(!curUser){setupErr(lang==='cw'?'Simunalowe muakaunti.':'Not signed in.');return;}
   if(_setupBusy) return;
   _setupLock();
   setDot('spin'); setupErr('');
@@ -424,9 +424,9 @@ function createHH(){
         },{merge:true});
       })
       .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yapangidwa!':'Household created!','s'); })
-      .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+      .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); });
     });
-  }).catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
+  }).catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); })
   .finally(()=>{ _setupUnlock(); });
 }
 
@@ -628,9 +628,9 @@ function _checkApproved(code){
 
 function joinHH(){
   const code=val('join-code').trim().toLowerCase();
-  if(!code){setupErr('Enter a household code.');return;}
+  if(!code){setupErr(lang==='cw'?'Lowetsani kodi ya nyumba.':'Enter a household code.');return;}
   if(!_validCode(code)){setupErr(lang==='cw'?'Kodi iyi siikuoneka bwino. Onaninso.':'That code does not look right. Check it with your household owner.');return;}
-  if(!curUser){setupErr('Not signed in.');return;}
+  if(!curUser){setupErr(lang==='cw'?'Simunalowe muakaunti.':'Not signed in.');return;}
   if(_setupBusy) return;
   _setupLock();
   setDot('spin'); setupErr('');
@@ -735,9 +735,9 @@ function joinHH(){
           _approvalUnsub = null; // null = active
           setTimeout(pollForApproval, 3000); // first check after 3 seconds
         })
-        .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); });
+        .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); });
     })
-    .catch(e=>{ setDot('off'); setupErr('Error: '+e.message); })
+    .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); })
     .finally(()=>{ _setupUnlock(); });
 }
 
@@ -1013,7 +1013,7 @@ function addPx(p,opts){
   const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
   return op.then(()=>{setDot('');return true;}).catch(e=>{
     if(opts.quiet){ setDot(''); return false; }
-    const msg=e&&e.code==='permission-denied'?'Permission denied. Check Firestore rules.':'Sync error: '+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
+    const msg=e&&e.code==='permission-denied'?(lang==='cw'?'Palibe chilolezo. Onani malamulo a Firestore.':'Permission denied. Check Firestore rules.'):(lang==='cw'?'Vuto losinthanitsa: ':'Sync error: ')+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
     return false;
   });
 }

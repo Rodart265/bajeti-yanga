@@ -165,6 +165,8 @@ function mdLite(s){
 }
 function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='scr-setup' && typeof resetSetupJoinCard==='function') resetSetupJoinCard(); }
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
+// Pick the English or Chichewa wording for a string that is built outside t / tx().
+function L(en,cw){ return lang==='cw'?cw:en; }
 function toast(msg,type){
   const el=g('toast'); if(!el)return;
   type = type||'s';
@@ -175,7 +177,7 @@ function toast(msg,type){
   const duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
   el.innerHTML = '<div class="t-ic-wrap"><i data-lucide="'+icons[type]+'" style="width:13px;height:13px"></i></div>'
     +'<div class="t-msg">'+esc(msg)+'</div>'
-    +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="Dismiss"><i data-lucide="x" style="width:13px;height:13px"></i></button>'
+    +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="'+L('Dismiss','Tsekani')+'"><i data-lucide="x" style="width:13px;height:13px"></i></button>'
     +'<div class="t-bar" style="animation-duration:'+duration+'ms"></div>';
   if(window.lucide) lucide.createIcons({nodes:[el]});
   clearTimeout(window._toastTimer);
