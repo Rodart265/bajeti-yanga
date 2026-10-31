@@ -205,7 +205,7 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
   window.addEventListener('appinstalled',function(){
     window._deferredInstall=null;
     window._justInstalled=true;
-    if(typeof toast==='function')toast(lang==='cw'?'App yaikidwa!':'App installed!','s');
+    if(typeof toast==='function')toast(lang==='cw'?'Pulogalamu yaikidwa!':'App installed!','s');
     refreshInstallUI();
   });
 })();
@@ -248,7 +248,7 @@ function installBannerHtml(){
     +'<div class="inst-body"><div class="inst-ttl">'+(cw?'Ikani Bajeti Yanga':'Install Bajeti Yanga')+'</div>'
     +'<div class="inst-sub">'+(cw?'Imatseguka mwachangu ndipo imagwira ntchito popanda intaneti.':'Opens faster and works offline.')+'</div></div>'
     +'<button type="button" class="inst-btn" onclick="triggerInstall()">'+(cw?'Ikani':'Install')+'</button>'
-    +'<button type="button" class="inst-x" onclick="dismissInstallBanner()" aria-label="'+(cw?'Tsekani uthenga woyika':'Dismiss install banner')+'"><i data-lucide="x"></i></button>'
+    +'<button type="button" class="inst-x" onclick="dismissInstallBanner()" aria-label="'+(cw?'Bisani uthenga woyika':'Dismiss install banner')+'"><i data-lucide="x"></i></button>'
     +'</div>';
 }
 // Row in Profile > General. Always there until the app is installed, so it works after the banner is dismissed.
@@ -256,7 +256,7 @@ function installRowHtml(){
   if(installState()==='standalone') return '';
   const cw=lang==='cw';
   return '<div class="stg-row" onclick="triggerInstall()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="download" style="color:var(--p1)"></i></div>'
-    +'<div class="stg-row-body"><div class="stg-row-lbl">'+(cw?'Ikani pulogalamu':'Install app')+'</div>'
+    +'<div class="stg-row-body"><div class="stg-row-lbl">'+(cw?'Ikani pulogalamuyi':'Install app')+'</div>'
     +'<div class="stg-row-sub">'+(cw?'Imatseguka mwachangu ndipo imagwira ntchito popanda intaneti':'Opens faster and works offline')+'</div></div>'
     +'<div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
 }
@@ -290,7 +290,7 @@ function showInstallHelp(){
     : (cw?'Tsegulani menyu ya msakatuli (madontho atatu), kenako dinani Install app kapena Add to Home screen.':'Open the browser menu (the three dots), then tap Install app or Add to Home screen.');
   const h='<div class="dh"></div><h3>'+(cw?'Ikani Bajeti Yanga':'Install Bajeti Yanga')+'</h3>'
     +'<p style="font-size:.84rem;line-height:1.5;color:var(--mid);margin:6px 0 14px">'+esc(steps)+'</p>'
-    +'<button class="btnM" onclick="closeM(&quot;mv-u&quot;)">'+(cw?'Zatheka':'Got it')+'</button>';
+    +'<button class="btnM" onclick="closeM(&quot;mv-u&quot;)">'+(cw?'Chabwino':'Got it')+'</button>';
   g('mb-u').innerHTML=h; if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]}); openM('mv-u');
 }
 

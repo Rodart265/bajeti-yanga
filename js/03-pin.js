@@ -307,7 +307,7 @@ document.addEventListener('visibilitychange', function(){
 function removeBio(){
   requestSecurityVerification(function(){
     ['nb_bio_credId','nb_bio_enabled','nb_bio_token','nb_bio_sig','nb_bio_origin','nb_bio_fail_count'].forEach(k=>localStorage.removeItem(k));
-    toast((lang==='cw'?'Biometric yachotsedwa.':'Biometrics removed.'),'i');
+    toast((lang==='cw'?'Kutsegula ndi chala kapena nkhope kwachotsedwa.':'Biometrics removed.'),'i');
     go('stg');
   });
 }
@@ -322,7 +322,7 @@ function requestSecurityVerification(onVerified){
   if(hasPIN()){
     _openSecurityPinVerify(onVerified);
   } else if(hasBio()){
-    toast(lang==='cw'?'Tsimikizani ndi chala kapena nkhope...':'Verifying with biometrics...','i');
+    toast(lang==='cw'?'Tsimikizani pogwiritsa ntchito chala kapena nkhope...':'Verifying with biometrics...','i');
     checkBio().then(function(ok){
       if(ok){ onVerified(); }
       else { toast(lang==='cw'?'Kutsimikiza kwalephera.':'Verification failed.','e'); }

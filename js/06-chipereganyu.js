@@ -33,7 +33,7 @@ function openChipView(){
 function openChipEntry(){
   const isCW=lang==='cw';
   let h='<div class="dh"></div><h3><i data-lucide="rotate-cw" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>Chipereganyu</h3>';
-  h+='<p style="font-size:.8rem;color:var(--mid);margin-bottom:12px">'+(isCW?'Sungani ndalama pamodzi ndi anzanu, mmodzi ndi mmodzi akulandira.':'Save together with a group, taking turns to receive the pot.')+'</p>';
+  h+='<p style="font-size:.8rem;color:var(--mid);margin-bottom:12px">'+(isCW?'Sungani ndalama pamodzi ndi anzanu, ndipo aliyense azilandira mpotowo motsatizana.':'Save together with a group, taking turns to receive the pot.')+'</p>';
   h+='<div class="cg-choice">';
   h+='<div class="cg-choice-btn" onclick="openChipCreate()"><i data-lucide="plus-circle" style="width:22px;height:22px;color:var(--p1)"></i><div style="font-weight:700;font-size:.8rem;margin-top:6px">'+(isCW?'Yambani':'Create New')+'</div></div>';
   h+='<div class="cg-choice-btn" onclick="openChipJoin()"><i data-lucide="log-in" style="width:22px;height:22px;color:var(--p1)"></i><div style="font-weight:700;font-size:.8rem;margin-top:6px">'+(isCW?'Lowani':'Join with Code')+'</div></div>';
@@ -49,10 +49,10 @@ function chipPickFreq(f){
 
 function openChipCreate(){
   const isCW=lang==='cw';
-  let h='<div class="dh"></div><h3><i data-lucide="plus-circle" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>'+(isCW?'Chipereganyu chatsopano':'New Chipereganyu')+'</h3>';
-  h+='<div class="fsec"><label class="fl">'+(isCW?'Dzina la gulu':'Group name')+'</label><input type="text" class="fi" id="cg-name" placeholder="e.g. Family Chipereganyu"></div>';
+  let h='<div class="dh"></div><h3><i data-lucide="plus-circle" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>'+(isCW?'Gulu latsopano la Chipereganyu':'New Chipereganyu')+'</h3>';
+  h+='<div class="fsec"><label class="fl">'+(isCW?'Dzina la gulu':'Group name')+'</label><input type="text" class="fi" id="cg-name" placeholder="'+(isCW?'Mwachitsanzo: Chipereganyu cha Banja':'e.g. Family Chipereganyu')+'"></div>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Ndalama pa munthu aliyense':'Contribution per member')+'</label><input type="number" class="fi" id="cg-amt" inputmode="numeric" placeholder="5000"></div>';
-  h+='<div class="fsec"><label class="fl">'+(isCW?'Kangati':'Frequency')+'</label><div class="usel"><div class="usb on" id="cg-freq-monthly" onclick="chipPickFreq(\'monthly\')" style="flex:1"><div class="usnm">'+(isCW?'Mwezi ndi mwezi':'Monthly')+'</div></div><div class="usb" id="cg-freq-weekly" onclick="chipPickFreq(\'weekly\')" style="flex:1"><div class="usnm">'+(isCW?'Sabata ndi sabata':'Weekly')+'</div></div></div><input type="hidden" id="cg-freq" value="monthly"></div>';
+  h+='<div class="fsec"><label class="fl">'+(isCW?'Nthawi yobwereza':'Frequency')+'</label><div class="usel"><div class="usb on" id="cg-freq-monthly" onclick="chipPickFreq(\'monthly\')" style="flex:1"><div class="usnm">'+(isCW?'Mwezi ndi mwezi':'Monthly')+'</div></div><div class="usb" id="cg-freq-weekly" onclick="chipPickFreq(\'weekly\')" style="flex:1"><div class="usnm">'+(isCW?'Sabata ndi sabata':'Weekly')+'</div></div></div><input type="hidden" id="cg-freq" value="monthly"></div>';
   h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
@@ -88,7 +88,7 @@ function saveChipCreate(btn){
 function openChipJoin(){
   const isCW=lang==='cw';
   let h='<div class="dh"></div><h3><i data-lucide="log-in" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>'+(isCW?'Lowani mu Chipereganyu':'Join a Chipereganyu')+'</h3>';
-  h+='<div class="fsec"><label class="fl">'+(isCW?'Nambala yolowera':'Group code')+'</label><input type="text" class="fi" id="cg-code" placeholder="e.g. a2f9k3xz" autocapitalize="none" autocorrect="off"></div>';
+  h+='<div class="fsec"><label class="fl">'+(isCW?'Khodi ya gulu':'Group code')+'</label><input type="text" class="fi" id="cg-code" placeholder="e.g. a2f9k3xz" autocapitalize="none" autocorrect="off"></div>';
   h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="joinChipGroup(this)"><i data-lucide="log-in" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Lowani':'Join')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
@@ -97,7 +97,7 @@ function joinChipGroup(btn){
   const isCW=lang==='cw';
   const code=val('cg-code').trim().toLowerCase();
   if(!code){ toast(isCW?'Lowetsani nambala':'Please enter a code','e'); return; }
-  if(!_validCode(code)){ toast(isCW?'Nambala siikuoneka bwino':'That code does not look right','e'); return; }
+  if(!_validCode(code)){ toast(isCW?'Khodi si yolondola':'That code does not look right','e'); return; }
   if(!curUser){ toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e'); return; }
   if(btn) btn.disabled=true;
   setDot('spin');
@@ -134,14 +134,14 @@ function joinChipGroup(btn){
     })
     .then(function(){
       setDot(''); closeM('mv-e'); chipActiveId=code;
-      if(outcome.already) toast(isCW?'Mulili mmenemo kale':'You are already in this group','i');
+      if(outcome.already) toast(isCW?'Mulimo kale m’gululi':'You are already in this group','i');
       else toast((isCW?'Mwalowa mu ':'Joined ')+(outcome.name||'Chipereganyu'),'s');
       openChipView();
     })
     .catch(function(e){
       setDot('off'); if(btn) btn.disabled=false;
-      if(e&&e.code==='not-found') toast(isCW?'Nambala sipezeka':'Code not found','e');
-      else if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale kuzungulira':'This group has already started its rotation','e');
+      if(e&&e.code==='not-found') toast(isCW?'Khodi sinapezeke':'Code not found','e');
+      else if(e&&e.code==='already-started') toast(isCW?'Gululi layamba kale kuzungulira':'This group has already started its rotation','e');
       else if(e&&e.code==='cannot-join') toast(isCW?'Simungalowe. Onani nambala, kapena gululi lingakhale lidayamba kale.':'Could not join. Check the code, or the group may already have started its rotation.','e');
       else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
     });
@@ -180,7 +180,7 @@ function startChipRotation(btn){
   }).then(function(){ setDot(''); if(btn) btn.disabled=false; toast(isCW?'Chipereganyu chayamba!':'Chipereganyu started!','s'); })
     .catch(function(e){
       setDot('off'); if(btn) btn.disabled=false;
-      if(e&&e.code==='already-started') toast(isCW?'Gululi lidayamba kale':'This group has already started','i');
+      if(e&&e.code==='already-started') toast(isCW?'Gululi layamba kale':'This group has already started','i');
       else if(e&&e.code==='too-few') toast(isCW?'Muyenera membala osachepera 2 kuti muyambe':'You need at least 2 members to start','e');
       else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
     });
@@ -245,7 +245,7 @@ function chipTogglePaid(uid, btn){
     }
   }).catch(function(e){
     if(btn) btn.disabled=false;
-    if(e && e.code==='stale-cycle') toast(isCW?'Gawoli lasintha kale. Pangani refresh.':'This round has already moved on. Please refresh.','e');
+    if(e && e.code==='stale-cycle') toast(isCW?'Gawoli lasintha kale. Tsegulaninso tsambali.':'This round has already moved on. Please refresh.','e');
     else toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error'),'e');
   });
 }
@@ -323,7 +323,7 @@ function chipForceConfirmPrompt(){
       ? (unpaidNames+' sanalipire. Kutsimikizira tsopano kudzasiya mbiri yosonyeza kuti sanalipire, ndipo sizingasinthidwe. Pitirizani?')
       : (unpaidNames+' hasn\u2019t paid yet. Confirming now will record this round as short and can\u2019t be undone. Continue anyway?')),
     function(){ chipConfirmPayout(null, true); },
-    isCW?'Tsimikizani chonse':'Force confirm',
+    isCW?'Tsimikizani ngakhale ena sanalipire':'Force confirm',
     true
   );
 }
@@ -427,7 +427,7 @@ function rChip(){
 
   h+='<div class="cg-tabs">';
   h+='<button class="cg-tab'+(chipTab==='cycle'?' on':'')+'" onclick="setChipTab(\'cycle\')">'+(isCW?'Gawo lino':'This cycle')+'</button>';
-  h+='<button class="cg-tab'+(chipTab==='order'?' on':'')+'" onclick="setChipTab(\'order\')">'+(isCW?'Mzere':'Rotation')+'</button>';
+  h+='<button class="cg-tab'+(chipTab==='order'?' on':'')+'" onclick="setChipTab(\'order\')">'+(isCW?'Dongosolo':'Rotation')+'</button>';
   h+='<button class="cg-tab'+(chipTab==='hist'?' on':'')+'" onclick="setChipTab(\'hist\')">'+(isCW?'Mbiri':'History')+'</button>';
   h+='</div>';
 
@@ -451,7 +451,7 @@ function rChip(){
     const allPaid=contributors.length>0 && paidCount===contributors.length;
     const canConfirm = curUser && (curUser.uid===cc.recipientUid || curUser.uid===grp.createdBy);
     if(allPaid && canConfirm){
-      h+='<button class="cg-cta on" onclick="chipConfirmPayout(this)">'+(isCW?'Tsimikizani kutumiza kwa '+esc(recipientName.split(' ')[0]):'Confirm payout to '+esc(recipientName.split(' ')[0]))+'</button>';
+      h+='<button class="cg-cta on" onclick="chipConfirmPayout(this)">'+(isCW?'Tsimikizani kuti ndalama zaperekedwa kwa '+esc(recipientName.split(' ')[0]):'Confirm payout to '+esc(recipientName.split(' ')[0]))+'</button>';
     } else if(allPaid){
       h+='<div style="text-align:center;font-size:.72rem;color:var(--mid);padding:12px 0">'+(isCW?'Onse alipira \u2014 mukudikira '+esc(recipientName.split(' ')[0])+' kuti atsimikizire':'All paid \u2014 waiting for '+esc(recipientName.split(' ')[0])+' to confirm')+'</div>';
     } else {
@@ -505,7 +505,7 @@ function rChip(){
   setView(h);
 }
 
-function cpChipCode(code){ navigator.clipboard && navigator.clipboard.writeText(code).then(()=>toast(lang==='cw'?'Nambala yakoperedwa':'Code copied','i')).catch(()=>toast(lang==='cw'?'Nambala yakoperedwa':'Code copied','i')); }
+function cpChipCode(code){ navigator.clipboard && navigator.clipboard.writeText(code).then(()=>toast(lang==='cw'?'Khodi yakopedwa':'Code copied','i')).catch(()=>toast(lang==='cw'?'Khodi yakopedwa':'Code copied','i')); }
 function waChipCode(code){ window.open('https://wa.me/?text='+encodeURIComponent('Join my Chipereganyu on Bajeti Yanga!\nCode: '+code),'_blank'); }
 
 function chipLeaveGroup(){
@@ -536,7 +536,7 @@ function chipLeaveGroup(){
     // toward everyone else's turn. Can't be prevented outright (no bank
     // integration to hold them to it), but this makes the tradeoff explicit
     // instead of a silent, clean-looking exit.
-    appConfirm(isCW?'Mudalandira kale ndalama pa gawo lino ndipo simunamalize kulipira ena onse. Mukatuluka tsopano, app sidzathanso kutola ndalama zimenezo. Mutulukebe?':'You already received a payout this lap and haven\u2019t finished contributing to everyone else\u2019s turn yet. Leaving now means the app can\u2019t collect that from you going forward. Leave anyway?', doLeave, isCW?'Tulukani chonse':'Leave anyway', true);
+    appConfirm(isCW?'Mudalandira kale ndalama pa gawo lino ndipo simunamalize kulipira ena onse. Mukatuluka tsopano, app sidzathanso kutola ndalama zimenezo. Mutulukebe?':'You already received a payout this lap and haven\u2019t finished contributing to everyone else\u2019s turn yet. Leaving now means the app can\u2019t collect that from you going forward. Leave anyway?', doLeave, isCW?'Tulukani':'Leave anyway', true);
   } else {
     appConfirm(isCW?'Mutuluka mu gululi?':'Leave this group?', doLeave, isCW?'Tulukani':'Leave', true);
   }
@@ -565,7 +565,7 @@ function chipRemoveMember(uid){
     }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
   };
   if(alreadyReceived){
-    appConfirm((isCW?nm+' walandira kale ndalama pa gawo lino ndipo sanamalize kulipira ena onse. Mukamuchotsa tsopano, app sidzathanso kutola ndalama zimenezo. Mumuchotsebe?':nm+' already received a payout this lap and hasn\u2019t finished contributing to everyone else\u2019s turn yet. Removing them now means the app can\u2019t collect that going forward. Remove anyway?'), doRemove, isCW?'Chotsani chonse':'Remove anyway', true);
+    appConfirm((isCW?nm+' walandira kale ndalama pa gawo lino ndipo sanamalize kulipira ena onse. Mukamuchotsa tsopano, app sidzathanso kutola ndalama zimenezo. Mumuchotsebe?':nm+' already received a payout this lap and hasn\u2019t finished contributing to everyone else\u2019s turn yet. Removing them now means the app can\u2019t collect that going forward. Remove anyway?'), doRemove, isCW?'Chotsani':'Remove anyway', true);
   } else {
     appConfirm((isCW?'Chotsani ':'Remove ')+nm+(isCW?' mgululi?':' from the group?'), doRemove, isCW?'Chotsani':'Remove', true);
   }

@@ -583,7 +583,7 @@ function commitBudgetCap(el){
   el.value=_capFmt(n);
   if(n===prev) return;
   const offline = typeof navigator!=='undefined' && navigator.onLine===false;
-  _capStatus(el, offline?(cw?'Zidzasungidwa mukalumikizidwa':'Will sync when online'):(cw?'Kusunga…':'Saving…'), 'busy');
+  _capStatus(el, offline?(cw?'Zidzalumikizidwa intaneti ikabweranso':'Will sync when online'):(cw?'Ikusunga…':'Saving…'), 'busy');
   const id=el.id;
   Promise.resolve(saveCfg({...lCfg,overallBudget:n})).then(function(ok){
     const cur=document.getElementById(id); if(!cur) return;

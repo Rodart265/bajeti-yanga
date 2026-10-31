@@ -165,7 +165,7 @@ function bootApp(){
                   joinInp.scrollIntoView({behavior:'smooth', block:'center'});
                   joinInp.focus();
                   // Show a toast so the user knows what happened
-                  toast(lang==='cw'?'Kodi yatengedwa kuchokera ku QR code. Dinani "Lowani Nyumba Iyi" kuti mupitirize.':'Join code loaded from QR code. Tap "Join This Household" to continue.','i');
+                  toast(lang==='cw'?'Khodi yalandilidwa kuchokera ku QR code. Dinani "Lowani Nyumba Iyi" kuti mupitirize.':'Join code loaded from QR code. Tap "Join This Household" to continue.','i');
                 }
                 _pendingJoinCode = null;
               }, 400);
@@ -248,7 +248,7 @@ function restoreAccount(){
     });
   }
   step.then(()=>db.collection('users').doc(uid).update(userUpd)).then(()=>{
-    if(_needsReapproval) toast(lang==='cw'?'Akaunti yabwezeretsedwa. Mwachotsedwa mu nyumbayi. Lowetsani kodi kuti mupemphe kulowanso.':'Account restored, but you are no longer in your household. Enter the household code to ask the owner to approve you again.','i');
+    if(_needsReapproval) toast(lang==='cw'?'Akaunti yabwezeretsedwa. Mwachotsedwa mu nyumbayi. Lowetsani khodi kuti mupemphe kulowanso.':'Account restored, but you are no longer in your household. Enter the household code to ask the owner to approve you again.','i');
     else toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
     _pendingRestoreHid=null;
     authReg=false; bootApp();
@@ -319,12 +319,12 @@ function renderSetupJoinForm(){
       +'</div>'
       +'<div style="flex:1">'
         +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.95rem;color:#fff;margin-bottom:2px">'+(isCW?'Lowani mu Nyumba':'Join a Household')+'</div>'
-        +'<div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4">'+(isCW?'Lowetsani kodi imene mwini nyumba wakupatsani.':'Enter the code your household owner shared with you.')+'</div>'
+        +'<div style="font-size:.73rem;color:rgba(255,255,255,.65);line-height:1.4">'+(isCW?'Lowetsani khodi imene mwini nyumba wakupatsani.':'Enter the code your household owner shared with you.')+'</div>'
       +'</div>'
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:12px">'
-      +'<input class="setup-in" id="join-code" placeholder="'+(isCW?'Ikani kodi ya nyumba apa…':'Paste household code…')+'" maxlength="20" style="flex:1;margin-bottom:0">'
-      +'<button onclick="openQRScanner()" style="flex-shrink:0;width:48px;height:48px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="'+L('Scan QR code','Jambulani QR kodi')+'" aria-label="'+L('Scan QR code','Jambulani QR kodi')+'">'
+      +'<input class="setup-in" id="join-code" placeholder="'+(isCW?'Ikani khodi ya nyumba apa…':'Paste household code…')+'" maxlength="20" style="flex:1;margin-bottom:0">'
+      +'<button onclick="openQRScanner()" style="flex-shrink:0;width:48px;height:48px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;cursor:pointer" title="'+L('Scan QR code','Jambulani khodi ya QR')+'" aria-label="'+L('Scan QR code','Jambulani khodi ya QR')+'">'
         +'<i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i></button>'
     +'</div>'
     +'<button class="setup-btn" style="width:100%;margin-top:0;padding:13px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="joinHH()">'
@@ -628,7 +628,7 @@ function _checkApproved(code){
 
 function joinHH(){
   const code=val('join-code').trim().toLowerCase();
-  if(!code){setupErr(lang==='cw'?'Lowetsani kodi ya nyumba.':'Enter a household code.');return;}
+  if(!code){setupErr(lang==='cw'?'Lowetsani khodi ya nyumba.':'Enter a household code.');return;}
   if(!_validCode(code)){setupErr(lang==='cw'?'Kodi iyi siikuoneka bwino. Onaninso.':'That code does not look right. Check it with your household owner.');return;}
   if(!curUser){setupErr(lang==='cw'?'Simunalowe muakaunti.':'Not signed in.');return;}
   if(_setupBusy) return;
@@ -643,7 +643,7 @@ function joinHH(){
   ])
     .then(([inv, doc])=>{
       const hhExists = !!(doc && doc.exists), invExists = !!(inv && inv.exists);
-      if(!hhExists && !invExists){setDot('off');setupErr(lang==='cw'?'Kodi imeneyi sichiripo. Onani kodi ya nyumba, kapena pangani nyumba yatsopano.':'That code doesn\'t exist. Double-check it with your household owner, or create your own household to get started.');return;}
+      if(!hhExists && !invExists){setDot('off');setupErr(lang==='cw'?'Khodi imeneyi sinapezeke. Onani ngati mwailemba bwino, kapena pangani nyumba yatsopano.':'That code doesn\'t exist. Double-check it with your household owner, or create your own household to get started.');return;}
       const hhData = hhExists ? (doc.data()||{}) : {}, invData = invExists ? (inv.data()||{}) : {};
       // The invite's expiresAt (a Firestore timestamp) is authoritative; the old joinCodeExpiry field (ms) is still honoured.
       const _exp = invData.expiresAt ? _toMs(invData.expiresAt) : (hhData.joinCodeExpiry||0);
@@ -745,7 +745,7 @@ function connectHH(code){
   if(!_validCode(code)){
     try{ localStorage.removeItem('nb_household'); }catch(e){}
     hhId=null; g('app').classList.add('hide'); show('scr-setup');
-    toast(lang==='cw'?'Kodi ya nyumba siili bwino.':'That household code is not valid.','e');
+    toast(lang==='cw'?'Khodi ya nyumba si yolondola.':'That household code is not valid.','e');
     return;
   }
   hhId=code; loadChatHistory(); setDot('spin');
@@ -975,7 +975,7 @@ function handleRemovedFromHousehold(){
   g('app').classList.add('hide');
   show('scr-setup');
   toast(lang==='cw'
-    ? 'Mwachotsedwa mu nyumbayi. Lowetsani kodi kuti mupemphe kulowanso.'
+    ? 'Mwachotsedwa mu nyumbayi. Lowetsani khodi kuti mupemphe kulowanso.'
     : 'You were removed from this household. Enter the code again to request to rejoin.', 'e');
 }
 
@@ -1013,7 +1013,7 @@ function addPx(p,opts){
   const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
   return op.then(()=>{setDot('');return true;}).catch(e=>{
     if(opts.quiet){ setDot(''); return false; }
-    const msg=e&&e.code==='permission-denied'?(lang==='cw'?'Palibe chilolezo. Onani malamulo a Firestore.':'Permission denied. Check Firestore rules.'):(lang==='cw'?'Vuto losinthanitsa: ':'Sync error: ')+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
+    const msg=e&&e.code==='permission-denied'?(lang==='cw'?'Simunapatsidwe chilolezo. Onani malamulo a Firestore.':'Permission denied. Check Firestore rules.'):(lang==='cw'?'Vuto lolumikiza deta: ':'Sync error: ')+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
     return false;
   });
 }
