@@ -306,7 +306,7 @@ function rHome(){
     });
   } else {
     h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>';
-    h+='<p><strong>'+(isCW?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span></p></div>';
+    h+='<p><strong>'+(isCW?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span>'+emptyAction(L('Log your first entry','Lowetsani cholemba choyamba'),'go(&quot;log&quot;)')+'</p></div>';
   }
   h+='</div></div></div>';
   setView(h);

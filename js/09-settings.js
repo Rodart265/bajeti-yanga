@@ -277,7 +277,7 @@ function stgOpenSection(sec, keep){
         if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.72rem;color:var(--gold-ink);font-weight:700;background:var(--gold-bg);border-radius:var(--cr-sm);padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+(lang==='cw'?' zofunika':' needed')+(ml!==null?' · '+ml+(lang==='cw'?' miyezi yatsala':' mths left'):'')+'</div>';
         h+='</div>';
       });}
-      else{h+='<div class="empty" style="padding:10px 0"><p>'+t.noGoals+'</p></div>';}
+      else{h+='<div class="empty" style="padding:10px 0"><p>'+t.noGoals+'</p>'+emptyAction(t.addGoal,'openAddGoal()')+'</div>';}
       h+='</div></div>';
     } else if(sec==='bills'){
       h+='<div class="card"><div class="ch"><h2><i data-lucide="alarm-clock" style="margin-right:6px;vertical-align:middle"></i>'+t.billTracker+'</h2><button class="bsm be" onclick="openAddBill()">+ '+t.add+'</button></div><div class="cb" id="bill-list-wrap">';
@@ -301,7 +301,7 @@ function stgOpenSection(sec, keep){
           h+='</div></div></div>';
         });
       } else {
-        h+='<div class="empty" style="padding:10px 0"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p><strong>'+t.noBillsYet+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+t.noBillsSub+'</span></p></div>';
+        h+='<div class="empty" style="padding:10px 0"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p><strong>'+t.noBillsYet+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+t.noBillsSub+'</span>'+emptyAction(t.addBill,'openAddBill()')+'</p></div>';
       }
       h+='</div></div>';
     }
@@ -653,7 +653,16 @@ function closeM(id){
   if(cb){ delete _modalCloseCallbacks[id]; cb(); } // e.g. release a camera stream, whether closed via button or device-back
 }
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape' && _openModalStack.length){ e.preventDefault(); closeM(_openModalStack[_openModalStack.length-1]); }
+  if(e.key==='Escape' && _openModalStack.length){ e.preventDefault(); closeM(_openModalStack[_openModalStack.length-1]); return; }
+  // Keep Tab inside the open dialog instead of wandering to the page behind it.
+  if(e.key==='Tab' && _openModalStack.length){
+    const box=g(_openModalStack[_openModalStack.length-1]).querySelector('.mb'); if(!box) return;
+    const f=Array.prototype.filter.call(box.querySelectorAll('button,[href],input,select,textarea,[tabindex="0"]'),function(x){ return !x.disabled && x.offsetParent!==null; });
+    if(!f.length){ e.preventDefault(); box.focus(); return; }
+    const first=f[0], last=f[f.length-1], cur=document.activeElement;
+    if(e.shiftKey && (cur===first || cur===box || !box.contains(cur))){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && (cur===last || !box.contains(cur))){ e.preventDefault(); first.focus(); }
+  }
 });
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{
   if(e.target===o){

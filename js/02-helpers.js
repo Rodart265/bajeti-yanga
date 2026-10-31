@@ -167,6 +167,8 @@ function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='s
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
 // Pick the English or Chichewa wording for a string that is built outside t / tx().
 function L(en,cw){ return lang==='cw'?cw:en; }
+// A button for an empty screen: says what to do next. `act` is the onclick code, with double quotes written as &quot;.
+function emptyAction(label,act){ return '<button class="btnM" style="margin-top:12px;min-height:44px;padding:10px 18px;width:auto" onclick="'+act+'">'+label+'</button>'; }
 function toast(msg,type){
   const el=g('toast'); if(!el)return;
   type = type||'s';

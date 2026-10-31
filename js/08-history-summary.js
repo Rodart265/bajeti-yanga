@@ -339,7 +339,7 @@ function rSum(){
       </div>`;
     });
     h+='</div>';
-  } else { h+='<div class="empty" style="padding:10px"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><p><strong>'+(lang==='cw'?'Palibe zolemba.':'No spending data yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">Log a few expenses to see your insights.</span></p></div>'; }
+  } else { h+='<div class="empty" style="padding:10px"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><p><strong>'+(lang==='cw'?'Palibe zolemba.':'No spending data yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+L('Log a few expenses to see your insights.','Lembani zogula zingapo kuti muone chidule.')+'</span>'+emptyAction(L('Log an expense','Lowetsani zogula'),'go(&quot;log&quot;)')+'</p></div>'; }
   h+='</div></div>';
   // Budget bars — split into active (spent > 0) and zero-spend
   const activeItems = lCfg.items.filter(it => iSpent(it.name) > 0);
@@ -358,7 +358,7 @@ function rSum(){
     // No spending yet — show a helpful empty state instead of 31 zero rows
     h += '<div class="empty" style="padding:16px"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>'
       +'<p><strong>'+(lang==='cw'?'Palibe zogula m\'nthawi ino.':'No spending logged this period.')+'</strong><br>'
-      +'<span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Onjezerani zogula kuti muwone chidule.':'Log some expenses to see your budget breakdown.')+'</span></p></div>';
+      +'<span style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Onjezerani zogula kuti muwone chidule.':'Log some expenses to see your budget breakdown.')+'</span>'+emptyAction(L('Log an expense','Lowetsani zogula'),'go(&quot;log&quot;)')+'</p></div>';
   } else {
     // Render only items with spending
     activeItems.forEach(it => { h += renderSumItem(it); });
