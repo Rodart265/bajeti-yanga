@@ -88,25 +88,25 @@ function rChat(){
   const greeting = isCW ? (curUser&&curUser.displayName ? 'Moni, '+firstName+'!' : 'Moni kumeneko!') : 'Hey, '+firstName+'!';
   const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI, your personal budget partner!";
   const suggestions = isCW ? [
-    {icon:'trending-up',color:'#1B5E20',txt:'Kodi ndikuchita bwanji mwezi uno?'},
-    {icon:'alert-triangle',color:'#E65100',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
-    {icon:'target',color:'#1565C0',txt:'Kodi ndingathe malipiro anga?'},
-    {icon:'lightbulb',color:'#F57F17',txt:'Ndipatseni malangizo obisa ndalama'},
+    {icon:'trending-up',color:'var(--pos)',txt:'Kodi ndikuchita bwanji mwezi uno?'},
+    {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
+    {icon:'target',color:'var(--b1)',txt:'Kodi ndingathe malipiro anga?'},
+    {icon:'lightbulb',color:'var(--gold-ink)',txt:'Ndipatseni malangizo obisa ndalama'},
   ] : [
-    {icon:'trending-up',color:'#1B5E20',txt:'How am I doing this month?'},
-    {icon:'alert-triangle',color:'#E65100',txt:'Where am I overspending?'},
-    {icon:'target',color:'#1565C0',txt:'Can I afford my savings goals?'},
-    {icon:'lightbulb',color:'#F57F17',txt:'Give me tips to cut costs'},
+    {icon:'trending-up',color:'var(--pos)',txt:'How am I doing this month?'},
+    {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Where am I overspending?'},
+    {icon:'target',color:'var(--b1)',txt:'Can I afford my savings goals?'},
+    {icon:'lightbulb',color:'var(--gold-ink)',txt:'Give me tips to cut costs'},
   ];
   // Build the chrome — renderBubbles() owns #chat-msgs content entirely, no heroHtml here
-  g('view').innerHTML =
+  setView(
     '<div style="position:relative;display:flex;flex-direction:column;height:100%;padding:0;overflow:hidden">'
     +'<div class="chat-wrap"><div class="chat-msgs" id="chat-msgs"></div>'
     +'<div class="chat-footer" style="position:relative">'
     +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="'+L('More options','Zina zambiri')+'" aria-label="'+L('More options','Zina zambiri')+'" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:42px;height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35)">'+attachIcon+'</button>'
     +'<textarea class="chat-input" id="chat-inp" rows="1" placeholder="'+placeholder+'" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>'
     +'<button class="chat-send" id="chat-send" onclick="sendChat()" aria-label="'+L('Send','Tumizani')+'">'+sendIcon+'</button>'
-    +'</div></div></div>';
+    +'</div></div></div>');
   // Render immediately with whatever is in memory — prevents blank flash
   renderBubbles();
   // Restore the last active conversation from localStorage then sync with Firestore
@@ -241,15 +241,15 @@ function renderBubbles(){
     const greeting=isCW?(curUser&&curUser.displayName?'Moni, '+firstName+'!':'Moni kumeneko!'):'Hey, '+firstName+'!';
     const subText=isCW?'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!':"I'm Bajeti AI, your personal budget partner!";
     const suggs=isCW?[
-      {icon:'trending-up',color:'#1B5E20',txt:'Kodi ndikuchita bwanji mwezi uno?'},
-      {icon:'alert-triangle',color:'#E65100',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
-      {icon:'target',color:'#1565C0',txt:'Kodi ndingathe malipiro anga?'},
-      {icon:'lightbulb',color:'#F57F17',txt:'Ndipatseni malangizo obisa ndalama'},
+      {icon:'trending-up',color:'var(--pos)',txt:'Kodi ndikuchita bwanji mwezi uno?'},
+      {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
+      {icon:'target',color:'var(--b1)',txt:'Kodi ndingathe malipiro anga?'},
+      {icon:'lightbulb',color:'var(--gold-ink)',txt:'Ndipatseni malangizo obisa ndalama'},
     ]:[
-      {icon:'trending-up',color:'#1B5E20',txt:'How am I doing this month?'},
-      {icon:'alert-triangle',color:'#E65100',txt:'Where am I overspending?'},
-      {icon:'target',color:'#1565C0',txt:'Can I afford my savings goals?'},
-      {icon:'lightbulb',color:'#F57F17',txt:'Give me tips to cut costs'},
+      {icon:'trending-up',color:'var(--pos)',txt:'How am I doing this month?'},
+      {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Where am I overspending?'},
+      {icon:'target',color:'var(--b1)',txt:'Can I afford my savings goals?'},
+      {icon:'lightbulb',color:'var(--gold-ink)',txt:'Give me tips to cut costs'},
     ];
     el.innerHTML=
       '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 20px 8px;flex-shrink:0">'
@@ -262,7 +262,7 @@ function renderBubbles(){
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 4px;flex-shrink:0">'
       +suggs.map(s=>
         '<button onclick="chipSend(this)" data-txt="'+s.txt+'" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--cr);padding:11px 10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(123,31,162,.06)">'
-        +'<div style="width:28px;height:28px;border-radius:var(--cr-sm);background:'+s.color+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">'
+        +'<div style="width:28px;height:28px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">'
         +'<i data-lucide="'+s.icon+'" style="width:14px;height:14px;color:'+s.color+'"></i></div>'
         +'<span style="font-size:.72rem;font-weight:600;color:var(--ink);line-height:1.35">'+s.txt+'</span>'
         +'</button>'

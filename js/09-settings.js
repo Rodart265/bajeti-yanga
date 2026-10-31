@@ -16,7 +16,7 @@ function rStg(){
   let premiumChip = '';
   if(pStatus.isExpired){
     premiumChip = '<button onclick="showPremiumPage()" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0">'
-      +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;border-radius:var(--cr-md);white-space:nowrap;min-height:36px">'+(lang==='cw'?'Konzaninso Premium':'Renew')+'</span>'
+      +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;border-radius:var(--cr-md);white-space:nowrap;min-height:36px">'+(lang==='cw'?'Konzaninso':'Renew')+'</span>'
       +'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">'+(lang==='cw'?'Premium yatha':'Premium ended')+'</span>'
       +'</button>';
   } else if(pStatus.isPremium && !pStatus.isTrial){
@@ -53,7 +53,7 @@ function rStg(){
   // -- General --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Zonse':'General')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row" onclick="toggleLang()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="globe" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chilankhulo':'Language')+'</div></div><div class="stg-row-right"><span class="stg-row-val">'+(lang==='en'?'English':'Chichewa')+'</span><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="toggleLang()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="globe" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chiyankhulo':'Language')+'</div></div><div class="stg-row-right"><span class="stg-row-val">'+(lang==='en'?'English':'Chichewa')+'</span><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="'+(isDark?'sun':'moon')+'" style="width:16px;height:16px;color:var(--ix1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mdima':'Dark Mode')+'</div></div><label class="toggle-sw" style="margin:0"><input type="checkbox" '+(isDark?'checked':'')+' onchange="tgDark(this.checked)"><div class="toggle-tr"></div></label></div>';
   h+='<div class="stg-row" onclick="openNotifs()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="bell" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zidziwitso':'Notifications')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   if(typeof installRowHtml==='function') h+=installRowHtml();
@@ -81,26 +81,26 @@ function rStg(){
     +'<div style="display:flex;align-items:center;gap:11px;padding:0">'
     +'<div class="stg-row-ico" style="background:var(--b1-bg);flex-shrink:0"><i data-lucide="calendar-check" style="color:var(--b1)"></i></div>'
     +'<div class="stg-row-body" style="flex:1">'
-    +'<div class="stg-row-lbl">'+(lang==='cw'?'Tsiku la malipiro':'Salary Day')+'</div>'
-    +'<div class="stg-row-sub" style="font-size:.72rem;color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?(lang==='cw'?'Nthawi: ':'Period: ')+budgetPeriodLabel():(lang==='cw'?'Silinakhazikitsidwe. Mukugwiritsa ntchito mwezi wa kalendala.':'Not set. Using calendar month'))+'</div>'
+    +'<div class="stg-row-lbl">'+(lang==='cw'?'Tsiku la Malipiro (Salary Day)':'Salary Day')+'</div>'
+    +'<div class="stg-row-sub" style="font-size:.72rem;color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?'Period: '+budgetPeriodLabel():(lang==='cw'?'Silinakhazikitsidwe. Mukugwiritsa ntchito mwezi wa kalendala.':'Not set. Using calendar month'))+'</div>'
     +'</div>'
     +'<span class="stg-chev" style="display:inline-block;transform:rotate('+(_sdPanelOpen?'90deg':'0deg')+');transition:transform .2s">›</span>'
     +'</div>'
     +(_sdPanelOpen?'<div style="margin:10px 0 4px 52px" onclick="event.stopPropagation()">'
-    +'<label class="fl" style="display:block;font-size:.72rem;font-weight:700;color:var(--mid);margin-bottom:5px">'+(lang==='cw'?'Tsiku la malipiro (1-28)':'Salary day (1-28)')+'</label>'
+    +'<label class="fl" style="display:block;font-size:.72rem;font-weight:700;color:var(--mid);margin-bottom:5px">'+(lang==='cw'?'Tsiku la Malipiro (1-28)':'Salary day (1-28)')+'</label>'
     +'<div style="display:flex;align-items:center;gap:8px">'
-    +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:64px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:var(--cr-sm);padding:7px 6px;font-size:.9rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="'+(lang==='cw'?'Mwachitsanzo: 25':'e.g. 25')+'" value="'+(_sd||'')+'" inputmode="numeric" onchange="updSalaryDay(this.value)">'
+    +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:64px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:var(--cr-sm);padding:7px 6px;font-size:.9rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="numeric" onchange="updSalaryDay(this.value)">'
     +(_periodActive?'<button onclick="updSalaryDay(\'\')" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;gap:4px"><i data-lucide="x" style="width:11px;height:11px"></i> '+(lang==='cw'?'Bwezeretsani':'Reset')+'</button>':'')
     +'</div>'
     +(_periodActive?'<div style="margin-top:9px;font-size:.72rem;background:var(--mist);border-radius:var(--cr-sm);padding:7px 11px;color:var(--mid);line-height:1.6">'
-    +'<span style="font-weight:700;color:var(--ink)">'+(lang==='cw'?'Nthawi ya bajeti yomwe ikugwiritsidwa ntchito:':'Active budget period:')+'</span><br>'
-    +'📅 <strong>'+budgetPeriodLabel()+'</strong><br>'
-    +(lang==='cw'?'Ziwerengero zonse, malire a bajeti, chidule ndi upangiri zimatsatira nthawi imeneyi, osati mwezi wa kalendala.':'All totals, budget caps, summary and insights track this window, not the calendar month.')
+    +'<span style="font-weight:700;color:var(--ink)">Active budget period:</span><br>'
+    +'<i data-lucide="calendar" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i><strong>'+budgetPeriodLabel()+'</strong><br>'
+    +'All totals, budget caps, summary and insights track this window, not the calendar month.'
     +'</div>':'')
     +'</div>':'')
     +'</div>';
   // Household Code
-  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Khodi ya nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.72rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1-text)"></i></button><button class="hc-btn hc-wa" onclick="event.stopPropagation();waCode()" style="font-size:.72rem;padding:5px 8px"><i data-lucide="send" style="width:13px;height:13px;vertical-align:middle"></i></button><span class="stg-chev">›</span></div></div>';
+  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.72rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1-text)"></i></button><button class="hc-btn hc-wa" onclick="event.stopPropagation();waCode()" style="font-size:.72rem;padding:5px 8px"><i data-lucide="send" style="width:13px;height:13px;vertical-align:middle"></i></button><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="switchHousehold()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="arrow-left-right" style="color:var(--gold-ink)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--gold-ink)">'+(lang==='cw'?'Siyani / Sintha Nyumba':'Switch / Leave Household')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Lowani mu nyumba ina popanda kutuluka mu akaunti':'Join a different household without signing out')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--gold-ink)">›</span></div></div>';
   h+='</div>';
 
@@ -108,15 +108,15 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Chitetezo':'Security')+'</span>';
   h+='<div class="stg-grp">';
   if(hasPIN()){
-    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="lock" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'PIN yotetezera':'PIN Lock')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito -- dinani kuti musinthe':'Active -- tap to change')+'</div></div><div class="stg-row-right"><button class="bsm bd" onclick="event.stopPropagation();removePIN()" style="padding:4px 9px;font-size:.72rem">'+(lang==='cw'?'Chotsani':'Remove')+'</button><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="lock" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">PIN Lock</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito -- dinani kuti musinthe':'Active -- tap to change')+'</div></div><div class="stg-row-right"><button class="bsm bd" onclick="event.stopPropagation();removePIN()" style="padding:4px 9px;font-size:.72rem">'+(lang==='cw'?'Chotsani':'Remove')+'</button><span class="stg-chev">›</span></div></div>';
   } else {
-    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="unlock" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ikani PIN yotetezera':'Set PIN Lock')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tetezani pulogalamuyi ndi PIN':'Protect app with a 4-digit PIN')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="unlock" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ikani PIN':'Set PIN Lock')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tetezani pulogalamuyi ndi PIN':'Protect app with a 4-digit PIN')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
   // Biometrics
   if(hasBio()){
-    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kutsegula ndi chala kapena nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito -- dinani kuti muchotse':'Enabled -- tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito -- dinani kuti muchotse':'Enabled -- tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
   } else {
-    h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="fingerprint" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kutsegula ndi chala kapena nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chala kapena nkhope kuti mutsegule':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="fingerprint" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chala kapena nkhope kuti mutsegule':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
   if(cu&&cu.email)h+='<div class="stg-row" onclick="doPwReset()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="key" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Sinthani Mawu Achinsinsi':'Change Password')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tumizani link ku '+cu.email:'Send reset link to '+cu.email)+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
@@ -125,14 +125,14 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Deta':'Data')+'</span>';
   h+='<div class="stg-grp">';
   h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="table-2" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Sankhani nthawi kenako tsitsani':'Choose a period, then download')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:var(--pk1-bg)"><i data-lucide="file-text" style="color:var(--pk1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Tsitsani Lipoti la PDF':'Export PDF')+lockBadge(11)+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tsitsani lipoti':(pStatus.isPremium?'Printable report':'Printable report -- Premium'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+(lang==='cw'?'Chotsani akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Deta imasungidwa masiku 30 -- mutha kubwezeretsa':'Data kept for 30 days -- restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--neg)">›</span></div></div>';
+  h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:var(--pk1-bg)"><i data-lucide="file-text" style="color:var(--pk1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Export PDF'+lockBadge(11)+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tulutsani Lipoti':(pStatus.isPremium?'Printable report':'Printable report -- Premium'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Deta imasungidwa masiku 30 -- mutha kubwezeretsa':'Data kept for 30 days -- restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--neg)">›</span></div></div>';
   h+='</div>';
 
   // -- Help --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Thandizo':'Help & Support')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row" onclick="openFAQ()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="help-circle" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mafunso':'FAQ')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Mafunso ofunsidwa kawirikawiri':'Frequently asked questions')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openFAQ()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="help-circle" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">FAQ</div><div class="stg-row-sub">'+(lang==='cw'?'Mafunso ofunsidwa kawirikawiri':'Frequently asked questions')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row"><a href="https://wa.me/265888029029" target="_blank" style="display:flex;align-items:center;gap:12px;flex:1;color:inherit;text-decoration:none"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="message-circle" style="color:#25D366"></i></div><div class="stg-row-body"><div class="stg-row-lbl">WhatsApp</div><div class="stg-row-sub">+265 888 029 029</div></div></a><span class="stg-chev" style="color:#25D366">›</span></div>';
   h+='<div class="stg-row"><a href="mailto:rodartcreatives@gmail.com" style="display:flex;align-items:center;gap:12px;flex:1;color:inherit;text-decoration:none"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="mail" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Imelo':'Email')+'</div><div class="stg-row-sub">rodartcreatives@gmail.com</div></div></a><span class="stg-chev">›</span></div>';
   h+='<div class="stg-row" onclick="openPrivacySheet()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="shield" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndondomeko ya Chinsinsi':'Privacy Policy')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
@@ -142,7 +142,7 @@ function rStg(){
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+(lang==='cw'?'Zatsopano':'What\'s New')+'</button></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
   h+='</div>';
 
   h+='<button class="stg-logout" onclick="logout()"><i data-lucide="log-out" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i> '+t.logout+'</button>';
@@ -155,17 +155,17 @@ function showWhatsNew(){
   // Plain-language notes for the people using the app. Every entry has English and Chichewa (the Chichewa wording needs native review).
   const changes=[
     {icon:'layout-grid', en:['A fresh look','Warmer colours, one clean font, and a new Home screen that shows what is left this month more clearly.'],
-                         cw:['Maonekedwe atsopano','Mitundu yokongola, zilembo zomveka bwino, ndi tsamba latsopano la Pakhomo lomwe likusonyeza bwino ndalama zotsala mwezi uno.']},
+                         cw:['Maonekedwe atsopano','Mitundu yofunda, zilembo zomveka, ndi tsamba la Pakhomo latsopano lomwe likuonetsa bwino ndalama zotsala mwezi uno.']},
     {icon:'trending-up', en:['Clearer 6-month chart','Your budget line is labelled, and a note shows where you are on pace to finish the month.'],
-                         cw:['Chithunzi cha miyezi 6 chomveka bwino','Mzere wa bajeti uli ndi chizindikiro, ndipo uthenga ukusonyeza ndalama zimene zikuyembekezeka kugwiritsidwa ntchito mwezi ukatha.']},
+                         cw:['Chithunzi cha miyezi 6 chomveka bwino','Mzere wa bajeti walembedwa, ndipo mukuona kumene mukuyembekezeka kutha mwezi.']},
     {icon:'moon',        en:['Easier to read in dark mode','Text and badges are brighter and larger across the app.'],
-                         cw:['Kuwerenga bwino mu mdima','Zolemba ndi zizindikiro zaonekera bwino ndipo zakulitsidwa pa pulogalamu yonse.']},
+                         cw:['Kuwerenga bwino mu mdima','Zolemba ndi zizindikiro zaonekera bwino ndi zazikulu pa tsamba lililonse.']},
     {icon:'wifi',        en:['Faster start, works offline','The app opens sooner on slow connections and keeps working without internet.'],
-                         cw:['Imatseguka mwachangu komanso imagwira popanda intaneti','Pulogalamuyi imatseguka msanga ngakhale intaneti ili yochepa, ndipo imapitiriza kugwira ntchito ngakhale palibe intaneti.']},
+                         cw:['Kuyamba mwachangu, kumagwira popanda intaneti','Pulogalamu imatseguka msanga ngakhale intaneti ikhale yocheperapo, ndipo imagwira popanda intaneti.']},
     {icon:'download',    en:['Install Bajeti Yanga','Add it to your home screen from Home or Profile so it opens quicker.'],
-                         cw:['Ikani Bajeti Yanga','Ikani pulogalamuyi pa sikirini yoyambira kuchokera pa Pakhomo kapena pa Akaunti kuti muzitsegula mosavuta.']},
+                         cw:['Ikani Bajeti Yanga','Ikani pa sikirini yanu kuchokera pa Pakhomo kapena Akaunti kuti itsegule mofulumira.']},
     {icon:'shield-check',en:['Fixes','Budget cap saves reliably, the Log Save button is smaller, and typing no longer loses your entry when data syncs.'],
-                         cw:['Zokonza zolakwika','Malire a bajeti tsopano amasungidwa bwino, batani la Sungani lachepetsedwa, ndipo zomwe mukulemba sizitayika deta ikamalumikizidwa.']},
+                         cw:['Kukonza zolakwika','Malire a bajeti amasungidwa bwino, batani la Sungani ndi laling\'ono, ndipo zomwe mukulemba sizitayika deta ikasinthana.']},
   ];
 
   let h='<div class="dh"></div>';

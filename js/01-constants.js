@@ -38,7 +38,7 @@ const TX = {
     markPaid:'Mark Paid',confirmMarkPaid:'Mark as paid?',confirmMarkPaidSub:'This logs an expense and moves the due date forward one month.',billPaidToast:'Bill marked as paid!',
     units:['kg','g','litres','ml','pieces','packets','bundles','bags','bottles','bars'],
     months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-    cats:{Food:'Food',Household:'Household',Transport:'Transport',Personal:'Personal',Other:'Other'},incomeSources:{salary:'Salary / Income',business:'Business Income',farm:'Farm Income',other:'Other Income'}
+    cats:{Food:'Food',Household:'Household',Transport:'Transport',Personal:'Personal',Other:'Other'}
   },
   cw:{
     appTitle:'Bajeti Yanga',appSub:'Dziwani komwe ndalama zanu zimapita',
@@ -46,22 +46,22 @@ const TX = {
     cap:'Malire a Mwezi',spent:'Zotuluka',left:'Zotsala',income:'Ndalama Zolowa',expense:'Ndalama Zotuluka',
     entries:'Zolembedwa',monthlyBudget:'bajeti ya mwezi',chipItems:'zinthu',
     recent:'Zochitika zaposachedwa',viewAll:'Onani Zonse',noPurchases:'Palibe cholemba chilichonse.',tapLog:'Dinani + kuti mulowetse.',
-    logTitle:'Lowetsani zomwe mwachita',selItem:'Sankhani Chinthu',selUser:'Yalembedwa ndi ndani?',
-    date:'Tsiku',time:'Nthawi',qty:'Kuchuluka',unit:'Muyezo',amount:'Ndalama (MK)',notes:'Ndemanga',
+    logTitle:'Lowetsani zomwe mwachita',selItem:'Sankhani Chinthu',selUser:'Ndani akugula?',
+    date:'Tsiku',time:'Nthawi',qty:'Kuchuluka',unit:'Mulingo',amount:'Ndalama (MK)',notes:'Zolemba',
     save:'Sungani',saved:'Yasungidwa',allEntries:'Zolemba Zonse',all:'Zonse',editP:'Sinthani',del:'Chotsani',
     confirmDel:'Mukufuna kuchotsa cholemba ichi?',deleted:'Chachotsedwa',updated:'Chasinthidwa',
-    sumTitle:'Chidule cha Mwezi',budget:'Bajeti',ok:'Chabwino',near:'Yayandikira malire a bajeti',over:'Yapitirira Bajeti',none:'--',total:'CHIWERENGERO CHONSE',
+    sumTitle:'Chidule cha Mwezi',budget:'Bajeti',ok:'Chabwino',near:'Pafupi Kumalizika',over:'Yapitirira Bajeti',none:'--',total:'CHIWERENGERO CHONSE',
     overallCap:'Malire Onse a Mwezi (MK)',members:'Anthu a Nyumbayi',
     editUser:'Sinthani Munthu',addMember:'Onjezani Munthu Watsopano',memberName:'Dzina',
     itemsLbl:'Zinthu ndi Bajeti',addItem:'Onjezerani Chinthu Chatsopano',
     iname:'Dzina la chinthu',ibudget:'Bajeti (MK)',add:'Onjezani',mbudget:'Bajeti ya Mwezi (MK)',cancel:'Letsani',
-    itemAdded:'Chinthu chawonjezedwa',budgetUpdated:'Bajeti yasinthidwa',itemDeleted:'Chinthu chachotsedwa',nameUpdated:'Dzina lasinthidwa',
+    itemAdded:'Chinthu chaonjezeledwa',budgetUpdated:'Bajeti yasinthidwa',itemDeleted:'Chinthu chachotsedwa',nameUpdated:'Dzina lasinthidwa',
     confirmDelItem:'Mukufuna kuchotsa chinthu?',confirmDelMember:'Mukufuna kuchotsa munthuyu?',
-    switchUser:'Sinthani Munthu',householdCode:'Khodi ya nyumba',
-    copyCode:'Kopelani',shareWA:'WhatsApp',codeCopied:'Khodi yakopedwa!',
+    switchUser:'Sinthani Munthu',householdCode:'Kodi ya Nyumba',
+    copyCode:'Kopelani',shareWA:'WhatsApp',codeCopied:'Kodi yakopedwa!',
     logout:'Tulukani',confirmLogout:'Mukufuna kutuluka?',
     sortCat:'Mtundu wa Zinthu',sortAZ:'Dongosolo A-Z',sortOver:'Zapitirira Bajeti',sortSpend:'Zotuluka Zambiri',
-    searchPurchases:'Fufuzani pa zolemba...',quickPick:'Sankhani mwachangu',
+    searchPurchases:'Fufuzani pa zolemba...',quickPick:'Sankhani Msanga',
     goals:'Zolinga Zosungira',addGoal:'Onjezani Cholinga Chatsopano',goalName:'Dzina la cholinga',
     goalTarget:'Ndalama Yofuna Kusungira (MK)',goalSaved:'Ndalama Yosungidwa (MK)',topup:'Onjezani',noGoals:'Mulibe zolinga zosungira.',
     pinSetup:'Ikani PIN ya manambala 4',pinChange:'Sinthani PIN',pinRemove:'Chotsani PIN',
@@ -75,7 +75,7 @@ const TX = {
     markPaid:'Lembani Kuti Yalipidwa',confirmMarkPaid:'Mukufuna kulemba kuti bili yalipidwa?',confirmMarkPaidSub:'Izi zidzalembedwa ngati ndalama zotuluka ndipo tsiku lolipira lidzasunthira mwezi wotsatira.',billPaidToast:'Bili yalembedwa ngati yolipidwa!',
     units:['kg','g','malita','ml','mapisi','mapaketi','mitolo','matumba','mabotolo','mabar'],
     months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-    cats:{Food:'Chakudya',Household:'Zapakhomo',Transport:'Mayendedwe',Personal:'Zaumwini',Other:'Zina'},incomeSources:{salary:'Malipiro',business:'Ndalama za bizinesi',farm:'Ndalama za ulimi',other:'Ndalama zina'},itemNames:{'Tomatoes':'Tomato','Onions':'Anyezi','Maize Flour (Ufa)':'Ufa','Cooking Oil':'Mafuta a Kuphikira','Sugar':'Shuga','Salt':'Mchere','Soap (bar)':'Sopo','Washing Powder':'Poda Yosambira','Rice':'Mpunga','Beans (Nyemba)':'Nyemba','Potatoes':'Mbatata','Cabbage':'Kabichi','Chicken':'Nkhuku','Fish (Nsomba)':'Nsomba','Bread':'Buledi','Milk':'Mkaka','Tea Leaves':'Tiyi','Charcoal':'Makala','Toilet Paper':'Pepala la Chimbudzi','Matches/Candles':'Machesi/Makandulo','Bathing Soap':'Sopo Wosamba','Toothpaste':'Mankhwala otsukira mano','Airtime / Data':'Airtime/Data','Transport':'Mayendedwe','Fuel':'Mafuta a Galimoto','Electricity':'Magetsi','Rent':'Lenti','Diapers':'Matewera','Money Sent':'Ndalama Zotumizidwa','School Fees':'Ndalama za Sukulu','Other':'Zina'}
+    cats:{Food:'Chakudya',Household:'Zapakhomo',Transport:'Mayendedwe',Personal:'Zaumwini',Other:'Zina'},itemNames:{'Tomatoes':'Tomato','Onions':'Anyezi','Maize Flour (Ufa)':'Ufa','Cooking Oil':'Mafuta a Kuphikira','Sugar':'Shuga','Salt':'Mchere','Soap (bar)':'Sopo','Washing Powder':'Poda Yosambira','Rice':'Mpunga','Beans (Nyemba)':'Nyemba','Potatoes':'Mbatata','Cabbage':'Kabichi','Chicken':'Nkhuku','Fish (Nsomba)':'Nsomba','Bread':'Buledi','Milk':'Mkaka','Tea Leaves':'Tiyi','Charcoal':'Makala','Toilet Paper':'Pepala la Chimbudzi','Matches/Candles':'Machesi/Makandulo','Bathing Soap':'Sopo Wosamba','Toothpaste':'Mafuta a Galimoto a Mano','Airtime / Data':'Airtime/Data','Transport':'Mayendedwe','Fuel':'Mafuta a Galimoto','Electricity':'Magetsi','Rent':'Lenti','Diapers':'Matewera','Money Sent':'Ndalama Zotumizidwa','School Fees':'Ndalama za Sukulu','Other':'Zina'}
   }
 };
 
@@ -142,7 +142,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.15.1';
+const APP_VERSION = '9.16.0';
 // Household limits — change these values to adjust limits app-wide
 const HOUSEHOLD_LIMITS = { free: 3, premium: Infinity };
 // Deep link base URL — used in QR codes and join links
