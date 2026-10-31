@@ -1,7 +1,15 @@
 // Bajeti Yanga service worker
 // Bump this version string on every deploy to force cache invalidation.
 // Keep the number equal to APP_VERSION in js/01-constants.js (the version people see in the app).
-const V = "bajeti-v9.12.0";
+const V = "bajeti-v9.14.0";
+// Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
+// deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
+// every release made each phone download ~400 KB of Firebase again over mobile data.
+const LIBS = "bajeti-libs-v1";
+// Only these hosts are cached. Anything else cross-origin (API calls, profile photos) goes straight to the network.
+const LIB_HOSTS = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"];
+// How long to wait for the network before falling back to the saved copy of a page or app file.
+const NET_TIMEOUT_MS = 4000;
 
 // The app shell plus everything the app actually needs to boot and render,
 // so a first-time offline visit isn't left waiting on the network for
@@ -29,6 +37,7 @@ const APP_SHELL = [
   "./js/11-premium.js",
   "./js/12-chat.js",
   "./js/13-actions-boot.js",
+  "./vendor/icons.min.js",
   "./manifest.webmanifest",
   "./icons/icon-96.png",
   "./icons/icon-192.png",
@@ -40,7 +49,6 @@ const RUNTIME_SEED = [
   "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap",
   "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
   "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js",
-  "https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js",
@@ -73,7 +81,15 @@ async function precache(cache, urls) {
 self.addEventListener("install", (e) => {
   self.skipWaiting();
   e.waitUntil(
-    caches.open(V).then((c) => precache(c, [...APP_SHELL, ...RUNTIME_SEED]))
+    Promise.all([
+      caches.open(V).then((c) => precache(c, APP_SHELL)),
+      // Libraries already saved from an earlier release are kept, not downloaded again.
+      caches.open(LIBS).then(async (c) => {
+        const missing = [];
+        for (const u of RUNTIME_SEED) { if (!(await c.match(u))) missing.push(u); }
+        return precache(c, missing);
+      }),
+    ])
   );
 });
 
@@ -82,7 +98,7 @@ self.addEventListener("activate", (e) => {
     Promise.all([
       clients.claim(),
       caches.keys().then((ks) =>
-        Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))
+        Promise.all(ks.filter((k) => k !== V && k !== LIBS).map((k) => caches.delete(k)))
       ),
     ])
   );
@@ -95,63 +111,49 @@ function isNavigation(request) {
   );
 }
 
+// Network first, but never make someone stare at a spinner on a weak connection: if the network has not
+// answered within NET_TIMEOUT_MS and a saved copy exists, show that (the request carries on and refreshes the copy).
+function networkFirst(req, fallbackKey) {
+  const fresh = fetch(req, { cache: "no-cache" }).then((res) => {
+    if (res && res.ok) {
+      const copy = res.clone();
+      caches.open(V).then((c) => c.put(req, copy)).catch(() => {});
+    }
+    return res;
+  });
+  const saved = () => caches.match(req).then((c) => c || (fallbackKey ? caches.match(fallbackKey) : null));
+  const timed = new Promise((resolve) => {
+    setTimeout(() => saved().then((c) => { if (c) resolve(c); }), NET_TIMEOUT_MS);
+  });
+  return Promise.race([fresh, timed]).catch(() => saved().then((c) => c || Response.error()));
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
+  const url = new URL(req.url);
 
-  // HTML: network-first, so a deploy shows up right away when online;
-  // fall back to the cached shell the moment the network is unavailable.
-  // cache:"no-cache" means "ask the server if it changed" (a tiny 304 reply when
-  // it has not), so the page and the files it loads always come from one deploy.
-  if (isNavigation(req)) {
+  // HTML and our own files (styles, scripts, icons, manifest): network-first, so a deploy shows up right
+  // away when online and the page and its files come from one release; saved copy when offline or slow.
+  if (isNavigation(req)) { e.respondWith(networkFirst(req, "./index.html")); return; }
+  if (url.origin === self.location.origin) { e.respondWith(networkFirst(req)); return; }
+
+  // Libraries and fonts from the allowed CDNs: saved copy first (instant, works offline), refreshed quietly
+  // in the background. Version-numbered library URLs never change, so the refresh is just a cheap check.
+  if (LIB_HOSTS.indexOf(url.hostname) !== -1) {
     e.respondWith(
-      fetch(req, { cache: "no-cache" })
-        .then((fresh) => {
-          const copy = fresh.clone();
-          caches.open(V).then((c) => c.put(req, copy)).catch(() => {});
-          return fresh;
+      caches.open(LIBS).then((c) =>
+        c.match(req).then((cached) => {
+          const net = fetch(req)
+            .then((res) => {
+              if (res && (res.ok || res.type === "opaque")) c.put(req, res.clone()).catch(() => {});
+              return res;
+            })
+            .catch(() => null);
+          return cached || net.then((r) => r || Response.error());
         })
-        .catch(() =>
-          caches.match(req).then((cached) => cached || caches.match("./index.html"))
-        )
+      )
     );
-    return;
   }
-
-  // Our own files (styles.css, js/*.js, icons, manifest): same idea as the HTML.
-  // Network-first and revalidated, so editing a file and deploying is enough (no
-  // need to remember a version number for it to reach people), and a file that did
-  // not change costs only a tiny 304 reply, not a download. Offline, the copy saved
-  // by the last successful load (or by the install step above) is used.
-  if (new URL(req.url).origin === self.location.origin) {
-    e.respondWith(
-      fetch(req, { cache: "no-cache" })
-        .then((fresh) => {
-          if (fresh && fresh.ok) {
-            const copy = fresh.clone();
-            caches.open(V).then((c) => c.put(req, copy)).catch(() => {});
-          }
-          return fresh;
-        })
-        .catch(() => caches.match(req).then((cached) => cached || Response.error()))
-    );
-    return;
-  }
-
-  // Everything else (fonts and third-party libraries from CDNs): cache-first for
-  // speed, with a silent background refresh so caches don't go stale forever.
-  e.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((fresh) => {
-          try {
-            const copy = fresh.clone();
-            caches.open(V).then((c) => c.put(req, copy));
-          } catch (x) {}
-          return fresh;
-        })
-        .catch(() => null);
-      return cached || network;
-    })
-  );
+  // Everything else: not intercepted, the browser handles it normally.
 });

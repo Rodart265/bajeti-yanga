@@ -930,3 +930,22 @@ body.dark .cap-st.err{color:#EF9A9A}
 /* bottom nav: active tab in the readable brand colour */
 .nb.on .nl{color:var(--p1-text)}
 .nb.on .ni svg{stroke:var(--p1-text)}
+
+/* ══ Accessibility (batch 3b) ═══════════════════════════════════════════ */
+/* Visible keyboard focus everywhere; mouse and touch users do not see it. */
+:focus-visible{outline:3px solid var(--p1-text);outline-offset:2px;border-radius:6px}
+.hero2 :focus-visible,#topbar :focus-visible{outline-color:#fff}
+.fi:focus-visible,.fs:focus-visible,.chat-input:focus-visible{outline-offset:0}
+[role=button]{cursor:pointer}
+/* Small controls keep their look but get a 44px tap area (WCAG 2.5.5). */
+.bsm,.ftag,.sb,.qsb,.chat-convo-del,.bubble-del-btn,.t-close{position:relative}
+.bubble-del-btn{position:absolute}
+.bsm::after,.ftag::after,.sb::after,.qsb::after{content:'';position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+.chat-convo-del::after,.bubble-del-btn::after,.t-close::after{content:'';position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+.hf{min-height:44px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}
+.mb:focus{outline:none}
+
+/* Icon badges (Profile rows etc.): same colour family in dark mode, light enough to read on a dark tint. */
+body.dark{--g1:#7FD39A;--r1:#FF9C94;--o1:#F2C14E;--b1:#90CAF9;--pk1:#F48FB1;--ix1:#9FA8DA;
+  --g1-bg:#16301F;--o1-bg:#33290F;--b1-bg:#14283D;--pk1-bg:#3A1B28;--r1-bg:#3A1D1B;--ix1-bg:#1F2340}

@@ -7,7 +7,7 @@
      'unsafe-inline' is still needed because the app uses inline onclick handlers and one inline script;
      removing those is a later job. If anything breaks after this change, delete this whole <meta> line
      and the app goes back to how it was. (frame-ancestors cannot be set from a meta tag.) -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com/recaptcha/ https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://www.gstatic.com https://nyumba-ai.kabangorodrick6.workers.dev https://*.cloudfunctions.net https://*.run.app https://api.paychangu.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com https://pay.paychangu.com https://checkout.paychangu.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com/recaptcha/ https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://www.gstatic.com https://nyumba-ai.kabangorodrick6.workers.dev https://*.cloudfunctions.net https://*.run.app https://api.paychangu.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com https://pay.paychangu.com https://checkout.paychangu.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#7B1FA2">
 <meta name="mobile-web-app-capable" content="yes">
@@ -44,12 +44,6 @@
 </script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script defer src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
-<script>
-  document.currentScript.previousElementSibling.addEventListener('load', function(){
-    if(window.lucide){ lucide.createIcons(); }
-  });
-</script>
 <style>
 /* Lucide icon helper — mirrors fi spacing patterns */
 .li{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
@@ -59,44 +53,6 @@
 #mv-confirm .mb { max-width: 340px; margin: 0 auto; }
 
 </style>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script>
-let db, auth;
-try{
-  firebase.initializeApp({
-    apiKey:"AIzaSyA5TdvAFE0cFkme7O--LtJNKIikM-KXFdM",
-    authDomain:"bajeti-yanga.firebaseapp.com",
-    projectId:"bajeti-yanga",
-    storageBucket:"bajeti-yanga.firebasestorage.app",
-    messagingSenderId:"585037359165",
-    appId:"1:585037359165:web:01b831d5277faed34be254"
-  });
-  db = firebase.firestore();
-  auth = firebase.auth();
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
-  // Previously this failure was swallowed completely silently ({}=>{}), so on any device where
-  // IndexedDB persistence can't be enabled (private/incognito browsing, some in-app browsers,
-  // Safari's storage eviction on home-screen PWAs, etc.) offline mode would just quietly not
-  // work with zero indication to the user or in the console.
-  window._offlinePersistenceOk = null; // null = pending, true/false once settled
-  db.enablePersistence({synchronizeTabs:true})
-    .then(()=>{ window._offlinePersistenceOk = true; })
-    .catch((err)=>{
-      window._offlinePersistenceOk = false;
-      console.warn('[Bajeti] Offline persistence unavailable ('+(err&&err.code)+') -- app data will not be cached for offline use on this device/browser.');
-    });
-}catch(e){
-  // firebase is undefined / init threw -- the SDK scripts above never loaded
-  // (blocked domain, ad-blocker, dead connection before first paint, captive
-  // portal). #boot-splash doesn't exist in the DOM yet at this point in <head>,
-  // so we can't show the message directly from here -- flag it and let the
-  // boot-splash script further down pick it up immediately instead of making
-  // people sit through its full 9s timeout to find out the same thing.
-  window._firebaseBootError = true;
-}
-</script>
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./glass.css">
 </head>
@@ -187,6 +143,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     }
   }
   var timeoutTimer = setTimeout(showConnectionIssue, 9000);
+  window._bootIssue = function(){ clearTimeout(timeoutTimer); showConnectionIssue(); };
   // If Firebase itself failed to load, that's already known to be fatal --
   // no reason to make people wait out the full 9s above to find out.
   if(window._firebaseBootError){
@@ -486,13 +443,13 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
       </div>
     </div>
   </div>
-  <div id="view"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  <div id="view"><div class="loading" role="status"><div class="spinner"></div><span id="load-txt" data-cw="Chonde dikirani...">Loading...</span></div></div>
   <nav id="nav" role="navigation" aria-label="Main navigation">
-    <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home" aria-label="Home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
-    <button class="nb" onclick="go(&quot;log&quot;)" id="nb-log" aria-label="Log transaction"><i data-lucide="plus-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-l">Log</span></button>
-    <button class="nb" onclick="go(&quot;insights&quot;)" id="nb-insights" aria-label="Insights and history"><i data-lucide="pie-chart" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ins">Insights</span></button>
-    <button class="nb" onclick="go(&quot;chat&quot;)" id="nb-chat" aria-label="Bajeti AI chat"><i data-lucide="message-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ch">Chat</span></button>
-    <button class="nb" onclick="go(&quot;stg&quot;)" id="nb-stg" aria-label="Settings and profile"><i data-lucide="user" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-st">Settings</span></button>
+    <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
+    <button class="nb" onclick="go(&quot;log&quot;)" id="nb-log"><i data-lucide="plus-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-l">Log</span></button>
+    <button class="nb" onclick="go(&quot;insights&quot;)" id="nb-insights"><i data-lucide="pie-chart" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ins">Insights</span></button>
+    <button class="nb" onclick="go(&quot;chat&quot;)" id="nb-chat"><i data-lucide="message-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-ch">Chat</span></button>
+    <button class="nb" onclick="go(&quot;stg&quot;)" id="nb-stg"><i data-lucide="user" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-st">Settings</span></button>
   </nav>
 </div>
 
@@ -511,6 +468,46 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
 <!-- App code (was one big inline script; split by section, no logic changes).
      These files share ONE global scope and must load in this order, with boot last.
      Keep this list in step with APP_SHELL in sw.js. -->
+<!-- Icons (own file, 138 icons, ~27 KB) and the Firebase SDK load here, after the page and boot splash have painted. Order matters: icons, Firebase + init, then app code. -->
+<script src="./vendor/icons.min.js"></script>
+<script>if(window.lucide)lucide.createIcons();</script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script>
+let db, auth;
+try{
+  firebase.initializeApp({
+    apiKey:"AIzaSyA5TdvAFE0cFkme7O--LtJNKIikM-KXFdM",
+    authDomain:"bajeti-yanga.firebaseapp.com",
+    projectId:"bajeti-yanga",
+    storageBucket:"bajeti-yanga.firebasestorage.app",
+    messagingSenderId:"585037359165",
+    appId:"1:585037359165:web:01b831d5277faed34be254"
+  });
+  db = firebase.firestore();
+  auth = firebase.auth();
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+  // Previously this failure was swallowed completely silently ({}=>{}), so on any device where
+  // IndexedDB persistence can't be enabled (private/incognito browsing, some in-app browsers,
+  // Safari's storage eviction on home-screen PWAs, etc.) offline mode would just quietly not
+  // work with zero indication to the user or in the console.
+  window._offlinePersistenceOk = null; // null = pending, true/false once settled
+  db.enablePersistence({synchronizeTabs:true})
+    .then(()=>{ window._offlinePersistenceOk = true; })
+    .catch((err)=>{
+      window._offlinePersistenceOk = false;
+      console.warn('[Bajeti] Offline persistence unavailable ('+(err&&err.code)+') -- app data will not be cached for offline use on this device/browser.');
+    });
+}catch(e){
+  // firebase is undefined / init threw -- the SDK scripts above never loaded
+  // (blocked domain, ad-blocker, dead connection before first paint, captive
+  // portal). this script now runs after the splash is on screen, so tell it straight away
+  // instead of making people sit through its full 9s timeout.
+  window._firebaseBootError = true;
+  if(window._bootIssue) window._bootIssue();   // the splash script above is already running: tell it now
+}
+</script>
 <script src="./js/01-constants.js"></script>
 <script src="./js/02-helpers.js"></script>
 <script src="./js/03-pin.js"></script>
