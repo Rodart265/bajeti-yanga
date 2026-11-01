@@ -72,3 +72,7 @@ Functions
 - Export a CSV for a month older than 7 months.
 - Mark a bill paid on two phones at once.
 - Scan a receipt on a phone camera photo.
+
+## 9.17.2: shorter Premium screen and new prices
+- Premium screen is shorter: slim header, feature tiles without sub-text, and the Proceed to Payment button is pinned at the bottom of the sheet.
+- Prices are now MK 1,500 (1 month) and MK 4,000 (3 months). Changed in `js/01-constants.js` and `functions/lib.js`. **Deploy the functions** (`firebase deploy --only functions`) or the server will keep charging the old prices and payments will be flagged as a mismatch.
