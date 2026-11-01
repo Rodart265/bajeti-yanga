@@ -1,4 +1,4 @@
-# Changes in 9.17.0 (November 2026)
+# Changes in 9.17.0 and 9.17.1 (November 2026)
 
 This round fixes the review findings that do not involve the AI worker. The worker (`worker/`) is untouched.
 
@@ -46,6 +46,15 @@ Functions
 - `purgeTrash` deletes entries that have been in the trash for over 30 days (daily, 03:00 Malawi time).
 - The payment rate limit now counts the last 10 minutes properly (needs `firestore.indexes.json`).
 - A payment on a household with Premium that has no end date is recorded with a refund note.
+
+## 9.17.1: error messages
+
+- Sign-in and sign-up no longer hide the real error. `fmtAErr` knows about 20 more codes (including a Firebase password
+  policy, a restricted API key and a blocked web address), and an unknown code is shown in the message and logged to the
+  console, instead of "Something went wrong."
+- New `fsErrMsg()` in `js/02-helpers.js` turns Firestore errors into plain sentences. It replaces raw text such as
+  "Error: Missing or insufficient permissions" and "Failed: permission-denied" in household setup, the chip groups,
+  entries, trash, approvals and settings (15 places).
 
 ## Not done
 
