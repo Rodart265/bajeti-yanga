@@ -57,11 +57,11 @@ const store = {
   ],
   userDocs: async () => [{ id: 'u1', ownedHouseholds: ['AAA'], premiumUntil: ts(NOW + DAY) }],
   payments: async () => [
-    { id: 'p1', uid: 'u1', householdId: 'AAA', amount: 2500, status: 'paid', createdAtMs: NOW - DAY, paidAtMs: NOW - DAY },
-    { id: 'p2', uid: 'u1', householdId: 'AAA', amount: 7000, status: 'paid', createdAtMs: NOW - 40 * DAY, paidAtMs: NOW - 40 * DAY },
-    { id: 'p3', uid: 'u2', householdId: 'BBB', amount: 2500, status: 'pending', createdAtMs: NOW - 2 * 3600000 },
-    { id: 'p4', uid: 'u2', householdId: 'BBB', amount: 2500, status: 'mismatch', createdAtMs: NOW - DAY },
-    { id: 'p5', uid: 'u2', householdId: 'BBB', amount: 2500, status: 'pending', createdAtMs: NOW - 60000 },
+    { id: 'p1', uid: 'u1', householdId: 'AAA', amount: 1500, status: 'paid', createdAtMs: NOW - DAY, paidAtMs: NOW - DAY },
+    { id: 'p2', uid: 'u1', householdId: 'AAA', amount: 4000, status: 'paid', createdAtMs: NOW - 40 * DAY, paidAtMs: NOW - 40 * DAY },
+    { id: 'p3', uid: 'u2', householdId: 'BBB', amount: 1500, status: 'pending', createdAtMs: NOW - 2 * 3600000 },
+    { id: 'p4', uid: 'u2', householdId: 'BBB', amount: 1500, status: 'mismatch', createdAtMs: NOW - DAY },
+    { id: 'p5', uid: 'u2', householdId: 'BBB', amount: 1500, status: 'pending', createdAtMs: NOW - 60000 },
   ],
   paymentsFor: async id => [{ id: 'p1', householdId: id, createdAtMs: 1 }, { id: 'p2', householdId: id, createdAtMs: 2 }],
   log: async () => [{ id: 'l1', action: 'x' }],
@@ -72,7 +72,7 @@ const run = (action, params, extra = {}) => admin.handle({ action, params, store
   let r = await run('overview');
   eq('overview: live and deleted households', r.body.households, { live: 3, deleted: 1 });
   eq('overview: states (config-only Premium shows as free, flagged separately)', r.body.states, { premium: 1, trial: 1, free: 1 });
-  ok('overview: revenue total and this month', r.body.revenue.total === 9500 && r.body.revenue.thisMonth === 2500, r.body.revenue);
+  ok('overview: revenue total and this month', r.body.revenue.total === 5500 && r.body.revenue.thisMonth === 1500, r.body.revenue);
   eq('overview: sign-ups in last 7 days', r.body.users.last7, 1);
   eq('overview: today and two days ago in the sign-up chart', [r.body.signupsByDay['2026-10-26'], r.body.signupsByDay['2026-10-24']], [0, 1]);
   eq('overview: attention counts', r.body.attention, { stuckPending: 1, needsLook: 1, premiumNotMigrated: 1 });

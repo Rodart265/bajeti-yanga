@@ -136,7 +136,7 @@ function world() {
     let r = await lib.createCheckout(base);
     ok('member can start a 3-month payment', r.code === 200 && r.body.checkout_url.startsWith('https://checkout.paychangu.com/') && lib.isTxRef(r.body.tx_ref), r);
     const sent = w.pc.createCalls[0];
-    ok('price comes from the server table (7000), not from the browser', sent.body.amount === 7000 && sent.body.currency === 'MWK');
+    ok('price comes from the server table (4000), not from the browser', sent.body.amount === 4000 && sent.body.currency === 'MWK');
     ok('PayChangu told where to call back and where to return', sent.body.callback_url === 'https://fn.example/' && sent.body.return_url === 'https://app.example/x/?paid=1');
     ok('secret key only in the Authorization header', sent.init.headers.Authorization === 'Bearer sk_test' && !JSON.stringify(sent.body).includes('sk_test'));
     ok('payment record created as pending, owned by the payer', w.db.peek('payments', r.body.tx_ref).status === 'pending' && w.db.peek('payments', r.body.tx_ref).uid === 'mem1');
@@ -180,7 +180,7 @@ function world() {
     let { w, tx } = await paidWorld();
     let r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('not paid yet -> pending, nothing granted', r.status === 'pending' && !w.db.peek('households', 'hh111111').isPremium);
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };
     r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     const hh = w.db.peek('households', 'hh111111');
     ok('paid -> premium on, expiry one month out', r.status === 'paid' && hh.isPremium === true && hh.premiumExpiry === '2026-11-18', { r, hh });
@@ -193,31 +193,31 @@ function world() {
   }
   {
     let { w, tx } = await paidWorld({ hh: { isPremium: true, premiumExpiry: '2026-12-31' }, months: 3 });
-    w.pc.verifyResult = { status: 'success', amount: 7000, currency: 'MWK' };
+    w.pc.verifyResult = { status: 'success', amount: 4000, currency: 'MWK' };
     await lib.settlePayment({ deps: w.deps, txRef: tx });
     eq('renewal extends from the existing future expiry', w.db.peek('households', 'hh111111').premiumExpiry, '2027-03-31');
   }
   {
     let { w, tx } = await paidWorld({ user: { premiumUntil: ts(lib.endOfDayMs('2030-01-01')) } });
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };
     await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('owner premiumUntil never moves backwards', w.db.peek('users', 'own1').premiumUntil.toMillis() === lib.endOfDayMs('2030-01-01'));
   }
   {
     let { w, tx } = await paidWorld({ hh: { isPremium: true } });                   // premium by hand, no end date
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };
     const r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('a household that is premium with no end date is not downgraded to a dated plan', r.status === 'paid' && !('premiumExpiry' in w.db.peek('households', 'hh111111')) );
   }
   {
     let { w, tx } = await paidWorld({ months: 3 });
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };       // paid the 1-month price for a 3-month plan
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };       // paid the 1-month price for a 3-month plan
     const r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('underpayment grants nothing', r.status === 'failed' && !w.db.peek('households', 'hh111111').isPremium && w.db.peek('payments', tx).status === 'mismatch');
   }
   {
     let { w, tx } = await paidWorld();
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'USD' };
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'USD' };
     const r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('wrong currency grants nothing', r.status === 'failed' && !w.db.peek('households', 'hh111111').isPremium);
   }
@@ -243,7 +243,7 @@ function world() {
   }
   {
     let { w, tx } = await paidWorld();
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };
     await w.db.collection('households').doc('hh111111').delete();
     const r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('paid but household deleted meanwhile -> recorded for follow-up, no crash', r.status === 'failed' && w.db.peek('payments', tx).status === 'paid_no_household');
@@ -263,7 +263,7 @@ function world() {
   {
     let { w, tx } = await paidWorld();
     const w2 = await paidWorld();
-    w2.w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    w2.w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };
     const out = await lib.reconcilePending({ deps: w2.w.deps });
     ok('scheduled reconcile settles pending payments', out.length === 1 && out[0][1] === 'paid' && w2.w.db.peek('households', 'hh111111').isPremium === true, out);
   }
@@ -345,7 +345,7 @@ function world() {
   }
   {
     const { w, tx } = await paidWorld({ hh: { isPremium: true } });
-    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    w.pc.verifyResult = { status: 'success', amount: 1500, currency: 'MWK' };
     const r = await lib.settlePayment({ deps: w.deps, txRef: tx });
     ok('payment on a household with unlimited Premium is recorded with a refund note', r.status === 'paid' && /nothing was extended/.test(w.db.peek('payments', tx).note || ''));
   }

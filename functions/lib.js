@@ -4,7 +4,7 @@
 
 const crypto = require('crypto');
 
-const PRICES = { 1: 2500, 3: 7000 };               // MWK. Keep equal to PLANS in js/01-constants.js (tests/prices.test.js checks it).
+const PRICES = { 1: 1500, 3: 4000 };               // MWK. Keep equal to PLANS in js/01-constants.js (tests/prices.test.js checks it).
 const CURRENCY = 'MWK';
 const CAT_OFFSET_MS = 2 * 3600 * 1000;             // Malawi is UTC+2, no daylight saving
 const PENDING_MAX_AGE_MS = 3 * 86400 * 1000;
