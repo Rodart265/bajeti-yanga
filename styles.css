@@ -952,3 +952,16 @@ body.dark{--g1:#7FD39A;--r1:#FF9C94;--o1:#F2C14E;--b1:#90CAF9;--pk1:#F48FB1;--ix
 
 /* Keyboard focus ring for elements the app turns into buttons (see Accessibility helpers in js/13-actions-boot.js) */
 [role="button"]:focus-visible,button:focus-visible{outline:2px solid var(--p1,#7B1FA2);outline-offset:2px}
+
+/* Premium screen (compact layout). The footer sticks to the bottom of the sheet so the pay button is always visible. */
+.pm-sec{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--mid);margin:10px 0 6px}
+.pm-plan{flex:1;background:var(--white);border:2px solid var(--border);border-radius:var(--cr);padding:10px 8px;text-align:center;cursor:pointer;transition:all .2s}
+.pm-plan.on{background:linear-gradient(145deg,#4A148C,#7B1FA2);border-color:#CE93D8;box-shadow:0 5px 18px rgba(106,27,154,.35)}
+.pm-pl{font-size:.68rem;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px}
+.pm-pp{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:var(--ink);margin:2px 0}
+.pm-ps{font-size:.7rem;color:var(--mid)}
+.pm-plan.on .pm-pl,.pm-plan.on .pm-ps{color:rgba(255,255,255,.8)}
+.pm-plan.on .pm-pp{color:#fff}
+.pm-best{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#FFD700,#FFA000);color:#2A0A4A;font-size:.64rem;font-weight:900;padding:2px 9px;border-radius:var(--cr-md);white-space:nowrap;letter-spacing:.3px}
+.pm-foot{position:sticky;bottom:0;margin:10px -17px calc(-20px - env(safe-area-inset-bottom,0px));padding:8px 17px calc(8px + env(safe-area-inset-bottom,0px));background:var(--white);border-top:1px solid var(--border);z-index:2}
+body.dark .pm-foot{background:#1E1E1E}
