@@ -166,7 +166,7 @@ function openTrash(){
         h+='<div class="trash-item">';
         h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item,p.cat)])||'#7B1FA2')+'1A">'+ico(p.item)+'</div>';
         h+='<div class="trash-info"><div class="trash-name">'+esc(trName(p.item))+'</div>';
-        h+='<div class="trash-meta">'+p.date+' · '+esc(u.name)+' · '+daysLeft+'d left in trash</div></div>';
+        h+='<div class="trash-meta">'+esc(p.date)+' · '+esc(u.name)+' · '+daysLeft+'d left in trash</div></div>';
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
         h+='<div style="display:flex;gap:4px">';
@@ -220,10 +220,11 @@ function openEP(id){
     if(p.item && _opts.indexOf(p.item)<0) _opts.unshift(p.item);
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Chinthu':'Item')+'</label><select class="fs" id="ep-item">'+_opts.map(n=>'<option value="'+esc(n)+'" '+(p.item===n?'selected':'')+'>'+esc(trName(n))+'</option>').join('')+'</select></div>';
   }
-  h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+esc(p.amount)+'" inputmode="numeric"></div></div>';
+  h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+esc(p.amount)+'" inputmode="decimal"></div></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+esc(p.date)+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+esc(pt)+'"></div></div>';
   if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+esc(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+esc(p.notes||'')+'"></div>';
+  if(!isI) h+='<div class="fsec"><label style="display:flex;align-items:center;gap:8px;font-size:.84rem;font-weight:600;min-height:44px"><input type="checkbox" id="ep-rec" '+(p.recurring?'checked':'')+' style="width:20px;height:20px"> '+(lang==='cw'?'Bwerezani nthawi iliyonse':'Repeat every budget period')+'</label></div>';
   h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
   g('mb-ep').innerHTML=h; initIcons(); openM('mv-ep');
 }
@@ -235,12 +236,19 @@ function saveEP(isI){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dStr) || isNaN(ts)){toast((lang==='cw'?'Sankhani tsiku lolondola.':'Pick a valid date.'),'e');return;}
   const data={date:dStr,timestamp:ts,amount:a,notes:val('ep-notes'),userId:val('ep-uid')};
   if(!isI){
+    // Switching repeat off leaves a marker so the monthly job knows this item was stopped on purpose.
+    const rec=!!(g('ep-rec')||{}).checked;
+    const wasRec=!!((lPx.find(x=>x.id===id)||{}).recurring);
+    data.recurring=rec;
+    if(wasRec && !rec) data.recurStopped=true;
+    if(rec) data.recurStopped=false;
     const orig=lPx.find(x=>x.id===id);
     data.item=val('ep-item'); data.qty=val('ep-qty'); data.unit=val('ep-unit');
     // keep the stored category unless the item actually changed
     if(!orig || orig.item!==data.item) data.cat=catOf(data.item);
   }
-  updPx(id,data); closeM('mv-ep'); toast(tx().updated);
+  closeM('mv-ep');
+  updPx(id,data).then(function(ok){ if(ok) toast(tx().updated); });
 }
 
 // ===============================================
@@ -454,7 +462,7 @@ function openAddBill(editKey){
     var h='<div class="dh"></div><h3><i data-lucide="alarm-clock" style="margin-right:6px;vertical-align:middle"></i>'+(isEdit?t.editBillT:t.addBill)+'</h3>';
     h+='<div class="fsec"><label class="fl">'+t.billName+'</label><input type="text" class="fi" id="bl-nm" placeholder="'+t.billNamePH+'" value="'+(existing?esc(existing.name):'')+'"></div>';
     h+='<div class="fsec"><label class="fl">'+t.iconLbl+'</label><div id="bl-ic-grid" style="display:flex;flex-wrap:wrap;gap:6px">'+_billIconGridHtml(window._billIconPick)+'</div></div>';
-    h+='<div class="fsec"><label class="fl">'+t.amountMKLbl+'</label><input type="number" class="fi" id="bl-amt" inputmode="numeric" placeholder="0" value="'+esc(existing?existing.amount:'')+'"></div>';
+    h+='<div class="fsec"><label class="fl">'+t.amountMKLbl+'</label><input type="number" class="fi" id="bl-amt" inputmode="decimal" placeholder="0" value="'+esc(existing?existing.amount:'')+'"></div>';
     h+='<div class="fsec"><label class="fl">'+t.dueDateLbl+'</label><input type="date" class="fi" id="bl-due" value="'+esc(existing?existing.dueDate:'')+'"></div>';
     h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveBill()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
     g('mb-u').innerHTML=h;
@@ -533,19 +541,51 @@ function markBillPaid(key){
       const amt=Number(bill.amount);
       if(idx<0){ toast(lang==='cw'?'Bilu iyi yasintha. Yesaninso.':'This bill changed. Please try again.','e'); _stgRefresh(); return; }
       if(!amt||amt<=0){ toast(lang==='cw'?'Ndalama ya bilu ndi yolakwika.':'This bill has no valid amount.','e'); return; }
-      const prevCfg=lCfg;
-      const cfg=JSON.parse(JSON.stringify(lCfg));
-      cfg.bills[idx]={...cfg.bills[idx],dueDate:addMonthClamped(bill.dueDate)};
-      cfg.bills.sort(function(a,b){return a.dueDate.localeCompare(b.dueDate);});
-      // ONE atomic batch: the expense entry and the rolled due date succeed or fail together
-      // (they used to be two separate writes, so a failure could log the expense without rolling the date, or the reverse).
       const hhRef=db.collection('households').doc(hhId);
-      const batch=db.batch();
-      batch.set(hhRef.collection('purchases').doc(),{item:bill.name,date:today(),timestamp:Date.now(),amount:Math.round(amt*100)/100,qty:'',unit:'',notes:t.billTracker,userId:actU().id,type:'expense',cat:'Other',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-      batch.update(hhRef,{'config.bills':cfg.bills});
-      lCfg=cfg; _invalidateMemo(); setDot('spin');
-      batch.commit().then(function(){ setDot(''); toast(t.billPaidToast,'s'); })
-        .catch(function(e){ lCfg=prevCfg; _invalidateMemo(); setDot('off'); toast((lang==='cw'?'Sitinathe kulemba kuti yalipidwa (':'Could not mark as paid (')+(e&&e.code||'error')+'). Nothing was changed.','e'); render(); });
+      const newPxRef=hhRef.collection('purchases').doc();
+      const _px=function(a,name){ return {item:name,date:today(),timestamp:Date.now(),amount:Math.round(a*100)/100,qty:'',unit:'',notes:t.billTracker,userId:actU().id,type:'expense',cat:'Other',createdAt:firebase.firestore.FieldValue.serverTimestamp()}; };
+      setDot('spin');
+      // Online: a transaction re-reads the bills as they are on the server right now, so two members paying different
+      // bills (or the same one) at the same moment cannot overwrite each other, and a bill someone else just paid is
+      // not logged twice.
+      db.runTransaction(async function(txn){
+        const snap=await txn.get(hhRef);
+        const bills=(((snap.data()||{}).config||{}).bills||[]).map(function(b){return Object.assign({},b);});
+        const i=recIdx(bills,key);
+        if(i<0) throw {code:'bill-gone'};
+        const b=bills[i];
+        if(b.dueDate!==bill.dueDate) throw {code:'already-paid'};
+        const a=Number(b.amount);
+        if(!a||a<=0) throw {code:'bad-amount'};
+        bills[i]=Object.assign({},b,{dueDate:addMonthClamped(b.dueDate)});
+        bills.sort(function(x,y){return x.dueDate.localeCompare(y.dueDate);});
+        txn.set(newPxRef,_px(a,b.name));
+        txn.update(hhRef,{'config.bills':bills});
+        return bills;
+      }).then(function(bills){
+        lCfg=Object.assign({},lCfg,{bills:bills}); _invalidateMemo(); setDot(''); toast(t.billPaidToast,'s'); render();
+      }).catch(function(e){
+        if(e && e.code==='unavailable'){
+          // Offline: fall back to one queued batch from this phone's copy (applies when the connection returns).
+          const prevCfg=lCfg;
+          const cfg=JSON.parse(JSON.stringify(lCfg));
+          cfg.bills[idx]={...cfg.bills[idx],dueDate:addMonthClamped(bill.dueDate)};
+          cfg.bills.sort(function(a,b){return a.dueDate.localeCompare(b.dueDate);});
+          const batch=db.batch();
+          batch.set(newPxRef,_px(amt,bill.name));
+          batch.update(hhRef,{'config.bills':cfg.bills});
+          lCfg=cfg; _invalidateMemo();
+          batch.commit().then(function(){ setDot(''); toast(t.billPaidToast,'s'); })
+            .catch(function(e2){ lCfg=prevCfg; _invalidateMemo(); setDot('off'); toast((lang==='cw'?'Sitinathe kulemba kuti yalipidwa (':'Could not mark as paid (')+(e2&&e2.code||'error')+'). Nothing was changed.','e'); render(); });
+          _stgRefresh();
+          return;
+        }
+        setDot(''); _invalidateMemo();
+        const msg = e&&e.code==='already-paid' ? (lang==='cw'?'Munthu wina walipira kale bilu iyi.':'Someone already marked this bill as paid.')
+                  : e&&e.code==='bill-gone' ? (lang==='cw'?'Bilu iyi yasintha. Yesaninso.':'This bill changed. Please try again.')
+                  : (lang==='cw'?'Sitinathe kulemba kuti yalipidwa (':'Could not mark as paid (')+(e&&e.code||'error')+'). Nothing was changed.';
+        toast(msg,'e'); render();
+      });
       _stgRefresh();
     }, null, false
   );
@@ -557,7 +597,7 @@ function _capFmt(n){ return Number(n||0).toLocaleString('en-US'); }
 function budgetCapField(id){
   const cw=lang==='cw';
   return '<span class="cap-field"><span class="cap-mk" aria-hidden="true">MK</span>'
-    +'<input type="text" inputmode="numeric" autocomplete="off" class="cap-inp" id="'+id+'" value="'+esc(_capFmt(lCfg.overallBudget))+'"'
+    +'<input type="text" inputmode="decimal" autocomplete="off" class="cap-inp" id="'+id+'" value="'+esc(_capFmt(lCfg.overallBudget))+'"'
     +' aria-label="'+(cw?'Malire a Mwezi (MK)':'Monthly budget cap (MK)')+'" aria-describedby="'+id+'-st"'
     +' oninput="capInput(this)" onchange="commitBudgetCap(this)" onkeydown="if(event.key===&quot;Enter&quot;){this.blur();}">'
     +'<span class="cap-st" id="'+id+'-st" role="status" aria-live="polite"></span></span>';
@@ -657,7 +697,7 @@ function delMember(i){
     _stgRefresh();
   }, null, true);
 }
-function openEB(key){ const i=recIdx(lCfg.items,key); if(i<0){ _staleRec('item'); return; } const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+esc(key)+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="numeric"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
+function openEB(key){ const i=recIdx(lCfg.items,key); if(i<0){ _staleRec('item'); return; } const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+esc(key)+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="decimal"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
 function svEB(){ const key=val('eb-i'),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yolondola':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); const i=recIdx(cfg.items,key); if(i<0){ closeM('mv-e'); _staleRec('item'); return; } cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); _stgRefresh(); }
 function openAddGoal(){
   const t=tx(), isCW=lang==='cw';
@@ -668,9 +708,9 @@ function openAddGoal(){
   h+='<div class="fsec"><label class="fl" for="g-nm">'+t.goalName+'</label>';
   h+='<input type="text" class="fi" id="g-nm" placeholder="'+(lang==='cw'?'Mwachitsanzo: TV yatsopano, Ndalama za sukulu...':'e.g. New TV, School Fees...')+'"></div>';
   h+='<div class="fsec"><label class="fl" for="g-tg">'+t.goalTarget+'</label>';
-  h+='<input type="number" class="fi" id="g-tg" inputmode="numeric" placeholder="e.g. 150000"></div>';
+  h+='<input type="number" class="fi" id="g-tg" inputmode="decimal" placeholder="e.g. 150000"></div>';
   h+='<div class="fsec"><label class="fl" for="g-sv">'+t.goalSaved+' (optional)</label>';
-  h+='<input type="number" class="fi" id="g-sv" inputmode="numeric" placeholder="0"></div>';
+  h+='<input type="number" class="fi" id="g-sv" inputmode="decimal" placeholder="0"></div>';
   h+='<div class="fsec"><label class="fl" for="g-dl">'+(isCW?'Tsiku Lomaliza (Ngati mukufuna)':'Target Deadline (optional)')+'</label>';
   h+='<input type="date" class="fi" id="g-dl" min="'+minDateStr+'"></div>';
   h+='<div style="display:flex;gap:8px">';
@@ -693,7 +733,7 @@ function saveGoal(){
   cfg.goals.push(goal);
   saveCfg(cfg); closeM('mv-gl'); toast((lang==='cw'?'Cholinga chaonjezedwa!':'Goal added!')); _stgRefresh();
 }
-function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:var(--pos)"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="numeric" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:var(--pos)"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="decimal" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(key){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
@@ -714,7 +754,7 @@ function openWithdraw(key){
   g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Tengani Ndalama':'Withdraw')+': '+esc(gl.name)+'</h3>'
     +'<div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(isCW?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(isCW?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div>'
     +'<label class="fl">'+(isCW?'Ndalama Yochotsedwa (MK)':'Amount to Withdraw (MK)')+'</label>'
-    +'<input type="number" class="fi" id="wd-amt" inputmode="numeric" placeholder="0"></div>'
+    +'<input type="number" class="fi" id="wd-amt" inputmode="decimal" placeholder="0"></div>'
     +'<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(isCW?'Letsani':tx().cancel)+'</button>'
     +'<button class="btnM" style="flex:2;background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="doWithdraw(\''+key+'\')"><i data-lucide="arrow-down-circle" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Tengani':'Withdraw')+'</button></div>';
   openM('mv-gl');

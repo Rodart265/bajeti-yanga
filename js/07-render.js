@@ -23,12 +23,13 @@ function checkAndAddRecurring(){
   const periodStart=p.startY+'-'+String(p.startM+1).padStart(2,'0')+'-'+String(p.startD).padStart(2,'0');
   if(localStorage.getItem(KEY)===periodStart) return; // already ran this period
   if(today()<periodStart) return; // period hasn't started yet
-  // Find recurring expense entries NOT in current period (from previous)
-  const prevRecurring=lPx.filter(px=>px.recurring&&px.type!=='income'&&!isTM(px.date,realNow));
-  if(!prevRecurring.length){ localStorage.setItem(KEY,periodStart); return; }
-  // One entry per unique item name (most recent)
-  const seen=new Set(), toAdd=[];
-  prevRecurring.forEach(px=>{ if(!seen.has(px.item)){ seen.add(px.item); toAdd.push(px); } });
+  // For each item, look at its newest entry that is part of a repeat series (flagged repeating, or switched off on
+  // purpose). The item repeats only if that entry is still repeating, not in the trash, and from an earlier
+  // period. lPx is newest first, so the first entry seen for an item is its newest.
+  const latestOf=new Map();
+  lPx.forEach(px=>{ if(px.type!=='income'&&(px.recurring||px.recurStopped)&&!latestOf.has(px.item)) latestOf.set(px.item,px); });
+  const toAdd=[...latestOf.values()].filter(px=>px.recurring&&!px.deleted&&!isTM(px.date,realNow));
+  if(!toAdd.length){ localStorage.setItem(KEY,periodStart); return; }
   // Skip any already added this period
   const actuallyAdd=toAdd.filter(px=>!lPx.some(e=>e.item===px.item&&e.recurring&&isTM(e.date,realNow)));
   if(!actuallyAdd.length){ localStorage.setItem(KEY,periodStart); return; }
@@ -589,7 +590,7 @@ function rLog(){
         +'<label style="display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;color:var(--mid);cursor:pointer">'
         +'<input type="checkbox" id="custom-save-perm" onchange="g(\'custom-budget-row\').style.display=this.checked?\'block\':\'none\'" style="width:16px;height:16px;accent-color:var(--p1)">'
         +(lang==='cw'?'Sungani mu mndandanda wanga':'Save to my items list')+'</label>'
-        +'<div id="custom-budget-row" style="display:none;margin-top:8px"><input type="number" class="fi" id="custom-budget" placeholder="'+(lang==='cw'?'Bajeti ya mwezi (MK)':'Monthly budget (MK)')+'" inputmode="numeric"></div>'
+        +'<div id="custom-budget-row" style="display:none;margin-top:8px"><input type="number" class="fi" id="custom-budget" placeholder="'+(lang==='cw'?'Bajeti ya mwezi (MK)':'Monthly budget (MK)')+'" inputmode="decimal"></div>'
         +'</div>';
     }
     if(hint){const sp=iSpent(hint.name);h+='<div class="bhint"><div class="bh"><div class="bhl">'+t.budget+'</div><div class="bhv">'+MK(hint.budget)+'</div></div><div class="bh"><div class="bhl">'+t.spent+'</div><div class="bhv">'+MK(sp)+'</div></div><div class="bh"><div class="bhl">'+t.left+'</div><div class="bhv" style="color:'+(hint.budget-sp<0?'#B71C1C':'inherit')+'">'+MK(hint.budget-sp)+'</div></div></div>';}
@@ -597,7 +598,7 @@ function rLog(){
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Mtundu wa Ndalama':'Income Type')+'</label><div class="type-tog" style="margin-bottom:8px"><button class="tt inc" id="inc-t-ot" onclick="setIncType(this,0)"><i data-lucide="receipt" style="margin-right:3px"></i> '+(lang==='cw'?'Kamodzi Basi':'One Time')+'</button><button class="tt inc" id="inc-t-rc" onclick="setIncType(this,1)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+(lang==='cw'?'Nthawi Zonse':'Recurring')+'</button></div></div>';
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Gwero la ndalama':'Source')+'</label><select class="fs" id="inc-src"><option value="Salary/Income">'+tx().incomeSources.salary+'</option><option value="Business Income">'+tx().incomeSources.business+'</option><option value="Farm Income">'+tx().incomeSources.farm+'</option><option value="Other Income">'+tx().incomeSources.other+'</option></select></div>';
   }
-  h+='<div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="fa" placeholder="0" inputmode="numeric" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}"></div>';
+  h+='<div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="fa" placeholder="0" inputmode="decimal" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}"></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="fd" value="'+today()+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ft" value="'+nowTime()+'"></div></div>';
   if(logType==='expense'){const _hn=selItem!==null?(lCfg.items[selItem]||{}).name:'';if(!NO_QTY_ITEMS.includes(_hn))h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="fq" placeholder="1" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="fu">'+t.units.map(u=>'<option>'+u+'</option>').join('')+'</select></div></div>';}
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="fn" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula ku Chipiku...':'e.g. Bought at Chipiku...')+'"></div>';
@@ -635,6 +636,7 @@ function _saveP0(){
   if(a>99999999){toast(lang==='cw'?'Ndalama yakula kwambiri':'Amount is too large','e');return;}
   const dStr=val('fd')||today(), tStr=val('ft')||'12:00';
   const ts=new Date(dStr+'T'+tStr).getTime();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dStr) || isNaN(ts)){toast(lang==='cw'?'Sankhani tsiku lolondola.':'Pick a valid date.','e');return;}
   if(logType==='expense'){
     _syncSelItem();
     if(selItem===null){toast(t.selItem,'e');return;}

@@ -60,6 +60,7 @@ function _aiHttpErr(res, resData){
 // Friendly text for an AI failure, or null when it is just "busy" (callers keep their own busy wording).
 function aiFailMessage(err, isCW){
   const code = err && err.aiCode;
+  if(err && err.name==='AbortError') return isCW?'Kulumikizana kwatenga nthawi yaitali. Onani intaneti yanu ndipo yesaninso.':'The connection timed out. Check your internet and try again.';
   if(code==='auth') return isCW?'Chonde lowaninso kuti mugwiritse ntchito Bajeti AI.':'Please sign in again to use Bajeti AI.';
   if(code==='quota' || (err && err.message && /quota/i.test(err.message)))
     return isCW?'Bajeti AI yafika pa malire a lero. Yesaninso mawa.':'Bajeti AI has reached its daily limit. Please try again tomorrow.';
@@ -154,3 +155,35 @@ if(_origRender){
   setTimeout(requestPushPermission, 8000);
 })();
 
+
+
+// ── Accessibility helpers ────────────────────────────────────────────────────
+// The app builds most screens as HTML strings with onclick on <div>s and labels without a `for`. Rather than
+// rewriting hundreds of handlers, this gives those elements what a keyboard or screen reader needs, now and after
+// every redraw: clickable elements become buttons (focusable, Enter/Space work), and each form label is tied to the
+// field next to it.
+(function(){
+  var NATIVE=/^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL|SUMMARY)$/;
+  function fix(){
+    document.querySelectorAll('[onclick]').forEach(function(el){
+      if(NATIVE.test(el.tagName)) return;
+      if(!el.hasAttribute('role')) el.setAttribute('role','button');
+      if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+    });
+    document.querySelectorAll('label.fl:not([for])').forEach(function(l){
+      if(l.querySelector('input,select,textarea')) return;
+      var p=l.parentElement, f=p&&p.querySelector('input[id],select[id],textarea[id]');
+      if(f) l.setAttribute('for',f.id);
+    });
+  }
+  document.addEventListener('keydown',function(e){
+    var el=e.target;
+    if((e.key==='Enter'||e.key===' ') && el && el.getAttribute && el.getAttribute('role')==='button' && el.hasAttribute('onclick') && !NATIVE.test(el.tagName)){
+      e.preventDefault(); el.click();
+    }
+  });
+  var timer=null;
+  function schedule(){ clearTimeout(timer); timer=setTimeout(fix,150); }
+  try{ new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+  fix();
+})();

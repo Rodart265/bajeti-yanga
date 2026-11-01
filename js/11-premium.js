@@ -170,7 +170,7 @@ function showPremiumPage(){
     if(nearExpiry){
       h += '<div style="margin:16px 0;background:linear-gradient(135deg,#FFF3E0,#FFF8E1);border:1.5px solid #FFCC80;border-radius:var(--cr);padding:16px">';
       h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
-      h += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#E6510020;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:18px;height:18px;color:var(--gold-ink)"></i></div>';
+      h += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#BF360C20;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:18px;height:18px;color:var(--gold-ink)"></i></div>';
       h += '<div><div style="font-weight:800;font-size:.88rem;color:var(--gold-ink)">'+(isCW?'Premium Yanu Yatsala Masiku '+daysLeft:'Premium Expires in '+daysLeft+' Day'+(daysLeft===1?'':'s'))+'</div>';
       h += '<div style="font-size:.72rem;color:var(--gold-ink)">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+'</div></div></div>';
       h += '<div style="font-size:.76rem;color:#5D4037;line-height:1.6">'+(isCW?'Bwezerani tsopano kuti mupitirize kugwiritsa ntchito zonse za Premium mopanda kusokonezeka.':'Renew now to keep uninterrupted access to Bill Tracker, PDF export, unlimited AI, and more.')+'</div>';
@@ -218,17 +218,17 @@ function showPremiumPage(){
   h += '<div style="display:flex;gap:8px;margin-bottom:16px">';
 
   // 1 Month plan
-  h += '<div id="plan-1m" onclick="selectPlan(1,2500)" style="flex:1;background:var(--white);border:2px solid var(--border);border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s">';
+  h += '<div id="plan-1m" onclick="selectPlan(1,'+PLANS[1].price+')" style="flex:1;background:var(--white);border:2px solid var(--border);border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s">';
   h += '<div style="font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">'+(isCW?'Mwezi 1':'1 Month')+'</div>';
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:var(--ink)">MK 2,500</div>';
+  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:var(--ink)">MK '+PLANS[1].price.toLocaleString()+'</div>';
   h += '<div style="font-size:.72rem;color:var(--mid);margin-top:2px">'+(isCW?'pa mwezi':'per month')+'</div>';
   h += '</div>';
 
   // 3 Month plan — highlighted
-  h += '<div id="plan-3m" onclick="selectPlan(3,7000)" style="flex:1;background:linear-gradient(145deg,#4A148C,#7B1FA2);border:2px solid #CE93D8;border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;position:relative;box-shadow:0 6px 24px rgba(106,27,154,.35)">';
+  h += '<div id="plan-3m" onclick="selectPlan(3,'+PLANS[3].price+')" style="flex:1;background:linear-gradient(145deg,#4A148C,#7B1FA2);border:2px solid #CE93D8;border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;position:relative;box-shadow:0 6px 24px rgba(106,27,154,.35)">';
   h += '<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#FFD700,#FFA000);color:var(--p1-deep);font-size:.72rem;font-weight:900;padding:2px 10px;border-radius:var(--cr-md);white-space:nowrap;letter-spacing:.3px">'+(isCW?'MTENGO WABWINO':'BEST VALUE')+'</div>';
   h += '<div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">'+(isCW?'Miyezi 3':'3 Months')+'</div>';
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:#fff">MK 7,000</div>';
+  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:#fff">MK '+PLANS[3].price.toLocaleString()+'</div>';
   h += '<div style="font-size:.72rem;color:rgba(255,255,255,.65);margin-top:2px">'+(isCW?'Sungani MK 500':'Save MK 500')+'</div>';
   h += '</div>';
   h += '</div>';
@@ -251,7 +251,7 @@ function showPremiumPage(){
 }
 
 function selectPlan(months, price){
-  _selectedPlan = {months, price, label: months === 1 ? '1 Month' : '3 Months'};
+  _selectedPlan = {months, price: (PLANS[months] ? PLANS[months].price : price), label: months === 1 ? '1 Month' : '3 Months'};
   // Visual feedback — highlight selected plan
   const m1 = document.getElementById('plan-1m');
   const m3 = document.getElementById('plan-3m');
@@ -267,14 +267,14 @@ function selectPlan(months, price){
 function proceedToPayment(){
   if(!_selectedPlan){
     // Default to 3 months if nothing selected
-    selectPlan(3, 7000);
+    selectPlan(3, PLANS[3].price);
   }
   showPaychanguIframe();
 }
 
 function showPaychanguIframe(){
   const isCW = lang === 'cw';
-  const plan = _selectedPlan || {months:3, price:7000, label:'3 Months'};
+  const plan = _selectedPlan || PLANS[3];
   let h = '<div class="dh"></div>';
   h += '<div style="display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:12px">';
   h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center"><i data-lucide="lock" style="width:16px;height:16px;color:var(--p1-text)"></i></div>';
@@ -308,14 +308,14 @@ function showPaychanguIframe(){
 // While it is empty the app keeps the existing flow: pay on the PayChangu page, then send the screenshot on WhatsApp.
 const PAYMENTS_API = '';
 async function _paymentsCall(body){
-  const res = await fetch(PAYMENTS_API, {method:'POST', headers: await _authHeaders(), body: JSON.stringify(body)});
+  const res = await fetchT(PAYMENTS_API, {method:'POST', headers: await _authHeaders(), body: JSON.stringify(body)});
   let data=null; try{ data=await res.json(); }catch(_){}
   if(!res.ok){ const e=new Error((data&&data.error)||('HTTP '+res.status)); e.status=res.status; throw e; }
   return data||{};
 }
 async function startCheckout(btn){
   const isCW = lang==='cw';
-  const plan = _selectedPlan || {months:3, price:7000, label:'3 Months'};
+  const plan = _selectedPlan || PLANS[3];
   if(!hhId || !curUser){ toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e'); return; }
   if(btn) btn.disabled = true;
   try{
@@ -367,7 +367,7 @@ function _resumePaymentCheck(){
 
 function showClaimScreen(){
   const isCW = lang === 'cw';
-  const plan = _selectedPlan || {months:3, price:7000, label:'3 Months'};
+  const plan = _selectedPlan || PLANS[3];
 
   // Confetti animation CSS
   const confettiStyle = '<style>@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(80px) rotate(360deg);opacity:0}}.confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;animation:confettiFall .8s ease-out forwards}</style>';
@@ -706,6 +706,15 @@ function _pushOnboardScreen(name, from){
       return;
     }
     var t = (st&&st.tab) || 'home';
+    // On the Home tab, back used to be swallowed forever (a new entry was pushed every time), so the app could never
+    // be left with the back button. Now: first press warns, a second press within 2.5 s lets the app close.
+    if(tab==='home' && t==='home'){
+      if(window._backArmedAt && Date.now()-window._backArmedAt<2500){ window._backArmedAt=0; try{ history.back(); }catch(err){} return; }
+      window._backArmedAt=Date.now();
+      toast(lang==='cw'?'Dinaninso kubwerera kuti mutuluke.':'Press back again to exit.','i');
+      pushState('home');
+      return;
+    }
     // Just call internal render without pushing another state
     tab=t;
     document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});

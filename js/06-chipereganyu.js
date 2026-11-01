@@ -51,7 +51,7 @@ function openChipCreate(){
   const isCW=lang==='cw';
   let h='<div class="dh"></div><h3><i data-lucide="plus-circle" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>'+(isCW?'Gulu latsopano la Chipereganyu':'New Chipereganyu')+'</h3>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Dzina la gulu':'Group name')+'</label><input type="text" class="fi" id="cg-name" placeholder="'+(isCW?'Mwachitsanzo: Chipereganyu cha Banja':'e.g. Family Chipereganyu')+'"></div>';
-  h+='<div class="fsec"><label class="fl">'+(isCW?'Ndalama pa munthu aliyense':'Contribution per member')+'</label><input type="number" class="fi" id="cg-amt" inputmode="numeric" placeholder="5000"></div>';
+  h+='<div class="fsec"><label class="fl">'+(isCW?'Ndalama pa munthu aliyense':'Contribution per member')+'</label><input type="number" class="fi" id="cg-amt" inputmode="decimal" placeholder="5000"></div>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Nthawi yobwereza':'Frequency')+'</label><div class="usel"><div class="usb on" id="cg-freq-monthly" onclick="chipPickFreq(\'monthly\')" style="flex:1"><div class="usnm">'+(isCW?'Mwezi ndi mwezi':'Monthly')+'</div></div><div class="usb" id="cg-freq-weekly" onclick="chipPickFreq(\'weekly\')" style="flex:1"><div class="usnm">'+(isCW?'Sabata ndi sabata':'Weekly')+'</div></div></div><input type="hidden" id="cg-freq" value="monthly"></div>';
   h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
@@ -377,7 +377,7 @@ function rChip(){
     (grp.rotationOrder||[]).forEach(function(uid,i){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const isAdminRow=uid===grp.createdBy;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.64rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.7rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
     });
     if(!isAdmin){
       h+='<button class="cg-link-danger" style="color:var(--mid)" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
@@ -494,7 +494,7 @@ function rChip(){
         // `contributions` at all -- treat those as clean rather than short,
         // since we have no record either way.
         const short = hh.contributions && Object.keys(hh.contributions).some(function(u){ return !(hh.contributions[u]&&hh.contributions[u].paid); });
-        h+='<div class="cg-row"><div class="cg-av2">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(short?' <span style="color:var(--warn,#B36B00);font-size:.68rem;font-weight:700">'+(isCW?'\u00b7 sanalipire onse':'\u00b7 not everyone paid')+'</span>':'')+'</b><span>'+(isCW?'Gawo ':'Round ')+hh.cycleNumber+' \u00b7 '+fmtDate(hh.date)+'</span></div><b style="color:var(--g1);font-size:.8rem">'+MK(hh.amount)+'</b></div>';
+        h+='<div class="cg-row"><div class="cg-av2">'+esc((m.name||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(m.name)+(short?' <span style="color:var(--warn,#B36B00);font-size:.7rem;font-weight:700">'+(isCW?'\u00b7 sanalipire onse':'\u00b7 not everyone paid')+'</span>':'')+'</b><span>'+(isCW?'Gawo ':'Round ')+hh.cycleNumber+' \u00b7 '+fmtDate(hh.date)+'</span></div><b style="color:var(--g1);font-size:.8rem">'+MK(hh.amount)+'</b></div>';
       });
     } else {
       h+='<p style="font-size:.75rem;color:var(--mid);text-align:center;padding:16px 0">'+(isCW?'Palibe gawo lomaliza.':'No completed rounds yet.')+'</p>';

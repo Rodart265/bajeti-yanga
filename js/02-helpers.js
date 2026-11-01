@@ -119,7 +119,7 @@ function isTM(s, forMonth){
 }
 function isCurM(){ const v=vmObj(),c=curM(); return v.m===c.m&&v.y===c.y; }
 function mName() { const v=vmObj(); return tx().months[v.m]+' '+v.y; }
-function prevM() { const v=vmObj(); viewMonth=v.m===0?{m:11,y:v.y-1}:{m:v.m-1,y:v.y}; _invalidateMemo(); render(); }
+function prevM() { const v=vmObj(); viewMonth=v.m===0?{m:11,y:v.y-1}:{m:v.m-1,y:v.y}; _invalidateMemo(); render(); if(typeof ensurePxFrom==='function') ensurePxFrom(new Date(viewMonth.y,viewMonth.m,1)); }
 function nextM() { if(isCurM())return; const v=vmObj(); viewMonth=v.m===11?{m:0,y:v.y+1}:{m:v.m+1,y:v.y}; _invalidateMemo(); render(); }
 
 function iSpent(name){ _ensureMemo(); return _memoByItem[name]||0; }
@@ -162,6 +162,12 @@ function mdLite(s){
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/^[-\u2022 ] (.+)/gm,'<li>$1</li>')
     .replace(/\n/g,'<br>');
+}
+// fetch with a timeout, so a stalled connection ends in an error instead of a screen that never recovers.
+function fetchT(url, opts, ms){
+  const c = new AbortController();
+  const t = setTimeout(function(){ c.abort(); }, ms || 30000);
+  return fetch(url, Object.assign({}, opts, { signal: c.signal })).finally(function(){ clearTimeout(t); });
 }
 function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='scr-setup' && typeof resetSetupJoinCard==='function') resetSetupJoinCard(); }
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }

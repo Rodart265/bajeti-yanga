@@ -237,7 +237,9 @@ function checkVerification(){
     backToLogin();
     return;
   }
-  user.reload().then(()=>{
+  // After reload, also refresh the ID token: the rules read the email_verified claim from the token, which stays
+  // stale (false) for up to an hour otherwise.
+  user.reload().then(()=>auth.currentUser && auth.currentUser.emailVerified ? auth.currentUser.getIdToken(true).catch(()=>{}) : null).then(()=>{
     const isCW2 = lang === 'cw';
     if(auth.currentUser && auth.currentUser.emailVerified){
       if(msgEl) msgEl.textContent='';

@@ -46,6 +46,18 @@ async function verifyPIN(entered, storedRaw){
   const legacyHash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
   return legacyHash === storedRaw;
 }
+// Wrong-PIN counter: after 5 misses the keypad locks for 30 seconds, doubling each further miss up to 15 minutes.
+// It lives in localStorage, so it slows down someone borrowing the phone; it is not a defence against someone with
+// developer tools. The PIN is a screen lock. Firebase sign-in is the real security.
+function _pinLockLeft(){ try{ return Math.max(0,(+localStorage.getItem('nb_pin_lock')||0)-Date.now()); }catch(e){ return 0; } }
+function _pinResetFails(){ try{ localStorage.removeItem('nb_pin_fails'); localStorage.removeItem('nb_pin_lock'); }catch(e){} }
+function _pinNoteFail(){
+  try{
+    const n=(+localStorage.getItem('nb_pin_fails')||0)+1;
+    localStorage.setItem('nb_pin_fails',String(n));
+    if(n>=5) localStorage.setItem('nb_pin_lock',String(Date.now()+Math.min(900000,30000*Math.pow(2,n-5))));
+  }catch(e){}
+}
 function pinK(k) {
   if(k==='C') pinEntry='';
   else if(k==='B') pinEntry=pinEntry.slice(0,-1);
@@ -56,8 +68,11 @@ function pinK(k) {
       const stored=String(localStorage.getItem('nb_pin')||'').trim();
       const entered=String(pinEntry).trim();
       if(pinMode==='check'){
+        const wait=_pinLockLeft();
+        if(wait>0){ pinEntry=''; updDots(); toast((lang==='cw'?'Yesaninso pakatha masekondi ':'Too many wrong PINs. Try again in ')+Math.ceil(wait/1000)+(lang==='cw'?'.':' seconds.'),'e'); return; }
         const match = await verifyPIN(entered, stored);
         if(match){
+          _pinResetFails();
           if(!stored.includes(':')){ const r=await hashPIN(entered); localStorage.setItem('nb_pin',r.salt+':'+r.hash); }
           hidePIN();
           // bootApp() is a no-op on re-entry (authReg guard). If we already have a connected
@@ -66,7 +81,7 @@ function pinK(k) {
           const hid = hhId || _pendingHid;
           if(!hhId && hid){ hhId=hid; _pendingHid=null; connectHH(hid); }
           else { g('app').classList.remove('hide'); }
-        } else { pinEntry=''; updDots(); toast((lang==='cw'?'PIN yolakwika.':'Wrong PIN.'),'e'); }
+        } else { pinEntry=''; updDots(); _pinNoteFail(); toast((lang==='cw'?'PIN yolakwika.':'Wrong PIN.'),'e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
       } else if(pinMode==='confirm'){

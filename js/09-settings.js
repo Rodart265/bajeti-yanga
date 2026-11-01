@@ -89,7 +89,7 @@ function rStg(){
     +(_sdPanelOpen?'<div style="margin:10px 0 4px 52px" onclick="event.stopPropagation()">'
     +'<label class="fl" style="display:block;font-size:.72rem;font-weight:700;color:var(--mid);margin-bottom:5px">'+(lang==='cw'?'Tsiku la Malipiro (1-28)':'Salary day (1-28)')+'</label>'
     +'<div style="display:flex;align-items:center;gap:8px">'
-    +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:64px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:var(--cr-sm);padding:7px 6px;font-size:.9rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="numeric" onchange="updSalaryDay(this.value)">'
+    +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:64px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:var(--cr-sm);padding:7px 6px;font-size:.9rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="decimal" onchange="updSalaryDay(this.value)">'
     +(_periodActive?'<button onclick="updSalaryDay(\'\')" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;gap:4px"><i data-lucide="x" style="width:11px;height:11px"></i> '+(lang==='cw'?'Bwezeretsani':'Reset')+'</button>':'')
     +'</div>'
     +(_periodActive?'<div style="margin-top:9px;font-size:.72rem;background:var(--mist);border-radius:var(--cr-sm);padding:7px 11px;color:var(--mid);line-height:1.6">'
@@ -242,7 +242,7 @@ function stgOpenSection(sec, keep){
                 const name = esc(jData.displayName || jData.uid);
                 const email = jData.email ? '<div style="font-size:.72rem;color:var(--mid)">'+esc(jData.email)+'</div>' : '';
                 rh += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
-                rh += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#E65100;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">'+esc((jData.displayName||'?')[0].toUpperCase())+'</div>';
+                rh += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#BF360C;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">'+esc((jData.displayName||'?')[0].toUpperCase())+'</div>';
                 rh += '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+name+'</div>'+email+'</div>';
                 rh += '<div style="display:flex;gap:6px">';
                 rh += '<button data-uid="'+esc(jd.id)+'" onclick="approveJoin(this.dataset.uid)" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" style="width:12px;height:12px"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
@@ -261,7 +261,7 @@ function stgOpenSection(sec, keep){
       const items=lCfg.items;
       if(sortMode==='cat'){['Food','Household','Personal','Transport','Other'].forEach(cat=>{const ci=items.map((it,i)=>({...it,i})).filter(it=>catOf(it.name)===cat);if(!ci.length)return;const _ci=CAT_OPTS.find(c=>c.key===cat);h+='<div class="cat-hdr"><i data-lucide="'+(_ci?_ci.icon:'tag')+'" style="width:13px;height:13px;vertical-align:middle;margin-right:5px;color:'+CAT_COLORS[cat]+'"></i><span style="color:'+CAT_COLORS[cat]+'">'+(t.cats[cat]||cat)+'</span></div>';ci.forEach(it=>h+=rMGI(it,it.i));});}
       else{let sorted=items.map((it,i)=>({...it,i,sp:iSpent(it.name)}));if(sortMode==='az')sorted.sort((a,b)=>a.name.localeCompare(b.name));else if(sortMode==='over')sorted.sort((a,b)=>(b.sp/b.budget)-(a.sp/a.budget));else if(sortMode==='spend')sorted.sort((a,b)=>b.sp-a.sp);sorted.forEach(it=>h+=rMGI(it,it.i));}
-      h+='<div class="addform"><h3><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;margin-right:2px"></i> '+t.addItem+'</h3><input type="text" class="fi" id="ni-n" placeholder="'+t.iname+'" style="margin-bottom:9px"><div style="display:flex;gap:7px"><input type="number" class="fi" id="ni-b" placeholder="'+t.ibudget+'" inputmode="numeric" style="flex:1"><button class="btnM" onclick="addItAndStay()" style="width:auto;padding:9px 18px;font-size:.82rem">'+t.add+'</button></div></div></div>';
+      h+='<div class="addform"><h3><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;margin-right:2px"></i> '+t.addItem+'</h3><input type="text" class="fi" id="ni-n" placeholder="'+t.iname+'" style="margin-bottom:9px"><div style="display:flex;gap:7px"><input type="number" class="fi" id="ni-b" placeholder="'+t.ibudget+'" inputmode="decimal" style="flex:1"><button class="btnM" onclick="addItAndStay()" style="width:auto;padding:9px 18px;font-size:.82rem">'+t.add+'</button></div></div></div>';
     } else if(sec==='goals'){
       h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2><button class="bsm be" onclick="openAddGoal()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addGoal+'</button></div><div class="cb">';
       if(lCfg.goals&&lCfg.goals.length){lCfg.goals.forEach((gl,i)=>{
@@ -490,8 +490,15 @@ function genExportForRange(kind, format){
     label = budgetPeriodLabel();
   }
   closeM('mv-u');
-  if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
-  else buildAndDownloadPdf(fromD, toD, label);
+  _exportAfterLoad(format, fromD, toD, label);
+}
+
+// Exports can reach back past the months loaded live, so fetch the range first.
+function _exportAfterLoad(format, fromD, toD, label){
+  ensurePxFrom(fromD).then(function(){
+    if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
+    else buildAndDownloadPdf(fromD, toD, label);
+  });
 }
 
 function genExportForMonth(monthVal, format){
@@ -502,8 +509,7 @@ function genExportForMonth(monthVal, format){
   const toD = new Date(y, m+1, 0);
   const label = tx().months[m]+' '+y;
   closeM('mv-u');
-  if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
-  else buildAndDownloadPdf(fromD, toD, label);
+  _exportAfterLoad(format, fromD, toD, label);
 }
 
 function genExportCustomRange(format){
@@ -514,8 +520,7 @@ function genExportCustomRange(format){
   if(fromD > toD){ toast(lang==='cw'?'Tsiku loyamba liyenera kukhala lisanafike lomaliza.':'Start date must be before end date.','e'); return; }
   const label = fmtDate(fromVal)+' – '+fmtDate(toVal);
   closeM('mv-u');
-  if(format==='csv') buildAndDownloadCSV(fromD, toD, label);
-  else buildAndDownloadPdf(fromD, toD, label);
+  _exportAfterLoad(format, fromD, toD, label);
 }
 
 function buildAndDownloadPdf(fromD, toD, periodLabel){
@@ -617,7 +622,12 @@ function openNotifs(){
 }
 function setIncType(el,idx){const wrap=el.closest('.type-tog');if(!wrap)return;wrap.querySelectorAll('button').forEach((b,i)=>{b.classList.toggle('on',i===idx);});wrap.setAttribute('data-inc',idx===1?'recurring':'once');}
 function setHF(el){histFilter=el.dataset.f||'all';rHist();}
-function setHT(el){histTime=el.dataset.t||'month';rHist();}
+function setHT(el){
+  histTime=el.dataset.t||'month'; rHist();
+  // 'All' and 'This year' can reach past the months that are loaded live.
+  if(histTime==='all') loadOlderPx('2000-01-01');
+  else if(histTime==='year') loadOlderPx(new Date().getFullYear()+'-01-01');
+}
 function openSwitch(){
   const t=tx();
   g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?sC(u.color):'var(--border)')+';background:'+(actU().id===u.id?sC(u.color)+'18':'var(--white)')+';cursor:pointer" data-uid="'+esc(u.id)+'" onclick="swU(this.dataset.uid)">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.72rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+sC(u.color)+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';

@@ -840,7 +840,7 @@ function connectHH(code){
         unsubJoinBadge = db.collection('households').doc(code).collection('joinRequests').onSnapshot(function(snap){
             const badge = g('pending-join-badge');
             if(badge) badge.innerHTML = snap.size > 0
-              ? '<span style="background:#E65100;color:#fff;border-radius:var(--cr-md);font-size:.6rem;font-weight:800;padding:2px 7px;margin-right:5px">'+snap.size+'</span>'
+              ? '<span style="background:#BF360C;color:#fff;border-radius:var(--cr-md);font-size:.7rem;font-weight:800;padding:2px 7px;margin-right:5px">'+snap.size+'</span>'
               : '';
             if(_prevJoinReqCount>=0 && snap.size > _prevJoinReqCount){
               const _isCW = lang === 'cw';
@@ -878,19 +878,12 @@ function connectHH(code){
   if(unsub)unsub();
   let _permRetried=false; // one automatic retry after refreshing the auth token before we conclude the user was removed
   const tryConnect = (field) => {
-    const q = field
-      ? db.collection('households').doc(code).collection('purchases').orderBy(field,'desc')
-      : db.collection('households').doc(code).collection('purchases');
-    return q.onSnapshot(snap=>{
-      lPx=snap.docs.map(d=>({id:d.id,...d.data()}));
-      // Sort client-side by date desc as fallback
-      // createdAt is a Firestore Timestamp (not a number), so convert before comparing.
-      const _ms=x=>{ if(x.timestamp) return Number(x.timestamp)||0; const c=x.createdAt; return (c&&c.toMillis)?c.toMillis():0; };
-      lPx.sort((a,b)=>{
-        const ta=_ms(a), tb=_ms(b);
-        if(ta&&tb&&ta!==tb) return tb-ta;
-        return (b.date||'').localeCompare(a.date||'');
-      });
+    // Only the recent window is read live (see "Entries window" above); older months load on demand.
+    _pxStartWindow(code);
+    const q = db.collection('households').doc(code).collection('purchases').where('date','>=',pxSince);
+    const _mainUnsub = q.onSnapshot(snap=>{
+      _pxMain=snap.docs.map(d=>({id:d.id,...d.data()}));
+      _setPx();
       _invalidateMemo(); // Clear performance cache when data changes
       setDot(''); renderLive();
       clearTimeout(window._recurTimer);
@@ -922,11 +915,68 @@ function connectHH(code){
           .catch(()=>{ toast((lang==='cw'?'Pali vuto la intaneti. Onani netiweki yanu.':'Connection problem. Please check your network.'),'e'); setDot('off'); });
       } else { toast((lang==='cw'?'Intaneti yachoka: ':'Connection lost: ')+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
     });
+    return function(){ _mainUnsub(); _pxTeardown(); };
   };
   // No server-side orderBy: Firestore silently drops documents that lack the ordered field (older entries), and we sort client-side anyway.
   unsub=tryConnect(null);
   applyLang();
   startChipListener();
+}
+
+// ── Entries window ──────────────────────────────────────────────────────────
+// The live listener covers the last PX_WINDOW_MONTHS months. A second small listener keeps every trashed entry
+// (any date) so Trash always works. Older months are loaded on demand by ensurePxFrom().
+function _pxCol(){ return db.collection('households').doc(hhId||'_').collection('purchases'); }
+function _setPx(){
+  const seen=new Map();
+  [_pxMain,_pxOlder,_pxTrash].forEach(a=>a.forEach(p=>{ if(!seen.has(p.id)) seen.set(p.id,p); }));
+  lPx=[...seen.values()];
+  // createdAt is a Firestore Timestamp (not a number), so convert before comparing.
+  const _ms=x=>{ if(x.timestamp) return Number(x.timestamp)||0; const c=x.createdAt; return (c&&c.toMillis)?c.toMillis():0; };
+  lPx.sort((a,b)=>{
+    const ta=_ms(a), tb=_ms(b);
+    if(ta&&tb&&ta!==tb) return tb-ta;
+    return (b.date||'').localeCompare(a.date||'');
+  });
+}
+function _pxStartWindow(code){
+  _pxTeardown();
+  const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-(PX_WINDOW_MONTHS-1));
+  pxSince=localISO(d); pxOlderSince='';
+  unsubTrash=db.collection('households').doc(code).collection('purchases').where('deleted','==',true).onSnapshot(snap=>{
+    _pxTrash=snap.docs.map(d=>({id:d.id,...d.data()})); _setPx(); _invalidateMemo(); renderLive();
+  }, err=>{ console.warn('[trash listener]', err&&err.code); });
+}
+function _pxTeardown(){
+  if(unsubOlder){ unsubOlder(); unsubOlder=null; }
+  if(unsubTrash){ unsubTrash(); unsubTrash=null; }
+  _pxMain=[]; _pxOlder=[]; _pxTrash=[]; pxSince=''; pxOlderSince='';
+}
+// Make sure entries back to (about) `sinceISO` are loaded. Resolves after the first batch arrives, or after 15 s
+// so a slow connection never leaves a screen waiting. Pass '2000-01-01' for everything.
+function loadOlderPx(sinceISO){
+  if(!hhId||!pxSince) return Promise.resolve();
+  const have=pxOlderSince||pxSince;
+  if(sinceISO>=have) return Promise.resolve();
+  // Step back at least 6 months at a time so browsing month by month does not restart the listener on every tap.
+  const step=new Date(have+'T00:00:00'); step.setMonth(step.getMonth()-6);
+  const target=sinceISO<localISO(step)?sinceISO:localISO(step);
+  pxOlderSince=target;
+  if(unsubOlder){ unsubOlder(); unsubOlder=null; }
+  setDot('spin');
+  return new Promise(resolve=>{
+    let done=false; const fin=()=>{ if(!done){ done=true; resolve(); } };
+    const timer=setTimeout(fin,15000);
+    unsubOlder=_pxCol().where('date','>=',target).where('date','<',pxSince).onSnapshot(snap=>{
+      _pxOlder=snap.docs.map(d=>({id:d.id,...d.data()})); _setPx(); _invalidateMemo(); setDot(''); renderLive();
+      clearTimeout(timer); fin();
+    }, err=>{ console.warn('[older listener]', err&&err.code); setDot(''); clearTimeout(timer); fin(); });
+  });
+}
+// Load whatever is needed to show the month (or period) that contains date `d`. A salary-day period can start in
+// the month before, so go back one extra month.
+function ensurePxFrom(d){
+  return loadOlderPx(localISO(new Date(d.getFullYear(), d.getMonth()-1, 1)));
 }
 
 // ── Chipereganyu: listens for any group this signed-in account belongs to.
@@ -1017,5 +1067,6 @@ function addPx(p,opts){
     return false;
   });
 }
-function updPx(id,data){ if(!hhId)return; _invalidateMemo(); setDot('spin'); db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error')+'.','e');setDot('off');}); }
+// Resolves true when the write worked, false when it failed (the failure toast is shown here).
+function updPx(id,data){ if(!hhId)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error')+'.','e');setDot('off');return false;}); }
 function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kuchotsa kwalephera: ':'Delete failed: ')+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }

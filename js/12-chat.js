@@ -720,19 +720,27 @@ async function sendChat(){
   
   try {
     // -- Cloudflare Worker proxy -- API key never exposed in browser --
-    const url = "https://nyumba-ai.kabangorodrick6.workers.dev/chat";
+    const url = AI_URL;
     
     // Get Firebase ID token to authenticate the worker call
 
     // Map history to Gemini format (user/model)
-    const geminiMessages = chatHistory.map(m => ({
+    // Only the recent part of the conversation goes to the AI: the proxy refuses more than 80 messages or 80,000
+    // characters, and a long session used to hit that and fail every send.
+    const ctxText = buildCtx();
+    let geminiMessages = chatHistory.slice(-20).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.text }]
     }));
+    let _chars = ctxText.length + geminiMessages.reduce((n, c) => n + c.parts[0].text.length, 0);
+    while (geminiMessages.length > 1 && (_chars > 60000 || geminiMessages[0].role !== 'user')) {
+      _chars -= geminiMessages[0].parts[0].text.length;
+      geminiMessages.shift();
+    }
 
     const payload = {
       contents: geminiMessages,
-      systemInstruction: { parts: [{ text: buildCtx() }] }
+      systemInstruction: { parts: [{ text: ctxText }] }
     };
 
     // Implemented exponential backoff for reliability
@@ -743,7 +751,7 @@ async function sendChat(){
     for (let i = 0; i <= delays.length; i++) {
       let retryable = true; // network errors are retryable; HTTP errors only for 429/503
       try {
-        const res = await fetch(url, {
+        const res = await fetchT(url, {
           method: 'POST',
           headers: await aiHeaders('msg'),
           body: JSON.stringify(payload)
@@ -760,7 +768,7 @@ async function sendChat(){
         break;
       } catch (err) {
         lastErr = err;
-        if (!retryable || (err && err.aiCode === 'auth') || i === delays.length) throw lastErr;
+        if (!retryable || (err && (err.aiCode === 'auth' || err.name === 'AbortError')) || i === delays.length) throw lastErr;
       }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
@@ -828,6 +836,33 @@ function openMagicLog() {
   openM('mv-magic');
 }
 
+// A phone photo can be 5-10 MB; base64 adds a third, and the AI proxy refuses anything over 12 MB. Shrink the longest
+// side to 1600 px and re-encode as JPEG (quality 0.8): plenty to read a receipt, usually 200-400 KB. If the browser
+// cannot decode the file, send the original as before.
+function compressReceipt(file){
+  const readOriginal=()=>new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=e=>resolve({base64:String(e.target.result).split(',')[1],mime:file.type||'image/jpeg'});
+    r.onerror=()=>reject(r.error);
+    r.readAsDataURL(file);
+  });
+  return new Promise(resolve=>{
+    const url=URL.createObjectURL(file), im=new Image();
+    im.onload=()=>{
+      try{
+        const MAX=1600, sc=Math.min(1,MAX/Math.max(im.naturalWidth,im.naturalHeight));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.naturalWidth*sc)); c.height=Math.max(1,Math.round(im.naturalHeight*sc));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        URL.revokeObjectURL(url);
+        resolve({base64:c.toDataURL('image/jpeg',0.8).split(',')[1],mime:'image/jpeg'});
+      }catch(e){ URL.revokeObjectURL(url); resolve(null); }
+    };
+    im.onerror=()=>{ URL.revokeObjectURL(url); resolve(null); };
+    im.src=url;
+  }).then(res=>res||readOriginal());
+}
+
 // Chat-context receipt scan — shows scanning bubble and posts results as a chat message
 // Shared instruction injected into every AI item-extraction prompt (Magic Log,
 // receipt scan, chat receipt scan). Root cause of the "Others" naming bug: the
@@ -854,15 +889,14 @@ async function scanReceiptFromChat(input){
     +'</div><span class="bubble-ts">Bajeti AI</span>';
   if(msgsEl){msgsEl.appendChild(scanWrap);msgsEl.scrollTop=msgsEl.scrollHeight;}
 
-  const reader=new FileReader();
-  reader.onload=async function(e){
-    const base64=e.target.result.split(',')[1];
-    const mime=file.type||'image/jpeg';
+  compressReceipt(file).then(async function(img){
+    const base64=img.base64;
+    const mime=img.mime;
     const prompt='This is a receipt from Malawi. Extract ALL line items as a JSON array. Each object needs: {item: string, amount: number, type: "expense"}. '+AI_ITEM_NAMING_RULE+' Categories for reference only (do not use as item names): '+lCfg.items.map(function(i){return i.name;}).join(', ')+'. Return ONLY valid JSON array, no markdown, no explanation.';
     try{
-      const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
+      const url = AI_URL;
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers: await aiHeaders('scan'),body:JSON.stringify(payload)});
+      const res=await fetchT(url,{method:'POST',headers: await aiHeaders('scan'),body:JSON.stringify(payload)},90000);
       let data=null; try{ data=await res.json(); }catch(_){}
       if(!res.ok || !data || data.error) throw _aiHttpErr(res, data);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
@@ -905,8 +939,7 @@ async function scanReceiptFromChat(input){
       saveChatHistory();
       renderBubbles();
     }
-  };
-  reader.readAsDataURL(file);
+  }).catch(function(){ _aiInFlight=false; toast(lang==='cw'?'Sitinathe kutsegula chithunzi.':'Could not open that photo.','e'); });
 }
 
 async function scanReceipt(input){
@@ -919,15 +952,14 @@ async function scanReceipt(input){
   if(resultsEl){resultsEl.innerHTML='<div class="magic-scan-card"><span class="msc-ico"><i data-lucide="scan" style="width:18px;height:18px;color:#2A1400"></i></span><div style="flex:1"><div class="msc-label">'+(lang==='cw'?'Tikuwerenga risiti yanu...':'Reading your receipt...')+'</div><div class="msc-track"><div class="msc-bar"></div></div></div></div>';if(window.lucide)lucide.createIcons({nodes:[resultsEl]});}
   const btn=g('magic-btn-process'); if(btn){btn.disabled=true;btn.innerHTML='<i data-lucide="loader-2" class="spin-ico" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i> '+(lang==='cw'?'Kuwerenga...':'Scanning...');if(window.lucide)lucide.createIcons({nodes:[btn]});}
 
-  const reader=new FileReader();
-  reader.onload=async function(e){
-    const base64=e.target.result.split(',')[1];
-    const mime=file.type||'image/jpeg';
+  compressReceipt(file).then(async function(img){
+    const base64=img.base64;
+    const mime=img.mime;
     const prompt='This is a receipt from Malawi. Extract ALL line items as a JSON array. Each object needs: {item: string, amount: number, type: "expense"}. '+AI_ITEM_NAMING_RULE+' Categories for reference only (do not use as item names): '+lCfg.items.map(function(i){return i.name;}).join(', ')+'. Return ONLY valid JSON array, no markdown, no explanation.';
     try{
-      const url='https://nyumba-ai.kabangorodrick6.workers.dev/chat';
+      const url = AI_URL;
       const payload={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}]};
-      const res=await fetch(url,{method:'POST',headers: await aiHeaders('scan'),body:JSON.stringify(payload)});
+      const res=await fetchT(url,{method:'POST',headers: await aiHeaders('scan'),body:JSON.stringify(payload)},90000);
       let data=null; try{ data=await res.json(); }catch(_){}
       if(!res.ok || !data || data.error) throw _aiHttpErr(res, data);
       const resultText=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
@@ -953,8 +985,7 @@ async function scanReceipt(input){
       _aiInFlight=false;
       toast(aiFailMessage(err, lang==='cw') || 'Could not read receipt.','e');
     }
-  };
-  reader.readAsDataURL(file);
+  }).catch(function(){ _aiInFlight=false; toast(lang==='cw'?'Sitinathe kutsegula chithunzi.':'Could not open that photo.','e'); });
 }
 
 
@@ -1022,14 +1053,14 @@ async function processMagicLog() {
   Text: "${input}"`;
   
   try {
-    const url = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
+    const url = AI_URL;
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
     const delays = [1000, 2000, 4000, 8000];
     let data = null, lastErr = null;
     for (let i = 0; i <= delays.length; i++) {
       let retryable = true;
       try {
-        const res = await fetch(url, { method: 'POST', headers: await aiHeaders('magic'), body: JSON.stringify(payload) });
+        const res = await fetchT(url, { method: 'POST', headers: await aiHeaders('magic'), body: JSON.stringify(payload) });
         let resData = null; try { resData = await res.json(); } catch(_) {}
         if (!res.ok) {
           lastErr = _aiHttpErr(res, resData);
@@ -1037,7 +1068,7 @@ async function processMagicLog() {
           throw lastErr;
         }
         data = resData; break;
-      } catch(err) { lastErr = err; if (!retryable || (err && err.aiCode === 'auth') || i === delays.length) throw lastErr; }
+      } catch(err) { lastErr = err; if (!retryable || (err && (err.aiCode === 'auth' || err.name === 'AbortError')) || i === delays.length) throw lastErr; }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -1134,7 +1165,7 @@ async function generateAiSummary() {
   const btn=g('ai-sum-btn'),box=g('ai-sum-box');
   btn.disabled=true; btn.innerHTML='<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
   try{
-    const url = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
+    const url = AI_URL;
     const summaryPrompt = `Write a household budget review. Language: ${lang==='cw'?'Chichewa':'English'}. Currency: MK.
 Hard rules: exactly 2-3 sentences, no more, no bullet list. Open with a short warm greeting using their first name only -- e.g. "Hi ${actU().name.split(' ')[0]}," in English or "Moni ${actU().name.split(' ')[0]}," in Chichewa -- never start the reply with the bare name as if mid-sentence. Reference specific numbers and item names from the data below. Do not mention who built the app, any company or team name, or support/contact info -- none of that is relevant here.
 Data: ${JSON.stringify(buildSummaryData())}`;
@@ -1144,7 +1175,7 @@ Data: ${JSON.stringify(buildSummaryData())}`;
     for (let i = 0; i <= delays.length; i++) {
       let retryable = true;
       try {
-        const res = await fetch(url, {method:'POST', headers: await aiHeaders('summ'), body:JSON.stringify(payload)});
+        const res = await fetchT(url, {method:'POST', headers: await aiHeaders('summ'), body:JSON.stringify(payload)});
         let resData = null; try { resData = await res.json(); } catch(_) {}
         if (!res.ok) {
           lastErr = _aiHttpErr(res, resData);
@@ -1152,7 +1183,7 @@ Data: ${JSON.stringify(buildSummaryData())}`;
           throw lastErr;
         }
         data = resData; break;
-      } catch(err) { lastErr = err; if (!retryable || (err && err.aiCode === 'auth') || i === delays.length) throw lastErr; }
+      } catch(err) { lastErr = err; if (!retryable || (err && (err.aiCode === 'auth' || err.name === 'AbortError')) || i === delays.length) throw lastErr; }
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;

@@ -6,7 +6,7 @@ function polChips(items){
   items.forEach(function(it){
     c+='<div style="display:inline-flex;align-items:center;gap:5px;background:'+it[1]+'14;border:1px solid '+it[1]+'35;border-radius:var(--cr);padding:5px 12px 5px 9px">'
       +'<i data-lucide="'+it[0]+'" style="width:12px;height:12px;color:'+it[1]+'"></i>'
-      +'<span style="font-size:.65rem;font-weight:700;color:'+it[1]+'">'+it[2]+'</span></div>';
+      +'<span style="font-size:.7rem;font-weight:700;color:'+it[1]+'">'+it[2]+'</span></div>';
   });
   return c+'</div>';
 }
@@ -62,12 +62,12 @@ function openPrivacySheet(){
     ['trash-2','#2E7D32',isCW?'Chotsani nthawi iliyonse':'Delete anytime']
   ]);
   let s = polSection(1,'database','#1565C0','Data We Collect','We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality.');
-  s += polSection(2,'settings','#00695C','How We Use Your Data','Your data is used exclusively to provide the budgeting features. AI features process spending summaries temporarily; this data is not retained beyond the request.');
+  s += polSection(2,'settings','#00695C','How We Use Your Data','Your data is used exclusively to provide the budgeting features. When you use an AI feature, the app sends that request to Google\'s Gemini service through our own server. It can include your chat message, member names, your budget and recent spending figures, and any receipt photo you scan. We do not keep these requests ourselves; Google processes them under its own terms.');
   s += polSection(3,'lock','#7B1FA2','Data Storage &amp; Security','All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can access your data. Data is encrypted in transit and at rest.');
-  s += polSection(4,'users','#E65100','Data Sharing','We do not sell, rent, or share your personal data with advertisers or third parties. Data is shared only with household members who have your household code.');
+  s += polSection(4,'users','#E65100','Data Sharing','We do not sell or rent your personal data and we do not share it with advertisers. Data is shared with household members who have your household code, and with the services that run the app: Google (Firebase for sign-in and storage, Gemini for AI features) and PayChangu for Premium payments.');
   s += polSection(5,'check-circle','#2E7D32','Your Rights','You may delete your account and all associated data at any time via Settings. You can also export your data as CSV.');
   s += polSection(6,'mail','#4527A0','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
-  polShell('scr-privacy-page','shield-check','Privacy Policy','Last updated: July 2026 · Rodart Creatives',chips,s);
+  polShell('scr-privacy-page','shield-check','Privacy Policy','Last updated: October 2026 · Rodart Creatives',chips,s);
 }
 
 // ── FAQ ──────────────────────────────────────────────────────────────────
