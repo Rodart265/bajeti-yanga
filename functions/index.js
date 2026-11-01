@@ -6,6 +6,7 @@
 //                         POST + Signature      -> PayChangu's webhook
 //                         GET  ?tx_ref=...      -> the customer's browser coming back from PayChangu
 //   reconcilePayments   every 15 minutes, settles any payment whose webhook was missed
+//   purgeTrash          daily, deletes entries that have been in the app's trash for over 30 days
 //   onHouseholdCreated  keeps it to one free trial per account (and, if switched on, the free household cap)
 //   admin               HTTPS. The one door for the admin console (docs: admin console plan). Google sign-in + ADMIN_EMAILS only.
 
@@ -121,6 +122,14 @@ exports.reconcilePayments = onSchedule(
   async () => {
     const out = await lib.reconcilePending({ deps: depsFor(PAYCHANGU_SECRET_KEY.value()) });
     if (out.length) console.log('reconciled', JSON.stringify(out));
+  }
+);
+
+exports.purgeTrash = onSchedule(
+  { region: REGION, schedule: 'every day 03:00', timeZone: 'Africa/Blantyre', timeoutSeconds: 300 },
+  async () => {
+    const out = await lib.purgeTrash({ deps: depsFor(null) });
+    if (out.removed) console.log('purged trashed entries', out.removed);
   }
 );
 

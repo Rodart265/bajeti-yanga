@@ -4,11 +4,11 @@
 
 const crypto = require('crypto');
 
-const PRICES = { 1: 2500, 3: 7000 };               // MWK. Keep in step with selectPlan() in index.html.
+const PRICES = { 1: 2500, 3: 7000 };               // MWK. Keep equal to PLANS in js/01-constants.js (tests/prices.test.js checks it).
 const CURRENCY = 'MWK';
 const CAT_OFFSET_MS = 2 * 3600 * 1000;             // Malawi is UTC+2, no daylight saving
 const PENDING_MAX_AGE_MS = 3 * 86400 * 1000;
-const FREE_HOUSEHOLD_CAP = 3;                      // keep in step with HOUSEHOLD_LIMITS.free in index.html
+const FREE_HOUSEHOLD_CAP = 3;                      // keep in step with HOUSEHOLD_LIMITS.free in js/01-constants.js
 
 const pad = n => String(n).padStart(2, '0');
 const isCode = s => typeof s === 'string' && /^[A-Za-z0-9_-]{3,40}$/.test(s);
@@ -100,9 +100,9 @@ async function createCheckout({ deps, uid, email, householdId, months, selfUrl, 
   const h = hh.exists ? hh.data() : null;
   if (!h || !Array.isArray(h.memberUids) || !h.memberUids.includes(uid) || h.deletedAt) return { code: 403, error: 'Not allowed.' };
 
-  const recent = await db.collection('payments').where('uid', '==', uid).limit(40).get();
-  let n = 0; recent.forEach(d => { if ((d.data().createdAtMs || 0) > now() - 10 * 60 * 1000) n++; });
-  if (n >= 5) return { code: 429, error: 'Too many payment attempts. Please wait a few minutes.' };
+  // Needs the composite index in firestore.indexes.json (uid + createdAtMs).
+  const recent = await db.collection('payments').where('uid', '==', uid).where('createdAtMs', '>', now() - 10 * 60 * 1000).get();
+  if (recent.size >= 5) return { code: 429, error: 'Too many payment attempts. Please wait a few minutes.' };
 
   const txRef = newTxRef();
   const payRef = db.collection('payments').doc(txRef);
@@ -167,7 +167,10 @@ async function settlePayment({ deps, txRef }) {
         tx.set(uRef, { premiumUntil: tsFromMillis(Math.max(cur, endOfDayMs(expiry))) }, { merge: true });
       }
     }
-    tx.update(payRef, { status: 'paid', paidAtMs: now(), premiumExpiry: expiry });
+    // A household that already has Premium with no end date gains nothing from a payment: keep a note so it can be refunded.
+    const extra = wasUnlimited ? { note: 'household already had Premium with no end date; nothing was extended' } : {};
+    if (wasUnlimited) console.warn('payment on a household with unlimited Premium, check for a refund:', txRef);
+    tx.update(payRef, { status: 'paid', paidAtMs: now(), premiumExpiry: expiry, ...extra });
     result = { status: 'paid', premiumExpiry: expiry };
   });
   return result;
@@ -182,6 +185,26 @@ async function reconcilePending({ deps, limit = 50 }) {
     catch (e) { out.push([d.id, 'error: ' + e.message]); }
   }
   return out;
+}
+
+// ── Trash: the app promises entries are deleted for good 30 days after they are trashed ──
+// Walks every household and deletes purchases that were trashed (deleted === true) before the cutoff. deletedAt is an
+// ISO string written by the app, so string comparison orders it correctly. Uses only single-field queries.
+async function purgeTrash({ deps, days = 30, perHousehold = 400 }) {
+  const { db, now } = deps;
+  const cutoff = new Date(now() - days * 86400000).toISOString();
+  const hhs = await db.collection('households').get();
+  let removed = 0;
+  for (const h of hhs.docs) {
+    const col = db.collection('households').doc(h.id).collection('purchases');
+    const old = await col.where('deletedAt', '<', cutoff).limit(perHousehold).get();
+    for (const d of old.docs) {
+      if (d.data().deleted !== true) continue;
+      await col.doc(d.id).delete();
+      removed++;
+    }
+  }
+  return { removed };
 }
 
 // ── one free trial per ACCOUNT, and (optionally) the free household cap ──────
@@ -237,5 +260,5 @@ async function enforceTrialAndCap({ deps, householdId, data, createdMs, enforceC
 
 module.exports = {
   PRICES, CURRENCY, isCode, isTxRef, catYMD, addMonthsYMD, endOfDayMs, extendExpiry, newTxRef, signatureOk,
-  candidateRefs, payChanguCreate, payChanguVerify, createCheckout, settlePayment, reconcilePending, enforceTrialAndCap,
+  candidateRefs, payChanguCreate, payChanguVerify, createCheckout, settlePayment, reconcilePending, enforceTrialAndCap, purgeTrash,
 };

@@ -40,12 +40,14 @@ function makeDb(clock) {
     set: async (d, opts) => { const rec = col(name).get(id); col(name).set(id, { data: applyOps(opts && opts.merge && rec ? rec.data : {}, d), created: rec ? rec.created : clock.t }); },
     update: async d => { const rec = col(name).get(id); if (!rec) throw new Error('no doc ' + name + '/' + id); rec.data = applyOps(rec.data, d); },
     delete: async () => { col(name).delete(id); },
+    collection: sub => colApi(name + '/' + id + '/' + sub),
   });
+  const colApi = name => ({ doc: id => ref(name, id), where: (f, op, v) => query(name, [[f, op, v]], 0), limit: n => query(name, [], n), get: () => query(name, [], 0).get() });
   const query = (name, filters, lim) => ({
-    where: (f, op, v) => query(name, [...filters, [f, v]], lim),
+    where: (f, op, v) => query(name, [...filters, [f, op, v]], lim),
     limit: n => query(name, filters, n),
     get: async () => {
-      let ids = [...col(name).keys()].filter(id => filters.every(([f, v]) => col(name).get(id).data[f] === v));
+      let ids = [...col(name).keys()].filter(id => filters.every(([f, op, v]) => { const x = col(name).get(id).data[f]; return op === '<' ? x < v : op === '>' ? x > v : op === '<=' ? x <= v : op === '>=' ? x >= v : x === v; }));
       if (lim) ids = ids.slice(0, lim);
       const docs = ids.map(id => snapOf(name, id));
       return { docs, forEach: fn => docs.forEach(fn), size: docs.length };
@@ -53,7 +55,7 @@ function makeDb(clock) {
   });
   return {
     _cols: cols,
-    collection: name => ({ doc: id => ref(name, id), where: (f, op, v) => query(name, [[f, v]], 0), limit: n => query(name, [], n), get: () => query(name, [], 0).get() }),
+    collection: name => colApi(name),
     runTransaction: async fn => {
       const writes = [];
       const tx = {
@@ -323,6 +325,38 @@ function world() {
     for (const [i, id] of ['h1', 'h2', 'h3', 'h4'].entries()) w.db.seed('households', id + 'xxxxxx', { owner: 'u6', memberUids: ['u6'], ...(i === 0 ? { deletedAt: 'x' } : {}) }, T0 + i);
     const r = await lib.enforceTrialAndCap({ deps: w.deps, householdId: 'h4xxxxxx', data: w.db.peek('households', 'h4xxxxxx'), createdMs: T0 + 3, enforceCap: true });
     ok('households scheduled for deletion do not count toward the cap', !r.removed);
+  }
+
+  console.log('\nTrash purge');
+  {
+    const w = world();
+    const old = new Date(T0 - 31 * 86400000).toISOString(), recent = new Date(T0 - 5 * 86400000).toISOString();
+    w.db.seed('households', 'hhpurge1', { owner: 'u1', memberUids: ['u1'] });
+    w.db.seed('households', 'hhpurge2', { owner: 'u2', memberUids: ['u2'] });
+    w.db.seed('households/hhpurge1/purchases', 'old1', { item: 'a', deleted: true, deletedAt: old });
+    w.db.seed('households/hhpurge1/purchases', 'new1', { item: 'b', deleted: true, deletedAt: recent });
+    w.db.seed('households/hhpurge1/purchases', 'live1', { item: 'c', amount: 5 });
+    w.db.seed('households/hhpurge2/purchases', 'old2', { item: 'd', deleted: true, deletedAt: old });
+    w.db.seed('households/hhpurge2/purchases', 'odd2', { item: 'e', deleted: false, deletedAt: old });
+    const r = await lib.purgeTrash({ deps: w.deps });
+    ok('removes entries trashed more than 30 days ago, in every household', r.removed === 2 && !w.db.peek('households/hhpurge1/purchases', 'old1') && !w.db.peek('households/hhpurge2/purchases', 'old2'));
+    ok('keeps recent trash and live entries', !!w.db.peek('households/hhpurge1/purchases', 'new1') && !!w.db.peek('households/hhpurge1/purchases', 'live1'));
+    ok('never deletes an entry that is not marked deleted', !!w.db.peek('households/hhpurge2/purchases', 'odd2'));
+  }
+  {
+    const { w, tx } = await paidWorld({ hh: { isPremium: true } });
+    w.pc.verifyResult = { status: 'success', amount: 2500, currency: 'MWK' };
+    const r = await lib.settlePayment({ deps: w.deps, txRef: tx });
+    ok('payment on a household with unlimited Premium is recorded with a refund note', r.status === 'paid' && /nothing was extended/.test(w.db.peek('payments', tx).note || ''));
+  }
+  {
+    const w = world();
+    w.db.seed('households', 'hh111111', { owner: 'own1', memberUids: ['own1', 'mem1'] });
+    const base = { deps: w.deps, uid: 'mem1', email: 'a@b.co', householdId: 'hh111111', months: 1, selfUrl: 's', appUrl: 'https://app.example/' };
+    for (let i = 0; i < 5; i++) await lib.createCheckout(base);
+    w.clock.t += 11 * 60 * 1000;
+    const r = await lib.createCheckout(base);
+    ok('rate limit only counts the last 10 minutes, however many payments the account has made', r.code === 200);
   }
 
   console.log(`\n${passed} passed, ${failed} failed`);
