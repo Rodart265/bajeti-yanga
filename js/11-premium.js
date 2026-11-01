@@ -139,24 +139,14 @@ function showPremiumPage(){
   const status = getPremiumStatus();
   const isCW = lang === 'cw';
 
-  // PayChangu badge SVG
-  const paychanguBadge = '<div style="display:inline-flex;align-items:center;gap:6px;background:#fff;border-radius:var(--cr-md);padding:6px 12px;box-shadow:0 2px 8px rgba(0,0,0,.12)">'
-    +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7B1FA2" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>'
-    +'<span style="font-size:.7rem;font-weight:800;color:var(--p1-text);font-family:Hanken Grotesk,sans-serif">Secure Payment via PayChangu</span>'
-    +'</div>';
+  let h = '';
 
-  let h = '<div class="dh"></div>';
-
-  // Hero header with real app logo
-  h += '<div style="margin:-2px -18px 0;padding:28px 20px 24px;background:linear-gradient(145deg,#4A148C 0%,#6A1B9A 45%,#8E24AA 100%);border-radius:0 0 24px 24px;text-align:center;position:relative;overflow:hidden">';
-  h += '<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>';
-  h += '<div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.05)"></div>';
-  h += '<div style="width:60px;height:60px;border-radius:var(--cr);background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 10px">';
-  h += APP_LOGO_SVG(44);
-  h += '</div>';
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.3rem;color:#fff;letter-spacing:-.3px;margin-bottom:4px">Bajeti Yanga Premium</div>';
-  h += '<div style="font-size:.76rem;color:rgba(255,255,255,.75);max-width:240px;margin:0 auto 12px;line-height:1.5">Unlock the full power of your money. Built in Malawi, for Malawian families.</div>';
-  h += paychanguBadge;
+  // Compact header: logo + title in one row (keeps the screen short on small phones)
+  h = '<div class="dh" style="margin-bottom:10px"></div>';
+  h += '<div style="display:flex;align-items:center;gap:11px;padding:12px 14px;margin-bottom:10px;background:linear-gradient(145deg,#4A148C 0%,#6A1B9A 45%,#8E24AA 100%);border-radius:18px">';
+  h += '<div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+APP_LOGO_SVG(30)+'</div>';
+  h += '<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.02rem;color:#fff;letter-spacing:-.2px">Bajeti Yanga Premium</div>';
+  h += '<div style="font-size:.72rem;color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px">'+(isCW?'Tsegulani mphamvu zonse za ndalama zanu.':'Unlock the full power of your money.')+'</div></div>';
   h += '</div>';
 
   // If already premium — show status (comfortably active: no urgent action needed)
@@ -192,76 +182,64 @@ function showPremiumPage(){
   }
 
 
-  // Feature grid
+  // Feature tiles (names only, to keep the grid short)
   const feats = [
-    ['bar-chart-2','Visual Charts','Pie + bar charts by category','#7B1FA2'],
-    ['file-text','PDF Export','Printable branded reports','#1565C0'],
-    ['bell','Bill Tracker','ESCOM, water, rent due dates','#E65100'],
-    ['cpu','Unlimited AI','No daily message limit','#00695C'],
-    ['trash-2','30-Day Trash','Undo accidental deletes','#B71C1C'],
-    ['copy','Copy Month','Repeat last month in one tap','#4527A0'],
-    ['camera','Receipt Scan','Camera scan receipts','#1B5E20']
+    ['bar-chart-2','Visual Charts','#7B1FA2'],
+    ['file-text','PDF Export','#1565C0'],
+    ['bell','Bill Tracker','#E65100'],
+    ['cpu','Unlimited AI','#00695C'],
+    ['trash-2','30-Day Trash','#B71C1C'],
+    ['copy','Copy Month','#4527A0'],
+    ['camera','Receipt Scan','#1B5E20']
   ];
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 14px">';
-  feats.forEach(function(f){
-    h += '<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 11px;display:flex;align-items:flex-start;gap:10px">';
-    h += '<div style="width:34px;height:34px;border-radius:var(--cr-md);background:'+f[3]+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
-    h += '<i data-lucide="'+f[0]+'" style="width:17px;height:17px;color:'+f[3]+'"></i></div>';
-    h += '<div style="padding-top:2px"><div style="font-weight:700;font-size:.78rem;color:var(--ink)">'+f[1]+'</div>';
-    h += '<div style="font-size:.72rem;color:var(--mid);margin-top:2px;line-height:1.4">'+f[2]+'</div></div>';
-    h += '</div>';
+  h += '<div class="pm-sec">'+(isCW?'Zomwe Mumapeza':'Included')+'</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">';
+  feats.forEach(function(f,i){
+    h += '<div style="background:var(--mist);border-radius:var(--cr-md);padding:8px 9px;display:flex;align-items:center;gap:8px'+(i===feats.length-1?';grid-column:1/-1':'')+'">';
+    h += '<div style="width:28px;height:28px;border-radius:9px;background:'+f[2]+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+f[0]+'" style="width:15px;height:15px;color:'+f[2]+'"></i></div>';
+    h += '<div style="font-weight:700;font-size:.76rem;color:var(--ink)">'+f[1]+'</div></div>';
   });
   h += '</div>';
 
   // Plan selector
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;color:var(--mid);margin-bottom:8px">'+(isCW?'Sankhani Phukusi':'Choose a Plan')+'</div>';
-  h += '<div style="display:flex;gap:8px;margin-bottom:16px">';
-
-  // 1 Month plan
-  h += '<div id="plan-1m" onclick="selectPlan(1,'+PLANS[1].price+')" style="flex:1;background:var(--white);border:2px solid var(--border);border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s">';
-  h += '<div style="font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">'+(isCW?'Mwezi 1':'1 Month')+'</div>';
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:var(--ink)">MK '+PLANS[1].price.toLocaleString()+'</div>';
-  h += '<div style="font-size:.72rem;color:var(--mid);margin-top:2px">'+(isCW?'pa mwezi':'per month')+'</div>';
-  h += '</div>';
-
-  // 3 Month plan — highlighted
-  h += '<div id="plan-3m" onclick="selectPlan(3,'+PLANS[3].price+')" style="flex:1;background:linear-gradient(145deg,#4A148C,#7B1FA2);border:2px solid #CE93D8;border-radius:var(--cr);padding:14px 10px;text-align:center;cursor:pointer;position:relative;box-shadow:0 6px 24px rgba(106,27,154,.35)">';
-  h += '<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#FFD700,#FFA000);color:var(--p1-deep);font-size:.72rem;font-weight:900;padding:2px 10px;border-radius:var(--cr-md);white-space:nowrap;letter-spacing:.3px">'+(isCW?'MTENGO WABWINO':'BEST VALUE')+'</div>';
-  h += '<div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">'+(isCW?'Miyezi 3':'3 Months')+'</div>';
-  h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.2rem;color:#fff">MK '+PLANS[3].price.toLocaleString()+'</div>';
-  h += '<div style="font-size:.72rem;color:rgba(255,255,255,.65);margin-top:2px">'+(isCW?'Sungani MK 500':'Save MK 500')+'</div>';
-  h += '</div>';
+  const saved = PLANS[1].price*3 - PLANS[3].price;
+  h += '<div class="pm-sec">'+(isCW?'Sankhani Phukusi':'Choose a Plan')+'</div>';
+  h += '<div style="display:flex;gap:8px;padding-top:8px">';
+  h += '<div id="plan-1m" class="pm-plan" onclick="selectPlan(1,'+PLANS[1].price+')">';
+  h += '<div class="pm-pl">'+(isCW?'Mwezi 1':'1 Month')+'</div><div class="pm-pp">MK '+PLANS[1].price.toLocaleString()+'</div><div class="pm-ps">'+(isCW?'pa mwezi':'per month')+'</div></div>';
+  h += '<div id="plan-3m" class="pm-plan" onclick="selectPlan(3,'+PLANS[3].price+')" style="position:relative">';
+  h += '<div class="pm-best">'+(isCW?'MTENGO WABWINO':'BEST VALUE')+'</div>';
+  h += '<div class="pm-pl">'+(isCW?'Miyezi 3':'3 Months')+'</div><div class="pm-pp">MK '+PLANS[3].price.toLocaleString()+'</div><div class="pm-ps">'+(saved>0?(isCW?'Sungani MK ':'Save MK ')+saved.toLocaleString():(isCW?'miyezi 3':'3 months'))+'</div></div>';
   h += '</div>';
 
   // Why pay
-  h += '<div style="border:1.5px solid #A5D6A7;background:linear-gradient(135deg,#F1F8E9,#E8F5E9);border-radius:var(--cr);padding:11px 13px;margin-bottom:16px;font-size:.76rem;color:var(--pos);line-height:1.6;display:flex;align-items:flex-start;gap:8px">';
-  h += '<i data-lucide="heart" style="width:15px;height:15px;color:var(--pos);flex-shrink:0;margin-top:2px"></i>';
+  h += '<div style="border:1.5px solid #A5D6A7;background:linear-gradient(135deg,#F1F8E9,#E8F5E9);border-radius:var(--cr-md);padding:8px 10px;margin-top:10px;font-size:.7rem;color:var(--pos);line-height:1.45;display:flex;align-items:flex-start;gap:7px">';
+  h += '<i data-lucide="heart" style="width:14px;height:14px;color:var(--pos);flex-shrink:0;margin-top:2px"></i>';
   h += '<div><strong>'+(isCW?'Chifukwa chani kulipira?':'Why pay?')+'</strong> '+(isCW?'Bajeti Yanga yapangidwa ku Malawi, ya mabanja a ku Malawi. Ndalama zomwe mumalipira zimathandiza kuti app ipitirize kugwira ntchito. Palibe zotsatsa, ndipo sitigulitsa deta yanu, konse.':'Bajeti Yanga is built in Malawi, for Malawian families. Your subscription keeps the app running. No ads, no data selling, ever.')+'</div>';
   h += '</div>';
 
-  // Proceed button
-  h += '<button onclick="proceedToPayment()" style="width:100%;padding:14px;background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(74,20,140,.4);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">';
+  // Pinned footer: the payment button stays on screen however small the phone is
+  h += '<div class="pm-foot">';
+  h += '<button onclick="proceedToPayment()" style="width:100%;padding:13px;background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 4px 14px rgba(74,20,140,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
   h += '<i data-lucide="arrow-right-circle" style="width:18px;height:18px"></i> '+(isCW?'Pitani ku Chilipiro':'Proceed to Payment');
   h += '</button>';
-  h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px">'+(isCW?'Mwina Mawa':'Maybe Later')+'</button>';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">';
+  h += '<span style="display:inline-flex;align-items:center;gap:5px;font-size:.68rem;color:var(--mid)"><i data-lucide="credit-card" style="width:13px;height:13px"></i>'+(isCW?'Chilipiro chotetezeka pa PayChangu':'Secure payment via PayChangu')+'</span>';
+  h += '<button onclick="closeM(\'mv-u\')" style="background:none;border:none;color:var(--ink);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 4px">'+(isCW?'Mwina Mawa':'Maybe Later')+'</button>';
+  h += '</div></div>';
 
   g('mb-u').innerHTML = h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
+  selectPlan(_selectedPlan ? _selectedPlan.months : 3);
 }
 
 function selectPlan(months, price){
   _selectedPlan = {months, price: (PLANS[months] ? PLANS[months].price : price), label: months === 1 ? '1 Month' : '3 Months'};
-  // Visual feedback — highlight selected plan
   const m1 = document.getElementById('plan-1m');
   const m3 = document.getElementById('plan-3m');
-  if(months === 1){
-    if(m1){ m1.style.border = '2px solid #7B1FA2'; m1.style.background = '#F3E5F5'; }
-    if(m3){ m3.style.opacity = '.7'; }
-  } else {
-    if(m3){ m3.style.opacity = '1'; m3.style.boxShadow = '0 6px 24px rgba(106,27,154,.5)'; }
-    if(m1){ m1.style.border = '2px solid var(--border)'; m1.style.background = 'var(--white)'; }
-  }
+  if(m1) m1.classList.toggle('on', months === 1);
+  if(m3) m3.classList.toggle('on', months === 3);
 }
 
 function proceedToPayment(){
