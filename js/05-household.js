@@ -391,9 +391,9 @@ function createHHSolo(){
         },{merge:true});
       })
       .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Takulandirani! Muli wokonzeka.':'Welcome! You\'re all set.','s'); })
-      .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); });
+      .catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); });
     });
-  }).catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); })
+  }).catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); })
   .finally(()=>{ _setupUnlock(); });
 }
 
@@ -424,9 +424,9 @@ function createHH(){
         },{merge:true});
       })
       .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yapangidwa!':'Household created!','s'); })
-      .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); });
+      .catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); });
     });
-  }).catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); })
+  }).catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); })
   .finally(()=>{ _setupUnlock(); });
 }
 
@@ -735,9 +735,9 @@ function joinHH(){
           _approvalUnsub = null; // null = active
           setTimeout(pollForApproval, 3000); // first check after 3 seconds
         })
-        .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); });
+        .catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); });
     })
-    .catch(e=>{ setDot('off'); setupErr((lang==='cw'?'Vuto: ':'Error: ')+e.message); })
+    .catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); })
     .finally(()=>{ _setupUnlock(); });
 }
 
@@ -913,7 +913,7 @@ function connectHH(code){
             else { toast((lang==='cw'?'Sitingathe kutsegula zolemba (mulibe chilolezo). Tulukani ndipo lowaninso.':'Cannot load entries (permission denied). Please sign out and in again.'),'e'); setDot('off'); }
           })
           .catch(()=>{ toast((lang==='cw'?'Pali vuto la intaneti. Onani netiweki yanu.':'Connection problem. Please check your network.'),'e'); setDot('off'); });
-      } else { toast((lang==='cw'?'Intaneti yachoka: ':'Connection lost: ')+(err&&err.code||'unknown')+'.','e'); setDot('off'); }
+      } else { toast(fsErrMsg(err),'e'); setDot('off'); }
     });
     return function(){ _mainUnsub(); _pxTeardown(); };
   };
@@ -1041,7 +1041,7 @@ function saveCfg(cfg){
   if(!Object.keys(upd).length) return Promise.resolve();
   setDot('spin');
   return db.collection('households').doc(hhId).update(upd).then(()=>{setDot('');return true;}).catch(e=>{
-    toast((lang==='cw'?'Kusunga zosintha kwalephera: ':'Settings sync failed: ')+(e&&e.code||'error')+'.','e');setDot('off');
+    toast((lang==='cw'?'Zosintha sizinasungidwe. ':'Your changes were not saved. ')+fsErrMsg(e),'e');setDot('off');
     // The write was rejected, so put the previous settings back (only if nothing newer replaced ours meanwhile).
     if(lCfg===cfg){ lCfg=prev; _invalidateMemo(); try{ renderLive(); }catch(x){} }
     return false;
@@ -1063,10 +1063,10 @@ function addPx(p,opts){
   const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
   return op.then(()=>{setDot('');return true;}).catch(e=>{
     if(opts.quiet){ setDot(''); return false; }
-    const msg=e&&e.code==='permission-denied'?(lang==='cw'?'Simunapatsidwe chilolezo. Onani malamulo a Firestore.':'Permission denied. Check Firestore rules.'):(lang==='cw'?'Vuto lolumikiza deta: ':'Sync error: ')+(e&&e.code||'unknown')+'.'; toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
+    const msg=fsErrMsg(e); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
     return false;
   });
 }
 // Resolves true when the write worked, false when it failed (the failure toast is shown here).
-function updPx(id,data){ if(!hhId)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error')+'.','e');setDot('off');return false;}); }
-function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast((lang==='cw'?'Kuchotsa kwalephera: ':'Delete failed: ')+(e&&e.code||'error')+'.','e');setDot('off');throw e;}); }
+function updPx(id,data){ if(!hhId)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');return false;}); }
+function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');throw e;}); }

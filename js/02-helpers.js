@@ -163,6 +163,20 @@ function mdLite(s){
     .replace(/^[-\u2022 ] (.+)/gm,'<li>$1</li>')
     .replace(/\n/g,'<br>');
 }
+// Plain-language text for a Firestore (or other SDK) error, instead of "Error: Missing or insufficient permissions."
+// The real code is logged so it can be diagnosed, and shown only when we have no better words for it.
+function fsErrMsg(e){
+  const cw=lang==='cw', c=(e&&e.code)||'';
+  try{ console.error('[error]', c, e&&e.message); }catch(_){}
+  if(c==='permission-denied') return cw?'Mulibe chilolezo chochita izi. Ngati mwangolembetsa kumene, tsimikizani imelo yanu, kenako tulukani ndi kulowanso.':'You do not have permission to do this. If you just signed up, make sure your email is verified, then sign out and back in.';
+  if(c==='unavailable'||c==='deadline-exceeded'||c==='network-request-failed') return cw?'Palibe kulumikizana ndi seva. Onani intaneti yanu ndipo yesaninso.':'Cannot reach the server. Check your internet connection and try again.';
+  if(c==='unauthenticated') return cw?'Nthawi yanu yatha. Lowaninso.':'Your session has ended. Please sign in again.';
+  if(c==='resource-exhausted') return cw?'Ntchito yatanganidwa kapena malire afika. Yesaninso mtsogolo.':'The service is busy or a limit was reached. Please try again later.';
+  if(c==='not-found') return cw?'Sichinapezeke. Mwina chachotsedwa.':'That could not be found. It may have been removed.';
+  if(c==='aborted'||c==='already-exists'||c==='failed-precondition') return cw?'Zinasintha pamene mukusunga. Yesaninso.':'This changed while you were saving. Please try again.';
+  if(c) return (cw?'Chinachake chinalakwika (':'Something went wrong (')+c+(cw?'). Yesaninso.':'). Please try again.');
+  return (cw?'Pulogalamu yakumana ndi vuto: ':'The app hit an unexpected problem: ')+(((e&&e.message)||'unknown').toString().slice(0,120));
+}
 // fetch with a timeout, so a stalled connection ends in an error instead of a screen that never recovers.
 function fetchT(url, opts, ms){
   const c = new AbortController();

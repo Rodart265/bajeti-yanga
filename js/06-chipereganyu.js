@@ -82,7 +82,7 @@ function saveChipCreate(btn){
     setDot(''); closeM('mv-e'); chipActiveId=code;
     toast(isCW?'Chipereganyu chapangidwa! Gawani nambala '+code+' ndi anzanu.':'Chipereganyu created! Share code '+code+' with your group.','s');
     openChipView();
-  }).catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
+  }).catch(function(e){ setDot('off'); if(btn) btn.disabled=false; toast(fsErrMsg(e),'e'); });
 }
 
 function openChipJoin(){
@@ -143,7 +143,7 @@ function joinChipGroup(btn){
       if(e&&e.code==='not-found') toast(isCW?'Khodi sinapezeke':'Code not found','e');
       else if(e&&e.code==='already-started') toast(isCW?'Gululi layamba kale kuzungulira':'This group has already started its rotation','e');
       else if(e&&e.code==='cannot-join') toast(isCW?'Simungalowe. Onani nambala, kapena gululi lingakhale lidayamba kale.':'Could not join. Check the code, or the group may already have started its rotation.','e');
-      else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
+      else toast(fsErrMsg(e),'e');
     });
 }
 
@@ -182,7 +182,7 @@ function startChipRotation(btn){
       setDot('off'); if(btn) btn.disabled=false;
       if(e&&e.code==='already-started') toast(isCW?'Gululi layamba kale':'This group has already started','i');
       else if(e&&e.code==='too-few') toast(isCW?'Muyenera membala osachepera 2 kuti muyambe':'You need at least 2 members to start','e');
-      else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
+      else toast(fsErrMsg(e),'e');
     });
 }
 
@@ -246,7 +246,7 @@ function chipTogglePaid(uid, btn){
   }).catch(function(e){
     if(btn) btn.disabled=false;
     if(e && e.code==='stale-cycle') toast(isCW?'Gawoli lasintha kale. Tsegulaninso tsambali.':'This round has already moved on. Please refresh.','e');
-    else toast((lang==='cw'?'Kusintha kwalephera: ':'Update failed: ')+(e&&e.code||'error'),'e');
+    else toast(fsErrMsg(e),'e');
   });
 }
 
@@ -309,7 +309,7 @@ function chipConfirmPayout(btn, force){
   }).catch(function(e){
     setDot('off'); if(btn) btn.disabled=false;
     if(e && e.code==='not-all-paid') toast(isCW?'Onse asanalipire':'Not everyone has paid yet','e');
-    else toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e');
+    else toast(fsErrMsg(e),'e');
   });
 }
 
@@ -528,7 +528,7 @@ function chipLeaveGroup(){
     }
     db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
       setDot(''); chipActiveId=null; toast(isCW?'Mwatuluka mu gulu':'Left the group','i'); go('home');
-    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast(fsErrMsg(e),'e'); });
   };
   if(alreadyReceived){
     // They've already taken a payout this lap but the lap isn't done, so
@@ -562,7 +562,7 @@ function chipRemoveMember(uid){
     }
     db.collection('chipereganyu_groups').doc(grp.id).update(patch).then(function(){
       setDot(''); toast(isCW?'Wachotsedwa':'Removed','i');
-    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast(fsErrMsg(e),'e'); });
   };
   if(alreadyReceived){
     appConfirm((isCW?nm+' walandira kale ndalama pa gawo lino ndipo sanamalize kulipira ena onse. Mukamuchotsa tsopano, app sidzathanso kutola ndalama zimenezo. Mumuchotsebe?':nm+' already received a payout this lap and hasn\u2019t finished contributing to everyone else\u2019s turn yet. Removing them now means the app can\u2019t collect that going forward. Remove anyway?'), doRemove, isCW?'Chotsani':'Remove anyway', true);
@@ -579,7 +579,7 @@ function chipDeleteGroup(){
     setDot('spin');
     db.collection('chipereganyu_groups').doc(grp.id).delete().then(function(){
       setDot(''); chipActiveId=null; toast(isCW?'Gulu lachotsedwa':'Group deleted','i'); go('home');
-    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast(fsErrMsg(e),'e'); });
   }, isCW?'Chotsani':'Delete', true);
 }
 
@@ -591,7 +591,7 @@ function chipMakeAdmin(uid){
     setDot('spin');
     db.collection('chipereganyu_groups').doc(grp.id).update({createdBy:uid}).then(function(){
       setDot(''); toast(isCW?'Mtsogoleri watsopano wasankhidwa':'New admin set','i');
-    }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
+    }).catch(function(e){ setDot('off'); toast(fsErrMsg(e),'e'); });
   }, isCW?'Sankhani':'Make admin', false);
 }
 
@@ -631,7 +631,7 @@ function chipMoveUp(uid){
   setDot('spin');
   db.collection('chipereganyu_groups').doc(grp.id).update({rotationOrder:order}).then(function(){
     setDot(''); toast(isCW?'Dongosolo lasinthidwa':'Rotation order updated','i');
-  }).catch(function(e){ setDot('off'); toast((lang==='cw'?'Zalephera: ':'Failed: ')+(e&&e.code||'error'),'e'); });
+  }).catch(function(e){ setDot('off'); toast(fsErrMsg(e),'e'); });
 }
 
 

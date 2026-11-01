@@ -114,7 +114,7 @@ function approveJoin(uid){
       toast(lang==='cw'?'Membala wavomerezedwa!':'Member approved!','s');
       stgOpenSection('members');
     })
-    .catch(e=>toast((lang==='cw'?'Kuvomereza kwalephera: ':'Approval failed: ')+(e&&e.code||'error')+'.','e'));
+    .catch(e=>toast((lang==='cw'?'Sitinathe kuvomereza. ':'Could not approve. ')+fsErrMsg(e),'e'));
 }
 
 function declineJoin(uid){
@@ -124,7 +124,7 @@ function declineJoin(uid){
     function(){
       db.collection('households').doc(hhId).collection('joinRequests').doc(uid).delete()
         .then(()=>{ toast(lang==='cw'?'Pempho lakanidwa.':'Request declined.','i'); stgOpenSection('members'); })
-        .catch(e=>toast((lang==='cw'?'Cholakwika: ':'Error: ')+(e&&e.code||'error')+'.','e'));
+        .catch(e=>toast(fsErrMsg(e),'e'));
     }, null, true
   );
 }
@@ -550,7 +550,7 @@ function copyPreviousMonth(){
         qty:p.qty||'',unit:p.unit||'',notes:p.notes||'',userId:p.userId,
         cat:p.cat||catOf(p.item),type:'expense',recurring:p.recurring||false});
     });
-    batch.commit().then(function(){ toast(lang==='cw'?prevPx.length+' zolemba zakopedwa!':prevPx.length+' entries copied!','s'); }).catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message+'.','e'); });
+    batch.commit().then(function(){ toast(lang==='cw'?prevPx.length+' zolemba zakopedwa!':prevPx.length+' entries copied!','s'); }).catch(function(e){ toast(fsErrMsg(e),'e'); });
   });
 }
 

@@ -91,8 +91,10 @@ function renderErrBox(id,msg){
   el.classList.add('on');
   if(window.lucide) lucide.createIcons({nodes:[el]});
 }
-function fmtAErr(code){
+function fmtAErr(code, err){
   const isCW = lang === 'cw';
+  // Always leave a trace of the real error: it is what we need to diagnose a problem someone reports.
+  try{ console.error('[auth error]', code, err&&err.message); }catch(_){}
   const en = {
     'auth/user-not-found':           'No account found with this email. Check the address or create a new account.',
     'auth/wrong-password':           'Incorrect password. Please try again.',
@@ -116,6 +118,21 @@ function fmtAErr(code){
     'auth/user-disabled':            'This account has been disabled. Contact support at +265 888 029 029.',
     'auth/expired-action-code':      'This link has expired. Please request a new one.',
     'auth/invalid-action-code':      'This link is invalid or has already been used.',
+    'auth/internal-error':           'The sign-in service had a problem. Please try again in a moment. If it keeps happening, contact support and mention "auth/internal-error".',
+    'auth/invalid-api-key':          'The app\'s sign-in key is not accepted. This is a setup problem, not your fault. Please contact support.',
+    'auth/api-key-not-valid':        'The app\'s sign-in key is not accepted. This is a setup problem, not your fault. Please contact support.',
+    'auth/unauthorized-domain':      'This web address is not allowed to sign in yet. Please contact support.',
+    'auth/app-not-authorized':       'This app is not allowed to sign in yet. Please contact support.',
+    'auth/admin-restricted-operation':'New sign-ups are switched off right now. Please contact support.',
+    'auth/quota-exceeded':           'Too many sign-ups or codes have been sent today. Please try again later.',
+    'auth/captcha-check-failed':     'We could not check that you are a real person. Refresh the page and try again.',
+    'auth/missing-recaptcha-token':  'We could not check that you are a real person. Refresh the page and try again.',
+    'auth/invalid-app-credential':   'We could not check that you are a real person. Refresh the page and try again.',
+    'auth/missing-phone-number':     'Please enter your phone number.',
+    'auth/session-expired':          'The code expired. Request a new one.',
+    'auth/timeout':                  'The request took too long. Check your connection and try again.',
+    'auth/web-storage-unsupported':  'Your browser is blocking storage. Turn off private browsing or allow cookies for this site, then try again.',
+    'auth/network-request-failed':   'Network error. Check your internet connection and try again.',
   };
   const cw = {
     'auth/user-not-found':           'Akaunti yosapezeka ndi imelo iyi. Onani imelo kapena pangani akaunti yatsopano.',
@@ -140,12 +157,37 @@ function fmtAErr(code){
     'auth/user-disabled':            'Akaunti iyi yatsekedwa. Lankhulani thandizo pa +265 888 029 029.',
     'auth/expired-action-code':      'Ulalo uwu watha. Pemphani watsopano.',
     'auth/invalid-action-code':      'Ulalo uwu ndi wopanda pake kapena wagwiritsidwa ntchito kale.',
+    'auth/internal-error':           'Dongosolo lolowera lakumana ndi vuto. Yesaninso pakanthawi. Likapitirira, lankhulani ndi thandizo ndi kunena "auth/internal-error".',
+    'auth/invalid-api-key':          'Chinsinsi cha pulogalamu sichikuvomerezedwa. Ndi vuto la kakonzedwe, osati lanu. Lankhulani ndi thandizo.',
+    'auth/api-key-not-valid':        'Chinsinsi cha pulogalamu sichikuvomerezedwa. Ndi vuto la kakonzedwe, osati lanu. Lankhulani ndi thandizo.',
+    'auth/unauthorized-domain':      'Adilesi iyi sinaloledwe kulowa. Lankhulani ndi thandizo.',
+    'auth/app-not-authorized':       'Pulogalamu iyi sinaloledwe kulowa. Lankhulani ndi thandizo.',
+    'auth/admin-restricted-operation':'Kulembetsa akaunti zatsopano kwatsekedwa pano. Lankhulani ndi thandizo.',
+    'auth/quota-exceeded':           'Ma kodi atumizidwa ambiri lero. Yesaninso mawa.',
+    'auth/captcha-check-failed':     'Sitinathe kutsimikizira kuti ndinu munthu. Tsegulaninso tsambali ndipo yesaninso.',
+    'auth/missing-recaptcha-token':  'Sitinathe kutsimikizira kuti ndinu munthu. Tsegulaninso tsambali ndipo yesaninso.',
+    'auth/invalid-app-credential':   'Sitinathe kutsimikizira kuti ndinu munthu. Tsegulaninso tsambali ndipo yesaninso.',
+    'auth/missing-phone-number':     'Lowetsani nambala yanu ya foni.',
+    'auth/session-expired':          'Kodi yatha. Pemphani yatsopano.',
+    'auth/timeout':                  'Zatenga nthawi yaitali. Onani intaneti yanu ndipo yesaninso.',
+    'auth/web-storage-unsupported':  'Browser yanu ikutsekereza kusunga zambiri. Zimitsani private mode kapena lolani ma cookie, kenako yesaninso.',
   };
   const map = isCW ? cw : en;
   // Any code not in the map above (Firebase has more than we've listed) now
   // gets the same friendly fallback as a codeless error, instead of leaking
   // the raw "auth/whatever-it-is" string to the user.
-  return map[code] || (isCW ? 'Chinachake chinalakwika. Yesaninso.' : 'Something went wrong. Please try again.');
+  if(map[code]) return map[code];
+  // Password rules set in the Firebase console (e.g. "must contain a symbol"): show what is missing.
+  if(code==='auth/password-does-not-meet-requirements'){
+    const m=/\[(.+)\]/.exec((err&&err.message)||'');
+    return (isCW?'Mawu achinsinsi sakukwaniritsa malamulo a chitetezo.':'This password does not meet the security rules.')+(m?' '+m[1]+'.':(isCW?' Onjezani chizindikiro (monga ! kapena @), zilembo zazikulu ndi zazing\'ono, ndi nambala.':' Try adding a symbol (such as ! or @), upper and lower case letters, and a number.'));
+  }
+  // The sign-in key is restricted by web address in Google Cloud; the code then carries the address.
+  if(code && code.indexOf('auth/requests-from-referer')===0)
+    return isCW?'Adilesi ya tsambali siyaloledwa ndi chinsinsi cha pulogalamu. Ndi vuto la kakonzedwe. Lankhulani ndi thandizo.':'This web address is not allowed by the app\'s sign-in key. This is a setup problem, not your fault. Please contact support.';
+  // Anything else: say so, and show the code so it can be reported. A missing code means a bug in the app itself.
+  if(code) return (isCW?'Chinachake chinalakwika (':'Something went wrong (')+code+(isCW?'). Yesaninso, kapena tilankhuleni ngati chikupitirira.':'). Please try again, or contact support if it keeps happening.');
+  return (isCW?'Pulogalamu yakumana ndi vuto: ':'The app hit an unexpected problem: ')+(((err&&err.message)||'unknown').toString().slice(0,120))+(isCW?'. Tsegulaninso tsambali ndipo yesaninso.':'. Please refresh the page and try again.');
 }
 function authBtnLabel(isReg){ return lang==='cw'?(isReg?'Yambani Kulemba':'Takulandirani Kubwerera'):(isReg?'Start Tracking':'Welcome Back'); }
 function doEmailAuth(){
@@ -174,11 +216,11 @@ function doEmailAuth(){
         if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);}
         showVerifyScreen(email);
       })
-      .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} });
+      .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} });
   } else {
     auth.signInWithEmailAndPassword(email,pass)
       .then(()=>{ if(btn){btn.disabled=false;btn.textContent=authBtnLabel(false);} })
-      .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(false);} });
+      .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(false);} });
   }
 }
 function doFgt(){
@@ -187,7 +229,7 @@ function doFgt(){
   showAErr('');
   auth.sendPasswordResetEmail(em)
     .then(()=>{ const ok=g('fgt-ok');if(ok)ok.classList.add('on'); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} })
-    .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} });
+    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} });
 }
 
 // ── Email Verification Screen ──
@@ -280,7 +322,7 @@ function resendVerification(){
     })
     .catch(e=>{
       const msgEl=g('verify-msg');
-      if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent=fmtAErr(e.code);}
+      if(msgEl){msgEl.style.color='#FFCDD2';msgEl.textContent=fmtAErr(e.code,e);}
       if(btn){btn.disabled=false;}
     });
 }
@@ -294,7 +336,7 @@ function backToLogin(){
 function doGoogle(){
   if(!auth){toast((lang==='cw'?'Sizinakonzeke.':'Not ready.'),'e');return;}
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-    .catch(e=>{ if(e.code!=='auth/popup-closed-by-user')showAErr(fmtAErr(e.code)); });
+    .catch(e=>{ if(e.code!=='auth/popup-closed-by-user')showAErr(fmtAErr(e.code,e)); });
 }
 function sendOTP(){
   const cc=val('a-cc')||'+265', num=val('a-ph').replace(/\s/g,'');
@@ -310,7 +352,7 @@ function sendOTP(){
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
       toast((lang==='cw'?'Nambala yotsimikizira yatumizidwa!':'OTP sent!'),'i');
     })
-    .catch(e=>{ showAErr(fmtAErr(e.code)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});} if(rcapV){rcapV.clear();rcapV=null;} });
+    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});} if(rcapV){rcapV.clear();rcapV=null;} });
 }
 function otpN(el,idx){
   el.value=el.value.replace(/\D/g,'');
@@ -322,7 +364,7 @@ function vfyOTP(){
   if(code.length!==6){showAErr((lang==='cw'?'Lowetsani manambala onse 6.':'Enter all 6 digits.'));return;}
   if(!confResult){showAErr((lang==='cw'?'Nthawi yatha. Bwererani ndipo yesaninso.':'Session expired. Go back and try again.'));return;}
   showAErr('');
-  confResult.confirm(code).catch(e=>showAErr(fmtAErr(e.code)));
+  confResult.confirm(code).catch(e=>showAErr(fmtAErr(e.code,e)));
 }
 function backPh(){ show('a-ph-s1');hide('a-ph-s2'); confResult=null; if(rcapV){rcapV.clear();rcapV=null;} }
 

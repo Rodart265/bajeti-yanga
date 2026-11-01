@@ -147,7 +147,7 @@ function doDel(id){
       db.collection('households').doc(hhId).collection('purchases').doc(id)
         .update({deletedAt:new Date().toISOString(),deleted:true})
         .then(function(){ _invalidateMemo(); toast((lang==='cw'?'Chasamutsidwa ku zochotsedwa.':'Moved to trash.'),'i'); })
-        .catch(function(e){ toast((lang==='cw'?'Sitinathe kuchisamutsira ku zochotsedwa (':'Could not move to trash (')+(e&&e.code||'error')+'). Nothing was deleted.','e'); });
+        .catch(function(e){ toast((lang==='cw'?'Sitinathe kuchisamutsira ku zochotsedwa. Palibe chachotsedwa. ':'Could not move to trash. Nothing was deleted. ')+fsErrMsg(e),'e'); });
     }, null, true
   );
 }
@@ -184,7 +184,7 @@ function restoreTrash(id){
   db.collection('households').doc(hhId).collection('purchases').doc(id)
     .update({deletedAt:null,deleted:false})
     .then(function(){ closeM('mv-u'); toast((lang==='cw'?'Zabwezeretsedwa!':'Restored!'),'s'); })
-    .catch(function(e){ toast((lang==='cw'?'Cholakwika: ':'Error: ')+e.message+'.','e'); });
+    .catch(function(e){ toast(fsErrMsg(e),'e'); });
 }
 function permaDeleteD(el){ permaDelete(el.dataset.pid); }
 function permaDelete(id){
@@ -691,7 +691,7 @@ function delMember(i){
     if(member && hhId && lHHDoc && lHHDoc.memberUids && lHHDoc.memberUids.includes(member.id) && member.id!==lHHDoc.owner){
       db.collection('households').doc(hhId).update({
         memberUids: firebase.firestore.FieldValue.arrayRemove(member.id)
-      }).catch(function(e){ toast((lang==='cw'?'Kuchotsa chilolezo kwalephera: ':'Access revoke failed: ')+(e&&e.code||'error')+'.','e'); });
+      }).catch(function(e){ toast((lang==='cw'?'Sitinathe kuchotsa chilolezo. ':'Could not remove access. ')+fsErrMsg(e),'e'); });
     }
     toast(tx().deleted);
     _stgRefresh();

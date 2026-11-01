@@ -142,7 +142,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.17.0';
+const APP_VERSION = '9.17.1';
 // The AI proxy (Cloudflare Worker). One place to change it.
 const AI_URL = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
 // Premium plans: months -> price in MWK. Keep equal to PRICES in functions/lib.js (tests/prices.test.js checks it).
