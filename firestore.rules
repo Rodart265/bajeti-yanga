@@ -4,6 +4,10 @@ rules_version = '2';
 // Roll-out notes live in docs/ROLLOUT-2026-10.md. Two changes below are
 // deliberately two-phase so already-installed (cached) copies of the app keep
 // working: see "PHASE B" comments in joinOpen() and the households `get` rule.
+//
+// PHASE A (this file): joins still work for households with no invites/{code} doc,
+// and any signed-in user can read a household or chip group by its code.
+// Publish firestore.phase-b.rules instead once every household has an invites/{code} document.
 
 service cloud.firestore {
 
@@ -17,6 +21,22 @@ service cloud.firestore {
            get(/databases/$(database)/documents/households/$(hhId)).data.memberUids;
     }
 
+    // Password accounts must have a verified email before they can create
+    // households, chip groups or join requests. Google and phone accounts are
+    // not affected. The app refreshes the sign-in token after the person taps
+    // "I have verified", so the claim is current by the time they get here.
+    function verifiedOrNotPassword() {
+      return request.auth.token.firebase.sign_in_provider != 'password'
+        || request.auth.token.email_verified == true;
+    }
+
+    // Entries written before the `type` field existed have none; the app treats
+    // those as expenses, so the rules do too (otherwise they could never be
+    // edited, trashed or restored).
+    function purchaseType(d) {
+      return d.get('type', 'expense');
+    }
+
     function validPurchase() {
       let d = request.resource.data;
       return d.amount is number
@@ -26,8 +46,8 @@ service cloud.firestore {
         && d.item.size() > 0
         && d.item.size() <= 100
         && d.date is string
-        && d.date.size() == 10
-        && d.type in ['expense', 'income']
+        && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && purchaseType(d) in ['expense', 'income']
         && (!('notes' in d) || (d.notes is string && d.notes.size() <= 1000));
     }
 
@@ -62,7 +82,10 @@ service cloud.firestore {
         && d.keys().hasOnly(['uid', 'displayName', 'email', 'requestedAt'])
         && (!('requestedAt' in d) || d.requestedAt == request.time)
         && (!('displayName' in d) || (d.displayName is string && d.displayName.size() <= 100))
-        && (!('email' in d) || (d.email is string && d.email.size() <= 200));
+        // The email shown to the owner must be the one on the signed-in account
+        // (phone accounts have none, and the app sends an empty string).
+        && (!('email' in d) || (d.email is string && d.email.size() <= 200
+            && d.email.lower() == request.auth.token.get('email', '').lower()));
     }
 
     // A join request may only be filed against a household that exists and,
@@ -154,7 +177,8 @@ service cloud.firestore {
       return d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.contributionAmount is number && d.contributionAmount > 0 && d.contributionAmount < 100000000
         && d.frequency in ['monthly', 'weekly']
-        && d.currency is string
+        && d.currency is string && d.currency.size() <= 8
+        && verifiedOrNotPassword()
         && d.createdBy == request.auth.uid
         && d.memberUids is list && d.memberUids == [request.auth.uid]
         && d.rotationOrder is list && d.rotationOrder == [request.auth.uid]
@@ -250,6 +274,8 @@ service cloud.firestore {
     // The appended history entry's cycleNumber/recipientUid/amount must
     // match the cycle being closed, and must carry a `contributions`
     // snapshot equal to what was on the cycle at the moment of confirming.
+    // Every EARLIER history entry must be left exactly as it was (the slice
+    // check below), so past payouts cannot be rewritten or removed.
     // `collected` (optional, so older clients still work) records what was
     // actually paid in, which can be lower than `amount` for a force
     // confirmed round or after a member left mid-round.
@@ -268,6 +294,7 @@ service cloud.firestore {
         && (request.auth.uid == before.currentCycle.recipientUid || request.auth.uid == before.createdBy)
         && after.diff(before).affectedKeys().hasOnly(['currentCycle', 'history'])
         && after.history.size() == before.history.size() + 1
+        && after.history[0:before.history.size()] == before.history
         && newEntry.cycleNumber == before.currentCycle.cycleNumber
         && newEntry.recipientUid == before.currentCycle.recipientUid
         && newEntry.amount == before.currentCycle.amount
@@ -412,6 +439,7 @@ service cloud.firestore {
       // The document id IS the join code. It must look like one (the app makes 8 chars of a-z/2-9), so nobody can
       // create a household whose id carries quotes or markup that would later be pasted into the page.
       allow create: if request.auth != null
+        && verifiedOrNotPassword()
         && hhId.matches('^[a-z0-9]{6,20}$')
         && request.auth.uid in request.resource.data.memberUids
         && request.auth.uid == request.resource.data.owner
@@ -466,12 +494,9 @@ service cloud.firestore {
         allow create: if isMember(hhId) && validPurchase();
 
         // Re-validates amount/item/date on every update, and keeps `type`
-        // from being flipped.
+        // from being flipped (an entry with no `type` counts as an expense).
         allow update: if isMember(hhId) && validPurchase()
-          && (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['type'])
-            || request.resource.data.type == resource.data.type
-          );
+          && purchaseType(request.resource.data) == purchaseType(resource.data);
 
         // Any household member can permanently delete a trashed entry --
         // matches update/restore, which already have no creator restriction.
@@ -497,6 +522,7 @@ service cloud.firestore {
       match /joinRequests/{requestUid} {
         allow create, update: if request.auth != null
           && request.auth.uid == requestUid
+          && verifiedOrNotPassword()
           && validJoinRequest()
           && joinOpen(hhId);
 
