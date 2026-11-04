@@ -1,24 +1,31 @@
 // Bajeti Yanga service worker
-// Bump this version string on every deploy to force cache invalidation.
-// Keep the number equal to APP_VERSION in js/01-constants.js (the version people see in the app).
-const V = "bajeti-v9.17.3";
+//
+// HOW RELEASES WORK
+// Each release is a fixed set of files (APP_SHELL) saved together under one cache name (V). The page and all its
+// scripts always come from that one saved set, so an old script can never run next to a new page.
+//   - A new release arrives as a new sw.js. It downloads the WHOLE set; if any file fails, or the files are not
+//     the release this worker was built for, the install fails and the phone keeps running the old release
+//     untouched. It simply tries again next time (nothing half-updated, ever).
+//   - Once the whole set is saved the new worker takes over, and the open page shows "New version ready".
+//
+// TO RELEASE: change APP_VERSION in js/01-constants.js, then run  node tools/release.js  (it writes V and BUILD
+// below), then  node tests/release.test.js  must pass. Do not edit V or BUILD by hand.
+const V = "bajeti-v9.17.4";
+const BUILD = "a46fde46612a"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
+
 // Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
 // deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
 // every release made each phone download ~400 KB of Firebase again over mobile data.
 const LIBS = "bajeti-libs-v1";
 // Only these hosts are cached. Anything else cross-origin (API calls, profile photos) goes straight to the network.
 const LIB_HOSTS = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"];
-// How long to wait for the network before falling back to the saved copy of a page or app file.
-const NET_TIMEOUT_MS = 4000;
 
-// The app shell plus everything the app actually needs to boot and render,
-// so a first-time offline visit isn't left waiting on the network for
-// scripts/fonts that were never cached.
+// The app shell: everything the app needs to boot and render. All of it is required for a release to install.
 //
 // index.html is a small shell; the styles and the app code live in styles.css
 // and js/*.js. When you add, rename or remove a file in js/, change this list
 // AND the <script> tags at the bottom of index.html (same order: the files
-// share one global scope and must load in numbered order).
+// share one global scope and must load in numbered order). tests/release.test.js checks both lists agree.
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -54,42 +61,58 @@ const RUNTIME_SEED = [
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js",
 ];
 
-// Cache each URL individually so one bad/blocked resource can't silently
-// wipe out the whole precache (which is what a single addAll(...).catch(()=>{})
-// used to do).
-async function precache(cache, urls) {
+// Third-party libraries: best effort. One that cannot be fetched now is picked up the first time it loads online.
+async function precacheLibs(cache, urls) {
   await Promise.all(
     urls.map(async (url) => {
       try {
-        // Our own files are fetched with cache:"reload" so the offline copy is the
-        // file that is on the server right now, not a copy the browser's HTTP cache
-        // may still be holding from before this deploy.
-        const own = !url.startsWith("http");
-        const req = new Request(url, { mode: own ? "same-origin" : "cors", cache: own ? "reload" : "default" });
+        const req = new Request(url, { mode: "cors", cache: "default" });
         const res = await fetch(req);
-        if (res && (res.ok || res.type === "opaque")) {
-          await cache.put(req, res);
-        }
+        if (res && (res.ok || res.type === "opaque")) await cache.put(req, res);
       } catch (err) {
-        // Ignore â€” this single resource will just be picked up by runtime
-        // caching the first time it's successfully fetched online.
+        // ignored on purpose
       }
     })
   );
 }
 
+// Our own files: ALL of them or the install fails. Fetched with cache:"reload" so the copy saved is the file
+// on the server right now, not one the browser's HTTP cache (or a CDN) may still hold from before this deploy.
+async function precacheShell(cache) {
+  await Promise.all(
+    APP_SHELL.map(async (url) => {
+      const res = await fetch(new Request(url, { cache: "reload", credentials: "same-origin" }));
+      if (!res || !res.ok) throw new Error("shell file failed: " + url + " (" + (res && res.status) + ")");
+      await cache.put(url, res);
+    })
+  );
+  // The downloaded files must belong to the release this worker was built for. During a deploy a server or CDN
+  // can briefly hand out a mix of old and new files; if that happened, fail now and retry later.
+  const hit = await cache.match("./js/01-constants.js");
+  const text = hit ? await hit.text() : "";
+  const m = /const APP_VERSION\s*=\s*'([^']+)'/.exec(text);
+  if (!m || "bajeti-v" + m[1] !== V) {
+    throw new Error("release mismatch: worker is " + V + " but files say " + (m ? m[1] : "unknown"));
+  }
+}
+
 self.addEventListener("install", (e) => {
-  self.skipWaiting();
   e.waitUntil(
-    Promise.all([
-      caches.open(V).then((c) => precache(c, APP_SHELL)),
+    (async () => {
+      try {
+        const cache = await caches.open(V);
+        await precacheShell(cache);
+      } catch (err) {
+        await caches.delete(V).catch(() => {}); // leave nothing half-saved; the running release keeps working
+        throw err; // install fails, the old worker stays in charge, the browser retries later
+      }
       // Libraries already saved from an earlier release are kept, not downloaded again.
-      caches.open(LIBS).then(async (c) => {
-        const missing = [];
-        for (const u of RUNTIME_SEED) { if (!(await c.match(u))) missing.push(u); }
-        return precache(c, missing);
-      }),
-    ])
+      const libs = await caches.open(LIBS);
+      const missing = [];
+      for (const u of RUNTIME_SEED) { if (!(await libs.match(u))) missing.push(u); }
+      await precacheLibs(libs, missing);
+      await self.skipWaiting(); // only now: the whole release is saved
+    })()
   );
 });
 
@@ -111,21 +134,14 @@ function isNavigation(request) {
   );
 }
 
-// Network first, but never make someone stare at a spinner on a weak connection: if the network has not
-// answered within NET_TIMEOUT_MS and a saved copy exists, show that (the request carries on and refreshes the copy).
-function networkFirst(req, fallbackKey) {
-  const fresh = fetch(req, { cache: "no-cache" }).then((res) => {
-    if (res && res.ok) {
-      const copy = res.clone();
-      caches.open(V).then((c) => c.put(req, copy)).catch(() => {});
-    }
-    return res;
-  });
-  const saved = () => caches.match(req).then((c) => c || (fallbackKey ? caches.match(fallbackKey) : null));
-  const timed = new Promise((resolve) => {
-    setTimeout(() => saved().then((c) => { if (c) resolve(c); }), NET_TIMEOUT_MS);
-  });
-  return Promise.race([fresh, timed]).catch(() => saved().then((c) => c || Response.error()));
+// Our own files come from this release's saved set, never mixed with the network. Fast on weak connections too.
+async function ownFile(req) {
+  const cache = await caches.open(V);
+  let hit = await cache.match(req, { ignoreSearch: true });
+  if (!hit && isNavigation(req)) hit = await cache.match("./index.html");
+  if (hit) return hit;
+  // Not part of the release set (should not happen; tests/release.test.js guards the list): ask the network, save nothing.
+  try { return await fetch(req); } catch (err) { return Response.error(); }
 }
 
 self.addEventListener("fetch", (e) => {
@@ -133,10 +149,13 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // HTML and our own files (styles, scripts, icons, manifest): network-first, so a deploy shows up right
-  // away when online and the page and its files come from one release; saved copy when offline or slow.
-  if (isNavigation(req)) { e.respondWith(networkFirst(req, "./index.html")); return; }
-  if (url.origin === self.location.origin) { e.respondWith(networkFirst(req)); return; }
+  if (url.origin === self.location.origin) {
+    // version.json says the oldest version still allowed to run (see docs/RELEASING.md). It must always be
+    // the live copy, so it never goes through the saved set.
+    if (url.pathname.endsWith("/version.json")) { e.respondWith(fetch(req, { cache: "no-store" })); return; }
+    e.respondWith(ownFile(req));
+    return;
+  }
 
   // Libraries and fonts from the allowed CDNs: saved copy first (instant, works offline), refreshed quietly
   // in the background. Version-numbered library URLs never change, so the refresh is just a cheap check.

@@ -136,7 +136,11 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     var spinEl = document.getElementById('boot-splash-spin');
     if(spinEl) spinEl.style.display = 'none';
     if(msgEl){
-      msgEl.innerHTML = (offline
+      // _bootPartial is set by the error listener below when one of the app's own files (or the Firebase SDK)
+      // failed to download: the connection dropped part-way, so say that instead of a vague "taking longer".
+      msgEl.innerHTML = (window._bootPartial
+        ? "Part of the app didn't finish loading. Check your connection and tap Retry."
+        : offline
         ? "You're offline and this device hasn't loaded Bajeti Yanga before, so it needs a connection the first time."
         : "This is taking longer than usual. Check your connection and try again.")
         + '<br><br><button class="bs-retry" onclick="location.reload()">Retry</button>';
@@ -150,6 +154,49 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     clearTimeout(timeoutTimer);
     showConnectionIssue();
   }
+})();
+</script>
+<script>
+// Error safety net. Registered early (before the app's own scripts) so it also sees a script that fails to download.
+//  1. A failed download of one of the app's own files or the Firebase SDK: tell the boot splash straight away.
+//  2. An error thrown by the app's own code: keep a short log on this device (localStorage nb_errlog, last 20) so a
+//     bug report can include it, and show one calm toast a minute so a button that "does nothing" is not silent.
+//  Unhandled promise rejections are logged only: many are harmless (a request cancelled while offline).
+(function(){
+  var KEY = 'nb_errlog', lastToast = 0;
+  function ver(){ try{ return typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?'; }catch(e){ return '?'; } }
+  window._logErr = function(kind, msg, where){
+    try{
+      var a = JSON.parse(localStorage.getItem(KEY) || '[]');
+      a.push({t: new Date().toISOString(), v: ver(), k: String(kind).slice(0, 40), m: String(msg).slice(0, 300), w: String(where || '').slice(-80)});
+      localStorage.setItem(KEY, JSON.stringify(a.slice(-20)));
+    }catch(e){}
+  };
+  function isOwn(url){
+    url = String(url || '');
+    return url.indexOf(location.origin) === 0 || url.indexOf('https://www.gstatic.com/firebasejs/') === 0;
+  }
+  window.addEventListener('error', function(ev){
+    var t = ev.target;
+    if(t && t !== window && t.tagName === 'SCRIPT'){           // a <script src> failed to download
+      window._logErr('load', t.src, t.src);
+      if(isOwn(t.src)){ window._bootPartial = true; if(window._bootIssue) window._bootIssue(); }
+      return;
+    }
+    if(t && t !== window) return;                              // images, styles, etc.: not our concern here
+    if(!ev.filename || !isOwn(ev.filename)) return;            // cross-origin "Script error." noise, extensions
+    window._logErr('error', ev.message, ev.filename + ':' + ev.lineno);
+    if(typeof toast !== 'function' || Date.now() - lastToast < 60000) return;
+    if(document.getElementById('boot-splash')) return;         // the splash has its own message
+    lastToast = Date.now();
+    var cw = typeof lang !== 'undefined' && lang === 'cw';
+    toast(cw ? 'Chinachake chinalakwika. Ngati chikupitirira, tsegulaninso pulogalamu.'
+             : 'Something went wrong. If it keeps happening, reload the app.', 'e');
+  }, true);
+  window.addEventListener('unhandledrejection', function(ev){
+    var r = ev.reason;
+    window._logErr('promise', (r && (r.code || r.message)) || r, r && r.stack ? String(r.stack).split('\n')[1] : '');
+  });
 })();
 </script>
 
