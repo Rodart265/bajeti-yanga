@@ -9,7 +9,7 @@
      and the app goes back to how it was. (frame-ancestors cannot be set from a meta tag.) -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com/recaptcha/ https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://www.gstatic.com https://nyumba-ai.kabangorodrick6.workers.dev https://*.cloudfunctions.net https://*.run.app https://api.paychangu.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com https://pay.paychangu.com https://checkout.paychangu.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#7B1FA2">
+<meta name="theme-color" content="#176B78">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bajeti Yanga">
@@ -76,25 +76,25 @@
 })();
 </script>
 <style>
-#boot-splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#F0EBF8;color:#1A1A2E;font-family:'Hanken Grotesk',Arial,sans-serif;text-align:center;padding:24px;overflow-y:auto;transition:opacity .25s ease}
-html.dk #boot-splash{background:#121212;color:#E0E0E0}
+#boot-splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#F3F6F8;color:#14212D;font-family:'Hanken Grotesk',Arial,sans-serif;text-align:center;padding:24px;overflow-y:auto;transition:opacity .25s ease}
+html.dk #boot-splash{background:#0F1720;color:#E3E9EF}
 #boot-splash.boot-splash-out{opacity:0;pointer-events:none}
-#boot-splash .bs-icon{width:72px;height:72px;border-radius:18px;box-shadow:0 8px 22px rgba(74,20,140,.28);flex-shrink:0}
+#boot-splash .bs-icon{width:72px;height:72px;border-radius:18px;box-shadow:0 8px 22px rgba(20,47,75,.28);flex-shrink:0}
 #boot-splash .bs-title{font-weight:800;font-size:1.3rem;letter-spacing:.2px;margin-top:6px}
 #boot-splash .bs-tag{font-size:.8rem;color:#455A64}
 html.dk #boot-splash .bs-tag{color:#9E9E9E}
-#boot-splash .bs-spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(123,31,162,.18);border-top-color:#7B1FA2;animation:bs-spin .8s linear infinite;margin-top:14px}
+#boot-splash .bs-spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(23,107,120,.18);border-top-color:#176B78;animation:bs-spin .8s linear infinite;margin-top:14px}
 #boot-splash .bs-sub{font-size:.78rem;color:#455A64;max-width:280px;line-height:1.4}
 html.dk #boot-splash .bs-sub{color:#9E9E9E}
-#boot-splash .bs-retry{margin-top:6px;background:#7B1FA2;border:0;color:#fff;font-weight:700;font-size:.82rem;padding:10px 20px;border-radius:12px;cursor:pointer}
+#boot-splash .bs-retry{margin-top:6px;background:#176B78;border:0;color:#fff;font-weight:700;font-size:.82rem;padding:10px 20px;border-radius:12px;cursor:pointer}
 @media (max-height:520px){#boot-splash{gap:6px;padding:12px}#boot-splash .bs-icon{width:52px;height:52px;border-radius:13px}#boot-splash .bs-title{font-size:1.1rem;margin-top:2px}#boot-splash .bs-spin{margin-top:6px}}
 @keyframes bs-spin{to{transform:rotate(360deg)}}
 </style>
 <div id="boot-splash">
   <svg class="bs-icon" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bajeti Yanga">
-    <defs><linearGradient id="bsg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7B1FA2"/><stop offset="1" stop-color="#4A148C"/></linearGradient></defs>
+    <defs><linearGradient id="bsg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#176B78"/><stop offset="1" stop-color="#142F4B"/></linearGradient></defs>
     <rect width="52" height="52" rx="13" fill="url(#bsg)"/>
-    <rect x="8" y="34" width="9" height="10" rx="2.5" fill="#F5F2FA"/>
+    <rect x="8" y="34" width="9" height="10" rx="2.5" fill="#F3F6F8"/>
     <rect x="21" y="24" width="9" height="20" rx="2.5" fill="#FAF8FC"/>
     <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
     <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
@@ -165,7 +165,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     </svg>
   </div>
   <div class="auth-title">Bajeti Yanga</div>
-  <div class="auth-sub" id="auth-sub">Finally know where your money goes 💜</div>
+  <div class="auth-sub" id="auth-sub">Finally know where your money goes 💙</div>
   <div class="auth-card">
     <div class="auth-tabs">
       <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)" data-cw="Takulandiraninso">Welcome Back</button>

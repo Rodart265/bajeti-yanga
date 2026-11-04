@@ -6,8 +6,8 @@
   "scope": "https://rodart265.github.io/bajeti-yanga/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F0EBF8",
-  "theme_color": "#7B1FA2",
+  "background_color": "#F3F6F8",
+  "theme_color": "#176B78",
   "categories": ["finance", "utilities"],
   "prefer_related_applications": false,
   "icons": [
