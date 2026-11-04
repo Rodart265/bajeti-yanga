@@ -55,14 +55,42 @@ function checkAndAddRecurring(){
 
 function render(){
   try{ updatePremiumChip(); }catch(e){}
-  // When the chat tab is active and a conversation is open, avoid a full rChat() rebuild
-  // (which would wipe the DOM and re-fetch async). Just refresh the bubbles.
-  if(tab==='chat' && activeChatId && g('chat-msgs')){
-    renderBubbles(); return;
-  }
-  // A Profile drill-down (members, items, goals, bills) is redrawn in place, not replaced by the hub.
-  if(tab==='stg' && _stgSection){ stgOpenSection(_stgSection, true); return; }
-  ({home:rHome,log:rLog,hist:rHist,sum:rSum,insights:rInsights,stg:rStg,chat:rChat,chip:rChip})[tab]?.();
+  // If drawing a screen throws, the person gets a clear card with Try again / Reload instead of a blank or
+  // half-drawn screen with a dead nav. The bottom nav keeps working, so they can also just open another tab.
+  try{
+    // When the chat tab is active and a conversation is open, avoid a full rChat() rebuild
+    // (which would wipe the DOM and re-fetch async). Just refresh the bubbles.
+    if(tab==='chat' && activeChatId && g('chat-msgs')){
+      renderBubbles(); return;
+    }
+    // A Profile drill-down (members, items, goals, bills) is redrawn in place, not replaced by the hub.
+    if(tab==='stg' && _stgSection){ stgOpenSection(_stgSection, true); return; }
+    ({home:rHome,log:rLog,hist:rHist,sum:rSum,insights:rInsights,stg:rStg,chat:rChat,chip:rChip})[tab]?.();
+  }catch(e){ _renderFailed(e); }
+}
+// Shown in place of a screen that could not be drawn. The details (version, tab, error) can be copied and sent
+// to whoever looks after the app; they are also kept in the on-device error log (see index.html).
+function _renderFailed(e){
+  try{ console.error('[render:'+tab+']', e); }catch(_){}
+  try{ if(window._logErr) window._logErr('render:'+tab, (e&&e.message)||e, e&&e.stack?String(e.stack).split('\n')[1]:''); }catch(_){}
+  const v=g('view'); if(!v) return;
+  const cw=(typeof lang!=='undefined'&&lang==='cw');
+  window._lastRenderErr='Bajeti Yanga v'+APP_VERSION+' | screen: '+tab+' | '+(((e&&e.message)||String(e))+'').slice(0,200);
+  const btn='min-height:44px;padding:0 18px;border-radius:12px;font:800 .8rem Hanken Grotesk,sans-serif;cursor:pointer;';
+  v.innerHTML='<div class="empty" role="alert" style="padding:48px 20px">'
+    +'<div class="ei" style="color:var(--gold-ink)"><i data-lucide="alert-triangle" style="width:40px;height:40px"></i></div>'
+    +'<p><strong style="color:var(--ink);font-size:.95rem">'+(cw?'Tsambali silinatsegulike':'This screen couldn\'t load')+'</strong><br>'
+    +(cw?'Zolemba zanu zili bwino. Yesaninso, kapena tsegulaninso pulogalamu.':'Your data is safe. Try again, or reload the app.')+'</p>'
+    +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px">'
+    +'<button type="button" onclick="render()" style="'+btn+'border:0;background:var(--p1);color:#fff">'+(cw?'Yesaninso':'Try again')+'</button>'
+    +'<button type="button" onclick="location.reload()" style="'+btn+'border:1.5px solid var(--border);background:var(--white);color:var(--ink)">'+(cw?'Tsegulaninso pulogalamu':'Reload app')+'</button></div>'
+    +'<button type="button" onclick="_copyRenderErr(this)" style="margin-top:12px;border:0;background:none;color:var(--mid);font:600 .72rem Hanken Grotesk,sans-serif;text-decoration:underline;cursor:pointer;min-height:36px">'+(cw?'Koperani zambiri za vutoli':'Copy details')+'</button></div>';
+  try{ if(window.lucide) lucide.createIcons({nodes:[v]}); }catch(_){}
+}
+function _copyRenderErr(btn){
+  const t=window._lastRenderErr||'';
+  const done=()=>{ try{ toast(lang==='cw'?'Zakopedwa.':'Copied.','s'); }catch(_){} };
+  try{ navigator.clipboard.writeText(t).then(done,()=>{ prompt('Copy:',t); }); }catch(_){ try{ prompt('Copy:',t); }catch(__){} }
 }
 // Redraw for a live data update (a Firestore snapshot). If the person is typing in a form field, or has a
 // half-filled Log form, the redraw waits so it cannot wipe what they are entering; it runs once they are done.

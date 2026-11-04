@@ -130,7 +130,7 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
   // -- Service Worker -- must be a real same-origin file, not a blob: URL.
   // Bump the version string inside sw.js on every deploy to invalidate old caches.
   if('serviceWorker' in navigator && location.protocol!=='file:'){
-    navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(()=>{});
+    navigator.serviceWorker.register('./sw.js', {scope:'./', updateViaCache:'none'}).catch(()=>{});
   }
 
   // -- Update prompt --
@@ -190,6 +190,74 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
       _lastUpdateCheck = Date.now();
       navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.update().catch(function(){}); }).catch(function(){});
     });
+  }
+
+  // -- Minimum version --
+  // version.json (next to index.html) holds {"min":"x.y.z"}: the oldest version still allowed to run. Raise it
+  // only when an old version could do harm (for example, after a change that old versions cannot cope with).
+  // A phone running something older sees a full-screen "update" page until it updates. The check can never
+  // lock anyone out by itself failing: offline, a slow network or unreadable JSON all mean "carry on".
+  if(location.protocol!=='file:'){
+    var verNum = function(s){ return String(s||'0').split('.').map(function(n){ return parseInt(n,10)||0; }); };
+    var verLess = function(a,b){
+      a=verNum(a); b=verNum(b);
+      for(var i=0;i<3;i++){ if((a[i]||0)!==(b[i]||0)) return (a[i]||0)<(b[i]||0); }
+      return false;
+    };
+    var _forceShown = false;
+    var showForceUpdate = function(){
+      if(_forceShown) return;
+      _forceShown = true;
+      var cw = (typeof lang!=='undefined' && lang==='cw');
+      var ov = document.createElement('div');
+      ov.id = 'force-update';
+      ov.setAttribute('role','alertdialog'); ov.setAttribute('aria-modal','true');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;'
+        +'padding:28px;text-align:center;background:linear-gradient(155deg,#142F4B,#176B78);color:#fff;font-family:Hanken Grotesk,Arial,sans-serif';
+      var t = document.createElement('div');
+      t.style.cssText = 'font-weight:800;font-size:1.3rem';
+      t.textContent = cw ? 'Mtundu watsopano wakonzeka' : 'A new version is ready';
+      var d = document.createElement('div');
+      d.style.cssText = 'font-size:.9rem;line-height:1.5;max-width:300px;opacity:.92';
+      d.textContent = cw ? 'Kuti mupitirize kugwiritsa ntchito pulogalamu, dinani batani pansipa. Zolemba zanu zili bwino.'
+                         : 'To keep using Bajeti Yanga, please update. Your data is safe.';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText = 'margin-top:8px;min-height:48px;padding:0 28px;border:0;border-radius:14px;background:#fff;color:#176B78;font:800 .9rem Hanken Grotesk,sans-serif;cursor:pointer';
+      b.textContent = cw ? 'Tsegulaninso' : 'Update now';
+      var n = document.createElement('div');
+      n.style.cssText = 'font-size:.78rem;opacity:.85;min-height:1.2em';
+      b.onclick = function(){
+        // Updating deletes the saved copy of the app and fetches it fresh, so it needs a connection.
+        if(navigator.onLine===false){ n.textContent = cw ? 'Lumikizanani ndi intaneti, kenako yesaninso.' : 'Connect to the internet first, then try again.'; return; }
+        b.disabled = true; b.style.opacity = '.7'; b.textContent = cw ? '...' : 'Updating...';
+        var wipe = function(){
+          if(!window.caches) return Promise.resolve();
+          return caches.keys().then(function(ks){
+            return Promise.all(ks.filter(function(k){ return k.indexOf('bajeti-v')===0; }).map(function(k){ return caches.delete(k); }));
+          });
+        };
+        var regs = ('serviceWorker' in navigator) ? navigator.serviceWorker.getRegistrations() : Promise.resolve([]);
+        var finish = function(){ location.reload(); };
+        regs.then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); }).then(wipe).then(finish, finish);
+      };
+      ov.appendChild(t); ov.appendChild(d); ov.appendChild(b); ov.appendChild(n);
+      document.body.appendChild(ov);
+      try{ b.focus(); }catch(e){}
+    };
+    var _lastMinCheck = 0;
+    var checkMinVersion = function(){
+      if(_forceShown || Date.now()-_lastMinCheck < 600000) return;
+      _lastMinCheck = Date.now();
+      fetchT('./version.json?'+Date.now(), {cache:'no-store'}, 6000)
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          if(j && j.min && typeof APP_VERSION!=='undefined' && verLess(APP_VERSION, j.min)) showForceUpdate();
+        })
+        .catch(function(){});
+    };
+    setTimeout(checkMinVersion, 4000);
+    document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') checkMinVersion(); });
   }
 
   // -- In-app Install prompt --
