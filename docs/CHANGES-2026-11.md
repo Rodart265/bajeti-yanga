@@ -83,3 +83,12 @@ Functions
 - Changed in `styles.css`, `glass.css`, `index.html` (theme-color, boot splash), `manifest.webmanifest`, the four PNG icons, and the inline colours in `js/`.
 - Member colours already saved in Firestore are not migrated; existing members keep their old colour (purple for the default Person 1). New members and the chart palettes use teal first.
 - No functions or rules change, so there is nothing to deploy beyond the hosting files.
+
+## 9.17.4: safer updates and clearer failures
+- **Updates are all-or-nothing.** A phone downloads the whole release before switching to it. If any file fails, or a deploy is caught half-way and the files do not belong together, the phone keeps the old release and retries later. Old and new files can no longer be mixed (`sw.js`).
+- **Each release is pinned.** The app loads from its saved release (fast on weak connections, works offline) instead of racing the network file by file.
+- **A forgotten version bump can no longer slip out.** `node tools/release.js` writes the version and a fingerprint of every shipped file into `sw.js`; `node tests/release.test.js` fails if that was not done, if `sw.js` and `index.html` disagree about the scripts, or if a listed file is missing. See `docs/RELEASING.md`.
+- **Crash handling.** A screen that cannot be drawn shows "This screen couldn't load" with Try again, Reload app and Copy details instead of a blank screen. Uncaught errors in the app's code are kept in an on-device log and shown as one calm toast a minute. A script that fails to download at start is reported within a second instead of after 9.
+- **Minimum version switch.** `version.json` can require a minimum version; older phones see a full-screen Update now page. It never blocks anyone when the check itself fails (offline, slow, unreadable).
+- New Chichewa strings (please have a native speaker check them): "Tsambali silinatsegulike", "Zolemba zanu zili bwino. Yesaninso, kapena tsegulaninso pulogalamu.", "Koperani zambiri za vutoli", "Chinachake chinalakwika. Ngati chikupitirira, tsegulaninso pulogalamu.", "Kuti mupitirize kugwiritsa ntchito pulogalamu, dinani batani pansipa. Zolemba zanu zili bwino.", "Lumikizanani ndi intaneti, kenako yesaninso."
+- The first deploy of this version still reaches phones the old way (they pick up the new `sw.js`); from then on updates follow the rules above.
