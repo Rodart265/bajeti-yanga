@@ -76,3 +76,10 @@ Functions
 ## 9.17.2: shorter Premium screen and new prices
 - Premium screen is shorter: slim header, feature tiles without sub-text, and the Proceed to Payment button is pinned at the bottom of the sheet.
 - Prices are now MK 1,500 (1 month) and MK 4,000 (3 months). Changed in `js/01-constants.js` and `functions/lib.js`. **Deploy the functions** (`firebase deploy --only functions`) or the server will keep charging the old prices and payments will be flagged as a mismatch.
+
+## 9.17.3: Navy & teal colour scheme
+- The app moved from purple to the "Navy & teal" direction: primary teal `#176B78`, deep navy `#142F4B`, cool grey canvas `#F3F6F8`. The coloured top bar stays, now teal.
+- Dark mode retuned: the purple-tinted and neutral-grey dark surfaces are now navy-tinted (`#0F1720` page, `#17212C` cards).
+- Changed in `styles.css`, `glass.css`, `index.html` (theme-color, boot splash), `manifest.webmanifest`, the four PNG icons, and the inline colours in `js/`.
+- Member colours already saved in Firestore are not migrated; existing members keep their old colour (purple for the default Person 1). New members and the chart palettes use teal first.
+- No functions or rules change, so there is nothing to deploy beyond the hosting files.
