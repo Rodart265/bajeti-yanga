@@ -296,7 +296,7 @@ function rHome(){
   if(recent.length){
     recent.forEach(p=>{
       const u=uById(p.userId),isI=p.type==='income';
-      const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
+      const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#176B78');
       h+='<div class="pri">';
       h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
       h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
@@ -344,7 +344,7 @@ function openQRScanner(){
   h += '</div></div>';
   h += '<canvas id="qr-canvas-scan" style="display:none"></canvas>';
   // Confirm step: shown over the live camera after a valid household QR is read
-  h += '<div id="qr-confirm" style="display:none;position:absolute;inset:0;background:rgba(26,26,46,.82);color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;gap:6px">';
+  h += '<div id="qr-confirm" style="display:none;position:absolute;inset:0;background:rgba(20,33,45,.82);color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;gap:6px">';
   h += '<div style="font-size:.74rem;opacity:.75">'+(isCW?'Lowani mu nyumba iyi?':'Join this household?')+'</div>';
   h += '<div id="qr-confirm-code" style="font-family:monospace;font-weight:800;font-size:1.5rem;letter-spacing:3px"></div>';
   h += '<div style="width:70%;height:4px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden;margin:8px 0 12px"><div id="qr-confirm-bar" style="height:100%;width:0;background:#69F0AE;transition:width 2s linear"></div></div>';
@@ -510,7 +510,7 @@ function openQRCode(){
   h+='<p style="font-size:.76rem;color:var(--mid);margin-bottom:14px;line-height:1.5">';
   h+=(isCW?'Jambulani QR code iyi kuti mulowe mu nyumba mwamsanga. Bajeti Yanga imatseguka ndi kodi yoikidwa kale.':'Scan this QR code to join your household instantly. Opens Bajeti Yanga with the code pre-filled.')+'</p>';
   h+='<div style="display:flex;justify-content:center;margin-bottom:16px">';
-  h+='<div style="background:#fff;border-radius:var(--cr);padding:16px;box-shadow:0 4px 24px rgba(123,31,162,.15);border:2px solid var(--border)">';
+  h+='<div style="background:#fff;border-radius:var(--cr);padding:16px;box-shadow:0 4px 24px rgba(23,107,120,.15);border:2px solid var(--border)">';
   h+='<div id="qr-canvas" style="width:200px;height:200px;border-radius:var(--cr-sm);display:flex;align-items:center;justify-content:center"></div>';
   h+='</div></div>';
   h+='<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
@@ -535,7 +535,7 @@ function openQRCode(){
           text: joinUrl,
           width: 200,
           height: 200,
-          colorDark: '#4A148C',
+          colorDark: '#142F4B',
           colorLight: '#ffffff',
           correctLevel: QRCode.CorrectLevel.M
         });
@@ -564,7 +564,7 @@ function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
-  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#D8B4E8"></i></button></div>';
+  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
   h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){

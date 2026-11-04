@@ -125,8 +125,8 @@ function pinFgt(){
   const cancel=isCW?'Letsani':'Cancel';
   const verify=isCW?'Tsimikizani':'Verify & Reset';
   box.innerHTML='<div style="text-align:center;padding:6px 0 10px">'
-    +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#EDE7F6;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
-    +'<i data-lucide="key" style="width:26px;height:26px;color:#7B1FA2"></i></div>'
+    +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#E7F2F4;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
+    +'<i data-lucide="key" style="width:26px;height:26px;color:#176B78"></i></div>'
     +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+ttl+'</div>'
     +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+sub+'</div>'
     +'<input type="password" class="fi" id="pin-fgt-pw" placeholder="'+ph+'" style="margin-bottom:10px">'
@@ -398,8 +398,8 @@ function _openSecurityPasswordVerify(onVerified){
   const isCW = lang==='cw';
   const box = g('mb-confirm');
   box.innerHTML = '<div style="text-align:center;padding:6px 0 10px">'
-    +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#EDE7F6;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
-    +'<i data-lucide="key" style="width:26px;height:26px;color:#7B1FA2"></i></div>'
+    +'<div style="width:52px;height:52px;border-radius:var(--cr);background:#E7F2F4;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
+    +'<i data-lucide="key" style="width:26px;height:26px;color:#176B78"></i></div>'
     +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px">'+(isCW?'Tsimikizani ndi mawu achinsinsi':'Confirm with your password')+'</div>'
     +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:14px">'+(isCW?'Kuti musinthe zosankha za chitetezo, lowetsani mawu achinsinsi a akaunti yanu.':'To change your security settings, enter your account password.')+'</div>'
     +'<input type="password" class="fi" id="sec-pw-verify" placeholder="'+(isCW?'Mawu achinsinsi':'Password')+'" style="margin-bottom:10px">'

@@ -95,7 +95,7 @@ const DEF_ITEMS = [
   {name:'Fuel',budget:25000},{name:'Electricity',budget:18000},{name:'Rent',budget:80000},{name:'Diapers',budget:12000},{name:'Money Sent',budget:20000},{name:'School Fees',budget:35000},{name:'Other',budget:15000}
 ];
 const DEF_USERS = [
-  {id:'u1',name:'Person 1',color:'#7B1FA2'},
+  {id:'u1',name:'Person 1',color:'#176B78'},
   {id:'u2',name:'Person 2',color:'#E91E63'}
 ];
 const DEF_CFG = {items:DEF_ITEMS,users:DEF_USERS,overallBudget:400000,goals:[],salaryDay:0};
@@ -115,7 +115,7 @@ const ITEM_ICONS = {
   'Transport':'<i data-lucide="bus" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
   'Fuel':'<i data-lucide="fuel" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
   'Electricity':'<i data-lucide="zap" style="width:18px;height:18px;color:#F9A825;vertical-align:middle"></i>',
-  'Rent':'<i data-lucide="home" style="width:18px;height:18px;color:#4527A0;vertical-align:middle"></i>',
+  'Rent':'<i data-lucide="home" style="width:18px;height:18px;color:#2F5D8A;vertical-align:middle"></i>',
   'Diapers':'<i data-lucide="baby" style="width:18px;height:18px;color:#EC407A;vertical-align:middle"></i>',
   'Money Sent':'<i data-lucide="send" style="width:18px;height:18px;color:#1B5E20;vertical-align:middle"></i>',
   'School Fees':'<i data-lucide="graduation-cap" style="width:18px;height:18px;color:#1565C0;vertical-align:middle"></i>',
@@ -136,13 +136,13 @@ const ITEM_CATS = {
 };
 
 const CAT_COLORS = {Food:'#2E7D32',Household:'#1565C0',Personal:'#E91E63',Transport:'#E65100',Other:'#6D4C41'};
-const PIE_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#F57F17','#4527A0','#558B2F','#795548'];
+const PIE_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#F57F17','#2F5D8A','#558B2F','#795548'];
 const QUICK_PICKS = ['Tomatoes','Maize Flour (Ufa)','Cooking Oil','Sugar','Soap (bar)','Rice','Charcoal','Bread','Transport','Airtime / Data'];
 const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transport','Electricity','Other'];
-const MEMBER_COLORS = ['#7B1FA2','#E91E63','#1565C0','#2E7D32','#E65100','#00838F','#AD1457','#4527A0','#558B2F','#795548'];
+const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.17.2';
+const APP_VERSION = '9.17.3';
 // The AI proxy (Cloudflare Worker). One place to change it.
 const AI_URL = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
 // Premium plans: months -> price in MWK. Keep equal to PRICES in functions/lib.js (tests/prices.test.js checks it).

@@ -77,13 +77,13 @@ function rHist(){
       h+='</div>';
       byDate[date].forEach(function(p){
         var u=uById(p.userId), isI=p.type==='income';
-        var cc2=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#7B1FA2');
+        var cc2=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#176B78');
         var catLabel=catOf(p.item,p.cat);
         var badName=isBadItemName(p.item);
         h+='<div class="pli'+(isI?' income-e':'')+'">';
         h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
         h+='<div class="plb"><div class="pltop">';
-        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#F3E5F5')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
+        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
         h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
@@ -164,7 +164,7 @@ function openTrash(){
         const u=uById(p.userId);
         const daysLeft=p.deletedAt?Math.max(0,30-Math.floor((Date.now()-new Date(p.deletedAt).getTime())/86400000)):30;
         h+='<div class="trash-item">';
-        h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item,p.cat)])||'#7B1FA2')+'1A">'+ico(p.item)+'</div>';
+        h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item,p.cat)])||'#176B78')+'1A">'+ico(p.item)+'</div>';
         h+='<div class="trash-info"><div class="trash-name">'+esc(trName(p.item))+'</div>';
         h+='<div class="trash-meta">'+esc(p.date)+' · '+esc(u.name)+' · '+daysLeft+'d left in trash</div></div>';
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
@@ -296,7 +296,7 @@ function rSum(){
   const cats=Object.entries(catSpend).sort((a,b)=>b[1]-a[1]);
   h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;color:var(--p1-text)"></i> Category Breakdown</h2></div><div style="padding:16px">';
   if(cats.length&&tS>0){
-    const PC={Food:'#7B1FA2',Household:'#1565C0',Personal:'#E91E63',Transport:'#E65100',Other:'#5D4037'};
+    const PC={Food:'#176B78',Household:'#1565C0',Personal:'#E91E63',Transport:'#E65100',Other:'#5D4037'};
     // Build donut SVG
     const R=54,cx=70,cy=70,circumference=2*Math.PI*R;
     let offset=0;
@@ -667,7 +667,7 @@ function openAddM(){
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e');
 }
 function pickC(el,pid,hid){ g(hid).value=sC(el.style.background); document.querySelectorAll('#'+pid+' .cp').forEach(cp=>cp.classList.remove('on')); el.classList.add('on'); }
-function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast(lang==='cw'?'Lembani dzina.':'Enter a name.','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#7B1FA2'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); _stgRefresh(); }
+function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast(lang==='cw'?'Lembani dzina.':'Enter a name.','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#176B78'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); _stgRefresh(); }
 function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(sC(u.color).toLowerCase()===String(c).toLowerCase()?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+sC(u.color)+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); _stgRefresh(); }

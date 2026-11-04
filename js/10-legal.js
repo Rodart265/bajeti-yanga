@@ -11,9 +11,9 @@ function polChips(items){
   return c+'</div>';
 }
 function polSection(num,icon,color,title,body,isLast){
-  return '<div style="display:flex;gap:12px;padding:14px 0'+(isLast?'':';border-bottom:1px solid #F0EBF8')+'">'
+  return '<div style="display:flex;gap:12px;padding:14px 0'+(isLast?'':';border-bottom:1px solid #E5ECF1')+'">'
     +'<div style="width:34px;height:34px;border-radius:var(--cr-md);background:'+color+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+icon+'" style="width:17px;height:17px;color:'+color+'"></i></div>'
-    +'<div style="flex:1;min-width:0"><div style="font-family:Hanken Grotesk,sans-serif;font-size:.86rem;font-weight:800;color:#3D0E7A;margin-bottom:5px">'+num+'. '+title+'</div>'
+    +'<div style="flex:1;min-width:0"><div style="font-family:Hanken Grotesk,sans-serif;font-size:.86rem;font-weight:800;color:#102840;margin-bottom:5px">'+num+'. '+title+'</div>'
     +'<div style="font-size:.78rem;color:#555;line-height:1.65">'+body+'</div></div></div>';
 }
 function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
@@ -21,9 +21,9 @@ function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
   if(el){ el.style.display='block'; return; }
   const div = document.createElement('div');
   div.id = id;
-  div.style.cssText = 'position:fixed;inset:0;background:#F0EBF8;z-index:9999;overflow-y:auto;padding:0';
+  div.style.cssText = 'position:fixed;inset:0;background:#F3F6F8;z-index:9999;overflow-y:auto;padding:0';
   div.innerHTML = '<div style="max-width:640px;margin:0 auto;padding:0 0 40px">'
-    +'<div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);padding:24px 20px 22px;margin-bottom:0">'
+    +'<div style="background:linear-gradient(135deg,#142F4B,#176B78);padding:24px 20px 22px;margin-bottom:0">'
     +'<button onclick="document.getElementById(\''+id+'\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--cr);padding:7px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back</button>'
     +'<div style="display:flex;align-items:center;gap:11px">'
     +'<div style="width:42px;height:42px;border-radius:var(--cr-md);background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+iconBadge+'" style="width:21px;height:21px;color:#fff"></i></div>'
@@ -32,7 +32,7 @@ function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
     +'</div></div>'
     +'<div style="padding:20px">'
     +chipsHtml
-    +'<div style="background:#fff;border-radius:var(--cr);padding:6px 18px;box-shadow:0 2px 12px rgba(123,31,162,.08)">'
+    +'<div style="background:#fff;border-radius:var(--cr);padding:6px 18px;box-shadow:0 2px 12px rgba(23,107,120,.08)">'
     +sectionsHtml
     +'</div></div></div>';
   document.body.appendChild(div);
@@ -45,28 +45,28 @@ function openTerms(){
     ['credit-card','#E65100','PayChangu'],
     ['shield-check','#00695C',isCW?'Deta yanu ndi yanu':'Your data stays yours']
   ]);
-  let s = polSection(1,'check-circle','#7B1FA2','Acceptance of Terms','By using Bajeti Yanga, you agree to these terms. If you do not agree, do not use the app.');
+  let s = polSection(1,'check-circle','#176B78','Acceptance of Terms','By using Bajeti Yanga, you agree to these terms. If you do not agree, do not use the app.');
   s += polSection(2,'smartphone','#1565C0','Use of the App','Bajeti Yanga is a personal household budgeting tool. You may use it for lawful personal or household financial tracking only. You must not misuse, reverse-engineer, or resell the app.');
   s += polSection(3,'file-text','#00695C','Your Data','All financial data you enter belongs to you. We store it securely on Google Firebase. You are responsible for the accuracy of data you enter.');
   s += polSection(4,'credit-card','#E65100','Premium Features &amp; Payments','Premium features are available via a paid subscription. Payments are processed securely through <strong>PayChangu</strong>. Refunds are at the discretion of Rodart Creatives.');
   s += polSection(5,'alert-triangle','#B71C1C','Disclaimer','Bajeti Yanga is provided as-is. We are not responsible for any financial decisions made based on data in this app. Always verify important financial information independently.');
-  s += polSection(6,'mail','#4527A0','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
+  s += polSection(6,'mail','#2F5D8A','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
   polShell('scr-terms','file-text','Terms of Service','Last updated: July 2026 · Rodart Creatives',chips,s);
 }
 
 function openPrivacySheet(){
   const isCW = lang==='cw';
   const chips = polChips([
-    ['lock','#7B1FA2',isCW?'Zosungidwa motetezeka':'Encrypted storage'],
+    ['lock','#176B78',isCW?'Zosungidwa motetezeka':'Encrypted storage'],
     ['ban','#E65100',isCW?'Sitigulitsa deta':'No data selling'],
     ['trash-2','#2E7D32',isCW?'Chotsani nthawi iliyonse':'Delete anytime']
   ]);
   let s = polSection(1,'database','#1565C0','Data We Collect','We collect your phone number or email for authentication, your household financial entries (income, expenses, budgets), and device information for app functionality.');
   s += polSection(2,'settings','#00695C','How We Use Your Data','Your data is used exclusively to provide the budgeting features. When you use an AI feature, the app sends that request to Google\'s Gemini service through our own server. It can include your chat message, member names, your budget and recent spending figures, and any receipt photo you scan. We do not keep these requests ourselves; Google processes them under its own terms.');
-  s += polSection(3,'lock','#7B1FA2','Data Storage &amp; Security','All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can access your data. Data is encrypted in transit and at rest.');
+  s += polSection(3,'lock','#176B78','Data Storage &amp; Security','All data is stored in Google Firebase Firestore with enforced security rules. Only authenticated members of your household can access your data. Data is encrypted in transit and at rest.');
   s += polSection(4,'users','#E65100','Data Sharing','We do not sell or rent your personal data and we do not share it with advertisers. Data is shared with household members who have your household code, and with the services that run the app: Google (Firebase for sign-in and storage, Gemini for AI features) and PayChangu for Premium payments.');
   s += polSection(5,'check-circle','#2E7D32','Your Rights','You may delete your account and all associated data at any time via Settings. You can also export your data as CSV.');
-  s += polSection(6,'mail','#4527A0','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
+  s += polSection(6,'mail','#2F5D8A','Contact','Questions? Email <strong>rodartcreatives@gmail.com</strong> or WhatsApp <strong>+265 888 029 029</strong>.',true);
   polShell('scr-privacy-page','shield-check','Privacy Policy','Last updated: October 2026 · Rodart Creatives',chips,s);
 }
 
@@ -76,10 +76,10 @@ function openPrivacySheet(){
 // polSection (Terms/Privacy) but click-to-expand instead of a flat list,
 // since FAQ entries are meant to be scanned, not all read at once.
 function faqItem(id, q, a, isLast){
-  return '<div style="padding:14px 0'+(isLast?'':';border-bottom:1px solid #F0EBF8')+'">'
+  return '<div style="padding:14px 0'+(isLast?'':';border-bottom:1px solid #E5ECF1')+'">'
     +'<button onclick="faqToggle(\''+id+'\')" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:none;border:none;padding:0;text-align:left;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'
-    +'<span style="font-size:.84rem;font-weight:700;color:#3D0E7A;flex:1">'+q+'</span>'
-    +'<i data-lucide="chevron-down" id="'+id+'-chev" style="width:16px;height:16px;color:#7B1FA2;flex-shrink:0;transition:transform .2s"></i>'
+    +'<span style="font-size:.84rem;font-weight:700;color:#102840;flex:1">'+q+'</span>'
+    +'<i data-lucide="chevron-down" id="'+id+'-chev" style="width:16px;height:16px;color:#176B78;flex-shrink:0;transition:transform .2s"></i>'
     +'</button>'
     +'<div id="'+id+'" style="display:none;font-size:.78rem;color:#555;line-height:1.65;margin-top:9px;padding-right:26px">'+a+'</div>'
     +'</div>';
@@ -93,7 +93,7 @@ function faqToggle(id){
 }
 function openFAQ(){
   const chips = polChips([
-    ['sparkles','#7B1FA2','AI features'],
+    ['sparkles','#176B78','AI features'],
     ['gem','#E65100','Premium'],
     ['shield-check','#00695C','Security']
   ]);
@@ -153,9 +153,9 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
       bar.id='sw-update-bar';
       bar.setAttribute('role','status');
       bar.style.cssText='flex-shrink:0;display:flex;align-items:center;gap:8px;margin:8px 12px 0;padding:5px 5px 5px 14px;'
-        +'border-radius:16px;background:var(--glass-bg-strong,var(--white,#fff));color:var(--ink,#1A1A2E);'
+        +'border-radius:16px;background:var(--glass-bg-strong,var(--white,#fff));color:var(--ink,#14212D);'
         +'-webkit-backdrop-filter:saturate(170%) blur(18px);backdrop-filter:saturate(170%) blur(18px);'
-        +'border:1px solid var(--glass-border,rgba(123,31,162,.15));box-shadow:0 6px 18px rgba(74,20,140,.14);'
+        +'border:1px solid var(--glass-border,rgba(23,107,120,.15));box-shadow:0 6px 18px rgba(20,47,75,.14);'
         +'font:700 .78rem Hanken Grotesk,sans-serif;position:relative;z-index:5';
       var msg=document.createElement('span');
       msg.style.cssText='flex:1;min-width:0';
@@ -164,7 +164,7 @@ if(!localStorage.getItem('nb_uid')) localStorage.setItem('nb_uid','u1');
       go.type='button';
       go.textContent = cw ? 'Tsegulaninso' : 'Refresh';
       go.style.cssText='min-height:40px;padding:0 16px;border:0;border-radius:12px;cursor:pointer;color:#fff;'
-        +'font:800 .78rem Hanken Grotesk,sans-serif;background:linear-gradient(145deg,var(--p2,#9C27B0),var(--p1,#7B1FA2))';
+        +'font:800 .78rem Hanken Grotesk,sans-serif;background:linear-gradient(145deg,var(--p2,#258A96),var(--p1,#176B78))';
       go.onclick=function(){ location.reload(); };
       var x=document.createElement('button');
       x.type='button';

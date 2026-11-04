@@ -379,7 +379,7 @@ function createHHSolo(){
     const code=randCode();
     const soloCfg=JSON.parse(JSON.stringify(DEF_CFG));
     const nm=(curUser&&(curUser.displayName||curUser.email||'').split('@')[0])||'Me';
-    soloCfg.users=[{id:'u1',name:nm,color:'#7B1FA2'}];
+    soloCfg.users=[{id:'u1',name:nm,color:'#176B78'}];
     soloCfg.solo=true;
     return db.collection('households').doc(code)
       .set(_newHouseholdDoc(uDoc.exists?uDoc.data():null, soloCfg, {solo:true}))
@@ -448,7 +448,7 @@ function renderSetupJoinWaiting(code, justSubmitted){
     : (isCW?'Pempho lanu latumizidwa. Mudzalumikizidwa nokha mwini nyumba akakuvomerezani.':'Your request is still pending. You\'ll connect automatically once the owner approves.');
   setupBox.innerHTML =
     '<div id="pending-approval-box" style="text-align:center;padding:4px 0 8px">'
-    +'<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#4A148C,#6A1B9A,#8E24AA);border-radius:0 0 24px 24px;position:relative;overflow:hidden">'
+    +'<div style="margin:-2px -18px 20px;padding:32px 20px 28px;background:linear-gradient(145deg,#142F4B,#1B4F66,#1F7A87);border-radius:0 0 24px 24px;position:relative;overflow:hidden">'
     +'<div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)"></div>'
     +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;position:relative">'
     +'<div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.15);animation:pulse-ring 2s ease-out infinite"></div>'

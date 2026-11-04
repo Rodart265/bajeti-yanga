@@ -62,7 +62,7 @@ function showUpgradePrompt(feature, status){
   const featureName = names[feature] || feature;
   let h = '<div class="dh"></div>';
   h += '<div style="text-align:center;padding:8px 0 16px">';
-  h += '<div style="width:56px;height:56px;border-radius:var(--cr);background:linear-gradient(135deg,#4A148C,#7B1FA2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 6px 20px rgba(74,20,140,.35)"><i data-lucide="gem" style="width:26px;height:26px;color:#fff"></i></div>';
+  h += '<div style="width:56px;height:56px;border-radius:var(--cr);background:linear-gradient(135deg,#142F4B,#176B78);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 6px 20px rgba(20,47,75,.35)"><i data-lucide="gem" style="width:26px;height:26px;color:#fff"></i></div>';
   h += '<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:6px">'+featureName+' '+(isCW?'ndi ya Premium':'is Premium')+'</h3>';
   h += '<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">'+(isCW?'Sandutsani kuti mutsegule ichi ndi zina zonse.':'Upgrade to unlock this and all other premium features.')+'</div>';
   h += '<div style="font-size:.75rem;color:var(--mid);margin-bottom:16px;text-align:left;background:var(--mist);border-radius:var(--cr-md);padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px">';
@@ -143,7 +143,7 @@ function showPremiumPage(){
 
   // Compact header: logo + title in one row (keeps the screen short on small phones)
   h = '<div class="dh" style="margin-bottom:10px"></div>';
-  h += '<div style="display:flex;align-items:center;gap:11px;padding:12px 14px;margin-bottom:10px;background:linear-gradient(145deg,#4A148C 0%,#6A1B9A 45%,#8E24AA 100%);border-radius:18px">';
+  h += '<div style="display:flex;align-items:center;gap:11px;padding:12px 14px;margin-bottom:10px;background:linear-gradient(145deg,#142F4B 0%,#1B4F66 45%,#1F7A87 100%);border-radius:18px">';
   h += '<div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+APP_LOGO_SVG(30)+'</div>';
   h += '<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.02rem;color:#fff;letter-spacing:-.2px">Bajeti Yanga Premium</div>';
   h += '<div style="font-size:.72rem;color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px">'+(isCW?'Tsegulani mphamvu zonse za ndalama zanu.':'Unlock the full power of your money.')+'</div></div>';
@@ -184,12 +184,12 @@ function showPremiumPage(){
 
   // Feature tiles (names only, to keep the grid short)
   const feats = [
-    ['bar-chart-2','Visual Charts','#7B1FA2'],
+    ['bar-chart-2','Visual Charts','#176B78'],
     ['file-text','PDF Export','#1565C0'],
     ['bell','Bill Tracker','#E65100'],
     ['cpu','Unlimited AI','#00695C'],
     ['trash-2','30-Day Trash','#B71C1C'],
-    ['copy','Copy Month','#4527A0'],
+    ['copy','Copy Month','#2F5D8A'],
     ['camera','Receipt Scan','#1B5E20']
   ];
   h += '<div class="pm-sec">'+(isCW?'Zomwe Mumapeza':'Included')+'</div>';
@@ -220,7 +220,7 @@ function showPremiumPage(){
 
   // Pinned footer: the payment button stays on screen however small the phone is
   h += '<div class="pm-foot">';
-  h += '<button onclick="proceedToPayment()" style="width:100%;padding:13px;background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 4px 14px rgba(74,20,140,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
+  h += '<button onclick="proceedToPayment()" style="width:100%;padding:13px;background:linear-gradient(135deg,#142F4B,#176B78);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 4px 14px rgba(20,47,75,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
   h += '<i data-lucide="arrow-right-circle" style="width:18px;height:18px"></i> '+(isCW?'Pitani ku Chilipiro':'Proceed to Payment');
   h += '</button>';
   h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">';
@@ -262,7 +262,7 @@ function showPaychanguIframe(){
   h += '</div>';
   if(PAYMENTS_API){
     h += '<div style="font-size:.74rem;color:var(--mid);margin-bottom:12px;line-height:1.55">'+(isCW?'Tidzakutengerani ku PayChangu kuti mulipire MK <strong style="color:var(--ink)">'+plan.price.toLocaleString()+'</strong> ndi Airtel Money, TNM Mpamba kapena khadi.':'We will take you to PayChangu to pay <strong style="color:var(--ink)">MK '+plan.price.toLocaleString()+'</strong> with Airtel Money, TNM Mpamba or card.')+'</div>';
-    h += '<button onclick="startCheckout(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(74,20,140,.4);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><i data-lucide="lock" style="width:18px;height:18px"></i> '+(isCW?'Lipirani pa PayChangu':'Pay with PayChangu')+'</button>';
+    h += '<button onclick="startCheckout(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#142F4B,#176B78);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(20,47,75,.4);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><i data-lucide="lock" style="width:18px;height:18px"></i> '+(isCW?'Lipirani pa PayChangu':'Pay with PayChangu')+'</button>';
     h += '<button onclick="claimPayment(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px"><i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Ndalipira. Tsegulani Premium':'I\'ve paid. Activate my Premium')+'</button>';
     h += '<div style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:8px;line-height:1.5">'+(isCW?'Premium imatseguka yokha mkati mwa mphindi zochepa mukalipira. Mukavuta, tumizani screenshot pa WhatsApp.':'Premium switches on by itself within a few minutes of paying. If anything goes wrong, send your screenshot on WhatsApp instead.')+'</div>';
     h += '<button onclick="showClaimScreen()" style="width:100%;background:none;border:none;color:var(--mid);font-size:.72rem;font-family:inherit;cursor:pointer;padding:8px 16px;text-decoration:underline">'+(isCW?'Ndavutika. Ndituma pa WhatsApp':'Having trouble? Pay manually instead')+'</button>';
@@ -350,7 +350,7 @@ function showClaimScreen(){
   // Confetti animation CSS
   const confettiStyle = '<style>@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(80px) rotate(360deg);opacity:0}}.confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;animation:confettiFall .8s ease-out forwards}</style>';
 
-  const confettiColors = ['#7B1FA2','#FFD700','#00E5FF','#4CAF50','#FF5722','#E91E63'];
+  const confettiColors = ['#176B78','#FFD700','#00E5FF','#4CAF50','#FF5722','#E91E63'];
   let confettiHtml = '<div style="position:relative;height:60px;overflow:hidden;margin-bottom:4px">';
   for(let i=0;i<18;i++){
     const color = confettiColors[i % confettiColors.length];
@@ -366,7 +366,7 @@ function showClaimScreen(){
 
   // Gem icon instead of emoji
   h += '<div style="text-align:center;margin-bottom:14px">';
-  h += '<div style="width:64px;height:64px;border-radius:var(--cr);background:linear-gradient(135deg,#4A148C,#7B1FA2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 8px 24px rgba(74,20,140,.4)">';
+  h += '<div style="width:64px;height:64px;border-radius:var(--cr);background:linear-gradient(135deg,#142F4B,#176B78);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 8px 24px rgba(20,47,75,.4)">';
   h += '<i data-lucide="gem" style="width:30px;height:30px;color:#fff"></i></div>';
   h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.1rem;color:var(--ink);margin-bottom:4px">'+(isCW?'Pafupi Kwambiri!':'You\'re Almost There!')+'</div>';
   h += '<div style="font-size:.76rem;color:var(--mid);line-height:1.5">'+(isCW?'Tumizani kodi ya nyumba yanu kwa ife pa WhatsApp kuti titsegule Premium yanu.':'Share your household code with us on WhatsApp so we can activate your Premium.')+'</div>';
@@ -379,11 +379,11 @@ function showClaimScreen(){
   h += '</div>';
 
   // Household code card
-  h += '<div style="background:var(--p1-bg);border:2px solid #CE93D8;border-radius:var(--cr);padding:14px;margin-bottom:14px">';
+  h += '<div style="background:var(--p1-bg);border:2px solid #9CCDD3;border-radius:var(--cr);padding:14px;margin-bottom:14px">';
   h += '<div style="font-size:.72rem;font-weight:700;color:var(--p1-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">'+(isCW?'Nambala ya Nyumba Yanu:':'Your Household Code:')+'</div>';
   h += '<div style="display:flex;align-items:center;gap:10px">';
   h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:900;font-size:1.4rem;color:var(--ink);letter-spacing:2px;flex:1">'+esc(hhId)+'</div>';
-  h += '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(hhId)+'\').then(()=>toast(\''+(isCW?'Yakopedwa!':'Copied!')+'\')).catch(()=>{})" style="background:#7B1FA2;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:4px"><i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Koperani':'Copy')+'</button>';
+  h += '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(hhId)+'\').then(()=>toast(\''+(isCW?'Yakopedwa!':'Copied!')+'\')).catch(()=>{})" style="background:#176B78;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:4px"><i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Koperani':'Copy')+'</button>';
   h += '</div></div>';
 
   // WhatsApp instruction
@@ -479,7 +479,7 @@ function showPremiumSheet(){
   }
   let h = '<div class="dh"></div>';
   h += '<div style="text-align:center;padding:8px 0 16px">';
-  h += '<div style="width:56px;height:56px;border-radius:var(--cr);background:linear-gradient(135deg,#4A148C,#7B1FA2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 6px 20px rgba(74,20,140,.35)"><i data-lucide="' + (ended ? 'lock' : 'clock') + '" style="width:26px;height:26px;color:#fff"></i></div>';
+  h += '<div style="width:56px;height:56px;border-radius:var(--cr);background:linear-gradient(135deg,#142F4B,#176B78);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 6px 20px rgba(20,47,75,.35)"><i data-lucide="' + (ended ? 'lock' : 'clock') + '" style="width:26px;height:26px;color:#fff"></i></div>';
   h += '<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:6px">' + title + '</h3>';
   h += '<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">' + note + '</div>';
   h += '<div style="font-size:.75rem;color:var(--mid);margin-bottom:16px;text-align:left;background:var(--mist);border-radius:var(--cr-md);padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px">';

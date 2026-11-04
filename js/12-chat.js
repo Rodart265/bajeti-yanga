@@ -103,7 +103,7 @@ function rChat(){
     '<div style="position:relative;display:flex;flex-direction:column;height:100%;padding:0;overflow:hidden">'
     +'<div class="chat-wrap"><div class="chat-msgs" id="chat-msgs"></div>'
     +'<div class="chat-footer" style="position:relative">'
-    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="'+L('More options','Zina zambiri')+'" aria-label="'+L('More options','Zina zambiri')+'" style="background:linear-gradient(135deg,var(--p1),#9C27B0);color:#fff;border-radius:50%;width:42px;height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(123,31,162,.35)">'+attachIcon+'</button>'
+    +'<button class="chat-attach-btn" id="chat-attach" onclick="toggleChatSheet(event)" title="'+L('More options','Zina zambiri')+'" aria-label="'+L('More options','Zina zambiri')+'" style="background:linear-gradient(135deg,var(--p1),#258A96);color:#fff;border-radius:50%;width:42px;height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(23,107,120,.35)">'+attachIcon+'</button>'
     +'<textarea class="chat-input" id="chat-inp" rows="1" placeholder="'+placeholder+'" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>'
     +'<button class="chat-send" id="chat-send" onclick="sendChat()" aria-label="'+L('Send','Tumizani')+'">'+sendIcon+'</button>'
     +'</div></div></div>');
@@ -253,7 +253,7 @@ function renderBubbles(){
     ];
     el.innerHTML=
       '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 20px 8px;flex-shrink:0">'
-      +'<div style="width:68px;height:68px;background:linear-gradient(135deg,#4A148C,#7B1FA2);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 24px rgba(123,31,162,.28)">'
+      +'<div style="width:68px;height:68px;background:linear-gradient(135deg,#142F4B,#176B78);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 24px rgba(23,107,120,.28)">'
       +'<svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg>'
       +'</div>'
       +'<div style="font-family:Hanken Grotesk,sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1-text);margin-bottom:5px">'+greeting+'</div>'
@@ -261,7 +261,7 @@ function renderBubbles(){
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 4px;flex-shrink:0">'
       +suggs.map(s=>
-        '<button onclick="chipSend(this)" data-txt="'+s.txt+'" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--cr);padding:11px 10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(123,31,162,.06)">'
+        '<button onclick="chipSend(this)" data-txt="'+s.txt+'" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--cr);padding:11px 10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(23,107,120,.06)">'
         +'<div style="width:28px;height:28px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">'
         +'<i data-lucide="'+s.icon+'" style="width:14px;height:14px;color:'+s.color+'"></i></div>'
         +'<span style="font-size:.72rem;font-weight:600;color:var(--ink);line-height:1.35">'+s.txt+'</span>'
@@ -830,7 +830,7 @@ function openMagicLog() {
   h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:.72rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'kapena lembani':'or type')+'</span><div style="flex:1;height:1px;background:var(--border)"></div></div>';
   h += '<textarea class="fi" id="magic-input" rows="4" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula 5k ufa ndi 2k pa mabasi.':'e.g. Spent 5k on maize and 2k on transport.')+'" style="resize:none;margin-bottom:10px;"></textarea>';
   h += '<div id="magic-results" style="margin-bottom:10px;"></div>';
-  h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#7B1FA2,#F57F17);display:flex;align-items:center;justify-content:center;gap:6px" onclick="processMagicLog()"><i data-lucide="sparkles" style="width:15px;height:15px"></i> '+(lang==='cw'?'Werengani':'Extract')+'</button></div>';
+  h += '<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-magic&quot;)">'+t.cancel+'</button><button class="btnM" id="magic-btn-process" style="flex:2;background:linear-gradient(135deg,#176B78,#F57F17);display:flex;align-items:center;justify-content:center;gap:6px" onclick="processMagicLog()"><i data-lucide="sparkles" style="width:15px;height:15px"></i> '+(lang==='cw'?'Werengani':'Extract')+'</button></div>';
   g('mb-magic').innerHTML = h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-magic')]});
   openM('mv-magic');
@@ -1003,7 +1003,7 @@ function renderMagicResults(){
   pendingMagicTxs.forEach((tx,idx)=>{
     const isKnown=!!lCfg.items.find(it=>it.name===tx.item);
     const ok=isKnown||(tx.cat&&tx.cat!=='Other');
-    h+='<div data-magic-row="'+idx+'" style="background:'+(ok?'rgba(123,31,162,.04)':'var(--white)')+';border:1.5px solid '+(ok?'var(--p1)':'var(--border)')+';border-radius:var(--cr-md);padding:11px 13px">'
+    h+='<div data-magic-row="'+idx+'" style="background:'+(ok?'rgba(23,107,120,.04)':'var(--white)')+';border:1.5px solid '+(ok?'var(--p1)':'var(--border)')+';border-radius:var(--cr-md);padding:11px 13px">'
      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:'+(isKnown?'0':'9px')+'">'
      +'<div style="flex:1;min-width:0">'
      +'<div style="font-size:.88rem;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px">'+esc(String(tx.item||''))+'</div>'

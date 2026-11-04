@@ -151,7 +151,7 @@ function sC(c){
   // The swatch picker stores el.style.background, which browsers serialise as "rgb(21, 101, 192)"; normalise to hex.
   const m=/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/.exec(c);
   if(m){ const h=n=>('0'+Math.min(255,+n).toString(16)).slice(-2); return '#'+h(m[1])+h(m[2])+h(m[3]); }
-  return '#7B1FA2';
+  return '#176B78';
 }
 // Lightweight markdown -> HTML for AI-generated text. The AI is told to use
 // **bold** and bullet lists; this is the ONLY place that syntax should ever
