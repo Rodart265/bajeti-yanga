@@ -163,8 +163,9 @@ service cloud.firestore {
 
     // A contribution entry a member writes for THEMSELVES. The three known fields are required (paid => server-stamped
     // time and their own uid as confirmer; unpaid => both cleared). Two optional fields say "I have sent it":
-    // sent (bool) and sentAt (server time, or null once taken back).
+    // sent (bool) and sentAt (server time, null once taken back, or left as it already was).
     function chipEntryOk(e) {
+      let was = resource.data.currentCycle.contributions[request.auth.uid];
       return e.keys().hasOnly(['paid', 'paidAt', 'confirmedBy', 'sent', 'sentAt'])
         && e.keys().hasAll(['paid', 'paidAt', 'confirmedBy'])
         && e.paid is bool
@@ -172,7 +173,7 @@ service cloud.firestore {
             ? (e.paidAt == request.time && e.confirmedBy == request.auth.uid)
             : (e.paidAt == null && e.confirmedBy == null))
         && (!('sent' in e) || e.sent is bool)
-        && (!('sentAt' in e) || e.sentAt == null || e.sentAt == request.time);
+        && (!('sentAt' in e) || e.sentAt == null || e.sentAt == request.time || e.sentAt == was.get('sentAt', null));
     }
 
     // TRANSITION SWITCH. From app 9.17.5 a contributor only says "I have sent it" and the recipient (or the admin)
@@ -184,10 +185,15 @@ service cloud.firestore {
       return true;
     }
 
-    // An entry a member writes for themselves: well formed and (once legacySelfPaid is off) not self-confirmed.
+    // An entry a member writes for themselves: well formed, (once legacySelfPaid is off) not self-confirmed, and once
+    // the recipient or admin has confirmed it, the contributor can no longer change it (only the recipient or admin can).
     function ownEntryOk(e) {
+      let was = resource.data.currentCycle.contributions[request.auth.uid];
       return chipEntryOk(e)
-        && (!e.paid || legacySelfPaid() || request.auth.uid == resource.data.createdBy);
+        && (!e.paid || legacySelfPaid() || request.auth.uid == resource.data.createdBy)
+        && (!was.paid
+            || request.auth.uid == resource.data.createdBy
+            || (legacySelfPaid() && was.confirmedBy == request.auth.uid));
     }
 
     function validChipGroupCreate() {
@@ -282,6 +288,7 @@ service cloud.firestore {
         && after.currentCycle.recipientUid == before.currentCycle.recipientUid
         && after.currentCycle.dueDate == before.currentCycle.dueDate
         && after.currentCycle.amount == before.currentCycle.amount
+        && after.currentCycle.diff(before.currentCycle).affectedKeys().hasOnly(['contributions'])
         && after.currentCycle.contributions.keys().hasAll(before.currentCycle.contributions.keys())
         && after.currentCycle.contributions.keys().hasOnly(before.currentCycle.contributions.keys())
         && after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys().size() == 1
@@ -392,21 +399,25 @@ service cloud.firestore {
         && after.rotationOrder == before.rotationOrder.removeAll(removed)
         && after.members.keys().hasOnly(after.memberUids)
         && after.members.keys().size() == after.memberUids.size()
+        && after.members.diff(before.members).affectedKeys().hasOnly(removed)
         && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members']);
     }
 
     // A member who had already paid this round and then leaves keeps counting: the app moves their payment to
     // currentCycle.departedPaid instead of losing it with their entry. departedPaid may only gain the removed member's
-    // own key, and only if their entry was marked paid.
+    // own key, only if their entry was marked paid, and (once legacySelfPaid is off, because older apps do not do this)
+    // a paid member's departure MUST record it.
     function departedOk(before, after, removed) {
       let b = before.currentCycle.get('departedPaid', {});
       let a = after.currentCycle.get('departedPaid', {});
       let changed = a.diff(b).affectedKeys();
+      let wasPaid = before.currentCycle.contributions[removed[0]].paid == true;
       return changed.hasOnly(removed)
         && (changed.size() == 0
-            || (before.currentCycle.contributions[removed[0]].paid == true
-                && a[removed[0]].paid == true
-                && a[removed[0]].name is string && a[removed[0]].name.size() <= 40));
+            ? (!wasPaid || legacySelfPaid())
+            : (wasPaid
+               && a[removed[0]].paid == true
+               && a[removed[0]].name is string && a[removed[0]].name.size() <= 40));
     }
 
     // Leaving or being removed from an ACTIVE rotation. Same core shape as
@@ -440,6 +451,8 @@ service cloud.firestore {
         && !(removed[0] in after.currentCycle.contributions)
         && after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys().hasOnly(removed)
         && departedOk(before, after, removed)
+        && after.currentCycle.diff(before.currentCycle).affectedKeys().hasOnly(['contributions', 'departedPaid'])
+        && after.members.diff(before.members).affectedKeys().hasOnly(removed)
         && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members', 'currentCycle']);
     }
 
