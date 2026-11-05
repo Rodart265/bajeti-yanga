@@ -92,3 +92,60 @@ Functions
 - **Minimum version switch.** `version.json` can require a minimum version; older phones see a full-screen Update now page. It never blocks anyone when the check itself fails (offline, slow, unreadable).
 - New Chichewa strings (please have a native speaker check them): "Tsambali silinatsegulike", "Zolemba zanu zili bwino. Yesaninso, kapena tsegulaninso pulogalamu.", "Koperani zambiri za vutoli", "Chinachake chinalakwika. Ngati chikupitirira, tsegulaninso pulogalamu.", "Kuti mupitirize kugwiritsa ntchito pulogalamu, dinani batani pansipa. Zolemba zanu zili bwino.", "Lumikizanani ndi intaneti, kenako yesaninso."
 - The first deploy of this version still reaches phones the old way (they pick up the new `sw.js`); from then on updates follow the rules above.
+
+## 9.17.5: Chipereganyu you can trust
+
+Everything here is about the Chipereganyu feature (`js/06-chipereganyu.js`, the Chipereganyu part of both rules files, a few styles).
+
+### Publish in this order (rules FIRST this time)
+
+The new rules accept both the old app and the new one, so nothing breaks while phones update. If the new app went out first, "I have sent it" would be refused until the rules were published.
+
+1. Publish the rules in the Firebase console: `firestore.rules` (Phase A), or `firestore.phase-b.rules` if Phase B is what is live now. Both files carry the same Chipereganyu changes.
+2. Merge the app change (GitHub Pages). `node tools/release.js` and `node tests/release.test.js` have been run for 9.17.5.
+3. Later, once every phone is on 9.17.5 (raise `min` in `version.json` to `9.17.5` and wait a few days): in the rules, change `legacySelfPaid()` to `return false;` and publish again. From then on a contributor can only say "I've sent it"; only the recipient or the admin can mark a contribution received. This step needs no new app version.
+
+Until step 3, a phone still on the old app can mark its own contribution paid by itself, and an old phone looking at a finished circle sees it as "gathering" (it cannot start anything: the rules refuse).
+
+### What changed
+
+Honest records (Step 1)
+- The Remind button opens WhatsApp with a ready message (amount, circle name, due date). It no longer says "Reminder sent".
+- Every payout records `collected`, what really came in. History shows "MK15,000 of MK20,000 · short by MK5,000". Older entries stay as they were.
+- The ring in the middle now shows collected / expected, so it always agrees with the amount under it. A note explains a short round ("Short by MK5,000: 1 member left before paying").
+- A member who paid and then leaves (or is removed) is no longer erased: their payment moves to `currentCycle.departedPaid` and still counts, and History keeps the recipient's name even after they leave.
+- Confirming a round that is short because someone left asks first.
+- Chichewa Home card: "Gawo la Asher · pofika 25/11/2026" instead of "Asher's gawo".
+
+Paid vs received (Step 2)
+- A contributor taps **I've sent it** (`sent`, `sentAt`); only the recipient or the admin can mark it **Received** (`paid`). Only received money counts as collected. Either step can be undone (the recipient/admin undo a Received; a contributor undoes their own Sent until it is confirmed).
+- The expense is logged to the contributor's budget when they tap "I've sent it", and removed if they take it back.
+- Force confirm lists who is not confirmed and records the round as short.
+
+Laps and a proper end (Step 3)
+- New circles get a **pay day** (day of the month, or weekday). Later due dates step on from the previous due date instead of the day the payout was confirmed, and dates already in the past are skipped. Older circles (no pay day) keep their rhythm from their last due date.
+- A contribution past its due date shows **Overdue by N days** (the Home card says "overdue" too). "Sent" is not overdue.
+- History entries and rounds carry a `lap`. Older entries get theirs worked out when read (a lap ends when a recipient comes round again), so the Received/Upcoming labels and the "move up" guard are per lap and reset when a new lap starts.
+- When everyone has received, the circle becomes **completed** (`status: 'completed'`, no current round) instead of silently looping. The admin can reorder, **start another lap** (same members), or **close** the circle. Closed circles leave Home; the admin can delete a completed or closed circle, and members can remove it from their list.
+- The gathering screen shows the pot (contribution × (members − 1)) and the pay day before the admin presses Start.
+
+### Data and rules (all additive)
+- New optional fields: group `dueDay`; round `lap`, `departedPaid`; contribution `sent`, `sentAt`; history `lap`, `collected`, `recipientName`, `departed`. New group `status` values `completed` and `closed`. No migration.
+- New rule functions: `legacySelfPaid`, `ownEntryOk`, `freshCycleOk`, `historyAppendOk`, `validChipLapComplete`, `validChipNewLap`, `validChipClose`, `departedOk`. Reordering is also allowed while `completed`; leaving/removal also while `completed` or `closed`.
+- `tests/chip.test.js` (new) covers dates, laps and round money. Run: `node tests/chip.test.js`.
+
+### Please check
+
+- **The rules were not run against the Firestore emulator** (it could not be downloaded where this was built). They were reviewed by hand and the app's writes were checked against them on paper. Before relying on them, try the flows below with 3 test accounts, and use the Rules Playground in the console for anything that is refused unexpectedly.
+- **New Chichewa strings need a native speaker**: "Ndatumiza", "Zatumizidwa", "Zalandiridwa", "Bwezerani", "Yachedwa masiku N", "Tsiku lolipira", "Kuzungulira" (lap), "Yambani kuzungulira kwina", "Tsekani Chipereganyu ichi", "Chipereganyu chodalirika" (What's New), the WhatsApp reminder text, and the short-round / confirm messages.
+- Still one-sided: income is logged to the recipient's budget only when the recipient confirms the payout on their own phone, and a contributor's expense only when they tap "I've sent it". If someone else marks it for them, their budget does not change. (The earlier decision to prompt each time before logging payout income is not done yet.)
+
+### Test with 3 accounts (A admin, B, C)
+- Create a monthly circle with pay day 31 and a weekly one; the gathering screen shows the pot and the pay day.
+- B and C join; A starts. A is the first recipient.
+- B taps "I've sent it": the row says Sent, B's budget has the expense, the ring does not move. A taps Mark received: Received, ring moves. B undoes Sent before A confirms: expense disappears.
+- C marks sent, then leaves before A confirms: the round shows "Short by MK…". A confirms: History shows "of MK… · short by MK…"; A's budget income equals what was collected.
+- Round where B paid and was confirmed, then B leaves: the note "Paid, then left: B" shows and the money still counts.
+- Let the due date pass (or edit `dueDate` in the console): rows show Overdue.
+- Finish every turn: the circle shows "Everyone has received"; reorder, Start another lap (Lap 2, recipient is first in order), then finish and Close. Closed circle disappears from Home; delete it as admin.
+- A non-admin tries to mark their OWN contribution received from the console: allowed until step 3 above, refused after it.

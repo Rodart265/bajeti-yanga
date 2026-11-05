@@ -154,6 +154,8 @@ function showWhatsNew(){
   const isCW=lang==='cw';
   // Plain-language notes for the people using the app. Every entry has English and Chichewa (the Chichewa wording needs native review).
   const changes=[
+    {icon:'rotate-cw', en:['Chipereganyu you can trust','Contributors tap "I\'ve sent it" and the person receiving confirms it arrived. Short rounds show what was really collected, reminders open WhatsApp, and a circle can finish a lap and start another.'],
+                       cw:['Chipereganyu chodalirika','Wopereka amakanikiza "Ndatumiza" ndipo wolandira amatsimikizira kuti ndalama zafika. Magawo ochepa amaonetsa ndalama zenizeni zomwe zalandiridwa, chikumbutso chimatsegula WhatsApp, ndipo gulu limatha kumaliza kuzungulira kenako n\'kuyamba kwina.']},
     {icon:'layout-grid', en:['A fresh look','Warmer colours, one clean font, and a new Home screen that shows what is left this month more clearly.'],
                          cw:['Maonekedwe atsopano','Mitundu yofunda, zilembo zomveka, ndi tsamba la Pakhomo latsopano lomwe likuonetsa bwino ndalama zotsala mwezi uno.']},
     {icon:'trending-up', en:['Clearer 6-month chart','Your budget line is labelled, and a note shows where you are on pace to finish the month.'],
