@@ -160,16 +160,39 @@ service cloud.firestore {
       return {'paid': false, 'paidAt': null, 'confirmedBy': null};
     }
 
-    // A contribution entry a member writes for THEMSELVES: exactly the three
-    // known fields; paid => server-stamped time and their own uid as
-    // confirmer; unpaid => both cleared.
+    // A contribution entry a member writes for THEMSELVES. The three known fields are required (paid => server-stamped
+    // time and their own uid as confirmer; unpaid => both cleared). Two optional fields say "I have sent it":
+    // sent (bool) and sentAt (server time, null once taken back, or left as it already was).
     function chipEntryOk(e) {
-      return e.keys().hasOnly(['paid', 'paidAt', 'confirmedBy'])
+      let was = resource.data.currentCycle.contributions[request.auth.uid];
+      return e.keys().hasOnly(['paid', 'paidAt', 'confirmedBy', 'sent', 'sentAt'])
         && e.keys().hasAll(['paid', 'paidAt', 'confirmedBy'])
         && e.paid is bool
         && (e.paid
             ? (e.paidAt == request.time && e.confirmedBy == request.auth.uid)
-            : (e.paidAt == null && e.confirmedBy == null));
+            : (e.paidAt == null && e.confirmedBy == null))
+        && (!('sent' in e) || e.sent is bool)
+        && (!('sentAt' in e) || e.sentAt == null || e.sentAt == request.time || e.sentAt == was.get('sentAt', null));
+    }
+
+    // TRANSITION SWITCH. From app 9.17.5 a contributor only says "I have sent it" and the recipient (or the admin)
+    // confirms it arrived (paid). Phones still on an older app mark their own contribution paid by themselves, so
+    // while that can still happen this returns true. When every phone is on 9.17.5 or newer (raise "min" in
+    // version.json), change it to false and publish the rules again: from then on only the admin can mark their
+    // OWN entry paid, and everyone else's paid mark has to come from the recipient or the admin.
+    function legacySelfPaid() {
+      return true;
+    }
+
+    // An entry a member writes for themselves: well formed, (once legacySelfPaid is off) not self-confirmed, and once
+    // the recipient or admin has confirmed it, the contributor can no longer change it (only the recipient or admin can).
+    function ownEntryOk(e) {
+      let was = resource.data.currentCycle.contributions[request.auth.uid];
+      return chipEntryOk(e)
+        && (!e.paid || legacySelfPaid() || request.auth.uid == resource.data.createdBy)
+        && (!was.paid
+            || request.auth.uid == resource.data.createdBy
+            || (legacySelfPaid() && was.confirmedBy == request.auth.uid));
     }
 
     function validChipGroupCreate() {
@@ -178,6 +201,7 @@ service cloud.firestore {
         && d.contributionAmount is number && d.contributionAmount > 0 && d.contributionAmount < 100000000
         && d.frequency in ['monthly', 'weekly']
         && d.currency is string && d.currency.size() <= 8
+        && (!('dueDay' in d) || (d.dueDay is int && d.dueDay >= 0 && d.dueDay <= 31))
         && verifiedOrNotPassword()
         && d.createdBy == request.auth.uid
         && d.memberUids is list && d.memberUids == [request.auth.uid]
@@ -219,21 +243,28 @@ service cloud.firestore {
     // skew or timezone edges. contributions' keys are checked exactly
     // against the expected contributor set, and every value must be an
     // untouched unpaid entry (values().hasOnly([...]) stands in for a loop).
-    function validChipStart() {
-      let before = resource.data;
-      let after = request.resource.data;
+    // The first round of a lap (used when the rotation starts, and when the admin starts another lap): the right
+    // cycle number, the first member in rotationOrder receives, the right pot, a date-shaped dueDate, exactly the
+    // other members as contributors, and every entry untouched/unpaid.
+    function freshCycleOk(before, after, cycleNo) {
       let contributorSet = before.rotationOrder.removeAll([before.rotationOrder[0]]);
-      return before.status == 'gathering'
-        && after.status == 'active'
-        && before.rotationOrder.size() >= 2
-        && after.diff(before).affectedKeys().hasOnly(['status', 'currentCycle'])
-        && after.currentCycle.cycleNumber == 1
+      return before.rotationOrder.size() >= 2
+        && after.currentCycle.cycleNumber == cycleNo
         && after.currentCycle.recipientUid == before.rotationOrder[0]
         && after.currentCycle.amount == before.contributionAmount * (before.rotationOrder.size() - 1)
         && after.currentCycle.dueDate is string && after.currentCycle.dueDate.size() == 10
         && after.currentCycle.contributions.keys().size() == contributorSet.size()
         && after.currentCycle.contributions.keys().hasAll(contributorSet)
         && after.currentCycle.contributions.values().hasOnly([unpaidEntry()]);
+    }
+
+    function validChipStart() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'gathering'
+        && after.status == 'active'
+        && after.diff(before).affectedKeys().hasOnly(['status', 'currentCycle'])
+        && freshCycleOk(before, after, 1);
     }
 
     // Marking a contribution paid/unpaid: only the currentCycle field may
@@ -256,11 +287,12 @@ service cloud.firestore {
         && after.currentCycle.recipientUid == before.currentCycle.recipientUid
         && after.currentCycle.dueDate == before.currentCycle.dueDate
         && after.currentCycle.amount == before.currentCycle.amount
+        && after.currentCycle.diff(before.currentCycle).affectedKeys().hasOnly(['contributions'])
         && after.currentCycle.contributions.keys().hasAll(before.currentCycle.contributions.keys())
         && after.currentCycle.contributions.keys().hasOnly(before.currentCycle.contributions.keys())
         && after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys().size() == 1
         && (!(request.auth.uid in after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys())
-            || chipEntryOk(after.currentCycle.contributions[request.auth.uid]))
+            || ownEntryOk(after.currentCycle.contributions[request.auth.uid]))
         && (
              request.auth.uid == before.createdBy
              || request.auth.uid == before.currentCycle.recipientUid
@@ -285,15 +317,14 @@ service cloud.firestore {
     // worth. NOT enforced: that the new recipientUid is specifically the next
     // person in rotationOrder (Security Rules have no indexOf), and that every
     // contributor had paid (the admin may force-confirm a short round).
-    function validChipPayoutConfirm() {
-      let before = resource.data;
-      let after = request.resource.data;
+    // The history entry appended when a round closes: it must describe the round being closed (same cycle, recipient,
+    // amount and contributions snapshot), and every EARLIER entry must be left exactly as it was (the slice check),
+    // so past payouts cannot be rewritten or removed. `collected` (optional, so older clients still work) records what
+    // was actually paid in, which can be lower than `amount` for a short round. Other optional fields (lap,
+    // recipientName, departed) are display data and are not checked.
+    function historyAppendOk(before, after) {
       let newEntry = after.history[after.history.size() - 1];
-      return before.status == 'active'
-        && after.status == 'active'
-        && (request.auth.uid == before.currentCycle.recipientUid || request.auth.uid == before.createdBy)
-        && after.diff(before).affectedKeys().hasOnly(['currentCycle', 'history'])
-        && after.history.size() == before.history.size() + 1
+      return after.history.size() == before.history.size() + 1
         && after.history[0:before.history.size()] == before.history
         && newEntry.cycleNumber == before.currentCycle.cycleNumber
         && newEntry.recipientUid == before.currentCycle.recipientUid
@@ -301,7 +332,17 @@ service cloud.firestore {
         && newEntry.contributions == before.currentCycle.contributions
         && (!('collected' in newEntry)
             || (newEntry.collected is number && newEntry.collected >= 0 && newEntry.collected <= newEntry.amount))
-        && newEntry.date is string
+        && newEntry.date is string;
+    }
+
+    function validChipPayoutConfirm() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'active'
+        && after.status == 'active'
+        && (request.auth.uid == before.currentCycle.recipientUid || request.auth.uid == before.createdBy)
+        && after.diff(before).affectedKeys().hasOnly(['currentCycle', 'history'])
+        && historyAppendOk(before, after)
         && after.currentCycle.cycleNumber == before.currentCycle.cycleNumber + 1
         && after.currentCycle.recipientUid in before.rotationOrder
         && after.currentCycle.recipientUid != before.currentCycle.recipientUid
@@ -312,6 +353,20 @@ service cloud.firestore {
         && after.currentCycle.contributions.values().hasOnly([unpaidEntry()]);
     }
 
+    // The LAST payout of a lap: same history entry as above, but the circle becomes 'completed' and has no current
+    // round. (Security Rules cannot check that everyone really has had a turn, so as with the next recipient, the
+    // recipient or admin is trusted here.) The admin then starts another lap or closes the circle.
+    function validChipLapComplete() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'active'
+        && after.status == 'completed'
+        && (request.auth.uid == before.currentCycle.recipientUid || request.auth.uid == before.createdBy)
+        && after.currentCycle == null
+        && after.diff(before).affectedKeys().hasOnly(['status', 'currentCycle', 'history'])
+        && historyAppendOk(before, after);
+    }
+
     // Admin-only reordering within an active rotation. Verifies this is a
     // genuine permutation of the same members and touches nothing else.
     // LIMITATION: it can't verify that an already-paid-out member doesn't
@@ -320,8 +375,8 @@ service cloud.firestore {
     function validChipReorder() {
       let before = resource.data;
       let after = request.resource.data;
-      return before.status == 'active'
-        && after.status == 'active'
+      return (before.status == 'active' || before.status == 'completed')
+        && after.status == before.status
         && after.rotationOrder.size() == before.rotationOrder.size()
         && after.rotationOrder.hasAll(before.rotationOrder)
         && before.rotationOrder.hasAll(after.rotationOrder)
@@ -329,20 +384,39 @@ service cloud.firestore {
     }
 
     // Leaving a group (self-removal) or being removed by the admin, while
-    // the group is still gathering members (rotation hasn't started).
+    // the group is still gathering members (rotation hasn't started), or once it
+    // is completed or closed (to drop it from someone's list).
     function validChipMemberRemoval() {
       let before = resource.data;
       let after = request.resource.data;
       let removed = before.memberUids.removeAll(after.memberUids);
-      return before.status == 'gathering'
-        && after.status == 'gathering'
+      return (before.status == 'gathering' || before.status == 'completed' || before.status == 'closed')
+        && after.status == before.status
         && removed.size() == 1
         && before.memberUids.hasAll(after.memberUids)
         && after.memberUids.size() == before.memberUids.size() - 1
         && after.rotationOrder == before.rotationOrder.removeAll(removed)
         && after.members.keys().hasOnly(after.memberUids)
         && after.members.keys().size() == after.memberUids.size()
+        && after.members.diff(before.members).affectedKeys().hasOnly(removed)
         && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members']);
+    }
+
+    // A member who had already paid this round and then leaves keeps counting: the app moves their payment to
+    // currentCycle.departedPaid instead of losing it with their entry. departedPaid may only gain the removed member's
+    // own key, only if their entry was marked paid, and (once legacySelfPaid is off, because older apps do not do this)
+    // a paid member's departure MUST record it.
+    function departedOk(before, after, removed) {
+      let b = before.currentCycle.get('departedPaid', {});
+      let a = after.currentCycle.get('departedPaid', {});
+      let changed = a.diff(b).affectedKeys();
+      let wasPaid = before.currentCycle.contributions[removed[0]].paid == true;
+      return changed.hasOnly(removed)
+        && (changed.size() == 0
+            ? (!wasPaid || legacySelfPaid())
+            : (wasPaid
+               && a[removed[0]].paid == true
+               && a[removed[0]].name is string && a[removed[0]].name.size() <= 40));
     }
 
     // Leaving or being removed from an ACTIVE rotation. Same core shape as
@@ -375,6 +449,9 @@ service cloud.firestore {
         && after.currentCycle.contributions.size() == before.currentCycle.contributions.size() - 1
         && !(removed[0] in after.currentCycle.contributions)
         && after.currentCycle.contributions.diff(before.currentCycle.contributions).affectedKeys().hasOnly(removed)
+        && departedOk(before, after, removed)
+        && after.currentCycle.diff(before.currentCycle).affectedKeys().hasOnly(['contributions', 'departedPaid'])
+        && after.members.diff(before.members).affectedKeys().hasOnly(removed)
         && after.diff(before).affectedKeys().hasOnly(['memberUids', 'rotationOrder', 'members', 'currentCycle']);
     }
 
@@ -386,6 +463,26 @@ service cloud.firestore {
       return after.createdBy in before.memberUids
         && after.createdBy != before.createdBy
         && after.diff(before).affectedKeys().hasOnly(['createdBy']);
+    }
+
+    // Another lap: the admin restarts a COMPLETED circle with the same members. The first member in rotationOrder
+    // receives, and the cycle number carries on counting (one more than the rounds in history).
+    function validChipNewLap() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'completed'
+        && after.status == 'active'
+        && after.diff(before).affectedKeys().hasOnly(['status', 'currentCycle'])
+        && freshCycleOk(before, after, before.history.size() + 1);
+    }
+
+    // Closing: the admin ends a completed circle for good. It stays readable but leaves the Home screen.
+    function validChipClose() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return before.status == 'completed'
+        && after.status == 'closed'
+        && after.diff(before).affectedKeys().hasOnly(['status']);
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────
@@ -606,6 +703,16 @@ service cloud.firestore {
         && request.auth.uid in resource.data.memberUids
         && validChipPayoutConfirm();
 
+      // Confirming the LAST payout of a lap: the circle becomes 'completed'.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.memberUids
+        && validChipLapComplete();
+
+      // The admin starts another lap, or closes a completed circle.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.createdBy
+        && (validChipNewLap() || validChipClose());
+
       // Admin reorders upcoming members within the active rotation.
       allow update: if request.auth != null
         && request.auth.uid == resource.data.createdBy
@@ -632,11 +739,11 @@ service cloud.firestore {
         && request.auth.uid == resource.data.createdBy
         && validChipMakeAdmin();
 
-      // Only the creator can delete. Allowed while gathering, OR at any
-      // status once the group is down to a single member.
+      // Only the creator can delete. Allowed while gathering, once the circle is
+      // completed or closed, OR at any status once the group is down to a single member.
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.createdBy
-        && (resource.data.status == 'gathering' || resource.data.memberUids.size() <= 1);
+        && (resource.data.status in ['gathering', 'completed', 'closed'] || resource.data.memberUids.size() <= 1);
     }
   }
 }
