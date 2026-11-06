@@ -150,6 +150,11 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
+    // The admin console (/admin/) is a separate page with its own files. This worker's scope covers it, and
+    // ownFile() answers any unknown navigation with the app's index.html, so without this line /admin/ shows
+    // the app's boot splash ("Part of the app didn't finish loading") instead of the console. Not intercepted:
+    // the browser fetches the admin page and its files straight from the network, and nothing is saved.
+    if (/\/admin(\/|$)/.test(url.pathname)) return;
     // version.json says the oldest version still allowed to run (see docs/RELEASING.md). It must always be
     // the live copy, so it never goes through the saved set.
     if (url.pathname.endsWith("/version.json")) { e.respondWith(fetch(req, { cache: "no-store" })); return; }
