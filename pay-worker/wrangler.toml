@@ -1,0 +1,13 @@
+# Cloudflare settings for the payments Worker. Secrets are NOT in this file: you add them in the Cloudflare
+# dashboard (see SETUP.md). The Worker's name decides its address: bajeti-pay.<your-subdomain>.workers.dev
+name = "bajeti-pay"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[triggers]
+crons = ["*/15 * * * *"]        # every 15 minutes: settle payments whose webhook never arrived
+
+[vars]
+APP_URL = "https://rodart265.github.io/bajeti-yanga/"
+ALLOWED_ORIGINS = "https://rodart265.github.io"
+FIREBASE_PROJECT_ID = "bajeti-yanga"
