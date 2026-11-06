@@ -486,13 +486,24 @@ service cloud.firestore {
         && after.diff(before).affectedKeys().hasOnly(['status']);
     }
 
+    // Platform admin access for the Spark-plan admin console.
+    // The adminUsers/{uid} document must be created manually by the project owner
+    // in Firebase Console; clients cannot create or edit their own allowlist entry.
+    function isPlatformAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.enabled == true;
+    }
+
     // ── Users ─────────────────────────────────────────────────────────────────
     match /users/{uid} {
       // ownedHouseholds is intentionally left writable -- it's legitimately
       // updated via arrayUnion on household creation and arrayRemove on
       // account deletion. A user can therefore clear it to get around the
       // free household cap. Closing that needs a Cloud Function.
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && (request.auth.uid == uid || isPlatformAdmin());
 
       // isPremium, premiumUntil, trialClaimedAt and trialHouseholdId can only be written by the
       // Admin SDK / Cloud Functions or the Console, never by the signed-in
@@ -520,11 +531,12 @@ service cloud.firestore {
       // Non-members then use invites/{code} (and invites/{code}/approved/{uid})
       // instead of reading the whole household document.
       allow get: if request.auth != null
-        && request.auth.uid in resource.data.memberUids;
+        && (request.auth.uid in resource.data.memberUids || isPlatformAdmin());
       allow list: if request.auth != null
         && (
           request.auth.uid in resource.data.memberUids
           || request.auth.uid == resource.data.owner
+          || isPlatformAdmin()
         );
 
       // Any signed-in user can create a household subject to ownership limits.
@@ -667,8 +679,26 @@ service cloud.firestore {
       }
     }
 
-    // payments/{txRef} is written ONLY by Cloud Functions (Admin SDK bypasses
-    // rules). Intentionally no match block here, so clients are denied.
+    // Admin allowlist. Only the signed-in account can read its own entry;
+    // nobody using the app can create, edit, list or delete allowlist records.
+    match /adminUsers/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+
+    // Payment documents remain server-written. An explicitly authorised
+    // platform admin may read them in the Spark-compatible, read-only console.
+    match /payments/{txRef} {
+      allow get, list: if isPlatformAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // Existing audit records may be viewed by platform admins. The Spark
+    // console itself does not write admin actions.
+    match /adminLog/{logId} {
+      allow get, list: if isPlatformAdmin();
+      allow create, update, delete: if false;
+    }
 
     // ── Chipereganyu groups ────────────────────────────────────────────────
     match /chipereganyu_groups/{groupId} {
@@ -679,7 +709,7 @@ service cloud.firestore {
       allow get: if request.auth != null
         && request.auth.uid in resource.data.memberUids;
       allow list: if request.auth != null
-        && request.auth.uid in resource.data.memberUids;
+        && (request.auth.uid in resource.data.memberUids || isPlatformAdmin());
 
       allow create: if request.auth != null && groupId.matches('^[a-z0-9]{6,20}$') && validChipGroupCreate();
 
