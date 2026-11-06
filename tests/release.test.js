@@ -47,4 +47,9 @@ if (vj && vj.min) check(!less(version, vj.min), 'version.json min (' + vj.min + 
 // 6. Syntax of the worker (a syntax error means no phone can ever update).
 try { new (require('vm').Script)(sw, { filename: 'sw.js' }); ok('sw.js has no syntax errors'); } catch (e) { no('sw.js has a syntax error: ' + e.message); }
 
+// 7. The admin console lives at /admin/ inside this worker's scope. The worker must leave it alone, or it serves
+//    the app's index.html there and the console never opens (the app's "didn't finish loading" screen shows instead).
+check(/pathname\)\)\s*return;/.test(sw) && /\\\/admin/.test(sw), 'sw.js lets /admin/ through to the network',
+  'sw.js does not bypass /admin/: the admin console would show the app boot screen. Keep the /admin/ early return in the fetch handler.');
+
 process.exit(bad ? 1 : 0);
