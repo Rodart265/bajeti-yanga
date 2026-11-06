@@ -1,0 +1,9 @@
+{
+  "name": "bajeti-pay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs",
+    "build": "npx --yes esbuild src/index.js --bundle --format=esm --target=es2022 --outfile=dist/worker.js --log-level=warning"
+  }
+}
