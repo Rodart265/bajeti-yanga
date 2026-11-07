@@ -11,7 +11,7 @@
 // Plain settings (wrangler.toml): APP_URL, ALLOWED_ORIGINS, FIREBASE_PROJECT_ID.
 
 import * as logic from './logic.js';
-import { FirestoreRest, makeTokenProvider, tsFromMillis } from './firestore.js';
+import { FirestoreRest, makeTokenProvider, tsFromMillis, defaultFetch } from './firestore.js';
 import { verifyFirebaseToken } from './auth.js';
 
 const DEFAULT_APP_URL = 'https://rodart265.github.io/bajeti-yanga/';
@@ -31,7 +31,7 @@ const json = (status, body, headers = {}) => new Response(JSON.stringify(body), 
 let shared = { sig: null, db: null };
 function makeDeps(env, injected) {
   if (injected && injected.db) {
-    return { db: injected.db, fetchImpl: injected.fetchImpl || fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
+    return { db: injected.db, fetchImpl: injected.fetchImpl || defaultFetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
   }
   const projectId = env.FIREBASE_PROJECT_ID || 'bajeti-yanga';
   const sig = projectId + '|' + env.GOOGLE_SERVICE_ACCOUNT;
@@ -39,7 +39,7 @@ function makeDeps(env, injected) {
     const getToken = makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT });
     shared = { sig, db: new FirestoreRest({ projectId, getToken }) };
   }
-  return { db: shared.db, fetchImpl: fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
+  return { db: shared.db, fetchImpl: defaultFetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
 }
 
 function missingSettings(env) {
@@ -56,7 +56,10 @@ export default {
 
     if (req.method === 'GET' && url.pathname === '/health') {
       const missing = missingSettings(env);
-      return json(200, { ok: missing.length === 0, missing }, cors);   // names only, never values
+      if (missing.length || url.searchParams.get('deep') !== '1') return json(200, { ok: missing.length === 0, missing }, cors);   // names only, never values
+      // /health?deep=1 also signs in to Google and reads the database once, so "ok" means payments can really work.
+      try { await makeDeps(env, injected).db.collection('payments').limit(1).get(); return json(200, { ok: true, missing, google: 'ok', database: 'ok' }, cors); }
+      catch (e) { console.error('deep health failed:', e && e.message); return json(200, { ok: false, missing, problem: String((e && e.message) || e).slice(0, 200) }, cors); }
     }
 
     if (!injected.db) {
@@ -92,14 +95,15 @@ export default {
 
       // The app (a signed-in person)
       const m = /^Bearer (.+)$/.exec(req.headers.get('authorization') || '');
-      if (!m) return json(401, { error: 'Please sign in again.' }, cors);
+      if (!m) { console.log('refused: no sign-in token'); return json(401, { error: 'Please sign in again.' }, cors); }
       let user;
-      try { user = await verifyFirebaseToken(m[1], env, injected.fetchImpl || fetch, deps.now()); }
-      catch (_) { return json(401, { error: 'Please sign in again.' }, cors); }
+      try { user = await verifyFirebaseToken(m[1], env, injected.fetchImpl || defaultFetch, deps.now()); }
+      catch (e) { console.log('refused: sign-in token not accepted:', e && e.message); return json(401, { error: 'Please sign in again.' }, cors); }
 
       if (body.action === 'checkout') {
         const out = await logic.createCheckout({ deps, uid: user.uid, email: user.email, householdId: body.householdId, months: Number(body.months), selfUrl: url.origin + '/', appUrl });
         if (out.detail) console.error('checkout failed', out.detail);
+        else if (out.code >= 400) console.log('checkout refused', out.code, out.error, 'household', body.householdId);
         return json(out.code, out.body || { error: out.error }, cors);
       }
       if (body.action === 'check') {

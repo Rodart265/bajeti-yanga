@@ -195,8 +195,8 @@ function showPremiumPage(){
   h += '<div class="pm-sec">'+(isCW?'Zomwe Mumapeza':'Included')+'</div>';
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">';
   feats.forEach(function(f,i){
-    h += '<div style="background:var(--mist);border-radius:var(--cr-md);padding:8px 9px;display:flex;align-items:center;gap:8px'+(i===feats.length-1?';grid-column:1/-1':'')+'">';
-    h += '<div style="width:28px;height:28px;border-radius:9px;background:'+f[2]+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+f[0]+'" style="width:15px;height:15px;color:'+f[2]+'"></i></div>';
+    h += '<div style="background:var(--mist);border-radius:var(--cr-md);padding:5px 9px;display:flex;align-items:center;gap:8px'+(i===feats.length-1?';grid-column:1/-1':'')+'">';
+    h += '<div style="width:26px;height:26px;border-radius:9px;background:'+f[2]+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+f[0]+'" style="width:15px;height:15px;color:'+f[2]+'"></i></div>';
     h += '<div style="font-weight:700;font-size:.76rem;color:var(--ink)">'+f[1]+'</div></div>';
   });
   h += '</div>';
@@ -305,7 +305,10 @@ async function startCheckout(btn){
     window.open(r.checkout_url, '_blank');
     toast(isCW?'Malizani kulipira, kenako dinani "Ndalipira".':'Finish paying, then come back and tap "I\'ve paid".','i');
   }catch(e){
-    toast(aiFailMessage(e,isCW) || (isCW?'Sitinathe kuyamba chilipiro. Yesaninso.':'Could not start the payment. Please try again.'),'e');
+    // Short reason code (the HTTP number, or 'net' when the phone could not reach the server) so a failure can be traced quickly.
+    const why = e && e.status ? String(e.status) : 'net';
+    const shown = (e && (e.status===401||e.status===403||e.status===429) && e.message) ? e.message : (isCW?'Sitinathe kuyamba chilipiro. Yesaninso.':'Could not start the payment. Please try again.');
+    toast(aiFailMessage(e,isCW) || (shown+' ['+why+']'),'e');
   }finally{ if(btn) btn.disabled = false; }
 }
 // Asks the server to check the payment with PayChangu and, if it really went through, activate Premium.

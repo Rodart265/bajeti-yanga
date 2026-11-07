@@ -109,7 +109,8 @@ export async function createCheckout({ deps, uid, email, householdId, months, se
 
   const hh = await db.collection('households').doc(householdId).get();
   const h = hh.exists ? hh.data() : null;
-  if (!h || !Array.isArray(h.memberUids) || !h.memberUids.includes(uid) || h.deletedAt) return { code: 403, error: 'Not allowed.' };
+  const isMember = !!h && (h.owner === uid || (Array.isArray(h.memberUids) && h.memberUids.includes(uid)));
+  if (!isMember || h.deletedAt) return { code: 403, error: 'Not allowed.' };
 
   // At most 5 attempts in 10 minutes. Single-field query (uid only), so Firestore needs no extra index.
   const mine = await db.collection('payments').where('uid', '==', uid).limit(200).get();

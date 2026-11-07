@@ -132,7 +132,8 @@ async function createCheckout({ deps, uid, email, householdId, months, selfUrl, 
   if (!price) return { code: 400, error: "Invalid plan." };
   const hh = await db.collection("households").doc(householdId).get();
   const h = hh.exists ? hh.data() : null;
-  if (!h || !Array.isArray(h.memberUids) || !h.memberUids.includes(uid) || h.deletedAt) return { code: 403, error: "Not allowed." };
+  const isMember = !!h && (h.owner === uid || Array.isArray(h.memberUids) && h.memberUids.includes(uid));
+  if (!isMember || h.deletedAt) return { code: 403, error: "Not allowed." };
   const mine = await db.collection("payments").where("uid", "==", uid).limit(200).get();
   const since = now() - 10 * 60 * 1e3;
   if (mine.docs.filter((d) => (d.data().createdAtMs || 0) > since).length >= 5) return { code: 429, error: "Too many payment attempts. Please wait a few minutes." };
@@ -290,7 +291,8 @@ async function importPrivateKey(pem) {
   const der = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
   return crypto.subtle.importKey("pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
 }
-function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now = Date.now }) {
+var defaultFetch = (...args) => fetch(...args);
+function makeTokenProvider({ serviceAccountJson, fetchImpl = defaultFetch, now = Date.now }) {
   let sa;
   try {
     sa = typeof serviceAccountJson === "string" ? JSON.parse(serviceAccountJson) : serviceAccountJson;
@@ -325,7 +327,7 @@ function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now = Date.n
 }
 var OPS = { "==": "EQUAL", ">": "GREATER_THAN", "<": "LESS_THAN", ">=": "GREATER_THAN_OR_EQUAL", "<=": "LESS_THAN_OR_EQUAL" };
 var FirestoreRest = class {
-  constructor({ projectId, getToken, fetchImpl = fetch }) {
+  constructor({ projectId, getToken, fetchImpl = defaultFetch }) {
     this.getToken = getToken;
     this.fetchImpl = fetchImpl;
     this.root = `projects/${projectId}/databases/(default)/documents`;
@@ -537,7 +539,7 @@ var json = (status, body, headers = {}) => new Response(JSON.stringify(body), { 
 var shared = { sig: null, db: null };
 function makeDeps(env, injected) {
   if (injected && injected.db) {
-    return { db: injected.db, fetchImpl: injected.fetchImpl || fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
+    return { db: injected.db, fetchImpl: injected.fetchImpl || defaultFetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
   }
   const projectId = env.FIREBASE_PROJECT_ID || "bajeti-yanga";
   const sig = projectId + "|" + env.GOOGLE_SERVICE_ACCOUNT;
@@ -545,7 +547,7 @@ function makeDeps(env, injected) {
     const getToken = makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT });
     shared = { sig, db: new FirestoreRest({ projectId, getToken }) };
   }
-  return { db: shared.db, fetchImpl: fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
+  return { db: shared.db, fetchImpl: defaultFetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
 }
 function missingSettings(env) {
   return ["PAYCHANGU_SECRET_KEY", "PAYCHANGU_WEBHOOK_SECRET", "GOOGLE_SERVICE_ACCOUNT"].filter((k) => !env[k]);
@@ -558,7 +560,14 @@ var index_default = {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (req.method === "GET" && url.pathname === "/health") {
       const missing = missingSettings(env);
-      return json(200, { ok: missing.length === 0, missing }, cors);
+      if (missing.length || url.searchParams.get("deep") !== "1") return json(200, { ok: missing.length === 0, missing }, cors);
+      try {
+        await makeDeps(env, injected).db.collection("payments").limit(1).get();
+        return json(200, { ok: true, missing, google: "ok", database: "ok" }, cors);
+      } catch (e) {
+        console.error("deep health failed:", e && e.message);
+        return json(200, { ok: false, missing, problem: String(e && e.message || e).slice(0, 200) }, cors);
+      }
     }
     if (!injected.db) {
       const missing = missingSettings(env);
@@ -597,16 +606,21 @@ var index_default = {
         return json(200, { ok: true });
       }
       const m = /^Bearer (.+)$/.exec(req.headers.get("authorization") || "");
-      if (!m) return json(401, { error: "Please sign in again." }, cors);
+      if (!m) {
+        console.log("refused: no sign-in token");
+        return json(401, { error: "Please sign in again." }, cors);
+      }
       let user;
       try {
-        user = await verifyFirebaseToken(m[1], env, injected.fetchImpl || fetch, deps.now());
-      } catch (_) {
+        user = await verifyFirebaseToken(m[1], env, injected.fetchImpl || defaultFetch, deps.now());
+      } catch (e) {
+        console.log("refused: sign-in token not accepted:", e && e.message);
         return json(401, { error: "Please sign in again." }, cors);
       }
       if (body.action === "checkout") {
         const out = await createCheckout({ deps, uid: user.uid, email: user.email, householdId: body.householdId, months: Number(body.months), selfUrl: url.origin + "/", appUrl });
         if (out.detail) console.error("checkout failed", out.detail);
+        else if (out.code >= 400) console.log("checkout refused", out.code, out.error, "household", body.householdId);
         return json(out.code, out.body || { error: out.error }, cors);
       }
       if (body.action === "check") {

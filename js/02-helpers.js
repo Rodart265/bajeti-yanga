@@ -193,7 +193,7 @@ function toast(msg,type){
   const el=g('toast'); if(!el)return;
   type = type||'s';
   const icons = {s:'check-circle', e:'alert-circle', i:'info'};
-  el.className = 'toast '+type;
+  el.className = 'toast '+type+(document.querySelector('.ov.open')?' top':'');
   // Duration scales with message length so short messages don't linger and
   // long messages aren't cut off before they can be read.
   const duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));

@@ -63,7 +63,11 @@ async function importPrivateKey(pem) {
 }
 
 // Returns an async function that gives a valid access token, signing a new one only when the last one is about to expire.
-export function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now = Date.now }) {
+// Note: the default is a small wrapper, NOT `fetch` itself. Cloudflare's `fetch` throws "Illegal invocation" when it is
+// stored on an object and called as `this.fetchImpl(...)`, so we never hand the bare global around.
+export const defaultFetch = (...args) => fetch(...args);
+
+export function makeTokenProvider({ serviceAccountJson, fetchImpl = defaultFetch, now = Date.now }) {
   let sa;
   try { sa = typeof serviceAccountJson === 'string' ? JSON.parse(serviceAccountJson) : serviceAccountJson; }
   catch (_) { throw new Error('GOOGLE_SERVICE_ACCOUNT is not valid JSON. Paste the whole key file.'); }
@@ -94,7 +98,7 @@ export function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now =
 const OPS = { '==': 'EQUAL', '>': 'GREATER_THAN', '<': 'LESS_THAN', '>=': 'GREATER_THAN_OR_EQUAL', '<=': 'LESS_THAN_OR_EQUAL' };
 
 export class FirestoreRest {
-  constructor({ projectId, getToken, fetchImpl = fetch }) {
+  constructor({ projectId, getToken, fetchImpl = defaultFetch }) {
     this.getToken = getToken; this.fetchImpl = fetchImpl;
     this.root = `projects/${projectId}/databases/(default)/documents`;
     this.base = 'https://firestore.googleapis.com/v1/';

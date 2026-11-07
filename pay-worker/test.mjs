@@ -345,7 +345,10 @@ section('confirming a payment and switching Premium on');
 // ═════════════════════════════════════════════════════════════════════════════
 // The whole Worker, as Cloudflare would run it, with the pretend Google / Firestore / PayChangu behind global fetch.
 const world = { fs: miniFirestore(), pc: scriptedPayChangu() };
-globalThis.fetch = async (url, init) => {
+// Cloudflare's real fetch throws "Illegal invocation" if it is called as a method of some other object (this.fetch(...)).
+// Our pretend one behaves the same, so that mistake can never slip through again (it did once, in production).
+globalThis.fetch = async function (url, init) {
+  if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation: function called with incorrect `this` reference.');
   url = String(url);
   if (url.startsWith('https://firestore.googleapis.com/')) return world.fs.fetch(url, init);
   if (url.startsWith('https://api.paychangu.com/')) return world.pc.fetch(url, init);
@@ -368,6 +371,10 @@ section('the Worker: setup checks');
   eq('health says everything is set', h, { ok: true, missing: [] });
   const h2 = await (await call('/health', {}, { ...ENV, GOOGLE_SERVICE_ACCOUNT: '', PAYCHANGU_WEBHOOK_SECRET: '' })).json();
   eq('health lists what is missing, by name only', h2, { ok: false, missing: ['PAYCHANGU_WEBHOOK_SECRET', 'GOOGLE_SERVICE_ACCOUNT'] });
+  eq('deep health: really signs in to Google and reads the database', await (await call('/health?deep=1')).json(), { ok: true, missing: [], google: 'ok', database: 'ok' });
+  const savedFs = world.fs.fetch; world.fs.fetch = async () => json(403, { error: { message: 'Missing or insufficient permissions.' } });
+  const dh = await (await call('/health?deep=1')).json();
+  ok('deep health says what is wrong when the database refuses', dh.ok === false && /403/.test(dh.problem), dh); world.fs.fetch = savedFs;
   ok('health never shows a secret', !JSON.stringify(h) .includes('sk-test') && !JSON.stringify(h2).includes('whsec'));
   eq('not set up: payments answer 503, not a crash', (await call('/', { method: 'POST', body: '{}' }, { ...ENV, GOOGLE_SERVICE_ACCOUNT: '' })).status, 503);
   eq('a broken key file also answers 503', (await call('/', { method: 'POST', body: '{}' }, { ...ENV, GOOGLE_SERVICE_ACCOUNT: '{nope' })).status, 503);
@@ -386,6 +393,9 @@ section('the Worker: the app starts and checks a payment');
   ok('checkout works for a household member', r.status === 200 && logic.isTxRef(b.tx_ref) && b.checkout_url.includes('paychangu.com'), b);
   eq('PayChangu was told to come back to the Worker', world.pc.creates[0].body.callback_url, 'https://bajeti-pay.test.workers.dev/');
   eq('someone outside the household is refused', (await app({ action: 'checkout', householdId: 'HH1', months: 1 }, await idToken({ sub: 'stranger' }))).status, 403);
+  world.fs.seed('households/OLD1', { owner: 'u1', config: {} });   // an older household with no memberUids list
+  eq('the owner of an older household (no member list) can pay', (await app({ action: 'checkout', householdId: 'OLD1', months: 1 })).status, 200);
+  eq('but a stranger still cannot pay for it', (await app({ action: 'checkout', householdId: 'OLD1', months: 1 }, await idToken({ sub: 'stranger' }))).status, 403);
   eq('unknown action is refused', (await app({ action: 'dance' })).status, 400);
   eq('checking a malformed reference is refused', (await app({ action: 'check', txRef: 'x' })).status, 400);
   eq('checking someone else\'s payment looks like "not found"', (await app({ action: 'check', txRef: b.tx_ref }, await idToken({ sub: 'u2' }))).status, 404);
