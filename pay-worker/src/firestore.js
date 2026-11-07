@@ -101,7 +101,8 @@ export class FirestoreRest {
   }
 
   async _send(method, url, body) {
-    const r = await this.fetchImpl(url, {
+    // Call fetch WITHOUT a `this`: Cloudflare's fetch throws "Illegal invocation" when called as a method of another object.
+    const r = await (0, this.fetchImpl)(url, {
       method,
       headers: { Authorization: 'Bearer ' + (await this.getToken()), 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
