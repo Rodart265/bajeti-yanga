@@ -282,9 +282,10 @@ function showPaychanguIframe(){
 }
 
 // ── Automatic Premium activation (PayChangu) ────────────────────────────────
-// Paste the URL printed by `firebase deploy` for the `payments` function to switch this on (see docs/ROLLOUT-2026-10.md).
-// While it is empty the app keeps the existing flow: pay on the PayChangu page, then send the screenshot on WhatsApp.
-const PAYMENTS_API = '';
+// The address of the payments Worker on Cloudflare (pay-worker/, set up with pay-worker/SETUP.md). It starts the PayChangu
+// payment and switches Premium on by itself once PayChangu confirms. Set this to '' to go back to the old flow: pay on the
+// PayChangu page, then send the screenshot on WhatsApp. (Keep the address in the CSP connect-src in index.html.)
+const PAYMENTS_API = 'https://bajeti-pay.kabangorodrick6.workers.dev/';
 async function _paymentsCall(body){
   const res = await fetchT(PAYMENTS_API, {method:'POST', headers: await _authHeaders(), body: JSON.stringify(body)});
   let data=null; try{ data=await res.json(); }catch(_){}
