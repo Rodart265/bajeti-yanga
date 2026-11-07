@@ -437,5 +437,17 @@ section('the Worker: 15-minute sweep');
   eq('does nothing (and does not crash) when not set up', await worker.scheduled({}, { ...ENV, GOOGLE_SERVICE_ACCOUNT: '' }, ctx), undefined);
 }
 
+section('regression: fetch must not be called as a method (Cloudflare "Illegal invocation")');
+{
+  // Behaves like Cloudflare's real fetch: refuses to run if `this` is anything but undefined or the global object.
+  const strictFetch = function (url, init) {
+    if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation: function called with incorrect `this` reference.");
+    return Promise.resolve(new Response(JSON.stringify({ fields: { a: { stringValue: 'x' } } }), { status: 200 }));
+  };
+  const db = new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: strictFetch });
+  const snap = await db.collection('things').doc('a').get().catch(e => ({ error: e.message }));
+  eq('Firestore client calls fetch without a `this`', snap.exists, true);
+}
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
