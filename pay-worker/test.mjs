@@ -311,6 +311,21 @@ section('confirming a payment and switching Premium on');
   eq('active Premium is extended, not restarted', (await logic.settlePayment({ deps: w.deps, txRef: REF })).premiumExpiry, '2027-03-01');
   eq('and the original activation date is not overwritten', w.fs.peek('households/HH1').premiumActivatedAt, undefined);
 
+  // Old manual activations live in config.* until migrate-premium.js is run. A payment must not drop the days they have left.
+  w = logicWorld(); w.fs.seed('households/HH1', { owner: 'u1', memberUids: ['u1'], config: { isPremium: true, premiumExpiry: '2026-12-31' } }); pend(w.fs, REF); w.pc.results[REF] = { amount: 1500 };
+  eq('legacy config Premium: extends from its end date, not from today', (await logic.settlePayment({ deps: w.deps, txRef: REF })).premiumExpiry, '2027-01-31');
+  eq('and the root fields are set', [w.fs.peek('households/HH1').isPremium, w.fs.peek('households/HH1').premiumExpiry], [true, '2027-01-31']);
+
+  w = logicWorld(); w.fs.seed('households/HH1', { owner: 'u1', memberUids: ['u1'], config: { isPremium: true } }); pend(w.fs, REF); w.pc.results[REF] = { amount: 1500 };
+  const unCfg = await logic.settlePayment({ deps: w.deps, txRef: REF });
+  eq('legacy config Premium with no end date stays unlimited (flagged for refund)', [unCfg.premiumExpiry, w.fs.peek('households/HH1').isPremium, /no end date/.test(w.fs.peek('payments/' + REF).note)], [null, undefined, true]);
+
+  w = logicWorld(); w.fs.seed('households/HH1', { owner: 'u1', memberUids: ['u1'], isPremium: true, premiumExpiry: '2026-11-25', config: { isPremium: true, premiumExpiry: '2027-02-10' } }); pend(w.fs, REF); w.pc.results[REF] = { amount: 1500 };
+  eq('root and config both dated: the later one counts', (await logic.settlePayment({ deps: w.deps, txRef: REF })).premiumExpiry, '2027-03-10');
+
+  w = logicWorld(); w.fs.seed('households/HH1', { owner: 'u1', memberUids: ['u1'], config: { isPremium: true, premiumExpiry: '2026-10-01' } }); pend(w.fs, REF); w.pc.results[REF] = { amount: 1500 };
+  eq('legacy config Premium already ended: starts again from today', (await logic.settlePayment({ deps: w.deps, txRef: REF })).premiumExpiry, '2026-11-18');
+
   w = logicWorld(); pend(w.fs, REF); w.pc.results[REF] = { amount: 1000 };
   eq('too little paid: refused', await logic.settlePayment({ deps: w.deps, txRef: REF }), { status: 'failed' });
   eq('marked as a mismatch and Premium stays off', [w.fs.peek('payments/' + REF).status, w.fs.peek('payments/' + REF).paidAmount, w.fs.peek('households/HH1').isPremium], ['mismatch', 1000, undefined]);
