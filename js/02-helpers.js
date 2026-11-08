@@ -127,6 +127,8 @@ function totSp()     { _ensureMemo(); return _memoSp; }
 function totIn()     { _ensureMemo(); return _memoIn; }
 function actU()      { return lCfg.users.find(u=>u.id===localStorage.getItem('nb_uid'))||lCfg.users[0]; }
 function uById(id)   { return lCfg.users.find(u=>u.id===id)||lCfg.users[0]; }
+// One person in the household: screens skip the member picker, member filter and member tags (they come back with 2+ members).
+function isSolo()    { return !lCfg || !lCfg.users || lCfg.users.length<=1; }
 function statOf(sp,bg){ if(!sp)return'none'; const r=sp/bg; return r>=1?'over':r>=.8?'near':'ok'; }
 // A household / group code as the app generates it. Anything else (quotes, markup, spaces) is refused before it can be
 // stored or placed into the page: a code arrives from another person, so it is treated as untrusted input.

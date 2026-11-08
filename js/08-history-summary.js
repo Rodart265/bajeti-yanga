@@ -2,6 +2,19 @@
 // 11. HISTORY
 // ===============================================
 
+// History: the type and member filters are folded away until asked for.
+var histFiltersOpen=false;
+function toggleHistFilters(){ histFiltersOpen=!histFiltersOpen; rHist(); }
+// An entry opens to show Edit and Delete. One at a time; the chevron button is the accessible control, tapping the card does the same.
+document.addEventListener('click',function(e){
+  var t=e.target; if(!t||!t.closest) return;
+  var card=t.closest('.pli-x'); if(!card) return;
+  if(t.closest('.plact')) return;   // Edit / Delete do their own thing
+  var wasOpen=card.classList.contains('open');
+  document.querySelectorAll('.pli-x.open').forEach(function(c){ c.classList.remove('open'); var b=c.querySelector('.pli-more'); if(b) b.setAttribute('aria-expanded','false'); });
+  if(!wasOpen){ card.classList.add('open'); var b2=card.querySelector('.pli-more'); if(b2) b2.setAttribute('aria-expanded','true'); }
+});
+
 function rHist(){
   var t=tx(), isCW=lang==='cw';
   var sqEsc=srchQ.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -40,8 +53,10 @@ function rHist(){
     h+='</div>';
   }
 
-  // Search
-  h+='<div class="srch-wrap"><input type="text" placeholder="'+t.searchPurchases+'" value="'+sqEsc+'" oninput="doSrch(this.value)" aria-label="'+L('Search transactions','Sakani zolemba')+'"></div>';
+  // Search, with a Filters button. Period chips stay visible; type and member filters live behind the button.
+  var _fActive=(histFilter!=='all'||fUser!=='all');
+  h+='<div class="hist-srch-row"><div class="srch-wrap"><input type="text" placeholder="'+t.searchPurchases+'" value="'+sqEsc+'" oninput="doSrch(this.value)" aria-label="'+L('Search transactions','Sakani zolemba')+'"></div>';
+  h+='<button class="hist-fbtn'+(_fActive?' active':'')+'" type="button" aria-expanded="'+(histFiltersOpen?'true':'false')+'" onclick="toggleHistFilters()">'+L('Filters','Filters')+(_fActive?'<span class="hist-fdot" aria-hidden="true"></span>':'')+'<i data-lucide="chevron-down" style="width:14px;height:14px"></i></button></div>';
 
   // Time range tabs
   h+='<div class="hist-filter" style="margin-bottom:6px">';
@@ -50,12 +65,14 @@ function rHist(){
   h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year"><i data-lucide="calendar-range" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Chaka':'Year')+'</button>';
   h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='</div>';
+  if(histFiltersOpen){
   h+='<div class="hist-filter">';
-  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> '+(isCW?'Zonse':'All')+'</button>';
+  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zolowa':'Income')+'</button>';
   h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zotuluka':'Expenses')+'</button>';
   h+='</div>';
 
+  if(!isSolo()){
   // User filter tags
   h+='<div class="ftags">';
   h+='<div class="ftag'+(fUser==="all"?" on":"")+'\" onclick="setF(&quot;all&quot;)">'+t.all+'</div>';
@@ -64,6 +81,9 @@ function rHist(){
     h+='<div class="ftag'+(on?' on':'')+' ftag-u" onclick="setFU(this)" data-uid="'+esc(u.id)+'" style="'+(on?'background:'+sC(u.color)+';border-color:'+sC(u.color):'')+'">'+esc(u.name)+'</div>';
   });
   h+='</div>';
+
+  }
+  }
 
   // List grouped by date
   if(list.length){
@@ -80,17 +100,19 @@ function rHist(){
         var cc2=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#176B78');
         var catLabel=catOf(p.item,p.cat);
         var badName=isBadItemName(p.item);
-        h+='<div class="pli'+(isI?' income-e':'')+'">';
+        h+='<div class="pli pli-x'+(isI?' income-e':'')+'">';
         h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
         h+='<div class="plb"><div class="pltop">';
         h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
-        h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
+        var _who=isSolo()?'':'<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
+        var _qty=p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'';
+        if(_who||_qty) h+='<div class="plrow2">'+_who+_qty+'</div>';
         h+='<div class="plact">';
         h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+esc(p.id)+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
         h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" style="width:11px;height:11px"></i> '+t.del+'</button>';
-        h+='</div></div></div>';
+        h+='</div></div><button class="pli-more" type="button" aria-expanded="false" aria-label="'+L('Show actions','Show actions')+'"><i data-lucide="chevron-down"></i></button></div>';
       });
     });
   } else {

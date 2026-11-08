@@ -331,7 +331,8 @@ function rHome(){
       h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
-      h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span></div></div>';
+      if(!isSolo())h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
+      h+='</div></div>';
       h+='<div class="pramt '+(isI?'inc':'exp')+'">'+(isI?'+ ':'- ')+MK(p.amount)+'</div></div>';
     });
   } else {
@@ -592,10 +593,10 @@ function _syncSelItem(){
 function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
-  let h='<div class="page" style="padding-bottom:16px"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
+  let h='<div class="page log-page"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
   h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
-  h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
+  if(!isSolo())h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+trName(name)+'</div>';}).join('');
     if(picks)h+='<div class="fsec"><label class="fl"><i data-lucide="zap" style="width:11px;height:11px;vertical-align:-1px;color:#F9A825"></i> '+t.quickPick+'</label><div class="qsugg">'+picks+'</div></div>';
