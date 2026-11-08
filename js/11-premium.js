@@ -15,11 +15,25 @@ const PREMIUM_FEATURES = ['charts','export_pdf','bill_tracker','copy_month','unl
 // FIX 3: Keep a reference to the raw household document data
 // so isPremium written to the document root (not inside config) is detected.
 
+// The Premium end date. Payments write the root premiumExpiry; old manual activations may still have config.premiumExpiry
+// (until migrate-premium.js is run). Use the LATER of the two, never the first one found: preferring config used to show
+// "expired" for a household whose root date had been extended by a payment.
+function _premiumExpiry(){
+  const a = lCfg.premiumExpiry || null, b = (lHHDoc && lHHDoc.premiumExpiry) || null;
+  if(a && b){
+    const ea = _expiryEnd(a).getTime(), eb = _expiryEnd(b).getTime();
+    if(!isNaN(ea) && !isNaN(eb)) return ea >= eb ? a : b;
+    if(!isNaN(ea)) return a;
+    if(!isNaN(eb)) return b;
+  }
+  return a || b;
+}
+
 function getPremiumStatus(){
   const cfg = lCfg;
   // Check both config.isPremium AND root-level isPremium (Firestore admin may write either)
   const isPrem = cfg.isPremium || (lHHDoc && lHHDoc.isPremium) || false;
-  const expiry = cfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
+  const expiry = _premiumExpiry();
   if(isPrem){
     if(expiry){
       const expiryDate = _expiryEnd(expiry);
@@ -153,7 +167,7 @@ function showPremiumPage(){
   // If premium but expiring soon, fall through to the plan selector below so
   // there's an actual way to pay — this used to dead-end at a "Close" button.
   if(status.isPremium && !status.isTrial){
-    const expiry = lCfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
+    const expiry = _premiumExpiry();
     const expiryStr = expiry ? fmtDate(expiry.split('T')[0]) : (isCW ? 'Palibe tsiku lotha' : 'No expiry set');
     const daysLeft = expiry ? Math.max(0, Math.ceil((_expiryEnd(expiry) - new Date()) / 86400000)) : null;
     const nearExpiry = daysLeft !== null && daysLeft <= 7;

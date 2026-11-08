@@ -20,7 +20,7 @@ function rStg(){
       +'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">'+(lang==='cw'?'Premium yatha':'Premium ended')+'</span>'
       +'</button>';
   } else if(pStatus.isPremium && !pStatus.isTrial){
-    const expiry = lCfg.premiumExpiry || (lHHDoc && lHHDoc.premiumExpiry) || null;
+    const expiry = _premiumExpiry();
     const expiryStr = expiry ? fmtDate(expiry.split('T')[0]) : '';
     const nearExpiry = pStatus.daysLeft !== null && pStatus.daysLeft <= 7;
     if(nearExpiry){
