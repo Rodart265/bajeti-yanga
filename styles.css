@@ -1007,3 +1007,26 @@ body.dark .pm-foot{background:#17212C}
 .rst-actions .setup-btn{min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px}
 .rst-hint{font-size:.76rem;line-height:1.5;color:rgba(255,255,255,.8);margin-top:8px}
 .rst-link{background:none;border:none;color:rgba(255,255,255,.9);font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.84rem;text-decoration:underline;cursor:pointer;min-height:44px;padding:10px 14px;margin-top:8px}
+
+/* ---- 9.17.9 ---- */
+/* Log: leave room for the floating Save bar and nav, so the last rows can be reached (an inline 16px used to override this) */
+.page.log-page{padding-bottom:calc(var(--nav-h,0px) + 26px)}
+/* Quick Pick: every chip is shown; no scroll box inside the scrolling page */
+.qsugg{max-height:none;overflow:visible}
+/* History: search with a Filters button */
+.hist-srch-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px}
+.hist-srch-row .srch-wrap{flex:1;min-width:0;margin-bottom:0}
+.hist-fbtn{flex-shrink:0;min-height:44px;padding:0 12px;border:2px solid var(--border);border-radius:var(--cr-md);background:var(--white);color:var(--mid);font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.hist-fbtn.active{border-color:var(--p1);color:var(--p1-text)}
+.hist-fbtn svg{transition:transform .2s}
+.hist-fbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.hist-fdot{width:7px;height:7px;border-radius:50%;background:var(--p1);display:inline-block}
+/* History entries: compact; Edit and Delete show when the card is opened */
+.pli.pli-x{position:relative;cursor:pointer;min-height:68px}
+.pli.pli-x .plact{display:none}
+.pli.pli-x.open .plact{display:flex}
+.pli-x .plnote,.pli-x .plrow2{padding-right:34px}
+.pli-more{position:absolute;right:10px;bottom:9px;width:28px;height:28px;padding:0;border:none;border-radius:50%;background:var(--mist);color:var(--mid);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pli-more::after{content:'';position:absolute;inset:-8px}
+.pli-more svg{width:16px;height:16px;transition:transform .2s}
+.pli-x.open .pli-more svg{transform:rotate(180deg)}
