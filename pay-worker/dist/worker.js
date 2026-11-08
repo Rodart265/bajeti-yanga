@@ -40,6 +40,28 @@ function extendExpiry(existing, months, nowMs) {
   }
   return ymdStr(addMonthsYMD(base, months));
 }
+function expiryToMs(v) {
+  if (v === null || v === void 0 || v === "") return NaN;
+  if (typeof v === "string") return /^\d{4}-\d{2}-\d{2}$/.test(v) ? endOfDayMs(v) : new Date(v).getTime();
+  if (typeof v.toMillis === "function") return v.toMillis();
+  return NaN;
+}
+function currentPremium(h) {
+  const cfg = h && h.config && typeof h.config === "object" ? h.config : {};
+  const active = h && h.isPremium === true || cfg.isPremium === true;
+  const raw = [h && h.premiumExpiry, cfg.premiumExpiry];
+  let best = null, bestMs = -Infinity;
+  for (const v of raw) {
+    const ms = expiryToMs(v);
+    if (!Number.isNaN(ms) && ms > bestMs) {
+      best = v;
+      bestMs = ms;
+    }
+  }
+  const expiry = best === null ? null : typeof best === "string" ? best : ymdStr(catYMD(bestMs));
+  const anyRaw = !!(raw[0] || raw[1]);
+  return { active, unlimited: active && !anyRaw, expiry };
+}
 var hex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 function newTxRef() {
   return "by_" + Date.now().toString(36) + "_" + hex(crypto.getRandomValues(new Uint8Array(5)));
@@ -197,8 +219,9 @@ async function settlePayment({ deps, txRef }) {
       return;
     }
     const h = hs.data();
-    const wasUnlimited = h.isPremium === true && !h.premiumExpiry;
-    const expiry = wasUnlimited ? null : extendExpiry(h.isPremium === true ? h.premiumExpiry : null, p.months, now());
+    const cur = currentPremium(h);
+    const wasUnlimited = cur.unlimited;
+    const expiry = wasUnlimited ? null : extendExpiry(cur.active ? cur.expiry : null, p.months, now());
     if (!wasUnlimited) {
       const upd = { isPremium: true, premiumExpiry: expiry };
       if (h.isPremium !== true) upd.premiumActivatedAt = new Date(now()).toISOString();
