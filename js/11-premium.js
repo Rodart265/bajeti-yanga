@@ -352,8 +352,41 @@ async function claimPayment(btn, silent){
     return false;
   }finally{ if(btn) btn.disabled = false; }
 }
+// Notices from the admin console (announcements and the maintenance message). Read-only, no sign-in needed, cached for a
+// minute by the Worker. A failure is ignored: the app must never get in the way because a notice could not load.
+// Text is placed with textContent, so nothing a notice contains can run as HTML.
+async function _checkNotices(){
+  if(!PAYMENTS_API || !navigator.onLine) return;
+  let feed; try{
+    const plan = (getPremiumStatus().isPremium ? 'premium' : 'free');
+    const res = await fetchT(PAYMENTS_API + 'public?plan=' + plan + '&lang=' + (lang==='cw' ? 'cw' : 'en'), {method:'GET'}, 8000);
+    if(!res.ok) return; feed = await res.json();
+  }catch(e){ return; }
+  if(!feed) return;
+  let gone = []; try{ gone = JSON.parse(localStorage.getItem('nb_notice_gone')||'[]'); }catch(e){}
+  if(!Array.isArray(gone)) gone = [];
+  const items = [];
+  if(feed.maintenance && feed.maintenance.on && feed.maintenance.message) items.push({id:'m:'+feed.maintenance.message, title:'', body:String(feed.maintenance.message), kind:'warning'});
+  (Array.isArray(feed.notices) ? feed.notices : []).slice(0,3).forEach(n=>{ if(n && n.id) items.push({id:'n:'+n.id, title:String(n.title||''), body:String(n.body||''), kind:n.kind==='warning'?'warning':'info'}); });
+  let box = document.getElementById('nbNotices');
+  if(box) box.remove();
+  const show = items.filter(i=>gone.indexOf(i.id)<0);
+  if(!show.length) return;
+  box = document.createElement('div'); box.id = 'nbNotices'; box.className = 'nb-notices'; box.setAttribute('role','status');
+  show.forEach(i=>{
+    const row = document.createElement('div'); row.className = 'nb-notice' + (i.kind==='warning' ? ' warn' : '');
+    const txt = document.createElement('div'); txt.className = 'nb-notice-t';
+    if(i.title){ const b = document.createElement('b'); b.textContent = i.title; txt.appendChild(b); txt.appendChild(document.createElement('br')); }
+    txt.appendChild(document.createTextNode(i.body));
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'nb-notice-x'; x.textContent = '\u00d7'; x.setAttribute('aria-label', L('Dismiss','Tsekani'));
+    x.onclick = ()=>{ gone.push(i.id); try{ localStorage.setItem('nb_notice_gone', JSON.stringify(gone.slice(-40))); }catch(e){} row.remove(); if(!box.children.length) box.remove(); };
+    row.appendChild(txt); row.appendChild(x); box.appendChild(row);
+  });
+  document.body.appendChild(box);
+}
 function _resumePaymentCheck(){
   if(!PAYMENTS_API) return;
+  _checkNotices();
   try{ if(/[?&]paid=1/.test(location.search)) history.replaceState(null,'',location.pathname); }catch(e){}
   let pend=null; try{ pend=JSON.parse(localStorage.getItem('nb_pay_tx')||'null'); }catch(e){}
   if(!pend) return;
