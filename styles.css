@@ -979,3 +979,31 @@ body.dark{--g1:#7FD39A;--r1:#FF9C94;--o1:#F2C14E;--b1:#90CAF9;--pk1:#F48FB1;--ix
 #mb-u:has(.pm-foot){padding-bottom:0}   /* the pinned footer carries its own bottom padding */
 .pm-foot{position:sticky;bottom:0;margin:10px -17px 0;padding:8px 17px calc(8px + env(safe-area-inset-bottom,0px));background:var(--white);border-top:1px solid var(--border);z-index:2}
 body.dark .pm-foot{background:#17212C}
+
+/* ---- 9.17.8 ---- */
+/* Text for screen readers only (the live region that announces toasts) */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* History entries: Edit and Delete share one icon size and alignment, with room between them */
+.plact{gap:10px}
+.plact .bsm{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.plact .bsm svg{width:12px;height:12px;flex-shrink:0}
+/* Monthly Budget Cap: no empty status line under the field; on narrow phones the field sits under the label */
+.cap-st:empty{min-height:0}
+@media (max-width:400px){
+  .stg-row:has(.cap-field){flex-wrap:wrap;row-gap:2px}
+  .stg-row:has(.cap-field) .stg-row-right{flex:1 0 100%;justify-content:flex-end}
+}
+/* Restore-account screen: white text on a darker glass card so it reads on every part of the gradient */
+.setup-card.rst-card{background:rgba(8,28,46,.55);border-color:rgba(255,255,255,.22)}
+.rst{text-align:center}
+.rst-ico{width:52px;height:52px;margin:0 auto 12px;border-radius:var(--cr);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.rst-ico svg{width:26px;height:26px;color:#fff}
+.rst-title{font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.15rem;line-height:1.3;color:#fff;margin-bottom:8px}
+.rst-body{font-size:.85rem;line-height:1.6;color:rgba(255,255,255,.92)}
+.rst-body strong,.rst-hh strong{color:#fff}
+.rst-hh{font-size:.8rem;line-height:1.5;color:rgba(255,255,255,.85);margin-top:8px}
+.rst-hh:empty{display:none}
+.rst-actions{margin-top:16px}
+.rst-actions .setup-btn{min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px}
+.rst-hint{font-size:.76rem;line-height:1.5;color:rgba(255,255,255,.8);margin-top:8px}
+.rst-link{background:none;border:none;color:rgba(255,255,255,.9);font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.84rem;text-decoration:underline;cursor:pointer;min-height:44px;padding:10px 14px;margin-top:8px}

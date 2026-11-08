@@ -245,7 +245,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
         <label class="a-label" data-cw="Mawu Achinsinsi">Password</label>
         <div class="pw-wrap">
           <input class="a-input" id="a-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="current-password" oninput="validatePwReqs(this.value)">
-          <button class="pw-eye" type="button" onclick="tgPW('a-pw',this)"><i data-lucide="eye"></i></button>
+          <button class="pw-eye" type="button" aria-label="Show password" onclick="tgPW('a-pw',this)"><i data-lucide="eye"></i></button>
         </div>
         <!-- Password requirements — only shown on register tab -->
         <!-- Password requirements — only shown on register tab, stacked in dark box -->
@@ -268,7 +268,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
           <label class="a-label" data-cw="Tsimikizani Mawu Achinsinsi">Confirm Password</label>
           <div class="pw-wrap">
             <input class="a-input" id="a-pw2" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" oninput="validatePwReqs(null,true)">
-            <button class="pw-eye" type="button" onclick="tgPW('a-pw2',this)"><i data-lucide="eye"></i></button>
+            <button class="pw-eye" type="button" aria-label="Show password" onclick="tgPW('a-pw2',this)"><i data-lucide="eye"></i></button>
           </div>
         </div>
         <button class="a-btn" id="a-em-btn" onclick="doEmailAuth()">Welcome Back</button>
@@ -452,11 +452,11 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     <button class="pk" onclick="pinK('7')">7<span class="pk-sub">PQRS</span></button>
     <button class="pk" onclick="pinK('8')">8<span class="pk-sub">TUV</span></button>
     <button class="pk" onclick="pinK('9')">9<span class="pk-sub">WXYZ</span></button>
-    <button class="pk pk-action" id="pin-bio-key" onclick="tryBioUnlock()" style="display:none">
+    <button class="pk pk-action" id="pin-bio-key" aria-label="Unlock with fingerprint" onclick="tryBioUnlock()" style="display:none">
       <i data-lucide="fingerprint" style="width:22px;height:22px;color:rgba(255,255,255,.8)"></i>
     </button>
     <button class="pk" onclick="pinK('0')">0<span class="pk-sub">+</span></button>
-    <button class="pk pk-del" onclick="pinK('B')">
+    <button class="pk pk-del" aria-label="Delete last digit" onclick="pinK('B')">
       <i data-lucide="delete" style="width:22px;height:22px;color:rgba(255,255,255,.8)"></i>
     </button>
   </div>
@@ -511,6 +511,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
 <div class="ov" id="mv-gl"><div class="mb" id="mb-gl"></div></div>
 <div class="ov" id="mv-magic"><div class="mb" id="mb-magic"></div></div>
 <div class="toast" id="toast" onclick="dismissToast()"></div>
+<div class="sr-only" id="toast-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- App code (was one big inline script; split by section, no logic changes).
      These files share ONE global scope and must load in this order, with boot last.
