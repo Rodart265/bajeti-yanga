@@ -5,6 +5,8 @@
 //   POST  with a sign-in token        the app: { action:'checkout', householdId, months }  or  { action:'check', txRef }
 //   GET   with ?tx_ref=...            the customer's browser coming back from PayChangu: settle, then go back to the app
 //   GET   /health                     "is it set up?" (says yes/no per setting, never shows a secret)
+//   GET   /public?plan=&lang=         notices and the maintenance message the admin console published (nothing private)
+//   POST  /admin  with a sign-in token  the admin console (see admin.js: roles, looks, Premium changes, log)
 //   every 15 minutes (cron)           settle any payment whose webhook never arrived
 //
 // Settings (see pay-worker/SETUP.md). Secrets: PAYCHANGU_SECRET_KEY, PAYCHANGU_WEBHOOK_SECRET, GOOGLE_SERVICE_ACCOUNT.
@@ -12,7 +14,9 @@
 
 import * as logic from './logic.js';
 import { FirestoreRest, makeTokenProvider, tsFromMillis } from './firestore.js';
-import { verifyFirebaseToken } from './auth.js';
+import { verifyFirebaseToken, verifyFirebaseTokenFull } from './auth.js';
+import * as admin from './admin.js';
+import { makeIdentity, IDENTITY_SCOPE } from './identity.js';
 
 const DEFAULT_APP_URL = 'https://rodart265.github.io/bajeti-yanga/';
 
@@ -21,25 +25,28 @@ function corsHeaders(req, env) {
   const allowed = String(env.ALLOWED_ORIGINS || 'https://rodart265.github.io').split(',').map(s => s.trim()).filter(Boolean);
   if (origin && allowed.includes(origin)) {
     return { 'Access-Control-Allow-Origin': origin, Vary: 'Origin', 'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-             'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '86400' };
+             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Max-Age': '86400' };
   }
   return { Vary: 'Origin' };
 }
 const json = (status, body, headers = {}) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 
 // One database client per Worker instance, so the Google access token is re-used between requests.
-let shared = { sig: null, db: null };
+let shared = { sig: null, db: null, identity: null };
 function makeDeps(env, injected) {
   if (injected && injected.db) {
-    return { db: injected.db, fetchImpl: injected.fetchImpl || fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
+    return { db: injected.db, identity: injected.identity, fetchImpl: injected.fetchImpl || fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
   }
   const projectId = env.FIREBASE_PROJECT_ID || 'bajeti-yanga';
   const sig = projectId + '|' + env.GOOGLE_SERVICE_ACCOUNT;
   if (shared.sig !== sig) {
     const getToken = makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT });
-    shared = { sig, db: new FirestoreRest({ projectId, getToken }) };
+    // The sign-in list needs its own access token (a different scope than the database); it is only created, and only asked
+    // for, when the admin console uses it.
+    const identity = makeIdentity({ projectId, getToken: makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT, scope: IDENTITY_SCOPE }) });
+    shared = { sig, db: new FirestoreRest({ projectId, getToken }), identity };
   }
-  return { db: shared.db, fetchImpl: fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
+  return { db: shared.db, identity: shared.identity, fetchImpl: fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
 }
 
 function missingSettings(env) {
@@ -68,6 +75,26 @@ export default {
     catch (e) { console.error('setup problem:', e.message); return json(503, { error: 'Payments are not set up yet.' }, cors); }
 
     try {
+      // What the app is told: notices and the maintenance message. No sign-in; nothing private is in it.
+      if (req.method === 'GET' && url.pathname === '/public') {
+        const feed = await admin.publicFeed({ deps, env, plan: url.searchParams.get('plan'), lang: url.searchParams.get('lang') });
+        return json(200, feed, { ...cors, 'Cache-Control': 'public, max-age=60' });
+      }
+
+      // The admin console.
+      if (url.pathname === '/admin') {
+        if (req.method !== 'POST') return json(405, { error: 'POST only' }, cors);
+        const noStore = { ...cors, 'Cache-Control': 'no-store' };
+        const bm = /^Bearer (.+)$/.exec(req.headers.get('authorization') || '');
+        if (!bm) return json(401, { error: 'Please sign in again.' }, noStore);
+        let who;
+        try { who = await verifyFirebaseTokenFull(bm[1], env, injected.fetchImpl || fetch, deps.now()); }
+        catch (_) { return json(401, { error: 'Please sign in again.' }, noStore); }
+        let params = {}; try { params = await req.json(); } catch (_) {}
+        const out = await admin.handle({ user: who, action: params && params.action, params, env, deps, identity: deps.identity });
+        return json(out.code, out.body, noStore);
+      }
+
       // The customer's browser returning from PayChangu: settle (checked with PayChangu, never trusted from the URL).
       if (req.method === 'GET') {
         const refs = logic.candidateRefs(null, { tx_ref: url.searchParams.get('tx_ref') });

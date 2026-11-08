@@ -31,6 +31,13 @@ export function resetKeyCache() { keyCache = { at: 0, keys: new Map() }; }
 
 // Returns { uid, email } or throws.
 export async function verifyFirebaseToken(token, env, fetchImpl = fetch, nowMs = Date.now()) {
+  const u = await verifyFirebaseTokenFull(token, env, fetchImpl, nowMs);
+  return { uid: u.uid, email: u.email };
+}
+
+// Same checks, but also returns what the admin console needs: whether the email is verified, how the person signed in
+// (e.g. 'google.com') and when (authTime, seconds), so the console can demand a recent sign-in before changes.
+export async function verifyFirebaseTokenFull(token, env, fetchImpl = fetch, nowMs = Date.now()) {
   const projectId = (env && env.FIREBASE_PROJECT_ID) || 'bajeti-yanga';
   const parts = String(token).split('.');
   if (parts.length !== 3) throw new Error('malformed');
@@ -46,5 +53,10 @@ export async function verifyFirebaseToken(token, env, fetchImpl = fetch, nowMs =
   const key = await getKey(header.kid, fetchImpl);
   const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlBytes(parts[2]), enc.encode(parts[0] + '.' + parts[1]));
   if (!ok) throw new Error('bad signature');
-  return { uid: payload.sub, email: typeof payload.email === 'string' ? payload.email : null };
+  return {
+    uid: payload.sub, email: typeof payload.email === 'string' ? payload.email : null,
+    emailVerified: payload.email_verified === true,
+    provider: payload.firebase && typeof payload.firebase.sign_in_provider === 'string' ? payload.firebase.sign_in_provider : null,
+    authTime: Number(payload.auth_time) || 0,
+  };
 }

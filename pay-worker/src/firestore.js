@@ -17,6 +17,15 @@ export class Ts {                       // a Firestore timestamp
 }
 export const tsFromMillis = ms => new Ts(ms);
 
+// Put this as a field's value in update() / set(..., {merge:true}) to REMOVE that field. A dotted key such as
+// 'config.isPremium' removes just that one field inside the `config` map and leaves the rest of the map alone.
+export const DELETE = Symbol('delete field');
+// A random id for a new document, e.g. randomId('log') -> 'log_k3j9x2_9f2c41ab'.
+export function randomId(prefix) {
+  const b = crypto.getRandomValues(new Uint8Array(5));
+  return prefix + '_' + Date.now().toString(36) + '_' + [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
 export function encodeValue(v) {
   if (v === null) return { nullValue: null };
   if (v instanceof Ts) return { timestampValue: new Date(v.ms).toISOString() };
@@ -31,7 +40,11 @@ export function encodeValue(v) {
 }
 export function encodeFields(obj) {
   const f = {};
-  for (const [k, v] of Object.entries(obj)) if (v !== undefined) f[k] = encodeValue(v);
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined || v === DELETE) continue;
+    if (k.includes('.')) throw new Error('a dotted field name can only be used with DELETE: ' + k);
+    f[k] = encodeValue(v);
+  }
   return f;
 }
 export function decodeValue(f) {
@@ -51,7 +64,9 @@ export function decodeFields(fields) {
   for (const k of Object.keys(fields || {})) o[k] = decodeValue(fields[k]);
   return o;
 }
-const fieldPath = k => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : '`' + k.replace(/\\/g, '\\\\').replace(/`/g, '\\`') + '`');
+const seg = k => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : '`' + k.replace(/\\/g, '\\\\').replace(/`/g, '\\`') + '`');
+const fieldPath = k => String(k).split('.').map(seg).join('.');
+const maskOf = data => Object.keys(data).filter(k => data[k] !== undefined).map(fieldPath);
 
 // ── signing in as the service account ────────────────────────────────────────
 const b64url = bytes => { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
@@ -63,7 +78,7 @@ async function importPrivateKey(pem) {
 }
 
 // Returns an async function that gives a valid access token, signing a new one only when the last one is about to expire.
-export function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now = Date.now }) {
+export function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now = Date.now, scope = 'https://www.googleapis.com/auth/datastore' }) {
   let sa;
   try { sa = typeof serviceAccountJson === 'string' ? JSON.parse(serviceAccountJson) : serviceAccountJson; }
   catch (_) { throw new Error('GOOGLE_SERVICE_ACCOUNT is not valid JSON. Paste the whole key file.'); }
@@ -75,7 +90,7 @@ export function makeTokenProvider({ serviceAccountJson, fetchImpl = fetch, now =
     const key = await keyPromise;
     const iat = Math.floor(now() / 1000);
     const header = { alg: 'RS256', typ: 'JWT' };
-    const claims = { iss: sa.client_email, scope: 'https://www.googleapis.com/auth/datastore', aud: 'https://oauth2.googleapis.com/token', iat, exp: iat + 3600 };
+    const claims = { iss: sa.client_email, scope, aud: 'https://oauth2.googleapis.com/token', iat, exp: iat + 3600 };
     const input = b64url(enc.encode(JSON.stringify(header))) + '.' + b64url(enc.encode(JSON.stringify(claims)));
     const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, enc.encode(input)));
     const r = await fetchImpl('https://oauth2.googleapis.com/token', {
@@ -122,16 +137,23 @@ export class FirestoreRest {
   }
   _docUrl(path) { return this.base + this.root + '/' + path.split('/').map(encodeURIComponent).join('/'); }
 
-  async _getDoc(path, txId) {
-    const url = this._docUrl(path) + (txId ? '?transaction=' + encodeURIComponent(txId) : '');
+  async _getDoc(path, txId, fields) {
+    const q = [];
+    if (txId) q.push('transaction=' + encodeURIComponent(txId));
+    if (fields) for (const f of fields) q.push('mask.fieldPaths=' + encodeURIComponent(fieldPath(f)));   // only these fields come back
+    const url = this._docUrl(path) + (q.length ? '?' + q.join('&') : '');
     const res = await this._send('GET', url);
     if (res.status === 404) return snap(path.split('/').pop(), null);
     if (!res.ok) throw this._fail(res, 'read');
-    return snap(path.split('/').pop(), decodeFields(res.json.fields));
+    return snap(path.split('/').pop(), decodeFields(res.json.fields), res.json);
+  }
+  async _delete(path) {
+    const res = await this._send('DELETE', this._docUrl(path));
+    if (!res.ok && res.status !== 404) throw this._fail(res, 'delete');
   }
   async _patch(path, data, { mask, mustExist }) {
     const q = [];
-    if (mask) for (const k of Object.keys(data).filter(k => data[k] !== undefined)) q.push('updateMask.fieldPaths=' + encodeURIComponent(fieldPath(k)));
+    if (mask) for (const fp of maskOf(data)) q.push('updateMask.fieldPaths=' + encodeURIComponent(fp));
     if (mustExist) q.push('currentDocument.exists=true');
     const res = await this._send('PATCH', this._docUrl(path) + (q.length ? '?' + q.join('&') : ''), { fields: encodeFields(data) });
     if (!res.ok) throw this._fail(res, 'write');
@@ -147,15 +169,16 @@ export class FirestoreRest {
       const writes = [];
       const name = ref => this.root + '/' + ref.path;
       const tx = {
-        get: ref => this._getDoc(ref.path, transaction),
+        get: (ref, fields) => this._getDoc(ref.path, transaction, fields),
         set: (ref, data, opts) => writes.push(opts && opts.merge
-          ? { update: { name: name(ref), fields: encodeFields(data) }, updateMask: { fieldPaths: Object.keys(data).filter(k => data[k] !== undefined).map(fieldPath) } }
+          ? { update: { name: name(ref), fields: encodeFields(data) }, updateMask: { fieldPaths: maskOf(data) } }
           : { update: { name: name(ref), fields: encodeFields(data) } }),
         update: (ref, data) => writes.push({
           update: { name: name(ref), fields: encodeFields(data) },
-          updateMask: { fieldPaths: Object.keys(data).filter(k => data[k] !== undefined).map(fieldPath) },
+          updateMask: { fieldPaths: maskOf(data) },
           currentDocument: { exists: true },
         }),
+        delete: ref => writes.push({ delete: name(ref) }),
       };
       let result;
       try { result = await fn(tx); }
@@ -166,27 +189,37 @@ export class FirestoreRest {
   }
 }
 
-function snap(id, data) { return { id, exists: data !== null, data: () => (data === null ? undefined : data) }; }
+function snap(id, data, raw) {
+  const t = raw && raw.createTime ? Date.parse(raw.createTime) : null;
+  return { id, exists: data !== null, createTime: Number.isNaN(t) ? null : t, data: () => (data === null ? undefined : data) };
+}
 
 class Col {
   constructor(db, name) { this.db = db; this.name = name; }
   doc(id) { return new DocRef(this.db, this.name + '/' + id); }
   where(f, op, v) { return new Query(this.db, this.name, [[f, op, v]], 0); }
   limit(n) { return new Query(this.db, this.name, [], n); }
+  orderBy(f, dir) { return new Query(this.db, this.name, [], 0).orderBy(f, dir); }
+  select(...fields) { return new Query(this.db, this.name, [], 0).select(...fields); }
   get() { return new Query(this.db, this.name, [], 0).get(); }
 }
 
 class DocRef {
   constructor(db, path) { this.db = db; this.path = path; this.id = path.split('/').pop(); }
-  get() { return this.db._getDoc(this.path); }
+  get(fields) { return this.db._getDoc(this.path, null, fields); }
   set(data, opts) { return this.db._patch(this.path, data, { mask: !!(opts && opts.merge) }); }
   update(data) { return this.db._patch(this.path, data, { mask: true, mustExist: true }); }
+  delete() { return this.db._delete(this.path); }
 }
 
 class Query {
-  constructor(db, name, filters, lim) { this.db = db; this.name = name; this.filters = filters; this.lim = lim; }
-  where(f, op, v) { return new Query(this.db, this.name, [...this.filters, [f, op, v]], this.lim); }
-  limit(n) { return new Query(this.db, this.name, this.filters, n); }
+  constructor(db, name, filters, lim, order = [], sel = null) { this.db = db; this.name = name; this.filters = filters; this.lim = lim; this.order = order; this.sel = sel; }
+  _with(o) { return new Query(this.db, this.name, o.filters || this.filters, o.lim === undefined ? this.lim : o.lim, o.order || this.order, o.sel === undefined ? this.sel : o.sel); }
+  where(f, op, v) { return this._with({ filters: [...this.filters, [f, op, v]] }); }
+  limit(n) { return this._with({ lim: n }); }
+  orderBy(f, dir = 'asc') { return this._with({ order: [...this.order, [f, String(dir).toLowerCase() === 'desc' ? 'DESCENDING' : 'ASCENDING']] }); }
+  // Only these fields come back (dotted paths reach inside maps). Keeps big documents (budgets) off the wire.
+  select(...fields) { return this._with({ sel: fields }); }
   async get() {
     const fs = this.filters.map(([f, op, v]) => {
       if (!OPS[op]) throw new Error('unsupported operator ' + op);
@@ -194,9 +227,11 @@ class Query {
     });
     const sq = { from: [{ collectionId: this.name }] };
     if (fs.length === 1) sq.where = fs[0]; else if (fs.length > 1) sq.where = { compositeFilter: { op: 'AND', filters: fs } };
+    if (this.order.length) sq.orderBy = this.order.map(([f, d]) => ({ field: { fieldPath: fieldPath(f) }, direction: d }));
+    if (this.sel) sq.select = { fields: this.sel.map(f => ({ fieldPath: fieldPath(f) })) };
     if (this.lim) sq.limit = this.lim;
     const rows = await this.db._post(':runQuery', { structuredQuery: sq }, 'query');
-    const docs = (rows || []).filter(r => r.document).map(r => snap(r.document.name.split('/').pop(), decodeFields(r.document.fields)));
+    const docs = (rows || []).filter(r => r.document).map(r => snap(r.document.name.split('/').pop(), decodeFields(r.document.fields), r.document));
     return { docs, size: docs.length, forEach: fn => docs.forEach(fn) };
   }
 }
