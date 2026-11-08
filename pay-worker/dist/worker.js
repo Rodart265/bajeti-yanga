@@ -229,8 +229,8 @@ async function settlePayment({ deps, txRef }) {
       if (h.owner) {
         const uRef = db.collection("users").doc(h.owner);
         const us = await tx.get(uRef);
-        const cur = us.exists && us.data().premiumUntil && us.data().premiumUntil.toMillis ? us.data().premiumUntil.toMillis() : 0;
-        tx.set(uRef, { premiumUntil: tsFromMillis2(Math.max(cur, endOfDayMs(expiry))) }, { merge: true });
+        const cur2 = us.exists && us.data().premiumUntil && us.data().premiumUntil.toMillis ? us.data().premiumUntil.toMillis() : 0;
+        tx.set(uRef, { premiumUntil: tsFromMillis2(Math.max(cur2, endOfDayMs(expiry))) }, { merge: true });
       }
     }
     const extra = wasUnlimited ? { note: "household already had Premium with no end date; nothing was extended" } : {};
@@ -355,7 +355,7 @@ var FirestoreRest = class {
     this.base = "https://firestore.googleapis.com/v1/";
   }
   async _send(method, url, body) {
-    const r = await this.fetchImpl(url, {
+    const r = await (0, this.fetchImpl)(url, {
       method,
       headers: { Authorization: "Bearer " + await this.getToken(), "Content-Type": "application/json" },
       body: body === void 0 ? void 0 : JSON.stringify(body)
