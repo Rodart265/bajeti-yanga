@@ -1,45 +1,63 @@
-# Bajeti Yanga Admin Console — Spark-plan edition
+# Bajeti Yanga admin console: reference
 
-## What this version does
+Setup steps are in `ADMIN-SETUP.md`. This file describes how it works.
 
-The `/admin/` interface uses Firebase Authentication and Firestore directly. It does **not** call the `admin` Cloud Function and does not require Cloud Functions to display its read-only dashboard.
+## Design
 
-Available sections:
-- Overview of the Firestore user profiles, households, payments, and Premium state.
-- User profile listing (not the Firebase Authentication user directory).
-- Household metadata and member counts. Individual budgets and purchase entries are deliberately not displayed.
-- Read-only payment records.
-- Chipereganyu group-level metadata only. Contribution-level financial details are deliberately not displayed.
-- Existing admin log records, if any. This console does not create log entries because it does not perform administrative writes.
+The page in `admin/` only displays and sends requests. Every look and every change goes to the payments Worker
+(`pay-worker/`, route `POST /admin`), which:
 
-Each collection is capped at 300 documents per load to keep Firestore usage predictable on the Spark plan. Counts and revenue are therefore counts/sums of the loaded sample, not guaranteed platform-wide totals.
+1. verifies the Firebase ID token (Google sign-in, verified email),
+2. looks the email up in the role lists (`ADMIN_OWNERS`, `ADMIN_SUPPORT`, `ADMIN_ANALYSTS`, Cloudflare secrets),
+3. checks the role allows the action, and for changes that the Google sign-in is less than 30 minutes old,
+4. does the work with the service account, and writes the change plus an entry in `adminLog` in one transaction.
 
-## Important limitations
+Editing `admin.js` to show more buttons changes nothing: the Worker still refuses. Browsers are never given Firestore
+access to admin data, so no Firestore rules change is needed.
 
-- No Cloud Function is required by this admin page.
-- No account disabling, Premium activation, payment settlement, account deletion, household editing, or Chipereganyu intervention is provided. Those operations require trusted server-side code and must not be implemented as client-side Firestore writes.
-- Firestore does not expose the Firebase Authentication user directory or last-sign-in timestamps to this browser dashboard. It shows only `users/{uid}` profile documents stored by the app.
-- The existing app's PayChangu, scheduled jobs, and other Cloud Functions are separate. This admin page does not deploy or replace them.
+## Privacy
 
-## Setup
+Households, payments and Chipereganyu groups are read with Firestore field masks, so budgets, purchases, goals and
+member amounts never leave the database. The console shows account and subscription facts only.
 
-1. Push the complete project files to the GitHub Pages branch, keeping the `admin/` folder at the repository root.
-2. In Firebase Console → Authentication → Sign-in method, enable Google.
-3. In Authentication → Settings → Authorized domains, add `rodart265.github.io` (and your custom domain if you later use one).
-4. Publish the updated Firestore rules. If Phase A is currently live, publish `firestore.rules`. If Phase B is currently live, publish `firestore.phase-b.rules`. Do not switch from Phase B back to Phase A; use the matching file for the rules version already in production.
-5. In Firebase Console → Authentication → Users, sign in to the admin page once with your Google account (or otherwise ensure the account exists), then copy that account's UID.
-6. In Firestore Data, create a collection named `adminUsers`. Create a document whose document ID is that exact Firebase Auth UID. Add fields:
-   - `enabled` — boolean `true`
-   - `role` — string `owner`
-   - `email` — string containing your Google email (for your reference only)
-7. Open `https://rodart265.github.io/bajeti-yanga/admin/` and sign in with that same Google account.
+## Pages
 
-The `adminUsers` collection is an owner-managed allowlist. The rules allow a signed-in account to read only its own allowlist document; client writes and listing are denied. Create or disable allowlist documents only from the Firebase Console as project owner.
+| Page | What it is for |
+|---|---|
+| Overview | Headline numbers, signups, revenue, plan mix, trial to paid, return rate |
+| Needs attention | Stuck or mismatched payments, Premium ending before the last payment's date, old-field Premium |
+| Premium | Expiring in 14 days, trials, recently ended, no end date, old field, household finder |
+| Households | Search and filter, CSV export, household page with the Premium change form |
+| Users | Firebase accounts, last seen, disable and enable |
+| Payments | Every payment with filters, re-check with PayChangu, reopen, notes, CSV export |
+| Chipereganyu | Circle counts, overdue and stuck confirmations |
+| Notices | Announcements shown in the app |
+| Reports | Growth and revenue charts with table views |
+| Activity log | Every change and every blocked attempt |
+| Settings | Maintenance message, app version, admins, access status |
 
-## Security notes
+## Premium changes (`premium_set`)
 
-- The rules require a verified Google sign-in and an enabled `adminUsers/{uid}` record.
-- Admin privileges are read-only in this edition.
-- The dashboard does not read individual `households/{id}/purchases` documents or embedded Chipereganyu contribution records.
-- Keep your Google account protected with two-step verification. Never share your Firebase owner credentials.
-- Firestore rules must be published in Firebase Console; pushing a rules file to GitHub does not publish it to Firestore.
+Modes: `extend` (from today, or from the current end date if still active), `set_expiry`, `unlimited`, `revoke`, `tidy`
+(move old config fields to the new ones). A reason is required. `recordPayment` adds a `manual_...` payment so revenue
+and history are right. The change is written to the root fields and any old `config` Premium fields are removed in the same transaction, so
+the two can never disagree again. `users/{owner}.premiumUntil` is kept in step for the household limit rule.
+
+## Roles
+
+See the table in `ADMIN-SETUP.md`. Support can re-check payments and add notes. Owners can do everything. Read-only
+accounts can look at every page.
+
+## In-app notices
+
+`GET /public?plan=free|premium&lang=en|cw` returns live notices and the maintenance message. It needs no sign-in, is cached
+for 60 seconds and contains only text an admin chose to publish. The app (9.18.0 and later) shows it as a dismissible
+banner and ignores any failure to load it.
+
+## Limits worth knowing
+
+- Revenue and payment figures use the latest 1,000 payments.
+- Tables show 300 rows at a time; use search or filters to narrow.
+- Disabling an account blocks new sign-ins. Phones already signed in keep working for up to an hour.
+- Cloudflare's free plan allows about 10 ms of CPU per request. Very large lists may need a paid plan or a smaller page.
+- Not tracked by the app, so not reported: most-used features, error reports.
