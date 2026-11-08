@@ -656,7 +656,7 @@ function rChip(){
   let h='<div class="page">';
   h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
   h+='<div class="cg-back" style="flex:1" onclick="go(\'home\')"><i data-lucide="chevron-left"></i><div><div class="cg-title">'+esc(grp.name)+'</div><div class="cg-sub">'+nMembers+' '+(isCW?(nMembers===1?'membala':'mamembala'):'members')+(grp.status==='closed'?' · '+(isCW?'chatsekedwa':'closed'):'')+'</div></div></div>';
-  h+='<button class="btnG" style="padding:7px 10px" onclick="openChipEntry()"><i data-lucide="plus" style="width:13px;height:13px"></i></button>';
+  h+='<button class="btnG" style="padding:7px 10px" aria-label="'+L('Add entry','Add entry')+'" onclick="openChipEntry()"><i data-lucide="plus" style="width:13px;height:13px"></i></button>';
   h+='</div>';
 
   if(chipGroups.length>1){

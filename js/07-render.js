@@ -265,7 +265,8 @@ function rHome(){
   const over=lCfg.items.filter(it=>iSpent(it.name)>it.budget).length;
   const near=lCfg.items.filter(it=>{const r=iSpent(it.name)/it.budget;return r>=.8&&r<1;}).length;
   const ok=lCfg.items.filter(it=>{const s=iSpent(it.name);return s>0&&s<it.budget*.8;}).length;
-  const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income'&&!p.deleted).length;
+  const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income'&&!p.deleted).length;      // purchases (expenses only)
+  const cntAll=lPx.filter(p=>isTM(p.date)&&!p.deleted).length;                      // every entry this month, same as History
   const streak=getSpendingStreak();
   const isCW=lang==='cw';
   const balNum=_num(Math.abs(rem));
@@ -286,7 +287,7 @@ function rHome(){
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">'+t.spent+'</div><div class="h2-cv rc">'+MK(sp)+'</div></div>';
   h+='<div class="h2-div"></div>';
-  h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cnt+'</div></div>';
+  h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cntAll+'</div></div>';
   h+='</div></div>';
   h+='<div id="chip-home-slot">'+renderChipHomeCard()+'</div>';
   if(streak>=2){

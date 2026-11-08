@@ -207,22 +207,76 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
   const _soloCard = g('setup-card-solo'); if(_soloCard) _soloCard.style.display='none';
   const _heading = g('setup-heading'); if(_heading) _heading.style.display='none';
   box.style.display='';
+  // Same look as the other setup cards: white text on a darker glass card, the app's own .setup-btn buttons.
+  // (This prompt used to borrow the white-card colours, which made the text almost invisible on this screen.)
+  box.classList.add('rst-card');
+  const _until = userData.restoreBefore ? fmtDate(userData.restoreBefore) : '';
+  const _fresh = '<button class="setup-btn outline" onclick="confirmStartFresh()"><i data-lucide="plus-circle" style="width:16px;height:16px"></i>'+L('Start fresh with a new household','Start fresh with a new household')+'</button>'
+    +'<div class="rst-hint">'+L('Your login stays. You can then create a new household or join another.','Your login stays. You can then create a new household or join another.')+'</div>';
   if(stillRecoverable){
     const daysLeft = userData.restoreBefore ? Math.max(0, Math.ceil((new Date(userData.restoreBefore)-new Date())/86400000)) : 30;
-    box.innerHTML = '<div style="text-align:center;padding:10px 0">'
-      +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+(isCW?'Bwezeretsani Akaunti?':'Restore Your Account?')+'</div>'
-      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(isCW?'Akaunti yanu idzachotsedwa kwathunthu pakapita masiku '+daysLeft+'. Mukufuna kuibwezera?':'Your account is scheduled for deletion in '+daysLeft+' day'+(daysLeft===1?'':'s')+'. Want to restore it?')+'</div>'
-      +'<button class="btnM" style="width:100%;margin-bottom:8px" onclick="restoreAccount()">'+(isCW?'Inde, Bwezeretsani':'Yes, Restore My Account')+'</button>'
-      +'<button class="btnG" style="width:100%" onclick="auth.signOut()">'+(isCW?'Ayi, Siyani':'No, Sign Out')+'</button>'
-      +'</div>';
+    const _dayWord = daysLeft+' day'+(daysLeft===1?'':'s');
+    box.innerHTML = '<div class="rst">'
+      +'<div class="rst-ico"><i data-lucide="history"></i></div>'
+      +'<div class="rst-title">'+(isCW?'Bwezeretsani Akaunti?':'Restore your account?')+'</div>'
+      +'<div class="rst-body">'+(isCW?'Akaunti yanu idzachotsedwa kwathunthu pakapita masiku '+daysLeft+'. Mukufuna kuibwezera?':'Your account is scheduled for permanent deletion'+(_until?' on <strong>'+_until+'</strong>':'')+' ('+_dayWord+' left).')+'</div>'
+      +'<div class="rst-hh" id="rst-hh"></div>'
+      +'<div class="rst-actions">'
+        +'<button class="setup-btn" onclick="restoreAccount()"><i data-lucide="history" style="width:16px;height:16px"></i>'+(isCW?'Inde, Bwezeretsani':'Restore my account')+'</button>'
+        +_fresh
+        +'<button class="rst-link" onclick="auth.signOut()">'+(isCW?'Ayi, Siyani':'Sign out')+'</button>'
+      +'</div></div>';
+    // Say which household is affected. Best effort: the screen is complete without it.
+    const _hid = userData.householdId;
+    if(_hid){
+      db.collection('households').doc(_hid).get().then(function(snap){
+        const slot = g('rst-hh'); if(!slot || !snap.exists) return;
+        const d = snap.data() || {};
+        const nm = esc(d.name || userData.householdName || '');
+        if(d.owner === user.uid){
+          slot.innerHTML = L('Your household','Your household')+(nm?' <strong>'+nm+'</strong>':'')+L(' is scheduled for deletion too. Restoring brings it back.',' is scheduled for deletion too. Restoring brings it back.');
+        } else if(nm){
+          slot.innerHTML = L('You left the household ','You left the household ')+'<strong>'+nm+'</strong>'+L('. After restoring, its owner has to approve you again.','. After restoring, its owner has to approve you again.');
+        }
+      }).catch(function(){});
+    }
   } else {
-    box.innerHTML = '<div style="text-align:center;padding:10px 0">'
-      +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+(isCW?'Akaunti Yachotsedwa':'Account No Longer Recoverable')+'</div>'
-      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:16px">'+(isCW?'Nthawi ya masiku 30 yatha. Akaunti iyi siingathe kubwezeretsedwanso.':'The 30-day recovery window has passed. This account can no longer be restored.')+'</div>'
-      +'<button class="btnG" style="width:100%" onclick="auth.signOut()">'+(isCW?'Tsekani':'Close')+'</button>'
-      +'</div>';
+    box.innerHTML = '<div class="rst">'
+      +'<div class="rst-ico"><i data-lucide="clock"></i></div>'
+      +'<div class="rst-title">'+(isCW?'Akaunti Yachotsedwa':'This account can no longer be restored')+'</div>'
+      +'<div class="rst-body">'+(isCW?'Nthawi ya masiku 30 yatha. Akaunti iyi siingathe kubwezeretsedwanso.':'The 30-day recovery window has passed.')+'</div>'
+      +'<div class="rst-actions">'
+        +'<button class="setup-btn" onclick="confirmStartFresh()"><i data-lucide="plus-circle" style="width:16px;height:16px"></i>'+L('Start with a new household','Start with a new household')+'</button>'
+        +'<div class="rst-hint">'+L('Your login stays. You can then create a new household or join another.','Your login stays. You can then create a new household or join another.')+'</div>'
+        +'<button class="rst-link" onclick="auth.signOut()">'+(isCW?'Tsekani':'Sign out')+'</button>'
+      +'</div></div>';
   }
   if(window.lucide) lucide.createIcons({nodes:[box]});
+}
+
+// "Start fresh": keep the login, drop the account-deletion mark and the link to the old household, and go to the normal
+// setup choices (Just Me / Create / Join). The old household keeps its own deletion date and is not restored.
+function confirmStartFresh(){
+  appConfirm(
+    L('Start fresh with a new household? Your login stays and you can create or join a household next. Your old household is still deleted on its date and cannot be restored from the app after this. Premium belongs to the household it was bought for, so it does not carry over.',
+      'Start fresh with a new household? Your login stays and you can create or join a household next. Your old household is still deleted on its date and cannot be restored from the app after this. Premium belongs to the household it was bought for, so it does not carry over.'),
+    startFreshAfterDeletion,
+    L('Start fresh','Start fresh'),
+    true
+  );
+}
+function startFreshAfterDeletion(){
+  const user = auth.currentUser;
+  if(!user){ toast(L('Not signed in.','Simunalowe mu akaunti.'),'e'); return; }
+  const FV = firebase.firestore.FieldValue;
+  db.collection('users').doc(user.uid).update({
+    pendingDeletion:false, deletedAt:null, restoreBefore:null,
+    householdId:FV.delete(), householdName:FV.delete()
+  }).then(function(){
+    _pendingRestoreHid = null;
+    localStorage.removeItem('nb_household'); localStorage.removeItem('nb_pending_join');
+    authReg=false; bootApp();
+  }).catch(function(){ toast(L('Could not start fresh. Check your connection.','Could not start fresh. Check your connection.'),'e'); });
 }
 
 function restoreAccount(){
@@ -285,6 +339,7 @@ function _setupUnlock(){
 function renderSetupJoinChoice(){
   const box = g('setup-card-join');
   if(!box) return;
+  box.classList.remove('rst-card');
   const isCW = lang === 'cw';
   box.innerHTML =
     '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'
@@ -309,6 +364,7 @@ function renderSetupJoinChoice(){
 function renderSetupJoinForm(){
   const box = g('setup-card-join');
   if(!box) return;
+  box.classList.remove('rst-card');
   const isCW = lang === 'cw';
   box.innerHTML =
     '<button onclick="renderSetupJoinChoice()" style="background:none;border:none;color:rgba(255,255,255,.75);font-size:.78rem;display:flex;align-items:center;gap:3px;margin-bottom:14px;cursor:pointer;padding:0;font-family:inherit">'

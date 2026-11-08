@@ -89,7 +89,7 @@ function rHist(){
         h+='<div class="plrow2"><span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>'+(p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'')+'</div>';
         h+='<div class="plact">';
         h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+esc(p.id)+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
-        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" style="margin-right:4px"></i> '+t.del+'</button>';
+        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" style="width:11px;height:11px"></i> '+t.del+'</button>';
         h+='</div></div></div>';
       });
     });

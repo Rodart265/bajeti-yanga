@@ -192,6 +192,10 @@ function emptyAction(label,act){ return '<button class="btnM" style="margin-top:
 function toast(msg,type){
   const el=g('toast'); if(!el)return;
   type = type||'s';
+  // Screen readers: say the message through a separate live region that is always on the page. The visible toast is
+  // rebuilt on every call, which readers tend to miss. Errors interrupt; everything else waits its turn.
+  const live=g('toast-live');
+  if(live){ live.setAttribute('aria-live', type==='e'?'assertive':'polite'); live.textContent=''; setTimeout(function(){ live.textContent=msg; },60); }
   const icons = {s:'check-circle', e:'alert-circle', i:'info'};
   el.className = 'toast '+type+(document.querySelector('.ov.open')?' top':'');
   // Duration scales with message length so short messages don't linger and
@@ -215,7 +219,7 @@ function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+
   const cw=(typeof lang!=='undefined'&&lang==='cw');
   const lbl=s==='off'?(cw?'Palibe kulumikizana':'Not connected'):s==='spin'?(cw?'Ikusunga…':'Saving…'):(cw?'Zasinthidwa':'Synced');
   d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl; }
-function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; if(window.lucide)lucide.createIcons({nodes:[btn]}); }
+function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; btn.setAttribute('aria-label', sh?L('Show password','Show password'):L('Hide password','Hide password')); if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
 
 
