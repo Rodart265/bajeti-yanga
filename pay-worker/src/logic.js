@@ -39,8 +39,30 @@ export function extendExpiry(existing, months, nowMs) {
   return ymdStr(addMonthsYMD(base, months));
 }
 
+// Premium can live in two places: the root fields (set by this Worker) and inside `config` (old manual activations,
+// until migrate-premium.js is run). The app reads both, so settling a payment has to read both too. Otherwise a household
+// whose Premium sits in `config` looks like it has none, and a payment restarts the clock from today.
+function expiryToMs(v) {
+  if (v === null || v === undefined || v === '') return NaN;
+  if (typeof v === 'string') return /^\d{4}-\d{2}-\d{2}$/.test(v) ? endOfDayMs(v) : new Date(v).getTime();
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  return NaN;
+}
+// { active, unlimited, expiry }: `expiry` is the LATER of the two dates as a YYYY-MM-DD string (or null).
+// `unlimited` means Premium is on and neither place has an end date.
+export function currentPremium(h) {
+  const cfg = h && h.config && typeof h.config === 'object' ? h.config : {};
+  const active = (h && h.isPremium === true) || cfg.isPremium === true;
+  const raw = [h && h.premiumExpiry, cfg.premiumExpiry];
+  let best = null, bestMs = -Infinity;
+  for (const v of raw) { const ms = expiryToMs(v); if (!Number.isNaN(ms) && ms > bestMs) { best = v; bestMs = ms; } }
+  const expiry = best === null ? null : (typeof best === 'string' ? best : ymdStr(catYMD(bestMs)));
+  const anyRaw = !!(raw[0] || raw[1]);
+  return { active, unlimited: active && !anyRaw, expiry };
+}
+
 // ── PayChangu helpers ────────────────────────────────────────────────────────
-const hex = bytes => [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+const hex =bytes => [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
 export function newTxRef() { return 'by_' + Date.now().toString(36) + '_' + hex(crypto.getRandomValues(new Uint8Array(5))); }
 
 function hexToBytes(h) { const out = new Uint8Array(h.length / 2); for (let i = 0; i < out.length; i++) out[i] = parseInt(h.substr(i * 2, 2), 16); return out; }
@@ -166,8 +188,9 @@ export async function settlePayment({ deps, txRef }) {
     const hs = await tx.get(hhRef);
     if (!hs.exists) { tx.update(payRef, { status: 'paid_no_household', paidAtMs: now() }); result = { status: 'failed' }; return; }
     const h = hs.data();
-    const wasUnlimited = h.isPremium === true && !h.premiumExpiry;       // e.g. granted by hand with no end date
-    const expiry = wasUnlimited ? null : extendExpiry(h.isPremium === true ? h.premiumExpiry : null, p.months, now());
+    const cur = currentPremium(h);                                       // reads root AND legacy config.* Premium
+    const wasUnlimited = cur.unlimited;                                  // e.g. granted by hand with no end date
+    const expiry = wasUnlimited ? null : extendExpiry(cur.active ? cur.expiry : null, p.months, now());
     if (!wasUnlimited) {
       const upd = { isPremium: true, premiumExpiry: expiry };
       if (h.isPremium !== true) upd.premiumActivatedAt = new Date(now()).toISOString();
