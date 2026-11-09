@@ -64,18 +64,33 @@
     return (S.data[key] = await api(action, { ...params, fresh: force || undefined }));
   }
   const forget = () => { S.data = {}; };
-  // Changes: on "sign in again" the person is sent through Google again, otherwise the message is shown.
+  // Sign-in uses a pop-up, never a page redirect: a redirect reloads the page (typed text is lost) and many phone
+  // browsers block the storage it needs, which sends you back to the login screen.
+  const provider = () => { const p = new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' }); return p; };
+  const popupMsg = e => (e && (e.code === 'auth/popup-blocked' ? 'The sign-in window was blocked. Allow pop-ups for this site, then try again.' : e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' ? 'Sign-in was cancelled.' : e.code === 'auth/user-mismatch' ? 'Sign in with the same Google account you are using here.' : e.code === 'auth/network-request-failed' ? 'No connection. Try again.' : e.message)) || 'Sign-in failed.';
+  async function reauth() {
+    try { await auth.currentUser.reauthenticateWithPopup(provider()); await auth.currentUser.getIdToken(true); return true; }
+    catch (e) { toast(popupMsg(e), true); return false; }
+  }
+  // True when the current sign-in is too old for the Worker to accept a change.
+  async function isStale() {
+    try { const t = await auth.currentUser.getIdTokenResult(); return Date.now() / 1000 - Number(t.claims.auth_time || 0) > ((S.me && S.me.freshSeconds) || 1800) - 60; }
+    catch (_) { return false; }
+  }
+  // Changes: a stale sign-in is refreshed first (one Google tap), then the change is sent. The page is never reloaded.
   async function act(action, params) {
+    if (await isStale() && !(await reauth())) return null;
     try { return await api(action, params); }
     catch (e) {
-      if (e.fresh) { if (confirm('For safety, sign in again before making changes. Continue?')) signIn(); return null; }
+      if (e.fresh) { if (!(await reauth())) return null; try { return await api(action, params); } catch (e2) { toast(e2.message, true); return null; } }
       toast(e.message + (e.detail ? ' (' + e.detail + ')' : ''), true); return null;
     }
   }
   async function signIn() {
     $('loginError').textContent = '';
-    try { const p = new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' }); await auth.signInWithRedirect(p); }
-    catch (e) { $('loginError').textContent = e.message; }
+    if (auth.currentUser) { enter(auth.currentUser); return; }          // already signed in: just try the console again
+    try { await auth.signInWithPopup(provider()); }
+    catch (e) { $('loginError').textContent = popupMsg(e); }
   }
   let toastTimer;
   function toast(msg, bad) { const t = $('toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, bad ? 6000 : 3500); }
@@ -502,7 +517,7 @@
     else if (key === 'chip') l.innerHTML = chipTable(chipFilter(d.rows)); else l.innerHTML = logTable(logFilter(d.rows));
   };
   const CLICK = {
-    go: el => go(el.dataset.id), reload: () => { forget(); render(true); }, resign: () => signIn(),
+    go: el => go(el.dataset.id), reload: () => { forget(); render(true); }, resign: async () => { if (await reauth()) { toast('Signed in again.'); const n = document.querySelector('#drawerBody [data-fresh]'); if (n) n.innerHTML = ''; } },
     chip: el => { const k = el.dataset.key; S.f[k] = { ...(S.f[k] || {}), chip: el.dataset.id }; el.closest('.chips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el)); redraw(k); },
     'open-hh': el => openHousehold(el.dataset.id), 'open-pay': el => openPayment(el.dataset.id), 'open-user': el => openUser(el.dataset.id),
     recheck: el => recheck(el.dataset.id, false), reopen: el => recheck(el.dataset.id, true),
@@ -567,15 +582,21 @@
     $('menuBtn').addEventListener('click', openMenu); $('scrim').addEventListener('click', closeMenu);
     $('drawerClose').addEventListener('click', closeDrawer); $('drawerScrim').addEventListener('click', closeDrawer);
     window.addEventListener('hashchange', () => { if (!$('drawer').hidden) closeDrawer(); render(); });
-    auth.getRedirectResult().catch(e => showLogin(e.message));
-    auth.onAuthStateChanged(async user => {
-      if (!user) { S.me = null; showLogin(); return; }
-      try { S.me = await api('whoami'); }
-      catch (e) { await auth.signOut(); showLogin(e.status === 403 ? 'This Google account is not on the admin list.' : e.status === 503 ? 'The admin console is not switched on yet. Add the admin email in Cloudflare (see docs/ADMIN-SETUP.md).' : e.message); return; }
-      $('loginView').hidden = true; $('appView').hidden = false;
-      $('whoEmail').textContent = S.me.email; $('whoRole').textContent = roleName(S.me.role); $('roleChip').textContent = roleName(S.me.role);
-      render();
-    });
+    auth.onAuthStateChanged(user => { if (!user) { S.me = null; showLogin(); return; } enter(user); });
+  }
+  // Ask the Worker who this is. Only a clear "no" signs the person out; a slow or failed connection keeps them signed in.
+  async function enter(user) {
+    $('loginError').textContent = ''; $('googleLogin').disabled = true;
+    try { S.me = await api('whoami'); }
+    catch (e) {
+      $('googleLogin').disabled = false;
+      if (e.status === 403 || e.status === 503) { await auth.signOut(); showLogin(e.status === 503 ? 'The admin console is not switched on yet. Add the admin email in Cloudflare (see docs/ADMIN-SETUP.md).' : 'This Google account (' + (user.email || '') + ') is not on the admin list.'); return; }
+      showLogin((e.status === 0 ? 'Cannot reach the server.' : e.message) + ' You are still signed in. Tap the button to try again.'); return;
+    }
+    $('googleLogin').disabled = false;
+    $('loginView').hidden = true; $('appView').hidden = false;
+    $('whoEmail').textContent = S.me.email; $('whoRole').textContent = roleName(S.me.role); $('roleChip').textContent = roleName(S.me.role);
+    render();
   }
   start();
 })();
