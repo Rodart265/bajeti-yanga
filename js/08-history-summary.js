@@ -103,7 +103,7 @@ function rHist(){
         h+='<div class="pli pli-x'+(isI?' income-e':'')+'">';
         h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
         h+='<div class="plb"><div class="pltop">';
-        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+catLabel+'</span></div>';
+        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+esc(catLabel)+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
         var _who=isSolo()?'':'<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
@@ -358,7 +358,7 @@ function rSum(){
             <i data-lucide="${catIcon}" style="width:16px;height:16px;color:${clr}"></i>
           </div>
           <div style="flex:1">
-            <div style="font-size:.82rem;font-weight:700;color:var(--ink)">${t.cats[cat]||cat}</div>
+            <div style="font-size:.82rem;font-weight:700;color:var(--ink)">${esc(t.cats[cat]||cat)}</div>
             <div style="font-size:.72rem;color:var(--mid);margin-top:1px">${pct}% of spending</div>
           </div>
           <div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.88rem;color:${clr}">${MK(val_)}</div>

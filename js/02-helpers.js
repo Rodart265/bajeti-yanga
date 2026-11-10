@@ -60,7 +60,9 @@ const catOf = (name, explicitCat) => {
   if(['chitenje','chitengi','wrapper','blouse','dress','shirt','trousers','skirt','uniform','shoes','sandals','slippers','clothes','clothing'].some(k=>n.includes(k))) return 'Personal';
   if(['haircut','salon','barbing','braiding','weave','makeup','lotion','cream','vaseline','perfume','deodorant'].some(k=>n.includes(k))) return 'Personal';
   if(['minibus','motor bike','boda','bicycle','tyre','tube','fuel','petrol','diesel','oil change','vehicle','car wash','parking'].some(k=>n.includes(k))) return 'Transport';
-  return explicitCat || 'Other';
+  // Only the five known categories may come back. A stored value outside that list (someone else's data, or an
+  // old/odd record) becomes 'Other', so nothing downstream can ever print attacker-chosen text as a category.
+  return (explicitCat && ['Food','Household','Personal','Transport','Other'].includes(explicitCat)) ? explicitCat : 'Other';
 };
 
 // The budget period that contains today. With a salary day (e.g. 25) the period "May" runs 25 Apr - 24 May,
@@ -236,18 +238,20 @@ function ensureRecIds(cfg){
   let changed=false;
   [['items','i'],['bills','b'],['goals','g']].forEach(function(p){
     if(cfg && Array.isArray(cfg[p[0]])) cfg[p[0]].forEach(function(r){
-      if(r && typeof r==='object' && !r.id){ r.id=newRecId(p[1]); changed=true; }
+      // An id that is missing, or not a plain id (letters, digits, - _ only), is replaced. Real ids are always plain;
+      // anything else was written by hand and must never be placed inside a button's onclick.
+      if(r && typeof r==='object' && !(r.id && /^[A-Za-z0-9_-]{1,40}$/.test(String(r.id)))){ r.id=newRecId(p[1]); changed=true; }
     });
   });
   return changed;
 }
 function cfgNeedsRecIds(cfg){
-  return !!cfg && ['items','bills','goals'].some(function(k){ return Array.isArray(cfg[k]) && cfg[k].some(function(r){ return r && typeof r==='object' && !r.id; }); });
+  return !!cfg && ['items','bills','goals'].some(function(k){ return Array.isArray(cfg[k]) && cfg[k].some(function(r){ return r && typeof r==='object' && !(r.id && /^[A-Za-z0-9_-]{1,40}$/.test(String(r.id))); }); });
 }
-function recKey(rec,i){ return rec && rec.id ? String(rec.id) : '~'+i; }
+function recKey(rec,i){ return rec && rec.id && /^[A-Za-z0-9_-]{1,40}$/.test(String(rec.id)) ? String(rec.id) : '~'+i; }
 function recIdx(arr,key){
   if(!Array.isArray(arr) || key===null || key===undefined || key==='') return -1;
   key=String(key);
-  if(key.charAt(0)==='~'){ const n=parseInt(key.slice(1),10); return (arr[n] && !arr[n].id) ? n : -1; }
+  if(key.charAt(0)==='~'){ const n=parseInt(key.slice(1),10); return (arr[n] && !(arr[n].id && /^[A-Za-z0-9_-]{1,40}$/.test(String(arr[n].id)))) ? n : -1; }
   return arr.findIndex(function(r){ return r && r.id===key; });
 }
