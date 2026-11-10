@@ -162,8 +162,11 @@ function computePremium(doc, uid, env, now = Date.now()) {
   return Math.floor((now - startMs) / 86400000) < days;
 }
 
+// true / false, or null only when Firestore itself could not be reached (so a Google outage never locks people out).
+// No household, a malformed one, one the caller is not in, or one the rules refuse to show them all count as FREE: a
+// free account must not be able to dodge its daily limits just by leaving out or faking the X-Household header.
 async function isHouseholdPremium(idToken, uid, hh, env, fetchImpl = fetch) {
-  if (!hh || !/^[A-Za-z0-9_-]{3,40}$/.test(hh)) return null;
+  if (!hh || !/^[A-Za-z0-9_-]{3,40}$/.test(hh)) return false;
   const ck = uid + '|' + hh;
   const hit = premiumCache.get(ck);
   if (hit && Date.now() - hit.at < 60 * 1000) return hit.value;
@@ -172,7 +175,8 @@ async function isHouseholdPremium(idToken, uid, hh, env, fetchImpl = fetch) {
     const pid = env.FIREBASE_PROJECT_ID || 'bajeti-yanga';
     const r = await fetchImpl(`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/households/${encodeURIComponent(hh)}`,
       { headers: { Authorization: 'Bearer ' + idToken } });
-    if (r.ok) value = computePremium(await r.json(), uid, env);
+    if (r.ok) { const c = computePremium(await r.json(), uid, env); value = c === null ? false : c; }
+    else if (r.status === 403 || r.status === 404) value = false;
   } catch (_) { value = null; }
   if (premiumCache.size > 500) premiumCache.clear();
   premiumCache.set(ck, { at: Date.now(), value });
@@ -268,22 +272,23 @@ export default {
 
     // 3. daily limits
     const featureHeader = req.headers.get('X-AI-Feature');
-    const feature = FEATURES.includes(featureHeader) ? featureHeader : null;
+    // A request that names no (or an unknown) feature is counted as a chat message, so leaving the header out is no way round the limit.
+    const feature = FEATURES.includes(featureHeader) ? featureHeader : 'msg';
     const key = `u:${uid}:${catDate()}`;
     const counts = await readCounts(env, key);
     if (counts) {
       const hardCap = legacy ? num(env.LEGACY_DAILY_CAP, 1000) : num(env.HARD_DAILY_CAP, 300);
       if (counts.total >= hardCap) return fail(429, 'quota_exceeded', 'Daily limit reached.', req, env);
-      if (feature && !legacy) {
+      if (!legacy) {
         const premium = await isHouseholdPremium(idToken, uid, req.headers.get('X-Household'), env, fetchImpl);
-        if (premium === false) {                         // only enforce when we KNOW it is a free household
+        if (premium === false) {                         // only skipped when Firestore could not be reached (null)
           const limit = num(env['FREE_DAILY_' + { msg: 'MSGS', magic: 'MAGIC', scan: 'SCAN', summ: 'SUMM' }[feature]],
             { msg: 10, magic: 5, scan: 5, summ: 5 }[feature]);
           if ((counts[feature] || 0) >= limit) return fail(429, 'quota_exceeded', 'Daily limit reached.', req, env);
         }
       }
       counts.total = (counts.total || 0) + 1;
-      if (feature) counts[feature] = (counts[feature] || 0) + 1;
+      counts[feature] = (counts[feature] || 0) + 1;
       await writeCounts(env, key, counts);
     }
 
@@ -301,7 +306,7 @@ export default {
     if (!up || !up.ok) {                                // give the person their use back; it did not work
       if (counts) {
         counts.total = Math.max(0, (counts.total || 1) - 1);
-        if (feature) counts[feature] = Math.max(0, (counts[feature] || 1) - 1);
+        counts[feature] = Math.max(0, (counts[feature] || 1) - 1);
         await writeCounts(env, key, counts);
       }
     }

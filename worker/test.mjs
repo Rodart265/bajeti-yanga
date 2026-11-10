@@ -23,11 +23,11 @@ async function mint(over = {}, key = kp.privateKey, header = {}) {
 }
 
 // ── mocks ────────────────────────────────────────────────────────────────────
-let hhDoc = null, geminiStatus = 200, geminiCalls = 0, lastGeminiReq = null, jwksCalls = 0;
+let hhDoc = null, fsStatus = 403, geminiStatus = 200, geminiCalls = 0, lastGeminiReq = null, jwksCalls = 0;
 const mockFetch = async (url, init) => {
   url = String(url);
   if (url.includes('/jwk/securetoken')) { jwksCalls++; return new Response(JSON.stringify({ keys: [jwk] }), { status: 200 }); }
-  if (url.includes('firestore.googleapis.com')) return hhDoc ? new Response(JSON.stringify(hhDoc), { status: 200 }) : new Response('{}', { status: 403 });
+  if (url.includes('firestore.googleapis.com')) return hhDoc ? new Response(JSON.stringify(hhDoc), { status: 200 }) : new Response('{}', { status: fsStatus });
   if (url.includes('generativelanguage.googleapis.com')) {
     geminiCalls++; lastGeminiReq = { url, init };
     return new Response(JSON.stringify(geminiStatus === 200 ? { candidates: [{ content: { parts: [{ text: 'hi' }] } }] } : { error: { message: 'boom' } }), { status: geminiStatus, headers: { 'Content-Type': 'application/json' } });
@@ -154,9 +154,26 @@ console.log('\nDaily limits');
   last = await call({ token: await mint({ sub: 'refund' }), headers: { ...H, 'X-Household': 'refund01' } });
   ok('failed Gemini calls do not use up the daily allowance', last.res.status === 200);
 
-  kvStore.clear(); hhDoc = null;                            // Firestore read denied -> cannot tell -> do not block
-  for (let i = 0; i < 8; i++) last = await call({ token: await mint({ sub: 'unknown' }), headers: { ...H, 'X-Household': 'nothere1' } });
-  ok('cannot verify household -> fails open (no per-feature block)', last.res.status === 200);
+  kvStore.clear(); hhDoc = null; fsStatus = 403;            // Firestore refuses the read (not a member) -> treated as free
+  for (let i = 0; i < 6; i++) last = await call({ token: await mint({ sub: 'stranger' }), headers: { ...H, 'X-Household': 'nothere1' } });
+  ok('household the caller cannot read -> treated as free, per-feature limit applies', last.res.status === 429);
+
+  kvStore.clear(); hhDoc = fsDoc({ ...member });
+  for (let i = 0; i < 6; i++) last = await call({ token: await mint({ sub: 'nohh' }), headers: { 'X-AI-Feature': 'scan' } });
+  ok('no X-Household header -> treated as free, per-feature limit applies', last.res.status === 429);
+
+  kvStore.clear(); hhDoc = fsDoc({ ...member });
+  for (let i = 0; i < 11; i++) last = await call({ token: await mint({ sub: 'nofeat' }), headers: { 'X-Household': 'abc12345' } });
+  ok('no X-AI-Feature header -> counted as chat, chat limit (10) applies', last.res.status === 429);
+
+  kvStore.clear(); hhDoc = fsDoc({ ...member, memberUids: { arrayValue: { values: [{ stringValue: 'someone-else' }] } } });
+  for (let i = 0; i < 6; i++) last = await call({ token: await mint({ sub: 'user1' }), headers: { ...H, 'X-Household': 'other001' } });
+  ok('household that exists but the caller is not in -> treated as free', last.res.status === 429);
+
+  kvStore.clear(); hhDoc = null; fsStatus = 503;            // Firestore itself is down -> cannot tell -> do not block
+  for (let i = 0; i < 8; i++) last = await call({ token: await mint({ sub: 'outage' }), headers: { ...H, 'X-Household': 'outage01' } });
+  ok('Firestore outage -> fails open (no per-feature block)', last.res.status === 200);
+  fsStatus = 403;
 
   const noKv = { ...baseEnv(), QUOTA: undefined };
   last = await call({ token: await mint({ sub: 'nokv' }), headers: H, env: noKv });
