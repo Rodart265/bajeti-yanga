@@ -38,7 +38,8 @@ const TX = {
     markPaid:'Mark Paid',confirmMarkPaid:'Mark as paid?',confirmMarkPaidSub:'This logs an expense and moves the due date forward one month.',billPaidToast:'Bill marked as paid!',
     units:['kg','g','litres','ml','pieces','packets','bundles','bags','bottles','bars'],
     months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-    cats:{Food:'Food',Household:'Household',Transport:'Transport',Personal:'Personal',Other:'Other'}
+    cats:{Food:'Food',Household:'Household',Transport:'Transport',Personal:'Personal',Other:'Other'},
+    incomeSources:{salary:'Salary / Income',business:'Business Income',farm:'Farm Income',other:'Other Income'}
   },
   cw:{
     appTitle:'Bajeti Yanga',appSub:'Dziwani komwe ndalama zanu zimapita',
@@ -75,7 +76,7 @@ const TX = {
     markPaid:'Lembani Kuti Yalipidwa',confirmMarkPaid:'Mukufuna kulemba kuti bili yalipidwa?',confirmMarkPaidSub:'Izi zidzalembedwa ngati ndalama zotuluka ndipo tsiku lolipira lidzasunthira mwezi wotsatira.',billPaidToast:'Bili yalembedwa ngati yolipidwa!',
     units:['kg','g','malita','ml','mapisi','mapaketi','mitolo','matumba','mabotolo','mabar'],
     months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-    cats:{Food:'Chakudya',Household:'Zapakhomo',Transport:'Mayendedwe',Personal:'Zaumwini',Other:'Zina'},itemNames:{'Tomatoes':'Tomato','Onions':'Anyezi','Maize Flour (Ufa)':'Ufa','Cooking Oil':'Mafuta a Kuphikira','Sugar':'Shuga','Salt':'Mchere','Soap (bar)':'Sopo','Washing Powder':'Poda Yosambira','Rice':'Mpunga','Beans (Nyemba)':'Nyemba','Potatoes':'Mbatata','Cabbage':'Kabichi','Chicken':'Nkhuku','Fish (Nsomba)':'Nsomba','Bread':'Buledi','Milk':'Mkaka','Tea Leaves':'Tiyi','Charcoal':'Makala','Toilet Paper':'Pepala la Chimbudzi','Matches/Candles':'Machesi/Makandulo','Bathing Soap':'Sopo Wosamba','Toothpaste':'Mafuta a Galimoto a Mano','Airtime / Data':'Airtime/Data','Transport':'Mayendedwe','Fuel':'Mafuta a Galimoto','Electricity':'Magetsi','Rent':'Lenti','Diapers':'Matewera','Money Sent':'Ndalama Zotumizidwa','School Fees':'Ndalama za Sukulu','Other':'Zina'}
+    cats:{Food:'Chakudya',Household:'Zapakhomo',Transport:'Mayendedwe',Personal:'Zaumwini',Other:'Zina'},incomeSources:{salary:'Malipiro / Ndalama',business:'Ndalama za Bizinesi',farm:'Ndalama za Ulimi',other:'Ndalama Zina'},itemNames:{'Tomatoes':'Tomato','Onions':'Anyezi','Maize Flour (Ufa)':'Ufa','Cooking Oil':'Mafuta a Kuphikira','Sugar':'Shuga','Salt':'Mchere','Soap (bar)':'Sopo','Washing Powder':'Poda Yosambira','Rice':'Mpunga','Beans (Nyemba)':'Nyemba','Potatoes':'Mbatata','Cabbage':'Kabichi','Chicken':'Nkhuku','Fish (Nsomba)':'Nsomba','Bread':'Buledi','Milk':'Mkaka','Tea Leaves':'Tiyi','Charcoal':'Makala','Toilet Paper':'Pepala la Chimbudzi','Matches/Candles':'Machesi/Makandulo','Bathing Soap':'Sopo Wosamba','Toothpaste':'Mafuta a Galimoto a Mano','Airtime / Data':'Airtime/Data','Transport':'Mayendedwe','Fuel':'Mafuta a Galimoto','Electricity':'Magetsi','Rent':'Lenti','Diapers':'Matewera','Money Sent':'Ndalama Zotumizidwa','School Fees':'Ndalama za Sukulu','Other':'Zina'}
   }
 };
 
@@ -144,7 +145,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.19.1';
+const APP_VERSION = '9.19.2';
 // The AI proxy (Cloudflare Worker). One place to change it.
 const AI_URL = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
 // Premium plans: months -> price in MWK. Keep equal to PRICES in functions/lib.js (tests/prices.test.js checks it).
