@@ -6,3 +6,17 @@ functions/.env
 functions/.env.*
 .dev.vars
 *.log
+
+# Secrets and key files: never commit these (added 9.18.1)
+# A downloaded Firebase / Google service-account key must stay out of the repo. Keep it only as a Cloudflare secret.
+serviceAccount*.json
+serviceaccount*.json
+*service-account*.json
+*-firebase-adminsdk-*.json
+*.pem
+*.key
+*.p12
+*.pfx
+.env.*
+.dev.vars.*
+pay-worker/.dev.vars
