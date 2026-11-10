@@ -329,7 +329,7 @@ function rHome(){
       h+='<div class="pri">';
       h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
       h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
-      h+=(p.notes?'<div class="prnote">'+esc(p.notes)+'</div>':'');
+      h+=(cleanNote(p.notes)?'<div class="prnote">'+esc(cleanNote(p.notes))+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
       if(!isSolo())h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
       h+='</div></div>';

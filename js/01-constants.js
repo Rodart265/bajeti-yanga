@@ -100,17 +100,19 @@ const DEF_USERS = [
 ];
 const DEF_CFG = {items:DEF_ITEMS,users:DEF_USERS,overallBudget:400000,goals:[],salaryDay:0};
 
+// One line icon, same look as the others in ITEM_ICONS (the food and household items used to be emoji).
+const _ic = (n, c) => '<i data-lucide="' + n + '" style="width:18px;height:18px;color:' + c + ';vertical-align:middle"></i>';
 const ITEM_ICONS = {
-  'Tomatoes':'&#127813;','Onions':'&#129477;','Maize Flour (Ufa)':'&#127805;',
+  'Tomatoes':_ic('apple','#E53935'),'Onions':_ic('salad','#8E24AA'),'Maize Flour (Ufa)':_ic('wheat','#F9A825'),
   'Cooking Oil':'<i data-lucide="droplet" style="width:18px;height:18px;color:#F9A825;vertical-align:middle"></i>',
   'Sugar':'<i data-lucide="package" style="width:18px;height:18px;color:#42A5F5;vertical-align:middle"></i>',
-  'Salt':'&#129474;','Soap (bar)':'&#129532;','Washing Powder':'&#129767;',
-  'Rice':'&#127834;','Beans (Nyemba)':'&#129752;','Potatoes':'&#129364;','Cabbage':'&#129388;',
-  'Chicken':'&#127831;','Fish (Nsomba)':'&#128031;','Bread':'&#127838;','Milk':'&#129371;',
-  'Tea Leaves':'&#127861;',
+  'Salt':_ic('cooking-pot','#78909C'),'Soap (bar)':_ic('sparkles','#26A69A'),'Washing Powder':_ic('washing-machine','#1E88E5'),
+  'Rice':_ic('soup','#8D6E63'),'Beans (Nyemba)':_ic('bean','#8D6E63'),'Potatoes':_ic('carrot','#A1887F'),'Cabbage':_ic('leafy-green','#43A047'),
+  'Chicken':_ic('drumstick','#EF6C00'),'Fish (Nsomba)':_ic('fish','#1E88E5'),'Bread':_ic('croissant','#E09F3E'),'Milk':_ic('milk','#5C6BC0'),
+  'Tea Leaves':_ic('coffee','#6D4C41'),
   'Charcoal':'<i data-lucide="flame" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
-  'Toilet Paper':'&#129531;','Matches/Candles':'&#128367;',
-  'Bathing Soap':'&#129524;','Toothpaste':'&#129463;',
+  'Toilet Paper':_ic('scroll','#78909C'),'Matches/Candles':_ic('flame-kindling','#F57C00'),
+  'Bathing Soap':_ic('bath','#EC407A'),'Toothpaste':_ic('smile','#00ACC1'),
   'Airtime / Data':'<i data-lucide="smartphone" style="width:18px;height:18px;color:#1565C0;vertical-align:middle"></i>',
   'Transport':'<i data-lucide="bus" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
   'Fuel':'<i data-lucide="fuel" style="width:18px;height:18px;color:#E65100;vertical-align:middle"></i>',
@@ -142,7 +144,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.18.1';
+const APP_VERSION = '9.19.0';
 // The AI proxy (Cloudflare Worker). One place to change it.
 const AI_URL = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
 // Premium plans: months -> price in MWK. Keep equal to PRICES in functions/lib.js (tests/prices.test.js checks it).

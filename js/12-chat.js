@@ -313,7 +313,7 @@ function renderBubbles(){
       actionCard='<div class="ai-action-card">'
         +'<div class="aac-title"><i data-lucide="plus-circle" style="width:14px;height:14px"></i> Log this entry?</div>'
         +'<div class="aac-item"><span class="aac-name">'+esc(pa.item)+'</span><span class="aac-amt">MK '+Number(pa.amount).toLocaleString()+'</span>'
-        +'<button class="aac-confirm" onclick="confirmAiAction('+idx+')">Add ✓</button>'
+        +'<button class="aac-confirm" onclick="confirmAiAction('+idx+')">Add</button>'
         +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">No</button></div>'
         +'</div>';
     }
@@ -332,7 +332,7 @@ function renderBubbles(){
         +'<div class="aac-title"><i data-lucide="plus-circle" style="width:14px;height:14px"></i> Log '+pa.items.length+' item'+(pa.items.length>1?'s':'')+'?</div>'
         +pa.items.map(function(it){return '<div class="aac-item"><span class="aac-name">'+esc(it.item)+'</span><span class="aac-amt">MK '+Number(it.amount||0).toLocaleString()+'</span></div>';}).join('')
         +'<div style="display:flex;gap:8px;margin-top:4px">'
-        +'<button class="aac-confirm" onclick="confirmAiAction('+idx+')" style="flex:1">Log All ✓</button>'
+        +'<button class="aac-confirm" onclick="confirmAiAction('+idx+')" style="flex:1">Log All</button>'
         +'<button class="aac-dismiss" onclick="dismissAiAction('+idx+')">No</button></div>'
         +'</div>';
     }
@@ -414,7 +414,7 @@ function confirmAiAction(msgIdx){
     let ts=Date.now();
     const userId=actU().id;
     Promise.all((pa.items||[]).map(function(it){
-      return addPx({item:String(it.item||'').trim(),date:today(),timestamp:ts++,amount:Number(it.amount)||0,notes:'Added via Magic Log ✨',userId,type:it.type==='income'?'income':'expense',cat:it.cat||'Other',recurring:false});
+      return addPx({item:String(it.item||'').trim(),date:today(),timestamp:ts++,amount:Number(it.amount)||0,notes:'Added via Magic Log',userId,type:it.type==='income'?'income':'expense',cat:it.cat||'Other',recurring:false});
     })).then(function(r){
       const n=r.filter(Boolean).length;
       if(n) toast(lang==='cw'?n+' zolemba zalembedwa.':n+' item'+(n>1?'s':'')+' logged.','s');
@@ -920,7 +920,7 @@ async function scanReceiptFromChat(input){
       const pb=document.getElementById('scan-progress-bubble'); if(pb)pb.remove();
 
       // Build result message and save to chat history
-      let msg=(lang==='cw'?'&#10024; Ndasankha zinthu '+items.length+' pachithunzi cha risiti:':'&#10024; Found '+items.length+' item(s) from your receipt:')+'\n\n';
+      let msg=(lang==='cw'?'Ndasankha zinthu '+items.length+' pachithunzi cha risiti:':'Found '+items.length+' item(s) from your receipt:')+'\n\n';
       items.forEach(function(tx){msg+='\u2022 **'+String(tx.item||'')+'**: MK '+Number(tx.amount||0).toLocaleString()+'\n';});
       msg+='\n'+(lang==='cw'?'Mukufuna kuti ndizilembe? Nenani kuti "zilembeni" ndipo ndiziwonjezera ku zotuluka zanu.':'Want me to log these? Just say "log them" and I\'ll add them to your expenses.');
 
@@ -1007,11 +1007,11 @@ function renderMagicResults(){
      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:'+(isKnown?'0':'9px')+'">'
      +'<div style="flex:1;min-width:0">'
      +'<div style="font-size:.88rem;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px">'+esc(String(tx.item||''))+'</div>'
-     +(isKnown?'<div style="font-size:.72rem;color:var(--p1-text);font-weight:700">✓ In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.72rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'Sankhani gulu':'Pick a category')+'</div>')
+     +(isKnown?'<div style="font-size:.72rem;color:var(--p1-text);font-weight:700"><i data-lucide="check" style="width:12px;height:12px;vertical-align:-2px;margin-right:3px"></i>In your items · '+esc(tx.cat||'')+'</div>':'<div style="font-size:.72rem;color:var(--mid);font-weight:600">'+(lang==='cw'?'Sankhani gulu':'Pick a category')+'</div>')
      +'</div>'
      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">'
      +'<span style="font-size:.84rem;font-weight:800;color:'+(tx.type==='income'?'var(--pos)':'var(--neg)')+'">MK '+Number(tx.amount||0).toLocaleString()+'</span>'
-     +(ok?'<span style="color:var(--p1-text)">✓</span>':'')+'</div></div>';
+     +(ok?'<span style="color:var(--p1-text)"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px"></i></span>':'')+'</div></div>';
     if(!isKnown){
       h+='<div style="display:flex;flex-wrap:wrap;gap:5px">';
       CAT_OPTS.forEach(ct=>{const sel=tx.cat===ct.key;h+='<button data-cat="'+ct.key+'" onclick="setMagicTxCat('+idx+',\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>';});
@@ -1024,6 +1024,7 @@ function renderMagicResults(){
 function setMagicTxCat(idx,cat){
   if(!pendingMagicTxs[idx])return;
   pendingMagicTxs[idx].cat=cat;
+  pendingMagicTxs[idx]._picked=true;   // the person chose this one, so it is worth remembering
   const el=g('magic-results');
   if(el){
     el.innerHTML=renderMagicResults();
@@ -1103,11 +1104,30 @@ async function processMagicLog() {
   }
 }
 
+// Remember the category the person picked for an item name, so the next Magic Log entry with that name starts there.
+// Kept in the household settings as config.catMemory, a list of "name|Category" (newest last, newest 150 kept), shared by all members.
+function rememberCats(list){
+  if(!list || !list.length || !lCfg) return;
+  const OK=['Food','Household','Personal','Transport','Other'];
+  let mem=Array.isArray(lCfg.catMemory) ? lCfg.catMemory.filter(e=>typeof e==='string' && e.lastIndexOf('|')>0) : [];
+  const before=JSON.stringify(mem);
+  list.forEach(x=>{
+    const k=String(x.item||'').toLowerCase().replace(/\s+/g,' ').trim().slice(0,60);
+    if(!k || OK.indexOf(x.cat)<0) return;
+    mem=mem.filter(e=>e.slice(0,e.lastIndexOf('|'))!==k);
+    mem.push(k+'|'+x.cat);
+  });
+  if(mem.length>150) mem=mem.slice(-150);
+  if(JSON.stringify(mem)===before) return;
+  saveCfg(Object.assign({},lCfg,{catMemory:mem}));
+}
+
 function saveMagicTxs() {
   const RESERVED_NAMES = ['other','ena','food','transport','household','personal','unknown','other income','zina'];
   const fallbackDate = today();
   let ts = new Date().getTime();
   let saved = 0, skipped = 0;
+  const _picks = [];
   pendingMagicTxs.forEach(tx => {
     const rawName = String(tx.item || '').trim();
     if (!rawName || RESERVED_NAMES.includes(rawName.toLowerCase())) {
@@ -1129,12 +1149,14 @@ function saveMagicTxs() {
       timestamp: ts++,
       amount: amt,
       cat: tx.cat || 'Other',
-      notes: 'Added via Magic Log ✨',
+      notes: 'Added via Magic Log',
       userId: actU().id,
       type: tx.type === 'income' ? 'income' : 'expense'
     });
+    if (tx._picked) _picks.push({ item: rawName.slice(0,100), cat: tx.cat });
     saved++;
   });
+  rememberCats(_picks);
   if (saved > 0) {
     closeM('mv-magic');
     toast((lang==='cw'?'Zolemba zasungidwa!':'Transactions Saved!'),'s');

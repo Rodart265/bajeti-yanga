@@ -356,9 +356,11 @@ function renderSetupJoinChoice(){
         +'<i data-lucide="plus-circle" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Pangani Yatsopano':'Create New')+'</button>'
       +'<button class="setup-btn outline" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="renderSetupJoinForm()">'
         +'<i data-lucide="log-in" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Lowani Ina':'Join Existing')+'</button>'
-    +'</div>';
+    +'</div>'
+    +'<div id="setup-deleted" class="dh-box" style="display:none"></div>';
   setupErr('');
   if(window.lucide) lucide.createIcons({nodes:[box]});
+  loadDeletedHouseholds();
 }
 
 function renderSetupJoinForm(){
@@ -624,6 +626,115 @@ function switchHousehold(){
   );
 }
 
+// ── Delete this household (owner only) ──────────────────────────────────────
+// Different from Delete Account: the login stays, only this household is scheduled for deletion, and the owner can
+// restore it from the setup screen for 30 days. Other members are taken out of it the next time their app hears about it.
+function openDeleteHousehold(){
+  if(!curUser || !hhId || !lHHDoc || lHHDoc.owner!==curUser.uid){ toast('Only the owner can delete a household.','e'); return; }
+  const nm = lHHDoc.name ? esc(lHHDoc.name) : L('this household','this household');
+  const total = Array.isArray(lHHDoc.memberUids) ? lHHDoc.memberUids.length : (lCfg.users||[]).length;
+  const others = Math.max(0, total-1);
+  let ps = null; try{ ps = typeof getPremiumStatus==='function' ? getPremiumStatus() : null; }catch(e){}
+  const box = g('mb-confirm');
+  box.innerHTML = ''
+    +'<div style="text-align:center;padding:10px 0 6px">'
+    +'<div style="width:56px;height:56px;border-radius:var(--cr);background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="trash-2" style="width:28px;height:28px;color:#C62828"></i></div>'
+    +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;color:#C62828;margin-bottom:8px">'+L('Delete this household?','Delete this household?')+'</div>'
+    +'<div style="font-size:.82rem;color:var(--mid);line-height:1.6;margin-bottom:4px">'+L('You are about to delete','You are about to delete')+' <strong style="color:var(--ink)">'+nm+'</strong>'
+      +(others>0 ? '. '+others+' other member'+(others===1?'':'s')+' will lose access.' : '.')+' '+L('Your login is not deleted.','Your login is not deleted.')+'</div>'
+    +(ps && ps.isPremium ? '<div style="background:#FFF3E0;border:1.5px solid #FFB74D;border-radius:var(--cr-md);padding:9px 12px;margin:10px 0 0;font-size:.76rem;color:#E65100;line-height:1.6;text-align:left">'+L('This household has Premium. Premium belongs to the household, so it goes with it.','This household has Premium. Premium belongs to the household, so it goes with it.')+'</div>' : '')
+    +'<div style="background:#FFF3E0;border:1.5px solid #FFB74D;border-radius:var(--cr-md);padding:9px 12px;margin:10px 0;font-size:.76rem;color:#E65100;line-height:1.6;text-align:left">'
+    +L('You can restore it from the setup screen for <strong>30 days</strong>. After that it can no longer be restored.','You can restore it from the setup screen for <strong>30 days</strong>. After that it can no longer be restored.')
+    +'</div></div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+L('No, keep it','Ayi, sungani')+'</button>'
+    +'<button style="flex:1;background:linear-gradient(135deg,#C62828,#E53935);color:#fff;border:none;border-radius:var(--cr-md);padding:12px;font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(198,40,40,.3)" onclick="closeM(\'mv-confirm\');_confirmDeleteHousehold()">'+L('Yes, delete it','Yes, delete it')+'</button>'
+    +'</div>';
+  if(window.lucide) lucide.createIcons({nodes:[box]});
+  openM('mv-confirm');
+}
+
+function _confirmDeleteHousehold(){
+  if(!curUser || !hhId || !lHHDoc || lHHDoc.owner!==curUser.uid) return;
+  const uid = curUser.uid, hid = hhId, FV = firebase.firestore.FieldValue;
+  const until = new Date(Date.now()+30*24*60*60*1000).toISOString();
+  const batch = db.batch();
+  batch.update(db.collection('households').doc(hid), { deletedAt:FV.serverTimestamp(), deletedBy:uid, restoreBefore:until });
+  const upd = { ownedHouseholds:FV.arrayRemove(hid), householdId:FV.delete() };
+  upd['deletedHouseholds.'+hid] = { name:String(lHHDoc.name||'').slice(0,60), until:until };
+  batch.update(db.collection('users').doc(uid), upd);
+  window._hhDeleting = true;
+  batch.commit().then(()=>{
+    window._hhDeleting = false;
+    handleHouseholdDeleted({ owner:uid });
+  }).catch(()=>{
+    window._hhDeleting = false;
+    toast(L('Could not delete the household. Check your connection and try again.','Could not delete the household. Check your connection and try again.'),'e');
+  });
+}
+
+// Leaves a deleted household and goes to the setup screen. Safe to call twice (the second call finds nothing to do).
+function handleHouseholdDeleted(d){
+  if(!hhId) return;
+  const mine = !!(curUser && d && d.owner===curUser.uid);
+  if(unsubHH){ unsubHH(); unsubHH=null; }
+  if(unsub){ unsub(); unsub=null; }
+  if(unsubJoinBadge){ unsubJoinBadge(); unsubJoinBadge=null; }
+  clearTimeout(window._recurTimer);
+  localStorage.removeItem('nb_household'); localStorage.removeItem('nb_uid'); localStorage.removeItem('nb_pending_join');
+  hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[]; lHHDoc={};
+  window._userOwnedHouseholds = null;
+  if(curUser && !mine){ db.collection('users').doc(curUser.uid).update({householdId:firebase.firestore.FieldValue.delete()}).catch(()=>{}); }
+  setDot('off');
+  hide('scr-auth'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
+  g('app').classList.add('hide');
+  show('scr-setup');
+  toast(mine ? L('Household deleted. You can restore it from this screen for 30 days.','Household deleted. You can restore it from this screen for 30 days.')
+             : L('The owner deleted this household. Create a new one or join another.','The owner deleted this household. Create a new one or join another.'), mine?'i':'e');
+}
+
+// Setup screen: households this person deleted in the last 30 days, with a Restore button.
+function loadDeletedHouseholds(){
+  const slot = g('setup-deleted');
+  const u = auth && auth.currentUser;
+  if(!slot || !u) return;
+  db.collection('users').doc(u.uid).get().then(snap=>{
+    const slot2 = g('setup-deleted'); if(!slot2 || !snap || !snap.exists) return;
+    const m = (snap.data()||{}).deletedHouseholds;
+    if(!m || typeof m!=='object') return;
+    const now = Date.now(), rows = [];
+    Object.keys(m).forEach(id=>{
+      const e = m[id]; if(!_validCode(id) || !e || typeof e!=='object') return;
+      const ms = new Date(e.until).getTime(); if(!(ms>now)) return;
+      const days = Math.max(1, Math.ceil((ms-now)/86400000));
+      rows.push('<div class="dh-row"><div class="dh-info"><div class="dh-name">'+esc(e.name||L('Deleted household','Deleted household'))+'</div>'
+        +'<div class="dh-sub">'+days+' day'+(days===1?'':'s')+' '+L('left to restore','left to restore')+'</div></div>'
+        +'<button class="dh-btn" type="button" data-hid="'+id+'" onclick="restoreHouseholdD(this)">'+L('Restore','Restore')+'</button></div>');
+    });
+    if(rows.length){
+      slot2.innerHTML = '<div class="dh-title">'+L('Recently deleted','Recently deleted')+'</div>'+rows.join('');
+      slot2.style.display = '';
+    }
+  }).catch(()=>{});
+}
+function restoreHouseholdD(el){ restoreHousehold(el && el.dataset ? el.dataset.hid : ''); }
+function restoreHousehold(hid){
+  const u = auth && auth.currentUser;
+  if(!u){ toast(L('Not signed in.','Simunalowe mu akaunti.'),'e'); return; }
+  if(!_validCode(hid)) return;
+  const FV = firebase.firestore.FieldValue;
+  const batch = db.batch();
+  batch.update(db.collection('households').doc(hid), { deletedAt:null, deletedBy:null, restoreBefore:null });
+  const upd = { ownedHouseholds:FV.arrayUnion(hid), householdId:hid };
+  upd['deletedHouseholds.'+hid] = FV.delete();
+  batch.update(db.collection('users').doc(u.uid), upd);
+  batch.commit().then(()=>{
+    try{ localStorage.setItem('nb_household', hid); }catch(e){}
+    toast(L('Household restored.','Household restored.'),'s');
+    authReg=false; bootApp();
+  }).catch(()=>toast(L('Restore failed. Check your connection.','Kubwezeretsa kwalephera. Onani intaneti yanu.'),'e'));
+}
+
 function cancelPendingJoin(){
   // Reload instead of manually rebuilding the setup screen: the pending-approval
   // markup replaced the setup-card's original HTML in place, so there's nothing
@@ -701,6 +812,11 @@ function joinHH(){
       const hhExists = !!(doc && doc.exists), invExists = !!(inv && inv.exists);
       if(!hhExists && !invExists){setDot('off');setupErr(lang==='cw'?'Khodi imeneyi sinapezeke. Onani ngati mwailemba bwino, kapena pangani nyumba yatsopano.':'That code doesn\'t exist. Double-check it with your household owner, or create your own household to get started.');return;}
       const hhData = hhExists ? (doc.data()||{}) : {}, invData = invExists ? (inv.data()||{}) : {};
+      if(hhExists && hhData.deletedAt){
+        setDot('off');
+        setupErr(L('That household was deleted by its owner.','That household was deleted by its owner.'));
+        return;
+      }
       // The invite's expiresAt (a Firestore timestamp) is authoritative; the old joinCodeExpiry field (ms) is still honoured.
       const _exp = invData.expiresAt ? _toMs(invData.expiresAt) : (hhData.joinCodeExpiry||0);
       if(_exp && Date.now() > _exp){
@@ -847,6 +963,13 @@ function connectHH(code){
       // with old households created before that field existed.
       if(curUser && Array.isArray(d.memberUids) && !d.memberUids.includes(curUser.uid) && curUser.uid !== d.owner){
         handleRemovedFromHousehold();
+        return;
+      }
+      // The owner deleted this household (its own account deletion does the same). Everyone is taken out of it.
+      // Ignored while this device's own delete is still being written, so a failed write can't strand the person.
+      if(d.deletedAt){
+        if(window._hhDeleting || (doc.metadata && doc.metadata.hasPendingWrites)) return;
+        handleHouseholdDeleted(d);
         return;
       }
       lHHDoc = d;

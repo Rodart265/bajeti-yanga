@@ -28,6 +28,8 @@ function _expiryEnd(e){
   if(/^\d{4}-\d{2}-\d{2}$/.test(str)){ const p=str.split('-'); return new Date(+p[0],+p[1]-1,+p[2],23,59,59); }
   return new Date(e);
 }
+// Notes saved by older versions end with a sparkle emoji (U+2728) after "Added via Magic Log". Show them without it.
+function cleanNote(n){ return String(n==null?'':n).replace(/[\u2728\uFE0F]/g,'').trim(); }
 function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return esc(p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s); }
 // Returns true if the stored item name is a reserved category label (data quality flag)
 function isBadItemName(n){ return ['other','ena','food','transport','household','personal','unknown','other income','zina'].includes(String(n||'').toLowerCase().trim()); }
@@ -44,11 +46,17 @@ const catOf = (name, explicitCat) => {
   if(explicitCat && ['Food','Household','Personal','Transport','Other'].includes(explicitCat) && explicitCat!=='Other'){
     return explicitCat;
   }
-  // 2. lCfg.items definition (budget item's own assigned category)
-  const item = lCfg&&lCfg.items ? lCfg.items.find(it=>it.name===name) : null;
+  // 1b. What this household chose last time for this item name (list of "name|Category", newest last; see rememberCats in js/12-chat.js).
+  const kk = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const key = kk(name);
+  const mem = lCfg && Array.isArray(lCfg.catMemory) ? lCfg.catMemory : null;
+  if(key && mem){ for(let i=mem.length-1;i>=0;i--){ const e=mem[i]; if(typeof e!=='string') continue; const p=e.lastIndexOf('|'); if(p>0 && e.slice(0,p)===key){ const c=e.slice(p+1); if(['Food','Household','Personal','Transport','Other'].includes(c)) return c; break; } } }
+  // 2. lCfg.items definition (budget item's own assigned category). Names match ignoring capital letters and extra spaces,
+  //    so an item typed or extracted as "Cooking oil" finds "Cooking Oil" instead of falling through to Other.
+  const item = lCfg&&lCfg.items ? (lCfg.items.find(it=>it.name===name) || (key ? lCfg.items.find(it=>kk(it.name)===key) : null)) : null;
   if(item&&item.cat&&['Food','Household','Personal','Transport','Other'].includes(item.cat)) return item.cat;
   // 3. Built-in category map
-  for(const[c,a] of Object.entries(ITEM_CATS)){ if(a.includes(name)) return c; }
+  for(const[c,a] of Object.entries(ITEM_CATS)){ if(a.includes(name) || (key && a.some(x=>kk(x)===key))) return c; }
   // 4. Keyword-based fallback for custom/AI-extracted items
   const n=(name||'').toLowerCase();
   if(['plug','socket','cable','wire','switch','extension','bulb','battery','torch','charger','adaptor','adapter','power bank','powerbank'].some(k=>n.includes(k))) return 'Household';

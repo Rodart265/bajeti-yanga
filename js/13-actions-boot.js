@@ -82,7 +82,7 @@ function viewItem(name){
     txs.slice().sort((a,b)=>b.timestamp-a.timestamp).forEach(p=>{
       const u=uById(p.userId);
       h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;padding:8px 10px;background:var(--mist);border-radius:10px">';
-      h+='<div><div style="font-weight:700">'+fmtDate(p.date)+'</div><div style="color:var(--mid)">'+esc(u.name)+(p.notes?' · '+esc(p.notes):'')+'</div></div>';
+      h+='<div><div style="font-weight:700">'+fmtDate(p.date)+'</div><div style="color:var(--mid)">'+esc(u.name)+(cleanNote(p.notes)?' · '+esc(cleanNote(p.notes)):'')+'</div></div>';
       h+='<span style="color:var(--neg);font-weight:700">'+MK(p.amount)+'</span></div>';
     });
     h+='</div>';

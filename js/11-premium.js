@@ -592,9 +592,9 @@ function checkNameChange(){
   localStorage.setItem('nb_name_notif_v5','1');
   const div=document.createElement('div');
   div.className='name-notif';
-  var notifHTML='<h4>&#127881; We have a new name!</h4>';
+  var notifHTML='<h4>We have a new name!</h4>';
   notifHTML+='<p>Bajeti Yanga is the new name for Nyumba Budget -- same app, fresh identity!</p>';
-  notifHTML+='<div class="name-notif-btns"><button style="background:#fff;color:var(--p1-text)" onclick="dismissNameNotif()">Got it! ✓</button></div>';
+  notifHTML+='<div class="name-notif-btns"><button style="background:#fff;color:var(--p1-text)" onclick="dismissNameNotif()">Got it</button></div>';
   div.innerHTML=notifHTML;
   document.body.appendChild(div);
   setTimeout(()=>{ if(div.parentNode)div.remove(); },8000);

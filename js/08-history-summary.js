@@ -105,7 +105,7 @@ function rHist(){
         h+='<div class="plb"><div class="pltop">';
         h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+esc(catLabel)+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
-        if(p.notes) h+='<div class="plnote">'+esc(p.notes)+'</div>';
+        if(cleanNote(p.notes)) h+='<div class="plnote">'+esc(cleanNote(p.notes))+'</div>';
         var _who=isSolo()?'':'<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
         var _qty=p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'';
         if(_who||_qty) h+='<div class="plrow2">'+_who+_qty+'</div>';
@@ -245,7 +245,7 @@ function openEP(id){
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="ep-amt" value="'+esc(p.amount)+'" inputmode="decimal"></div></div>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="ep-date" value="'+esc(p.date)+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ep-time" value="'+esc(pt)+'"></div></div>';
   if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+esc(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
-  h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+esc(p.notes||'')+'"></div>';
+  h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+esc(cleanNote(p.notes))+'"></div>';
   if(!isI) h+='<div class="fsec"><label style="display:flex;align-items:center;gap:8px;font-size:.84rem;font-weight:600;min-height:44px"><input type="checkbox" id="ep-rec" '+(p.recurring?'checked':'')+' style="width:20px;height:20px"> '+(lang==='cw'?'Bwerezani nthawi iliyonse':'Repeat every budget period')+'</label></div>';
   h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
   g('mb-ep').innerHTML=h; initIcons(); openM('mv-ep');
@@ -411,7 +411,7 @@ function rSum(){
     lCfg.goals.forEach((gl,i)=>{
       const pct=Math.min(gl.saved/gl.target,1),done=gl.saved>=gl.target,mn=goalMonthlyNeed(gl),ml=goalMonthsLeft(gl.deadline);
       h+='<div class="goal-card" onclick="go(&quot;stg&quot;);stgOpenSection(&quot;goals&quot;)" style="cursor:pointer'+(done?';background:var(--pos-bg)':'')+'">';
-      h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:var(--pos)"':'')+'>'+( done?'&#127881; ':'')+esc(gl.name)+'</div><div class="goal-pct"'+(done?' style="color:var(--pos)"':'')+'>'+Math.round(pct*100)+'%</div></div>';
+      h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:var(--pos)"':'')+'>'+( done?'<i data-lucide="party-popper" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px"></i>':'')+esc(gl.name)+'</div><div class="goal-pct"'+(done?' style="color:var(--pos)"':'')+'>'+Math.round(pct*100)+'%</div></div>';
       h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
       h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
       if(!done&&mn!==null)h+='<div style="margin-top:5px;font-size:.72rem;color:var(--gold-ink);font-weight:700"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'mo')+(ml?' · '+ml+(lang==='cw'?' miyezi':' mths'):'')+'</div>';

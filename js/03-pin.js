@@ -438,6 +438,8 @@ function openDeleteAccount(){
   if(!curUser){toast((lang==='cw'?'Simunalowe mu akaunti.':'Not signed in.'),'e');return;}
   const isCWdel = lang === 'cw';
   const firstName = curUser.displayName ? esc(curUser.displayName.split(' ')[0]) : (isCWdel ? 'akaunti yanu' : 'your account');
+  const _ownDel = !!(hhId && lHHDoc && lHHDoc.owner===curUser.uid);
+  const _hhNm = _ownDel && lHHDoc.name ? esc(lHHDoc.name) : '';
   // Step 1 — warning modal
   const box = g('mb-confirm');
   box.innerHTML = ''
@@ -445,7 +447,10 @@ function openDeleteAccount(){
     +'<div style="width:56px;height:56px;border-radius:var(--cr);background:#FFEBEE;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'
     +'<i data-lucide="trash-2" style="width:28px;height:28px;color:#C62828"></i></div>'
     +'<div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;color:#C62828;margin-bottom:8px">'+(isCWdel?'Muchotse Akaunti?':'Delete Account?')+'</div>'
-    +'<div style="font-size:.82rem;color:var(--mid);line-height:1.6;margin-bottom:4px">'+(isCWdel?'Mukufuna kuchotsa akaunti ya <strong style="color:var(--ink)">'+firstName+'</strong> ndi data yonse ya nyumba.':'You are about to delete <strong style="color:var(--ink)">'+firstName+' account</strong> and all household data.')+'</div>'
+    +'<div style="font-size:.82rem;color:var(--mid);line-height:1.6;margin-bottom:4px">'+(isCWdel?'Mukufuna kuchotsa akaunti ya <strong style="color:var(--ink)">'+firstName+'</strong> ndi data yonse ya nyumba.'
+      :(_ownDel ? 'You are about to delete <strong style="color:var(--ink)">'+firstName+' account</strong> (your login) and the household you own'+(_hhNm?' (<strong style="color:var(--ink)">'+_hhNm+'</strong>)':'')+'. Other members will lose access.'
+                : 'You are about to delete <strong style="color:var(--ink)">'+firstName+' account</strong> (your login). You will leave your household; its data stays with the owner.'))+'</div>'
+    +(_ownDel ? '<div style="font-size:.76rem;color:var(--mid);line-height:1.5;margin:6px 0 0">'+L('Only want to remove this household and keep your login? Tap No, then use Delete this household in Settings.','Only want to remove this household and keep your login? Tap No, then use Delete this household in Settings.')+'</div>' : '')
     +'<div style="background:#FFF3E0;border:1.5px solid #FFB74D;border-radius:var(--cr-md);padding:9px 12px;margin:10px 0;font-size:.76rem;color:#E65100;line-height:1.6;text-align:left">'
     +'<i data-lucide="alert-triangle" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"></i>'
     +(isCWdel?'Data yanu isungidwa kwa <strong>masiku 30</strong>. Lowani m\'pulogalamuyi mkati mwa masiku 30 kuti muibweze. Atatha, imatha kwathunthu.':'Your data is kept for <strong>30 days</strong>. Log back in within 30 days to restore it. After that, it is gone permanently.')
