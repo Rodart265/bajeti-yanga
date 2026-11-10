@@ -15,6 +15,8 @@ const used = new Map();
 files.forEach((f) => {
   const s = fs.readFileSync(path.join(root, f), 'utf8');
   for (const m of s.matchAll(/data-lucide=\\?"([a-z0-9-]+)\\?"/g)) { if (!used.has(m[1])) used.set(m[1], f); }
+  // Item icons are built with _ic('name', colour) in js/01-constants.js, so the name is not next to data-lucide there.
+  for (const m of s.matchAll(/\b_ic\(\s*'([a-z0-9-]+)'/g)) { if (!used.has(m[1])) used.set(m[1], f); }
 });
 test('every icon named in the app exists in vendor/icons.min.js (' + used.size + ' names)', () => {
   const missing = [...used].filter(([n]) => !have.has(n)).map(([n, f]) => n + ' (' + f + ')');
