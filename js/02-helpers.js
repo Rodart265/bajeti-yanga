@@ -263,3 +263,25 @@ function recIdx(arr,key){
   if(key.charAt(0)==='~'){ const n=parseInt(key.slice(1),10); return (arr[n] && !(arr[n].id && /^[A-Za-z0-9_-]{1,40}$/.test(String(arr[n].id)))) ? n : -1; }
   return arr.findIndex(function(r){ return r && r.id===key; });
 }
+
+// Work out which records of the three lists (items, bills, goals) changed between two copies of the settings, so each
+// changed record can also be saved as its own document (households/{code}/items|bills|goals/{id}). Pure function: it
+// only returns what to write; js/05-household.js does the writing. Records without a plain id are skipped.
+// A list that is missing from `next` is left alone (never treated as "everything was deleted").
+// Each record is written with its list position as `order`, so a re-ordered list is saved in the new order too.
+function recMirrorOps(prev,next){
+  const out={set:[],del:[]}, plain=/^[A-Za-z0-9_-]{1,40}$/;
+  ['items','bills','goals'].forEach(function(k){
+    if(!next || !Array.isArray(next[k])) return;
+    const a=(prev && Array.isArray(prev[k]))?prev[k]:[], old={}, seen={};
+    a.forEach(function(r,i){ if(r && typeof r==='object' && r.id && plain.test(String(r.id))) old[String(r.id)]={json:JSON.stringify(r),idx:i}; });
+    next[k].forEach(function(r,i){
+      if(!r || typeof r!=='object' || !r.id || !plain.test(String(r.id))) return;
+      const id=String(r.id); seen[id]=1;
+      const o=old[id];
+      if(!o || o.json!==JSON.stringify(r) || o.idx!==i) out.set.push({col:k,id:id,data:JSON.parse(JSON.stringify(Object.assign({},r,{order:i})))});
+    });
+    Object.keys(old).forEach(function(id){ if(!seen[id]) out.del.push({col:k,id:id}); });
+  });
+  return out;
+}

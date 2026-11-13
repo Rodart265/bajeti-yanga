@@ -585,7 +585,8 @@ function markBillPaid(key){
         txn.update(hhRef,{'config.bills':bills});
         return bills;
       }).then(function(bills){
-        lCfg=Object.assign({},lCfg,{bills:bills}); _invalidateMemo(); setDot(''); toast(t.billPaidToast,'s'); render();
+        const _prevCfg=lCfg;
+        lCfg=Object.assign({},lCfg,{bills:bills}); _invalidateMemo(); mirrorRecs(_prevCfg,{bills:bills}); setDot(''); toast(t.billPaidToast,'s'); render();
       }).catch(function(e){
         if(e && e.code==='unavailable'){
           // Offline: fall back to one queued batch from this phone's copy (applies when the connection returns).
@@ -597,7 +598,7 @@ function markBillPaid(key){
           batch.set(newPxRef,_px(amt,bill.name));
           batch.update(hhRef,{'config.bills':cfg.bills});
           lCfg=cfg; _invalidateMemo();
-          batch.commit().then(function(){ setDot(''); toast(t.billPaidToast,'s'); })
+          batch.commit().then(function(){ setDot(''); mirrorRecs(prevCfg,cfg); toast(t.billPaidToast,'s'); })
             .catch(function(e2){ lCfg=prevCfg; _invalidateMemo(); setDot('off'); toast((lang==='cw'?'Sitinathe kulemba kuti yalipidwa (':'Could not mark as paid (')+(e2&&e2.code||'error')+'). Nothing was changed.','e'); render(); });
           _stgRefresh();
           return;

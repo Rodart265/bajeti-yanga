@@ -1208,6 +1208,31 @@ function handleRemovedFromHousehold(){
     : 'You were removed from this household. Enter the code again to request to rejoin.', 'e');
 }
 
+// Stage 2 of the move to one-document-per-record (docs/DATA-MODEL-PLAN.md): after a change to items, bills or goals has
+// been saved the usual way, the changed records are ALSO written as their own documents. Nothing reads these documents
+// yet, so this cannot change what anyone sees. It never blocks and never shows an error: a failure is only logged.
+function mirrorRecs(prev,next){
+  try{
+    const hid=hhId; if(!hid) return Promise.resolve();
+    const ops=recMirrorOps(prev,next), all=[];
+    ops.set.forEach(function(o){ all.push({s:true,o:o}); });
+    ops.del.forEach(function(o){ all.push({s:false,o:o}); });
+    if(!all.length) return Promise.resolve();
+    const hhRef=db.collection('households').doc(hid), FV=firebase.firestore.FieldValue, jobs=[];
+    for(let i=0;i<all.length;i+=400){
+      const b=db.batch();
+      all.slice(i,i+400).forEach(function(x){
+        const ref=hhRef.collection(x.o.col).doc(x.o.id);
+        if(x.s) b.set(ref,Object.assign({},x.o.data,{updatedAt:FV.serverTimestamp()})); else b.delete(ref);
+      });
+      jobs.push(b.commit());
+    }
+    return Promise.all(jobs).catch(function(e){
+      console.warn('[mirror] could not copy records to their own documents:',e&&e.code,e&&e.message);
+      try{ if(window._logErr) window._logErr('mirror',String(e&&e.code||e),''); }catch(_){}
+    });
+  }catch(e){ console.warn('[mirror] failed:',e&&e.message); return Promise.resolve(); }
+}
 function saveCfg(cfg){
   if(!cfg.goals)cfg.goals=[];
   ensureRecIds(cfg);   // any record added or still without an id gets one before it is written
@@ -1219,7 +1244,7 @@ function saveCfg(cfg){
   Object.keys(prev).forEach(k=>{ if(!(k in cfg)) upd['config.'+k]=FV.delete(); });
   if(!Object.keys(upd).length) return Promise.resolve();
   setDot('spin');
-  return db.collection('households').doc(hhId).update(upd).then(()=>{setDot('');return true;}).catch(e=>{
+  return db.collection('households').doc(hhId).update(upd).then(()=>{setDot('');mirrorRecs(prev,cfg);return true;}).catch(e=>{
     toast((lang==='cw'?'Zosintha sizinasungidwe. ':'Your changes were not saved. ')+fsErrMsg(e),'e');setDot('off');
     // The write was rejected, so put the previous settings back (only if nothing newer replaced ours meanwhile).
     if(lCfg===cfg){ lCfg=prev; _invalidateMemo(); try{ renderLive(); }catch(x){} }
