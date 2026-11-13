@@ -1,6 +1,10 @@
 # Plan: move items, bills and goals out of the household config arrays
 
-**Status (v9.9.0): stage 1 is done.** Items, bills and goals now carry an `id` (assigned by `saveCfg()`, and once per
+**Status (v9.19.4): stages 1 and 2 are done.** Stage 2 (v9.19.4) writes a copy of every changed item, bill and goal to
+`households/{code}/items|bills|goals/{id}` after the normal save, and the rules for those documents are in `firestore.rules`.
+Nothing reads the copies yet. Stages 3 to 5 are open.
+
+**Earlier status (v9.9.0): stage 1 is done.** Items, bills and goals now carry an `id` (assigned by `saveCfg()`, and once per
 session by the household owner's app for older records), and every button and dialog finds its record by id when you
 tap, not by list position (`recKey()` / `recIdx()` in `js/02-helpers.js`, tests in `tests/ids.test.js`). Stages 2 to 6
 are still open. It was not run in a browser here, so do the id checks in the rollout guide's smoke tests.
