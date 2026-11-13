@@ -600,6 +600,11 @@ function clearChat(){
   chatHistory=[]; localStorage.removeItem(chatStorageKey()); renderBubbles();
 }
 
+// Member and goal names are typed by household members and go into the text we send to the AI. Strip line breaks and
+// control characters, drop characters that could fake structure, and cap the length, so a name cannot carry
+// instructions to the AI for the other members. Names shown on screen are not touched (they go through esc()).
+function aiClean(s){ return Array.from(String(s==null?'':s).replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g,' ').replace(/[`<>{}]/g,'').replace(/\s+/g,' ').trim()).slice(0,40).join(''); }
+
 function buildCtx(){
   const now=new Date();
   // Use the active budget period (salary-day aware) — same as totSp/totIn/iSpent
@@ -610,22 +615,22 @@ function buildCtx(){
   moPx.filter(p=>p.type!=='income').forEach(p=>{byItem[p.item]=(byItem[p.item]||0)+p.amount;});
   const items=lCfg.items.map(it=>({item:it.name,budget:it.budget,spent:byItem[it.name]||0,status:(byItem[it.name]||0)>it.budget?'OVER BUDGET':(byItem[it.name]||0)>(it.budget*.8)?'Near limit':'OK'})).filter(it=>it.spent>0||it.budget>0).slice(0,20);
   const byMember={};
-  lCfg.users.forEach(u=>{byMember[u.name]=moPx.filter(p=>p.userId===u.id&&p.type!=='income').reduce((s,p)=>s+p.amount,0);});
+  lCfg.users.forEach(u=>{byMember[aiClean(u.name)]=moPx.filter(p=>p.userId===u.id&&p.type!=='income').reduce((s,p)=>s+p.amount,0);});
   const me=actU();
-  const authName=curUser&&(curUser.displayName||curUser.email)||me.name;
+  const authName=aiClean(curUser&&(curUser.displayName||curUser.email)||me.name);
   
   // Build transaction list with IDs so AI can reference them for deletion.
   // FIX: exclude trashed (soft-deleted) entries -- previously this included
   // deleted purchases with no flag, so the AI would report them as live
   // transactions when asked "show me recent transactions".
-  const recentWithIds = lPx.filter(p=>!p.deleted).slice(0,15).map(p=>({id:p.id,item:p.item,amount:p.amount,date:p.date,by:uById(p.userId).name,type:p.type}));
+  const recentWithIds = lPx.filter(p=>!p.deleted).slice(0,15).map(p=>({id:p.id,item:p.item,amount:p.amount,date:p.date,by:aiClean(uById(p.userId).name),type:p.type}));
   const validItems = lCfg.items.map(it=>it.name);
 
   return `You are Bajeti AI, a warm, personal household budget assistant for a Malawian family using the Bajeti Yanga app.
 Bajeti Yanga was built by Rodart Creatives, a Malawian software studio. This is background knowledge only -- do NOT mention Rodart Creatives, "the team", "the developers", or who built the app in your replies. The ONLY exception is if the user explicitly asks a direct question like "who made this app" / "who built this" -- even then, answer in one short clause and move on. Never bring it up unprompted, including in greetings, sign-offs, or as an aside.
-You are talking to ${authName} (household member name: ${me.name}).
-The household has ${lCfg.users.length} member(s): ${lCfg.users.map(u=>u.name).join(', ')}.
-Always address the user by their first name (${me.name.split(' ')[0]}) naturally in conversation.
+You are talking to ${authName} (household member name: ${aiClean(me.name)}).
+The household has ${lCfg.users.length} member(s): ${lCfg.users.map(u=>aiClean(u.name)).join(', ')}.
+Always address the user by their first name (${aiClean(me.name).split(' ')[0]}) naturally in conversation.
 Respond in ${lang==='cw'?'Chichewa':'English'}. Be warm, encouraging, and specific -- reference their actual numbers and names.
 Use MK (Malawian Kwacha). Use bullet points for lists. Bold key numbers.
 Keep every reply to 3-5 sentences or a short list -- this is a hard limit, not a target to aim under. If you have more to say than that, cut it down rather than running long. Never give generic advice -- always tie it to their real data.
@@ -687,7 +692,7 @@ Remaining: MK ${Math.max(0,lCfg.overallBudget-spent).toLocaleString()}
 
 Spending by member: ${JSON.stringify(byMember)}
 Item budgets & spending: ${JSON.stringify(items)}
-Savings goals: ${JSON.stringify((lCfg.goals||[]).map(gl=>({name:gl.name,target:gl.target,saved:gl.saved,pct:Math.round(gl.saved/gl.target*100)+'%'})))}
+Savings goals: ${JSON.stringify((lCfg.goals||[]).map(gl=>({name:aiClean(gl.name),target:gl.target,saved:gl.saved,pct:Math.round(gl.saved/gl.target*100)+'%'})))}
 Last 15 transactions (with IDs): ${JSON.stringify(recentWithIds)}`;
 }
 
@@ -1177,7 +1182,7 @@ function buildSummaryData(){
   moPx.filter(p=>p.type!=='income').forEach(p=>{byItem[p.item]=(byItem[p.item]||0)+p.amount;});
   const items=lCfg.items.map(it=>({item:it.name,budget:it.budget,spent:byItem[it.name]||0,status:(byItem[it.name]||0)>it.budget?'OVER BUDGET':(byItem[it.name]||0)>(it.budget*.8)?'Near limit':'OK'})).filter(it=>it.spent>0||it.budget>0).slice(0,20);
   const me=actU();
-  return {member:me.name, overallBudget:lCfg.overallBudget, totalSpent:spent, totalIncome:income, items};
+  return {member:aiClean(me.name), overallBudget:lCfg.overallBudget, totalSpent:spent, totalIncome:income, items};
 }
 async function generateAiSummary() {
   if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
@@ -1189,7 +1194,7 @@ async function generateAiSummary() {
   try{
     const url = AI_URL;
     const summaryPrompt = `Write a household budget review. Language: ${lang==='cw'?'Chichewa':'English'}. Currency: MK.
-Hard rules: exactly 2-3 sentences, no more, no bullet list. Open with a short warm greeting using their first name only -- e.g. "Hi ${actU().name.split(' ')[0]}," in English or "Moni ${actU().name.split(' ')[0]}," in Chichewa -- never start the reply with the bare name as if mid-sentence. Reference specific numbers and item names from the data below. Do not mention who built the app, any company or team name, or support/contact info -- none of that is relevant here.
+Hard rules: exactly 2-3 sentences, no more, no bullet list. Open with a short warm greeting using their first name only -- e.g. "Hi ${aiClean(actU().name).split(' ')[0]}," in English or "Moni ${aiClean(actU().name).split(' ')[0]}," in Chichewa -- never start the reply with the bare name as if mid-sentence. Reference specific numbers and item names from the data below. Do not mention who built the app, any company or team name, or support/contact info -- none of that is relevant here.
 Data: ${JSON.stringify(buildSummaryData())}`;
     const payload = {contents:[{parts:[{text:summaryPrompt}]}]};
     const delays = [1000, 2000, 4000, 8000];
