@@ -16,6 +16,7 @@ document.addEventListener('click',function(e){
 });
 
 function rHist(){
+  if(pxPending('list')) return;
   var t=tx(), isCW=lang==='cw';
   var sqEsc=srchQ.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var list=lPx.filter(function(p){return !p.deleted;});
@@ -304,6 +305,7 @@ function toggleSumZero(){
 }
 
 function rSum(){
+  if(pxPending('list')) return;
   const t=tx(), tB=lCfg.items.reduce((s,it)=>s+it.budget,0), tS=totSp();
   let h='<div class="page">'+monthNav('mnav');
   

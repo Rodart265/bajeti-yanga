@@ -257,6 +257,7 @@ function renderTrendChart(months){
   return h;
 }
 function rHome(){
+  if(pxPending('home')) return;
   const t=tx(), sp=totSp(), inc=totIn(), bg=lCfg.overallBudget, rem=bg-sp;
   const pctRaw=bg>0?sp/bg:0, arc=Math.min(pctRaw,1), isOver=rem<0;
   const circ=2*Math.PI*32, off=circ*(1-arc);

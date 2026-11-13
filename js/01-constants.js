@@ -145,7 +145,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.19.4';
+const APP_VERSION = '9.19.5';
 // The AI proxy (Cloudflare Worker). One place to change it.
 const AI_URL = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
 // Premium plans: months -> price in MWK. Keep equal to PRICES in functions/lib.js (tests/prices.test.js checks it).
@@ -168,6 +168,9 @@ let _idsBackfilledFor = null;   // household code whose records were given ids t
 let chipGroups = [], unsubChip = null, chipActiveId = null, chipTab = 'cycle';
 let lCfg = JSON.parse(JSON.stringify(DEF_CFG));
 let lPx = [];
+// Set once the first batch of entries (_pxFirst) and of Chipereganyu groups (_chipFirst) has arrived. Until then Home, History
+// and Summary show a loading skeleton instead of "MK 0", and the Chip screen and Home card one instead of "No group yet".
+let _pxFirst = false, _chipFirst = false;
 // Entries are loaded for the last PX_WINDOW_MONTHS months only; older months are fetched when someone looks at them.
 const PX_WINDOW_MONTHS = 7;
 let _pxMain = [], _pxOlder = [], _pxTrash = [], pxSince = '', pxOlderSince = '', unsubOlder = null, unsubTrash = null;

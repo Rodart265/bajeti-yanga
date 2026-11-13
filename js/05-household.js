@@ -1059,9 +1059,11 @@ function connectHH(code){
   const tryConnect = (field) => {
     // Only the recent window is read live (see "Entries window" above); older months load on demand.
     _pxStartWindow(code);
+    clearTimeout(window._pxFirstTimer); window._pxFirstTimer=setTimeout(_pxDone,8000);   // never leave the skeleton up if nothing arrives
     const q = db.collection('households').doc(code).collection('purchases').where('date','>=',pxSince);
     const _mainUnsub = q.onSnapshot(snap=>{
       _pxMain=snap.docs.map(d=>({id:d.id,...d.data()}));
+      _pxFirst=true; clearTimeout(window._pxFirstTimer);
       _setPx();
       _invalidateMemo(); // Clear performance cache when data changes
       setDot(''); renderLive();
@@ -1089,10 +1091,10 @@ function connectHH(code){
             const isMember = !!dd && (dd.owner===uidNow || !Array.isArray(dd.memberUids) || dd.memberUids.includes(uidNow));
             if(!snap.exists || !isMember){ handleRemovedFromHousehold(); return; }
             if(!_permRetried){ _permRetried=true; if(unsub) unsub(); unsub=tryConnect(null); }
-            else { toast((lang==='cw'?'Sitingathe kutsegula zolemba (mulibe chilolezo). Tulukani ndipo lowaninso.':'Cannot load entries (permission denied). Please sign out and in again.'),'e'); setDot('off'); }
+            else { toast((lang==='cw'?'Sitingathe kutsegula zolemba (mulibe chilolezo). Tulukani ndipo lowaninso.':'Cannot load entries (permission denied). Please sign out and in again.'),'e'); setDot('off'); _pxDone(); }
           })
-          .catch(()=>{ toast((lang==='cw'?'Pali vuto la intaneti. Onani netiweki yanu.':'Connection problem. Please check your network.'),'e'); setDot('off'); });
-      } else { toast(fsErrMsg(err),'e'); setDot('off'); }
+          .catch(()=>{ toast((lang==='cw'?'Pali vuto la intaneti. Onani netiweki yanu.':'Connection problem. Please check your network.'),'e'); setDot('off'); _pxDone(); });
+      } else { toast(fsErrMsg(err),'e'); setDot('off'); _pxDone(); }
     });
     return function(){ _mainUnsub(); _pxTeardown(); };
   };
@@ -1130,7 +1132,10 @@ function _pxTeardown(){
   if(unsubOlder){ unsubOlder(); unsubOlder=null; }
   if(unsubTrash){ unsubTrash(); unsubTrash=null; }
   _pxMain=[]; _pxOlder=[]; _pxTrash=[]; pxSince=''; pxOlderSince='';
+  _pxFirst=false; clearTimeout(window._pxFirstTimer);
 }
+// Give up waiting for the first entries (an error, or nothing after 8 s) so the screens draw instead of showing a skeleton for ever.
+function _pxDone(){ if(_pxFirst) return; _pxFirst=true; clearTimeout(window._pxFirstTimer); renderLive(); }
 // Make sure entries back to (about) `sinceISO` are loaded. Resolves after the first batch arrives, or after 15 s
 // so a slow connection never leaves a screen waiting. Pass '2000-01-01' for everything.
 function loadOlderPx(sinceISO){
@@ -1164,8 +1169,10 @@ function ensurePxFrom(d){
 function startChipListener(){
   if(unsubChip){ unsubChip(); unsubChip=null; }
   if(!curUser) return;
+  clearTimeout(window._chipFirstTimer); window._chipFirstTimer=setTimeout(_chipFirstDone,8000);
   unsubChip = db.collection('chipereganyu_groups').where('memberUids','array-contains',curUser.uid)
     .onSnapshot(function(snap){
+      _chipFirst=true; clearTimeout(window._chipFirstTimer);
       chipGroups = snap.docs.map(d=>({id:d.id,...d.data()}));
       chipGroups.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
       if(chipActiveId && !chipGroups.some(g=>g.id===chipActiveId)) chipActiveId=null;
@@ -1177,11 +1184,18 @@ function startChipListener(){
         else rHome();
       }
       if(tab==='chip') rChip();
-    }, function(err){ console.warn('[chip] listener error:', err && err.code); });
+    }, function(err){ console.warn('[chip] listener error:', err && err.code); _chipFirstDone(); });
+}
+// Stop showing the Chip skeleton (a listener error, or nothing after 8 s) and draw what there is.
+function _chipFirstDone(){
+  if(_chipFirst) return; _chipFirst=true; clearTimeout(window._chipFirstTimer);
+  if(tab==='chip') rChip();
+  else if(tab==='home'){ const s=g('chip-home-slot'); if(s){ s.innerHTML=renderChipHomeCard(); try{ if(window.lucide) lucide.createIcons({nodes:[s]}); }catch(e){} } }
 }
 function stopChipListener(){
   if(unsubChip){ unsubChip(); unsubChip=null; }
   chipGroups=[]; chipActiveId=null;
+  _chipFirst=false; clearTimeout(window._chipFirstTimer);
 }
 
 // Called when a live listener detects this account is no longer a household

@@ -199,6 +199,37 @@ function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='s
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
 // Pick the English or Chichewa wording for a string that is built outside t / tx().
 function L(en,cw){ return lang==='cw'?cw:en; }
+
+// -- Loading skeletons --------------------------------------------------------------------------------------------
+// Grey shapes the size of the real screen, shown until the first entries / groups arrive (_pxFirst, _chipFirst).
+// They keep the month navigator working and reserve the same space as the real content, so nothing jumps.
+function _skRows(n){
+  let r='';
+  for(let i=0;i<n;i++) r+='<div class="sk-row"><span class="sk sk-circle"></span><div class="sk-grow">'
+    +'<span class="sk sk-line" style="width:'+(48+((i*17)%26))+'%"></span>'
+    +'<span class="sk sk-line sk-sm" style="width:'+(26+((i*11)%20))+'%"></span></div><span class="sk sk-line sk-amt"></span></div>';
+  return r;
+}
+function _skPage(inner){
+  return '<div class="page" role="status" aria-busy="true" aria-label="'+L('Loading','Chonde dikirani')+'">'+inner+'</div>';
+}
+function skHome(){
+  return _skPage(monthNav('mnav')+'<span class="sk sk-hero"></span>'
+    +'<div class="chips"><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span></div>'
+    +'<div class="card">'+_skRows(4)+'</div>');
+}
+function skList(){ return _skPage(monthNav('mnav')+'<div class="card">'+_skRows(7)+'</div>'); }
+function skChipCard(){ return '<span class="sk sk-chipcard" aria-hidden="true"></span>'; }
+function skChipPage(){
+  return _skPage('<div class="cg-back" onclick="go(\'home\')"><i data-lucide="chevron-left"></i><div class="cg-title">Chipereganyu</div></div>'
+    +'<span class="sk sk-hero"></span><div class="card">'+_skRows(3)+'</div>');
+}
+// True (after drawing the skeleton) while the first entries of the signed-in household have not arrived yet.
+function pxPending(kind){
+  if(_pxFirst || !hhId || !unsub) return false;
+  setView(kind==='home'?skHome():skList());
+  return true;
+}
 // A button for an empty screen: says what to do next. `act` is the onclick code, with double quotes written as &quot;.
 function emptyAction(label,act){ return '<button class="btnM" style="margin-top:12px;min-height:44px;padding:10px 18px;width:auto" onclick="'+act+'">'+label+'</button>'; }
 function toast(msg,type){

@@ -563,6 +563,7 @@ function chipCloseCircle(){
 function chipHomeFraction(sm){ return sm.contributors.length?sm.received.length/sm.contributors.length:0; }
 
 function renderChipHomeCard(){
+  if(!_chipFirst && unsubChip) return skChipCard();
   const isCW=lang==='cw';
   const grp=chipHomeGroup();
   if(!grp){
@@ -645,6 +646,7 @@ function chipFinishedHtml(grp){
 }
 
 function rChip(){
+  if(!_chipFirst && unsubChip){ setView(skChipPage()); return; }
   const isCW=lang==='cw';
   const grp=activeChipGroup();
   if(!grp){
