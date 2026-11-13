@@ -688,14 +688,15 @@ function checkBillReminders(){
 }
 
 // -- Android Back Button Fix --
-// Rules this block follows:
-//  1. Every real forward navigation (tab switch, Settings section) pushes ONE history entry.
-//     Tapping the tab you are already on pushes nothing.
-//  2. Back never pushes a new entry for a normal screen, so each press moves one step down the stack.
-//  3. Things that have no entry of their own (modals, full-screen Terms/Privacy/FAQ pages) are closed
-//     by Back first. Because that Back removed one real entry, one entry for the current screen is put back.
-//  4. Entries left over from onboarding screens are ignored once the app is on screen.
-//  5. Scroll position of a screen is remembered and restored when Back returns to it.
+// Model: HOME IS THE BASE.
+//  * Back from any tab or Settings section goes to Home (one section step first: section -> Settings -> Home).
+//  * Back from Home shows "Press back again to exit"; the next Back closes the app.
+//  * Tabs are peers. Switching between them never adds more Back steps.
+//  * Modals, and the full-screen Terms/Privacy/FAQ pages, are closed by Back first.
+//  * Entries left over from sign-in/PIN/approval screens are ignored once the app is on screen.
+//  * Scroll position is remembered per screen and restored when Back returns to it.
+// Every history entry carries its depth in "i" (the first entry is depth 0), so the app can
+// jump straight back to Home in one step instead of walking through every screen it visited.
 // Onboarding screens (auth/setup/pin/welcome/verify) and the waiting-for-approval
 // screen sit outside the tab system, so they get their own entry from _pushOnboardScreen().
 function _pushOnboardScreen(name, from){
@@ -704,13 +705,34 @@ function _pushOnboardScreen(name, from){
 (function(){
   var OVERLAY_PAGES = ['scr-terms','scr-privacy-page','scr-faq'];
   var scrollMem = {};
+  var collapsing = 0;
   function path(){ return (location.pathname||'/'); }
+  function curI(){ var s=history.state; return (s && s.i) || 0; }
+  // Stamp every pushed entry with its depth, whoever pushes it (this file, Settings, onboarding).
+  try{
+    var _push = history.pushState.bind(history);
+    history.pushState = function(s, t, u){
+      var o = {};
+      if(s && typeof s==='object'){ for(var k in s){ o[k]=s[k]; } }
+      o.i = curI()+1;
+      return _push(o, t, u);
+    };
+  }catch(e){}
   function pushState(t){ try{ history.pushState({tab:t},'',path()); }catch(e){} }
   function appHidden(){ var a=g('app'); return !!(a && a.classList.contains('hide')); }
   // History entry that describes the screen the user is really on right now.
   function curNavState(){
     return (tab==='stg' && _stgSection) ? {tab:'stg',section:_stgSection} : {tab:tab};
   }
+  // Jump back n entries in one step. The popstate this causes is expected, so it is ignored.
+  function collapse(n){
+    if(n<1) return;
+    collapsing = Date.now();
+    try{ history.go(-n); }catch(e){ collapsing = 0; }
+  }
+  // Modals and overlay pages have no entry of their own. Make sure there is an entry above
+  // the first one, so that Back lands somewhere and can close them instead of leaving the app.
+  function ensureAbove(){ if(curI()===0) pushState(tab); }
   function scrollKey(t, sec){ return t+(t==='stg' && sec ? ':'+sec : ''); }
   function saveScroll(){
     try{ var v=g('view'); if(v) scrollMem[scrollKey(tab, _stgSection)] = v.scrollTop; }catch(e){}
@@ -721,6 +743,9 @@ function _pushOnboardScreen(name, from){
       if(el && el.style.display==='block') return el;
     }
     return null;
+  }
+  function exitHint(){
+    toast(lang==='cw'?'Dinaninso kubwerera kuti mutuluke.':'Press back again to exit.','i');
   }
   // Show a tab (and, for Profile, an optional drill-down section) WITHOUT touching history.
   function showTab(t, sec){
@@ -741,15 +766,37 @@ function _pushOnboardScreen(name, from){
   }
   var _go = window.go;
   window.go = function(t){
-    // Tapping the tab you are already on is not a new place to go back to.
-    var cur = history.state;
-    var already = !!(cur && cur.tab===t && !cur.section && !cur.screen);
+    var cur = history.state, ci = curI();
     saveScroll();
     _go(t);
-    if(!already) pushState(t);
+    if(t==='home'){
+      // Home is the base: drop every entry above the Home entry in one step.
+      if(ci===0) pushState('home');
+      else if(ci>1) collapse(ci-1);
+      else if(cur && cur.tab && cur.tab!=='home'){ try{ history.replaceState({tab:'home',i:ci},'',path()); }catch(e){} }
+      return;
+    }
+    // Any other tab sits exactly one step above Home. Moving between such tabs replaces, never adds.
+    if(ci>0 && cur && cur.tab && cur.tab!=='home'){
+      try{ history.replaceState({tab:t,i:ci},'',path()); }catch(e){}
+    } else {
+      pushState(t);
+    }
   };
+  // Opening a Settings section: remember where the Settings list was scrolled to.
+  var _stgOpen = window.stgOpenSection;
+  if(typeof _stgOpen==='function'){ window.stgOpenSection = function(sec, keep){ if(!keep) saveScroll(); return _stgOpen.apply(this, arguments); }; }
+  var _openM = window.openM;
+  if(typeof _openM==='function'){ window.openM = function(){ ensureAbove(); return _openM.apply(this, arguments); }; }
+  var _polShell = window.polShell;
+  if(typeof _polShell==='function'){ window.polShell = function(){ ensureAbove(); return _polShell.apply(this, arguments); }; }
+
   window.addEventListener('popstate', function(e){
+    var st = e.state, L = (st && st.i) || 0;
+    // The Back that comes from our own jump to Home: nothing to do.
+    if(collapsing){ var fresh = Date.now()-collapsing<1500; collapsing=0; if(fresh) return; }
     // A modal being open always wins: close the topmost one and stay where we are.
+    // That Back removed one real entry, so put back an entry for the screen we are still on.
     if(_openModalStack.length){
       closeM(_openModalStack[_openModalStack.length-1]);
       try{ history.pushState(curNavState(),'',path()); }catch(err){}
@@ -762,9 +809,9 @@ function _pushOnboardScreen(name, from){
       try{ history.pushState(curNavState(),'',path()); }catch(err){}
       return;
     }
-    var st = e.state;
-    if(st && st.screen){
-      if(appHidden()){
+    if(appHidden()){
+      // A sign-in, PIN, welcome or waiting screen is on screen.
+      if(st && st.screen){
         if(st.screen==='waiting-approval'){
           // Never cancel a join request just because Back was pressed: ask first.
           var cw = lang==='cw';
@@ -783,39 +830,33 @@ function _pushOnboardScreen(name, from){
           return;
         }
         // PIN (any other origin) / welcome / verify / setup are all pre-app
-        // gates. The safe universal "back" from any of them is the sign-in
-        // screen, same as if nothing was ever entered.
+        // gates. The safe universal "back" from any of them is the sign-in screen.
         hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
         g('app').classList.add('hide');
         show('scr-auth'); aTab('login');
         return;
       }
-      // The app is on screen, so this is a stale entry from before the user got in
-      // (sign-in, PIN, or an approved join). It must not bring any gate back or cancel anything.
-      // Nothing visible changes, so keep going down the stack.
+      // No screen entry was landed on: walk down to the first entry, then offer to exit.
+      if(L===0){ exitHint(); return; }
       try{ history.back(); }catch(err){}
       return;
     }
-    var t = st && st.tab;
-    if(!t){
-      // The app's first history entry (no tab recorded). Only reachable by pressing Back from Home.
-      if(tab!=='home'){ showTab('home'); pushState('home'); return; }
-      // First press warns, a second press within 2.5 s lets the app close.
-      if(window._backArmedAt && Date.now()-window._backArmedAt<2500){ window._backArmedAt=0; try{ history.back(); }catch(err){} return; }
-      window._backArmedAt=Date.now();
-      toast(lang==='cw'?'Dinaninso kubwerera kuti mutuluke.':'Press back again to exit.','i');
-      pushState('home'); // re-arm: one entry above the first one, so the next Back lands here again
+    // The app is on screen from here. Any onboarding entry that is still in the stack is stale and ignored.
+    if(tab!=='home'){
+      // Settings section: one step back shows the Settings hub.
+      if(tab==='stg' && _stgSection && st && st.tab==='stg' && !st.section){ showTab('stg', null); return; }
+      // Everything else goes to Home, whatever is in the stack below.
+      showTab('home');
+      if(L===0) pushState('home');        // keep one entry above the first, so Back stays catchable
+      else if(L>1) collapse(L-1);         // drop stale entries between here and the Home entry
       return;
     }
-    // Landing on the screen that is already showing means nothing would change. Keep going down.
-    var sec = st.section || null;
-    if(t===tab && (t!=='stg' || sec===(_stgSection||null))){ try{ history.back(); }catch(err){} return; }
-    // A real earlier screen: show it. Push nothing, so each Back press moves one step further down.
-    window._backArmedAt=0;
-    showTab(t, sec);
+    // Already on Home.
+    if(L===0){ exitHint(); return; }      // the next Back is handled by Android and closes the app
+    try{ history.back(); }catch(err){}    // stale entry above the first one: keep going down
   });
-  // Initial state
-  setTimeout(function(){ pushState('home'); }, 800);
+  // Initial state: one entry above the first, so the first Back from Home is catchable.
+  setTimeout(function(){ if(curI()===0) pushState('home'); }, 800);
 })();
 
 // -- Live connectivity feedback --
