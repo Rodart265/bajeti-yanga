@@ -38,6 +38,39 @@ service cloud.firestore {
       return d.get('type', 'expense');
     }
 
+    // ── Budget items, bills and savings goals kept as separate documents (9.19.4, stage 2) ──────────────────
+    // households/{code}/items|bills|goals/{id}. Each document is one record of the old config.items / bills / goals
+    // lists. The document id must equal the record's own id. Numbers must be numbers and sensibly sized, text is
+    // length-limited, and a record can hold at most 12 fields. Any member can read, write and delete (the same as
+    // the lists inside the household document).
+    function recBase(d, docId) {
+      return d.id is string && d.id == docId
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.keys().size() <= 12
+        && (!('order' in d) || (d.order is number && d.order >= 0 && d.order < 10000))
+        && (!('updatedAt' in d) || d.updatedAt is timestamp);
+    }
+    function validItemDoc(docId) {
+      let d = request.resource.data;
+      return recBase(d, docId)
+        && d.budget is number && d.budget >= 0 && d.budget < 100000000000
+        && (!('cat' in d) || (d.cat is string && d.cat.size() <= 40));
+    }
+    function validBillDoc(docId) {
+      let d = request.resource.data;
+      return recBase(d, docId)
+        && d.amount is number && d.amount >= 0 && d.amount < 100000000000
+        && d.dueDate is string && d.dueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40));
+    }
+    function validGoalDoc(docId) {
+      let d = request.resource.data;
+      return recBase(d, docId)
+        && d.target is number && d.target > 0 && d.target < 100000000000
+        && d.saved is number && d.saved >= 0 && d.saved < 100000000000
+        && (!('deadline' in d) || (d.deadline is string && d.deadline.size() <= 10));
+    }
+
     function validPurchase() {
       let d = request.resource.data;
       return d.amount is number
@@ -612,6 +645,23 @@ service cloud.firestore {
 
         // Any household member can permanently delete a trashed entry --
         // matches update/restore, which already have no creator restriction.
+        allow delete: if isMember(hhId);
+      }
+
+      // ── Budget items, bills and savings goals (see the functions near the top) ─────────────────────────
+      match /items/{recId} {
+        allow read: if isMember(hhId);
+        allow create, update: if isMember(hhId) && validItemDoc(recId);
+        allow delete: if isMember(hhId);
+      }
+      match /bills/{recId} {
+        allow read: if isMember(hhId);
+        allow create, update: if isMember(hhId) && validBillDoc(recId);
+        allow delete: if isMember(hhId);
+      }
+      match /goals/{recId} {
+        allow read: if isMember(hhId);
+        allow create, update: if isMember(hhId) && validGoalDoc(recId);
         allow delete: if isMember(hhId);
       }
 
