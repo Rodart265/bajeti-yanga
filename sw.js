@@ -10,15 +10,15 @@
 //
 // TO RELEASE: change APP_VERSION in js/01-constants.js, then run  node tools/release.js  (it writes V and BUILD
 // below), then  node tests/release.test.js  must pass. Do not edit V or BUILD by hand.
-const V = "bajeti-v9.19.2";
-const BUILD = "45041b851270"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
+const V = "bajeti-v9.19.3";
+const BUILD = "79739939c7c6"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
 
 // Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
 // deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
 // every release made each phone download ~400 KB of Firebase again over mobile data.
 const LIBS = "bajeti-libs-v1";
 // Only these hosts are cached. Anything else cross-origin (API calls, profile photos) goes straight to the network.
-const LIB_HOSTS = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"];
+const LIB_HOSTS = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
 // The app shell: everything the app needs to boot and render. All of it is required for a release to install.
 //
@@ -45,6 +45,8 @@ const APP_SHELL = [
   "./js/12-chat.js",
   "./js/13-actions-boot.js",
   "./vendor/icons.min.js",
+  "./vendor/qrcode.min.js",
+  "./vendor/jsQR.min.js",
   "./manifest.webmanifest",
   "./icons/icon-96.png",
   "./icons/icon-192.png",
@@ -54,8 +56,6 @@ const APP_SHELL = [
 
 const RUNTIME_SEED = [
   "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap",
-  "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
-  "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js",

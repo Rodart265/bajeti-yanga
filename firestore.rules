@@ -5,9 +5,10 @@ rules_version = '2';
 // deliberately two-phase so already-installed (cached) copies of the app keep
 // working: see "PHASE B" comments in joinOpen() and the households `get` rule.
 //
-// PHASE A (this file): joins still work for households with no invites/{code} doc,
-// and any signed-in user can read a household or chip group by its code.
-// Publish firestore.phase-b.rules instead once every household has an invites/{code} document.
+// PHASE B (this file): reading a household or chip group needs membership, and a join
+// request needs an invites/{code} doc. Publish only after every household owner has opened
+// the current app once (so every household has an invite doc). The app already copes with
+// the denied reads. This file is what is published. To go back to Phase A, publish docs/firestore.rules.phase-a.
 
 service cloud.firestore {
 
@@ -97,8 +98,8 @@ service cloud.firestore {
     // at the end of the return below, together with the households `get` change.
     function joinOpen(hhId) {
       return exists(/databases/$(database)/documents/households/$(hhId))
-        && (!exists(/databases/$(database)/documents/invites/$(hhId))
-            || inviteNotExpired(hhId));
+        && exists(/databases/$(database)/documents/invites/$(hhId))
+        && inviteNotExpired(hhId);
     }
     // Only called once the invite doc is known to exist (3 document reads in total per join request).
     function inviteNotExpired(hhId) {
@@ -530,7 +531,8 @@ service cloud.firestore {
       //     && request.auth.uid in resource.data.memberUids;
       // Non-members then use invites/{code} (and invites/{code}/approved/{uid})
       // instead of reading the whole household document.
-      allow get: if request.auth != null;
+      allow get: if request.auth != null
+        && (request.auth.uid in resource.data.memberUids || isPlatformAdmin());
       allow list: if request.auth != null
         && (
           request.auth.uid in resource.data.memberUids
@@ -705,7 +707,8 @@ service cloud.firestore {
       // (needed to verify a join code exists before joining). LIST is
       // restricted to actual members, matching the array-contains query
       // the app runs to find "groups I belong to".
-      allow get: if request.auth != null;
+      allow get: if request.auth != null
+        && request.auth.uid in resource.data.memberUids;
       allow list: if request.auth != null
         && (request.auth.uid in resource.data.memberUids || isPlatformAdmin());
 

@@ -7,7 +7,7 @@
      'unsafe-inline' is still needed because the app uses inline onclick handlers and one inline script;
      removing those is a later job. If anything breaks after this change, delete this whole <meta> line
      and the app goes back to how it was. (frame-ancestors cannot be set from a meta tag.) -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com/recaptcha/ https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://www.gstatic.com https://nyumba-ai.kabangorodrick6.workers.dev https://*.cloudfunctions.net https://*.run.app https://bajeti-pay.kabangorodrick6.workers.dev https://api.paychangu.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com https://pay.paychangu.com https://checkout.paychangu.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://www.gstatic.com https://nyumba-ai.kabangorodrick6.workers.dev https://*.cloudfunctions.net https://*.run.app https://bajeti-pay.kabangorodrick6.workers.dev https://api.paychangu.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com https://pay.paychangu.com https://checkout.paychangu.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#176B78">
 <meta name="mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap"></noscript>
 <!-- Flaticon removed: using Lucide exclusively for consistent icon style -->
 <!-- qrcode/jsQR are only used by the QR-scan and QR-code-display features
-     (openQRCode / scanQR), never during boot, so they're deferred. -->
+     (openQRCode / scanQR), never during boot, so they're deferred. Both are saved copies in vendor/ (no outside host). -->
 <script>
 // Some browsers (private mode, blocked site data, certain in-app webviews) throw on ANY localStorage access.
 // The app reads it at load time, so without this it halts with a blank screen. Fall back to an in-memory store.
@@ -42,8 +42,8 @@
   }
 })();
 </script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script defer src="./vendor/qrcode.min.js"></script>
+  <script defer src="./vendor/jsQR.min.js"></script>
 <style>
 /* Lucide icon helper — mirrors fi spacing patterns */
 .li{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
