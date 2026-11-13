@@ -688,70 +688,131 @@ function checkBillReminders(){
 }
 
 // -- Android Back Button Fix --
+// Rules this block follows:
+//  1. Every real forward navigation (tab switch, Settings section) pushes ONE history entry.
+//     Tapping the tab you are already on pushes nothing.
+//  2. Back never pushes a new entry for a normal screen, so each press moves one step down the stack.
+//  3. Things that have no entry of their own (modals, full-screen Terms/Privacy/FAQ pages) are closed
+//     by Back first. Because that Back removed one real entry, one entry for the current screen is put back.
+//  4. Entries left over from onboarding screens are ignored once the app is on screen.
+//  5. Scroll position of a screen is remembered and restored when Back returns to it.
 // Onboarding screens (auth/setup/pin/welcome/verify) and the waiting-for-approval
-// screen sit outside the tab system, so they never had a history entry — device
-// back on them fell straight out of the app. _pushOnboardScreen() gives each one a
-// real entry; the popstate handler below reacts to it before falling through to
-// the normal tab logic.
+// screen sit outside the tab system, so they get their own entry from _pushOnboardScreen().
 function _pushOnboardScreen(name, from){
   try{ history.pushState({screen:name, from:from||null},'',(location.pathname||'/')); }catch(e){}
 }
 (function(){
-  function pushState(t){ try{ history.pushState({tab:t},'',(location.pathname||'/')); }catch(e){} }
+  var OVERLAY_PAGES = ['scr-terms','scr-privacy-page','scr-faq'];
+  var scrollMem = {};
+  function path(){ return (location.pathname||'/'); }
+  function pushState(t){ try{ history.pushState({tab:t},'',path()); }catch(e){} }
+  function appHidden(){ var a=g('app'); return !!(a && a.classList.contains('hide')); }
+  // History entry that describes the screen the user is really on right now.
+  function curNavState(){
+    return (tab==='stg' && _stgSection) ? {tab:'stg',section:_stgSection} : {tab:tab};
+  }
+  function scrollKey(t, sec){ return t+(t==='stg' && sec ? ':'+sec : ''); }
+  function saveScroll(){
+    try{ var v=g('view'); if(v) scrollMem[scrollKey(tab, _stgSection)] = v.scrollTop; }catch(e){}
+  }
+  function openOverlayPage(){
+    for(var i=0;i<OVERLAY_PAGES.length;i++){
+      var el=document.getElementById(OVERLAY_PAGES[i]);
+      if(el && el.style.display==='block') return el;
+    }
+    return null;
+  }
+  // Show a tab (and, for Profile, an optional drill-down section) WITHOUT touching history.
+  function showTab(t, sec){
+    saveScroll();
+    tab=t;
+    if(t==='stg'){ _stgSection = sec||null; }
+    else { _stgSection=null; _stopJoinReqListener(); }
+    document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
+    var nb=g('nb-'+t)||(t==='hist'||t==='sum'?g('nb-insights'):null);
+    if(nb)nb.classList.add('on');
+    render();
+    var v=g('view');
+    if(v){
+      var pos = scrollMem[scrollKey(t, sec)] || 0;
+      v.scrollTop = pos;
+      if(pos) setTimeout(function(){ v.scrollTop = pos; }, 120);
+    }
+  }
   var _go = window.go;
-  window.go = function(t){ _go(t); pushState(t); };
+  window.go = function(t){
+    // Tapping the tab you are already on is not a new place to go back to.
+    var cur = history.state;
+    var already = !!(cur && cur.tab===t && !cur.section && !cur.screen);
+    saveScroll();
+    _go(t);
+    if(!already) pushState(t);
+  };
   window.addEventListener('popstate', function(e){
-    // A modal being open always wins: close the topmost one and stay right
-    // where we are, instead of letting the screen/tab underneath change
-    // while the modal keeps floating on top of it (it never had its own
-    // history entry, so without this the modal would just get left behind).
+    // A modal being open always wins: close the topmost one and stay where we are.
     if(_openModalStack.length){
       closeM(_openModalStack[_openModalStack.length-1]);
-      try{ history.pushState(e.state||{tab:tab},'',(location.pathname||'/')); }catch(err){}
+      try{ history.pushState(curNavState(),'',path()); }catch(err){}
+      return;
+    }
+    // Full-screen Terms / Privacy / FAQ pages are not modals. Close them first.
+    var pg = openOverlayPage();
+    if(pg){
+      pg.style.display='none';
+      try{ history.pushState(curNavState(),'',path()); }catch(err){}
       return;
     }
     var st = e.state;
     if(st && st.screen){
-      if(st.screen==='waiting-approval'){
-        // Back on the waiting screen = cancel the request, same as the Cancel button.
-        cancelPendingJoin();
+      if(appHidden()){
+        if(st.screen==='waiting-approval'){
+          // Never cancel a join request just because Back was pressed: ask first.
+          var cw = lang==='cw';
+          appConfirm(cw?'Kodi mukufuna kuletsa pempho lanu lolowa m\'nyumba muno?':'Cancel your request to join this household?',
+            function(){ cancelPendingJoin(); },
+            cw?'Inde, letsani':'Yes, cancel request', true);
+          try{ var kb=document.querySelector('#mb-confirm .btnG'); if(kb) kb.textContent = cw?'Pitirizani kudikira':'Keep waiting'; }catch(err){}
+          return;
+        }
+        if(st.screen==='pin' && st.from==='welcome'){
+          // Reached PIN entry from "Welcome back" (a returning, already-signed-in
+          // user), so back should return there, not force them through the
+          // sign-in form again as if they were never logged in.
+          hide('scr-pin'); g('app').classList.add('hide');
+          show('scr-welcome');
+          return;
+        }
+        // PIN (any other origin) / welcome / verify / setup are all pre-app
+        // gates. The safe universal "back" from any of them is the sign-in
+        // screen, same as if nothing was ever entered.
+        hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
+        g('app').classList.add('hide');
+        show('scr-auth'); aTab('login');
         return;
       }
-      if(st.screen==='pin' && st.from==='welcome'){
-        // Reached PIN entry from "Welcome back" (a returning, already-signed-in
-        // user) -- back should return there, not force them through the
-        // sign-in form again as if they were never logged in.
-        hide('scr-pin'); g('app').classList.add('hide');
-        show('scr-welcome');
-        return;
-      }
-      // PIN (any other origin) / welcome / verify / setup are all pre-app
-      // gates — the safe universal "back" from any of them is the sign-in
-      // screen, same as if nothing was ever entered, rather than trying to
-      // reconstruct exact prior sub-state.
-      hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
-      g('app').classList.add('hide');
-      show('scr-auth'); aTab('login');
+      // The app is on screen, so this is a stale entry from before the user got in
+      // (sign-in, PIN, or an approved join). It must not bring any gate back or cancel anything.
+      // Nothing visible changes, so keep going down the stack.
+      try{ history.back(); }catch(err){}
       return;
     }
-    var t = (st&&st.tab) || 'home';
-    // On the Home tab, back used to be swallowed forever (a new entry was pushed every time), so the app could never
-    // be left with the back button. Now: first press warns, a second press within 2.5 s lets the app close.
-    if(tab==='home' && t==='home'){
+    var t = st && st.tab;
+    if(!t){
+      // The app's first history entry (no tab recorded). Only reachable by pressing Back from Home.
+      if(tab!=='home'){ showTab('home'); pushState('home'); return; }
+      // First press warns, a second press within 2.5 s lets the app close.
       if(window._backArmedAt && Date.now()-window._backArmedAt<2500){ window._backArmedAt=0; try{ history.back(); }catch(err){} return; }
       window._backArmedAt=Date.now();
       toast(lang==='cw'?'Dinaninso kubwerera kuti mutuluke.':'Press back again to exit.','i');
-      pushState('home');
+      pushState('home'); // re-arm: one entry above the first one, so the next Back lands here again
       return;
     }
-    // Just call internal render without pushing another state
-    tab=t;
-    document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
-    var nb=g('nb-'+t); if(nb)nb.classList.add('on');
-    render();
-    var v=g('view'); if(v)v.scrollTop=0;
-    // Push state again so next back still works
-    pushState(t);
+    // Landing on the screen that is already showing means nothing would change. Keep going down.
+    var sec = st.section || null;
+    if(t===tab && (t!=='stg' || sec===(_stgSection||null))){ try{ history.back(); }catch(err){} return; }
+    // A real earlier screen: show it. Push nothing, so each Back press moves one step further down.
+    window._backArmedAt=0;
+    showTab(t, sec);
   });
   // Initial state
   setTimeout(function(){ pushState('home'); }, 800);
@@ -774,5 +835,3 @@ window.addEventListener('offline', function(){
 window.addEventListener('online', function(){
   toast(lang==='cw' ? 'Mwalumikizidwanso -- deta ikusungidwa...' : 'Back online -- syncing...','s');
 });
-
-
