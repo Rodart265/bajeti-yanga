@@ -223,7 +223,8 @@ service cloud.firestore {
     function validChipJoin() {
       let before = resource.data;
       let after = request.resource.data;
-      return before.status == 'gathering'
+      return verifiedOrNotPassword()
+        && before.status == 'gathering'
         && after.status == 'gathering'
         && !(request.auth.uid in before.memberUids)
         && after.memberUids == before.memberUids.concat([request.auth.uid])
@@ -326,7 +327,7 @@ service cloud.firestore {
     function historyAppendOk(before, after) {
       let newEntry = after.history[after.history.size() - 1];
       return after.history.size() == before.history.size() + 1
-        && after.history[0:before.history.size()] == before.history
+        && (before.history.size() == 0 || after.history[0:before.history.size()] == before.history)
         && newEntry.cycleNumber == before.currentCycle.cycleNumber
         && newEntry.recipientUid == before.currentCycle.recipientUid
         && newEntry.amount == before.currentCycle.amount
@@ -552,7 +553,7 @@ service cloud.firestore {
       allow create: if request.auth != null
         && verifiedOrNotPassword()
         && hhId.matches('^[a-z0-9]{6,20}$')
-        && request.auth.uid in request.resource.data.memberUids
+        && request.resource.data.memberUids == [request.auth.uid]
         && request.auth.uid == request.resource.data.owner
         && request.resource.data.keys().hasAll(['memberUids', 'owner', 'config'])
         && !request.resource.data.keys().hasAny(['isPremium', 'premiumExpiry', 'premiumActivatedAt'])
