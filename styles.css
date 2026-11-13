@@ -560,6 +560,21 @@ body.dark .streak-sub{color:#4CAF50}
 .empty .ei{font-size:2.6rem;margin-bottom:8px}
 .empty p{font-size:.82rem;line-height:1.5}
 .loading{display:flex;align-items:center;justify-content:center;padding:30px;gap:9px;color:var(--mid);font-size:.85rem}
+/* Loading skeletons: grey shapes shown until the first entries arrive (skHome / skList in js/02-helpers.js) */
+.sk{display:block;border-radius:8px;background:linear-gradient(90deg,var(--border) 25%,var(--mist) 50%,var(--border) 75%);background-size:200% 100%;animation:sk-shimmer 1.4s linear infinite}
+@keyframes sk-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.sk-hero{height:176px;border-radius:var(--cr);margin-bottom:11px}
+.sk-chip{height:76px;border-radius:var(--cr)}
+.sk-chipcard{height:72px;border-radius:var(--cr);margin-bottom:11px}
+.sk-row{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.sk-row+.sk-row{border-top:1px solid var(--border)}
+.sk-circle{width:38px;height:38px;border-radius:50%;flex-shrink:0}
+.sk-grow{flex:1;min-width:0}
+.sk-line{height:12px;margin:5px 0}
+.sk-sm{height:10px}
+.sk-amt{width:64px;flex-shrink:0}
+.sk-pill{display:inline-block;width:52px;height:10px;vertical-align:middle}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
 .spinner{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--p1);border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:3px}
