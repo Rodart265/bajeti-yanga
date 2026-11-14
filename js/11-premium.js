@@ -160,7 +160,7 @@ function showPremiumPage(){
   h += '<div style="display:flex;align-items:center;gap:11px;padding:12px 14px;margin-bottom:10px;background:linear-gradient(145deg,#142F4B 0%,#1B4F66 45%,#1F7A87 100%);border-radius:18px">';
   h += '<div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+APP_LOGO_SVG(30)+'</div>';
   h += '<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.02rem;color:#fff;letter-spacing:-.2px">Bajeti Yanga Premium</div>';
-  h += '<div style="font-size:.72rem;color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px">'+(isCW?'Tsegulani mphamvu zonse za ndalama zanu.':'Charts, PDF export, bill tracker and unlimited AI.')+'</div></div>';
+  h += '<div style="font-size:.72rem;color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px">'+(isCW?'Tsegulani mphamvu zonse za ndalama zanu.':'Unlock the full power of your money.')+'</div></div>';
   h += '</div>';
 
   // If already premium — show status (comfortably active: no urgent action needed)
@@ -204,12 +204,13 @@ function showPremiumPage(){
     ['cpu','Unlimited AI','#00695C'],
     ['trash-2','30-Day Trash','#B71C1C'],
     ['copy','Copy Month','#2F5D8A'],
-    ['camera','Receipt Scan','#1B5E20']
+    ['camera','Receipt Scan','#1B5E20'],
+    ['message-circle','Saved AI Chats','#C2185B']
   ];
   h += '<div class="pm-sec">'+(isCW?'Zomwe Mumapeza':'Included')+'</div>';
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">';
   feats.forEach(function(f,i){
-    h += '<div style="background:var(--mist);border-radius:var(--cr-md);padding:5px 9px;display:flex;align-items:center;gap:8px'+(i===feats.length-1?';grid-column:1/-1':'')+'">';
+    h += '<div style="background:var(--mist);border-radius:var(--cr-md);padding:5px 9px;display:flex;align-items:center;gap:8px">';
     h += '<div style="width:26px;height:26px;border-radius:9px;background:'+f[2]+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+f[0]+'" style="width:15px;height:15px;color:'+f[2]+'"></i></div>';
     h += '<div style="font-weight:700;font-size:.76rem;color:var(--ink)">'+f[1]+'</div></div>';
   });
