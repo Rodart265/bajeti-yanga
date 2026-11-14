@@ -186,7 +186,7 @@ function fmtAErr(code, err){
   if(code && code.indexOf('auth/requests-from-referer')===0)
     return isCW?'Adilesi ya tsambali siyaloledwa ndi chinsinsi cha pulogalamu. Ndi vuto la kakonzedwe. Lankhulani ndi thandizo.':'This web address is not allowed by the app\'s sign-in key. This is a setup problem, not your fault. Please contact support.';
   // Anything else: say so, and show the code so it can be reported. A missing code means a bug in the app itself.
-  if(code) return (isCW?'Chinachake chinalakwika (':'Something went wrong (')+code+(isCW?'). Yesaninso, kapena tilankhuleni ngati chikupitirira.':'). Please try again, or contact support if it keeps happening.');
+  if(code) return (isCW?'Chinachake chinalakwika (':'Could not complete that (')+code+(isCW?'). Yesaninso, kapena tilankhuleni ngati chikupitirira.':'). Please try again, or contact support if it keeps happening.');
   return (isCW?'Pulogalamu yakumana ndi vuto: ':'The app hit an unexpected problem: ')+(((err&&err.message)||'unknown').toString().slice(0,120))+(isCW?'. Tsegulaninso tsambali ndipo yesaninso.':'. Please refresh the page and try again.');
 }
 function authBtnLabel(isReg){ return lang==='cw'?(isReg?'Yambani Kulemba':'Takulandirani Kubwerera'):(isReg?'Start Tracking':'Welcome Back'); }
@@ -228,8 +228,8 @@ function doFgt(){
   const btn=g('fgt-btn'); if(btn){btn.disabled=true;btn.textContent='Sending...';}
   showAErr('');
   auth.sendPasswordResetEmail(em)
-    .then(()=>{ const ok=g('fgt-ok');if(ok)ok.classList.add('on'); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} })
-    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} });
+    .then(()=>{ const ok=g('fgt-ok');if(ok)ok.classList.add('on'); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" class="ic14m4"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} })
+    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" class="ic14m4"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} });
 }
 
 // ── Email Verification Screen ──
@@ -349,10 +349,10 @@ function sendOTP(){
       confResult=res;
       show('a-ph-s2'); hide('a-ph-s1');
       const ob0=g('ob0'); if(ob0)ob0.focus();
-      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
+      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" class="ic14m4"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
       toast((lang==='cw'?'Nambala yotsimikizira yatumizidwa!':'OTP sent!'),'i');
     })
-    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});} if(rcapV){rcapV.clear();rcapV=null;} });
+    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" class="ic14m4"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});} if(rcapV){rcapV.clear();rcapV=null;} });
 }
 function otpN(el,idx){
   el.value=el.value.replace(/\D/g,'');

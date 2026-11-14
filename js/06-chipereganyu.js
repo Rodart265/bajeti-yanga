@@ -173,7 +173,7 @@ function openChipCreate(){
   h+='<div class="fsec" id="cg-day-m"><label class="fl">'+(isCW?'Tsiku lolipira la mwezi (1–31)':'Pay day (day of the month, 1–31)')+'</label><input type="number" class="fi" id="cg-day" inputmode="numeric" min="1" max="31" placeholder="'+(isCW?'Mwachitsanzo: 25':'e.g. 25')+'"></div>';
   h+='<div class="fsec" id="cg-day-w" style="display:none"><label class="fl">'+(isCW?'Tsiku lolipira la sabata':'Pay day (day of the week)')+'</label><select class="fs" id="cg-wday">'+wdOpts+'</select></div>';
   h+='<p style="font-size:.72rem;color:var(--mid);margin:-2px 0 10px">'+(isCW?'Gawo lililonse, aliyense kupatula wolandira amalipira. Ndalama yonse = ndalama ya munthu mmodzi × (chiwerengero cha mamembala − 1).':'Each round, everyone except the person receiving pays. The pot = contribution × (members − 1).')+'</p>';
-  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" class="ic14m4"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
 
@@ -217,7 +217,7 @@ function openChipJoin(){
   const isCW=lang==='cw';
   let h='<div class="dh"></div><h3><i data-lucide="log-in" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px;color:var(--p1)"></i>'+(isCW?'Lowani mu Chipereganyu':'Join a Chipereganyu')+'</h3>';
   h+='<div class="fsec"><label class="fl">'+(isCW?'Khodi ya gulu':'Group code')+'</label><input type="text" class="fi" id="cg-code" placeholder="e.g. a2f9k3xz" autocapitalize="none" autocorrect="off"></div>';
-  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="joinChipGroup(this)"><i data-lucide="log-in" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Lowani':'Join')+'</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="joinChipGroup(this)"><i data-lucide="log-in" class="ic14m4"></i>'+(isCW?'Lowani':'Join')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
 
@@ -630,9 +630,9 @@ function chipFinishedHtml(grp){
       h+='<p style="font-size:.76rem;color:var(--mid);margin-bottom:8px">'+(isCW?'Muthanso kusintha dongosolo musanayambe kuzungulira kwina.':'You can change the order below before starting another lap.')+'</p>';
       (grp.rotationOrder||[]).forEach(function(uid,i){
         const m=grp.members[uid]||{name:'?',color:'#999'};
-        h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(i>0?'<button class="cg-pill-remind" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" style="width:11px;height:11px"></i></button>':'')+'</div>';
+        h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(i>0?'<button class="cg-pill-remind" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" class="ic11"></i></button>':'')+'</div>';
       });
-      h+='<button class="cg-cta on" onclick="chipStartNewLap(this)" style="margin-top:10px"><i data-lucide="rotate-cw" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Yambani kuzungulira kwina':'Start another lap')+'</button>';
+      h+='<button class="cg-cta on" onclick="chipStartNewLap(this)" style="margin-top:10px"><i data-lucide="rotate-cw" class="ic14m5"></i>'+(isCW?'Yambani kuzungulira kwina':'Start another lap')+'</button>';
       h+='<button class="cg-link-danger" onclick="chipCloseCircle()">'+(isCW?'Tsekani Chipereganyu ichi':'Close this circle')+'</button>';
     } else {
       h+='<p style="font-size:.76rem;color:var(--mid);text-align:center;margin:6px 0">'+(isCW?'Mukudikira mtsogoleri kusankha kuyamba kuzungulira kwina kapena kutseka.':'Waiting for the admin to start another lap or close the circle.')+'</p>';
@@ -658,7 +658,7 @@ function rChip(){
   let h='<div class="page">';
   h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
   h+='<div class="cg-back" style="flex:1" onclick="go(\'home\')"><i data-lucide="chevron-left"></i><div><div class="cg-title">'+esc(grp.name)+'</div><div class="cg-sub">'+nMembers+' '+(isCW?(nMembers===1?'membala':'mamembala'):'members')+(grp.status==='closed'?' · '+(isCW?'chatsekedwa':'closed'):'')+'</div></div></div>';
-  h+='<button class="btnG" style="padding:7px 10px" aria-label="'+L('Add entry','Add entry')+'" onclick="openChipEntry()"><i data-lucide="plus" style="width:13px;height:13px"></i></button>';
+  h+='<button class="btnG" style="padding:7px 10px" aria-label="'+L('Add entry','Add entry')+'" onclick="openChipEntry()"><i data-lucide="plus" class="ic13"></i></button>';
   h+='</div>';
 
   if(chipGroups.length>1){
@@ -679,7 +679,7 @@ function rChip(){
     const nOrder=(grp.rotationOrder||[]).length;
     h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="width:15px;height:15px;margin-right:5px;vertical-align:middle;color:var(--p1)"></i>'+(isCW?'Akusonkhanitsa mamembala':'Gathering members')+'</h2></div><div class="cb">';
     h+='<div class="cg-code-box">'+grp.id+'</div>';
-    h+='<div style="display:flex;gap:8px;margin-bottom:14px"><button class="btnG" style="flex:1" onclick="cpChipCode(\''+grp.id+'\')"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>'+(isCW?'Koperani':'Copy')+'</button><button class="btnG" style="flex:1" onclick="waChipCode(\''+grp.id+'\')"><i data-lucide="share-2" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i>WhatsApp</button></div>';
+    h+='<div style="display:flex;gap:8px;margin-bottom:14px"><button class="btnG" style="flex:1" onclick="cpChipCode(\''+grp.id+'\')"><i data-lucide="copy" class="ic13m4"></i>'+(isCW?'Koperani':'Copy')+'</button><button class="btnG" style="flex:1" onclick="waChipCode(\''+grp.id+'\')"><i data-lucide="share-2" class="ic13m4"></i>WhatsApp</button></div>';
     // What the circle is worth, so the admin sees the pot before pressing Start.
     const potLine=nOrder>=2
       ? (isCW?'Gawo lililonse: mamembala '+(nOrder-1)+' amalipira '+MK(grp.contributionAmount)+' aliyense → ndalama yonse '+MK(grp.contributionAmount*(nOrder-1)):'Each round: '+(nOrder-1)+' members pay '+MK(grp.contributionAmount)+' → pot '+MK(grp.contributionAmount*(nOrder-1)))
@@ -690,13 +690,13 @@ function rChip(){
     (grp.rotationOrder||[]).forEach(function(uid,i){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const isAdminRow=uid===grp.createdBy;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.7rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.7rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" class="ic14"></i></button>':'')+'</div>';
     });
     if(!isAdmin){
       h+='<button class="cg-link-danger" style="color:var(--mid)" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
     }
     if(isAdmin){
-      h+='<button class="cg-cta on" onclick="startChipRotation(this)" style="margin-top:10px"><i data-lucide="play" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Yambani Chipereganyu':'Start Chipereganyu')+'</button>';
+      h+='<button class="cg-cta on" onclick="startChipRotation(this)" style="margin-top:10px"><i data-lucide="play" class="ic14m5"></i>'+(isCW?'Yambani Chipereganyu':'Start Chipereganyu')+'</button>';
       if(nOrder<2) h+='<p style="font-size:.7rem;color:var(--mid);text-align:center;margin-top:8px">'+(isCW?'Muyenera kukhala ndi mamembala osachepera awiri kuti muyambe.':'You need at least 2 members to start.')+'</p>';
     } else {
       h+='<p style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Mukudikira mtsogoleri kuti ayambe.':'Waiting for the admin to start the rotation.')+'</p>';
@@ -718,7 +718,7 @@ function rChip(){
   const circ=2*Math.PI*48;
   const lastTurn=chipNextRecipient(grp,info)===null;
 
-  h+='<div style="text-align:center;margin-bottom:6px"><span class="cg-code-pill" onclick="cpChipCode(\''+grp.id+'\')" title="'+(isCW?'Kopelani nambala':'Tap to copy code')+'"><i data-lucide="hash" style="width:11px;height:11px"></i>'+grp.id+'<i data-lucide="copy" style="width:11px;height:11px"></i></span></div>';
+  h+='<div style="text-align:center;margin-bottom:6px"><span class="cg-code-pill" onclick="cpChipCode(\''+grp.id+'\')" title="'+(isCW?'Kopelani nambala':'Tap to copy code')+'"><i data-lucide="hash" class="ic11"></i>'+grp.id+'<i data-lucide="copy" class="ic11"></i></span></div>';
   h+='<div class="cg-wheel">';
   h+='<svg class="cg-ring" width="250" height="250" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="50" cy="50" r="48" fill="none" stroke="var(--g1)" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+(circ*(1-sm.pct)).toFixed(1)+'" style="transition:stroke-dashoffset .5s"/></svg>';
   h+='<div class="cg-pot"><div class="cg-pot-lbl">'+(isCW?'Gawo ':'Round ')+cc.cycleNumber+'</div><div class="cg-pot-val">'+MK(sm.collected)+'</div><div class="cg-pot-sub">'+(isCW?'mwa ':'of ')+MK(sm.expected)+'</div></div>';
@@ -738,7 +738,7 @@ function rChip(){
   });
   h+='</div>';
 
-  h+='<div class="cg-status"><div class="cg-status-1">'+(isCW?'Ndi nthawi ya '+first+' yolandira':first+'’s turn to receive')+'</div><div class="cg-status-2"><i data-lucide="clock" style="width:12px;height:12px"></i>'+(isCW?'Lipira pofika ':'Due ')+fmtDate(cc.dueDate)+' · '+sm.received.length+'/'+contributors.length+' '+(isCW?'zalandiridwa':'received')+(sm.sent.length?' · '+sm.sent.length+' '+(isCW?'zatumizidwa':'sent'):'')+(info.lap>1?' · '+(isCW?'Kuzungulira ':'Lap ')+info.lap:'')+'</div>';
+  h+='<div class="cg-status"><div class="cg-status-1">'+(isCW?'Ndi nthawi ya '+first+' yolandira':first+'’s turn to receive')+'</div><div class="cg-status-2"><i data-lucide="clock" class="ic12"></i>'+(isCW?'Lipira pofika ':'Due ')+fmtDate(cc.dueDate)+' · '+sm.received.length+'/'+contributors.length+' '+(isCW?'zalandiridwa':'received')+(sm.sent.length?' · '+sm.sent.length+' '+(isCW?'zatumizidwa':'sent'):'')+(info.lap>1?' · '+(isCW?'Kuzungulira ':'Lap ')+info.lap:'')+'</div>';
   if(od>0 && !sm.allReceived) h+='<div class="cg-status-2 cg-late" style="margin-top:3px">'+(isCW?'Yachedwa masiku '+od:'Overdue by '+od+(od===1?' day':' days'))+'</div>';
   h+='</div>';
 
@@ -768,13 +768,13 @@ function rChip(){
       h+='<div class="cg-pill-actions">';
       if(received){
         h+='<div class="cg-pill-ok"><i data-lucide="check" style="width:10px;height:10px"></i>'+(isCW?'Zalandiridwa':'Received')+'</div>';
-        if(canConfirmRows) h+='<button class="cg-pill-remind" onclick="chipSetReceived(\''+uid+'\',false,this)" title="'+(isCW?'Bwezerani':'Undo')+'"><i data-lucide="rotate-ccw" style="width:11px;height:11px"></i></button>';
+        if(canConfirmRows) h+='<button class="cg-pill-remind" onclick="chipSetReceived(\''+uid+'\',false,this)" title="'+(isCW?'Bwezerani':'Undo')+'"><i data-lucide="rotate-ccw" class="ic11"></i></button>';
       } else if(sentFlag){
         h+='<div class="cg-pill-sent"><i data-lucide="send" style="width:10px;height:10px"></i>'+(isCW?'Zatumizidwa':'Sent')+'</div>';
         if(canConfirmRows) h+='<button class="cg-pill-mark" onclick="chipSetReceived(\''+uid+'\',true,this)">'+(isCW?'Zalandiridwa':'Mark received')+'</button>';
-        if(isSelfRow) h+='<button class="cg-pill-remind" onclick="chipUnsend(this)" title="'+(isCW?'Bwezerani':'Undo')+'"><i data-lucide="rotate-ccw" style="width:11px;height:11px"></i></button>';
+        if(isSelfRow) h+='<button class="cg-pill-remind" onclick="chipUnsend(this)" title="'+(isCW?'Bwezerani':'Undo')+'"><i data-lucide="rotate-ccw" class="ic11"></i></button>';
       } else {
-        h+='<button class="cg-pill-remind" onclick="chipRemind(\''+uid+'\')" title="'+(isCW?'Kumbutsani pa WhatsApp':'Remind on WhatsApp')+'"><i data-lucide="bell" style="width:11px;height:11px"></i></button>';
+        h+='<button class="cg-pill-remind" onclick="chipRemind(\''+uid+'\')" title="'+(isCW?'Kumbutsani pa WhatsApp':'Remind on WhatsApp')+'"><i data-lucide="bell" class="ic11"></i></button>';
         if(isSelfRow) h+='<button class="cg-pill-mark" onclick="chipMarkSent(this)">'+(isCW?'Ndatumiza':'I’ve sent it')+'</button>';
         if(canConfirmRows) h+='<button class="cg-pill-mark" onclick="chipSetReceived(\''+uid+'\',true,this)">'+(isCW?'Zalandiridwa':'Mark received')+'</button>';
       }
@@ -815,7 +815,7 @@ function rChip(){
       // an explicit warning first since it means they're exiting without
       // finishing their contributions to the rest of this lap.
       const canRemove=isAdminView && uid!==grp.createdBy && !isRecipient;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(sC(m.color)||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(canMoveUp?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" style="width:11px;height:11px"></i></button>':'')+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span>'+(canRemove?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" style="width:14px;height:14px"></i></button>':'')+'</div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+(sC(m.color)||'#999')+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+'</b>'+(canMoveUp?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMoveUp(\''+uid+'\')" title="'+(isCW?'Sinthani pamalo':'Move up')+'"><i data-lucide="arrow-up" class="ic11"></i></button>':'')+(isAdminView&&uid!==grp.createdBy?'<button class="cg-pill-remind" style="margin-right:6px" onclick="chipMakeAdmin(\''+uid+'\')">'+(isCW?'Mtsogoleri':'Make admin')+'</button>':'')+'<span class="cg-order-st" style="color:'+color+'">'+label+'</span>'+(canRemove?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" class="ic14"></i></button>':'')+'</div>';
     });
     if(curUser && curUser.uid!==grp.createdBy){
       h+='<button class="cg-link-danger" style="color:var(--mid);margin-top:10px" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';

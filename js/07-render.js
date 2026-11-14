@@ -548,10 +548,10 @@ function openQRCode(){
   h+='<div><div style="font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Khodi ya nyumba':'Household Code')+'</div>';
   h+='<div style="font-family:monospace;font-weight:800;font-size:1.1rem;color:var(--ink);letter-spacing:2px">'+hhId+'</div></div>';
   h+='<button onclick="cpCode()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-md);padding:8px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:5px">';
-  h+='<i data-lucide="copy" style="width:13px;height:13px"></i> '+(isCW?'Koperani':'Copy')+'</button>';
+  h+='<i data-lucide="copy" class="ic13"></i> '+(isCW?'Koperani':'Copy')+'</button>';
   h+='</div>';
   h+='<button onclick="waCode();closeM(&quot;mv-u&quot;)" style="width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:var(--cr-md);font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">';
-  h+='<i data-lucide="send" style="width:14px;height:14px"></i> '+(isCW?'Tumizani pa WhatsApp':'Share via WhatsApp')+'</button>';
+  h+='<i data-lucide="send" class="ic14"></i> '+(isCW?'Tumizani pa WhatsApp':'Share via WhatsApp')+'</button>';
   h+='<button onclick="closeM(&quot;mv-u&quot;)" class="btnG" style="width:100%">'+(isCW?'Tsekani':'Close')+'</button>';
   g('mb-u').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
@@ -595,8 +595,8 @@ function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page log-page"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
-  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="sparkles" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
-  h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.income+'</button></div>';
+  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="scan-line" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
+  h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" class="ic14m4"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" class="ic14m4"></i> '+t.income+'</button></div>';
   if(!isSolo())h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
     const picks=QUICK_PICKS.map(name=>{const i=lCfg.items.findIndex(it=>it.name===name);return i<0?'':'<div class="qsb'+(selItem===i?' on':'')+'" onclick="pickID(this)" data-i="'+i+'">'+ico(name)+' '+trName(name)+'</div>';}).join('');
@@ -608,7 +608,7 @@ function rLog(){
       const si=lCfg.items[selItem];
       if(si)h+='<div style="display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:var(--cr-md);padding:8px 12px;margin-bottom:8px"><div style="font-size:1.05rem">'+ico(si.name)+'</div><div style="flex:1;font-weight:700;font-size:.82rem;color:var(--ink)">'+esc(trName(si.name))+'</div><button onclick="pickI(null)" style="border:none;background:none;color:var(--mid);cursor:pointer;padding:2px" aria-label="'+L('Clear selection','Chotsani chosankhidwa')+'"><i data-lucide="x" style="width:15px;height:15px"></i></button></div>';
     }
-    h+='<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" style="border-style:dashed;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 10px"><div class="ic-ico"><i data-lucide="pencil" style="width:16px;height:16px"></i></div><div class="ic-nm">'+(lang==='cw'?'Chinthu Chinanso':'Custom item')+'</div></div>'
+    h+='<div class="ic'+(selItem==='custom'?' on':'')+'" onclick="pickCustom()" style="border-style:dashed;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 10px"><div class="ic-ico"><i data-lucide="pencil" class="ic16"></i></div><div class="ic-nm">'+(lang==='cw'?'Chinthu Chinanso':'Custom item')+'</div></div>'
       +'</div>';
     if(selItem==='custom'){
       h+='<div class="fsec" style="background:var(--mist);border-radius:var(--cr-md);padding:12px;margin-bottom:4px">'
@@ -616,7 +616,7 @@ function rLog(){
         +'<input type="text" class="fi" id="custom-item-name" placeholder="'+(lang==='cw'?'Mwachitsanzo: Mankhwala, Ndalama ya basi...':'e.g. Medicine, Bus fare...')+'" style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
         +'<label class="fl" style="margin-bottom:6px">'+(lang==='cw'?'Gulu':'Category')+'</label>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="custom-cat-grid">'
-        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" style="width:12px;height:12px"></i>'+ct.label+'</button>').join('')
+        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" class="ic12"></i>'+ct.label+'</button>').join('')
         +'</div>'
         +'<label style="display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;color:var(--mid);cursor:pointer">'
         +'<input type="checkbox" id="custom-save-perm" onchange="g(\'custom-budget-row\').style.display=this.checked?\'block\':\'none\'" style="width:16px;height:16px;accent-color:var(--p1)">'
@@ -635,7 +635,7 @@ function rLog(){
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="fn" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula ku Chipiku...':'e.g. Bought at Chipiku...')+'"></div>';
   if(logType==='expense')h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><input type="checkbox" id="frc" style="width:17px;height:17px;accent-color:var(--p1)"><label for="frc" style="font-size:.78rem;font-weight:600;color:var(--mid)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.recurrYes+'</label></div>';
   h+='</div></div></div>';
-  h+='<div class="log-save-bar"><button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
+  h+='<div class="log-save-bar"><button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>';
   setView(h);
   if(logSrch) filterLogItems(logSrch);
 }

@@ -24,9 +24,6 @@ function autoDetectCustomCat(name){
   customCat=det; pickCustomCat(det);
 }
 function dismissNameNotif(){ var n=document.querySelector('.name-notif'); if(n)n.remove(); }
-function delBillD(el){ delBill(parseInt(el.dataset.bi)); }
-function swUD(el){ swU(el.dataset.uid); }
-function openPxMD(el){ openPxM(el.dataset.pid); }
 // Auth for the AI worker: a short-lived Firebase ID token (verified server-side) instead of a shared secret baked into the page.
 // Throws (never sends an anonymous request) when there is no usable sign-in token, so the person sees "please sign in
 // again" instead of a confusing "AI is busy". aiCode 'auth' is also what stops the retry loops from hammering the Worker.
@@ -66,7 +63,6 @@ function aiFailMessage(err, isCW){
     return isCW?'Bajeti AI yafika pa malire a lero. Yesaninso mawa.':'Bajeti AI has reached its daily limit. Please try again tomorrow.';
   return null;
 }
-function viewItemD(el){ viewItem(el.dataset.iid); }
 function openPxM(id){ openEP(id); }
 function viewItem(name){
   const t=tx();
@@ -92,12 +88,6 @@ function viewItem(name){
   h+='<button class="btnG" style="width:100%;margin-top:14px" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button>';
   g('mb-u').innerHTML=h; initIcons(); openM('mv-u');
 }
-function openEUd(el){ openEU(parseInt(el.dataset.i)); }
-function delItd(el){ delIt(el.dataset.i); }
-function delMemberd(el){ delMember(parseInt(el.dataset.i)); }
-function openEBd(el){ openEB(el.dataset.i); }
-function topUpGoald(el){ openTopUp(el.dataset.i); }
-function delGoald(el){ delGoal(el.dataset.i); }
 
 // Initialize Lucide icons after every render
 function initIcons(){

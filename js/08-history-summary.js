@@ -42,7 +42,7 @@ function rHist(){
   // Action buttons row
   h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
   h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> '+(isCW?'Koperani za Mwezi Wapita':'Copy Last Month')+lockBadge(10)+'</button>';
-  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zochotsedwa':'Trash')+lockBadge(10)+'</button>';
+  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" class="ic14m4"></i> '+(isCW?'Zochotsedwa':'Trash')+lockBadge(10)+'</button>';
   h+='</div>';
 
   // Running totals strip
@@ -57,20 +57,20 @@ function rHist(){
   // Search, with a Filters button. Period chips stay visible; type and member filters live behind the button.
   var _fActive=(histFilter!=='all'||fUser!=='all');
   h+='<div class="hist-srch-row"><div class="srch-wrap"><input type="text" placeholder="'+t.searchPurchases+'" value="'+sqEsc+'" oninput="doSrch(this.value)" aria-label="'+L('Search transactions','Sakani zolemba')+'"></div>';
-  h+='<button class="hist-fbtn'+(_fActive?' active':'')+'" type="button" aria-expanded="'+(histFiltersOpen?'true':'false')+'" onclick="toggleHistFilters()">'+L('Filters','Filters')+(_fActive?'<span class="hist-fdot" aria-hidden="true"></span>':'')+'<i data-lucide="chevron-down" style="width:14px;height:14px"></i></button></div>';
+  h+='<button class="hist-fbtn'+(_fActive?' active':'')+'" type="button" aria-expanded="'+(histFiltersOpen?'true':'false')+'" onclick="toggleHistFilters()">'+L('Filters','Filters')+(_fActive?'<span class="hist-fdot" aria-hidden="true"></span>':'')+'<i data-lucide="chevron-down" class="ic14"></i></button></div>';
 
   // Time range tabs
   h+='<div class="hist-filter" style="margin-bottom:6px">';
-  h+='<button class="hf'+(histTime==='week'?' on':'')+'" onclick="setHT(this)" data-t="week"><i data-lucide="calendar" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Sabata':'Week')+'</button>';
-  h+='<button class="hf'+(histTime==='month'?' on':'')+'" onclick="setHT(this)" data-t="month"><i data-lucide="calendar-days" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Mwezi':'Month')+'</button>';
-  h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year"><i data-lucide="calendar-range" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Chaka':'Year')+'</button>';
-  h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zonse':'All')+'</button>';
+  h+='<button class="hf'+(histTime==='week'?' on':'')+'" onclick="setHT(this)" data-t="week"><i data-lucide="calendar" class="ic13m4"></i> '+(isCW?'Sabata':'Week')+'</button>';
+  h+='<button class="hf'+(histTime==='month'?' on':'')+'" onclick="setHT(this)" data-t="month"><i data-lucide="calendar-days" class="ic13m4"></i> '+(isCW?'Mwezi':'Month')+'</button>';
+  h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year"><i data-lucide="calendar-range" class="ic13m4"></i> '+(isCW?'Chaka':'Year')+'</button>';
+  h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" class="ic13m4"></i> '+(isCW?'Zonse':'All')+'</button>';
   h+='</div>';
   if(histFiltersOpen){
   h+='<div class="hist-filter">';
-  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Zonse':'All')+'</button>';
-  h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zolowa':'Income')+'</button>';
-  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Ndalama Zotuluka':'Expenses')+'</button>';
+  h+='<button class="hf'+(histFilter==='all'?' on':'')+'" onclick="setHF(this)" data-f="all"><i data-lucide="copy" class="ic13m4"></i> '+(isCW?'Zonse':'All')+'</button>';
+  h+='<button class="hf'+(histFilter==='inc'?' on-inc':'')+'" onclick="setHF(this)" data-f="inc"><i data-lucide="trending-up" class="ic14m4"></i> '+(isCW?'Ndalama Zolowa':'Income')+'</button>';
+  h+='<button class="hf'+(histFilter==='exp'?' on-exp':'')+'" onclick="setHF(this)" data-f="exp"><i data-lucide="trending-down" class="ic14m4"></i> '+(isCW?'Ndalama Zotuluka':'Expenses')+'</button>';
   h+='</div>';
 
   if(!isSolo()){
@@ -112,7 +112,7 @@ function rHist(){
         if(_who||_qty) h+='<div class="plrow2">'+_who+_qty+'</div>';
         h+='<div class="plact">';
         h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+esc(p.id)+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
-        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" style="width:11px;height:11px"></i> '+t.del+'</button>';
+        h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" class="ic11"></i> '+t.del+'</button>';
         h+='</div></div><button class="pli-more" type="button" aria-expanded="false" aria-label="'+L('Show actions','Show actions')+'"><i data-lucide="chevron-down"></i></button></div>';
       });
     });
@@ -178,7 +178,7 @@ function doDel(id){
 function openTrash(){
   premiumGate('trash', function(){
     const trashed=lPx.filter(function(p){return p.deleted;});
-    let h='<div class="dh"></div><h3><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> Trash</h3>';
+    let h='<div class="dh"></div><h3><i data-lucide="trash-2" class="ic14m4"></i> Trash</h3>';
     if(!trashed.length){
       h+='<div class="empty" style="padding:14px 0"><div class="ei"><i data-lucide="check-circle" style="width:32px;height:32px;color:var(--g2)"></i></div><p>'+(lang==='cw'?'Palibe zochotsedwa':'Trash is empty')+'</p></div>';
     } else {
@@ -248,7 +248,7 @@ function openEP(id){
   if(!isI)h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="ep-qty" value="'+esc(p.qty||'')+'" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="ep-unit">'+t.units.map(u=>'<option '+(p.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div></div>';
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="ep-notes" value="'+esc(cleanNote(p.notes))+'"></div>';
   if(!isI) h+='<div class="fsec"><label style="display:flex;align-items:center;gap:8px;font-size:.84rem;font-weight:600;min-height:44px"><input type="checkbox" id="ep-rec" '+(p.recurring?'checked':'')+' style="width:20px;height:20px"> '+(lang==='cw'?'Bwerezani nthawi iliyonse':'Repeat every budget period')+'</label></div>';
-  h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
+  h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-ep&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveEP('+isI+')"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>';
   g('mb-ep').innerHTML=h; initIcons(); openM('mv-ep');
 }
 function epU(el,uid){ g('ep-uid').value=uid; el.closest('.usel').querySelectorAll('.usb').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
@@ -290,14 +290,14 @@ function toggleSumZero(){
     if(chev) chev.setAttribute('data-lucide','chevron-up');
     if(btn){
       const zeroCount = lCfg.items.filter(it=>iSpent(it.name)<=0).length;
-      btn.innerHTML = '<i data-lucide="chevron-up" style="width:14px;height:14px" id="sum-chevron"></i>'
+      btn.innerHTML = '<i data-lucide="chevron-up" class="ic14" id="sum-chevron"></i>'
         +(isCW?'Onetsani zochepa':'Show less');
     }
   } else {
     el.classList.add('hide');
     if(btn){
       const total = lCfg.items.length;
-      btn.innerHTML = '<i data-lucide="chevron-down" style="width:14px;height:14px" id="sum-chevron"></i>'
+      btn.innerHTML = '<i data-lucide="chevron-down" class="ic14" id="sum-chevron"></i>'
         +(isCW?'Onani zinthu zonse '+total:'Show all '+total+' items');
     }
   }
@@ -309,7 +309,7 @@ function rSum(){
   const t=tx(), tB=lCfg.items.reduce((s,it)=>s+it.budget,0), tS=totSp();
   let h='<div class="page">'+monthNav('mnav');
   
-  h+='<button class="magic-btn" id="ai-sum-btn" onclick="generateAiSummary()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:white;border:none;"><i data-lucide="zap" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(lang==='cw'?'Chidule cha AI':'Get AI Financial Review')+'</button>';
+  h+='<button class="magic-btn" id="ai-sum-btn" onclick="generateAiSummary()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:white;border:none;"><i data-lucide="zap" class="ic14m5"></i>'+(lang==='cw'?'Chidule cha AI':'Get AI Financial Review')+'</button>';
   h+='<div id="ai-sum-box" class="hide"></div>';
   
   // FIX 5: Modern donut chart + category breakdown cards
@@ -401,7 +401,7 @@ function rSum(){
       h += '</div>';
       h += '<div style="text-align:center;padding:10px 0 6px">'
         +'<button id="sum-show-all-btn" onclick="toggleSumZero()" style="background:none;border:none;color:var(--p1-text);font-size:.76rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:inline-flex;align-items:center;gap:4px">'
-        +'<i data-lucide="chevron-down" style="width:14px;height:14px" id="sum-chevron"></i>'
+        +'<i data-lucide="chevron-down" class="ic14" id="sum-chevron"></i>'
         +(lang==='cw'?'Onani zinthu zonse '+lCfg.items.length:'Show all '+lCfg.items.length+' items')
         +'</button></div>';
     }
@@ -448,7 +448,7 @@ function rMGI(it,i){
   const bcls=st==='over'?'bover':st==='near'?'bnear':st==='ok'?'bok':'bnone';
   const t=tx(),btxt=st==='over'?t.over:st==='near'?t.near:st==='ok'?t.ok:t.none;
   const cc=CAT_COLORS[catOf(it.name)]||'#607D8B';
-  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.72rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button></div></div>';
+  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.72rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" class="ic13"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" class="ic13"></i></button></div></div>';
 }
 
 function goalMonthsLeft(dl){ if(!dl)return null; const n=new Date(),d=new Date(dl+'T00:00:00'); const m=(d.getFullYear()-n.getFullYear())*12+(d.getMonth()-n.getMonth()); return Math.max(m,0); }
@@ -457,7 +457,7 @@ const BILL_ICON_OPTS=[{key:'zap',label:'Electricity',dfltName:'ESCOM'},{key:'dro
 function _billIconGridHtml(selected){
   return BILL_ICON_OPTS.map(function(o){
     const sel = o.key===selected;
-    return '<button type="button" data-k="'+o.key+'" onclick="pickBillIcon(this.dataset.k)" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+o.key+'" style="width:13px;height:13px"></i> '+o.label+'</button>';
+    return '<button type="button" data-k="'+o.key+'" onclick="pickBillIcon(this.dataset.k)" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+o.key+'" class="ic13"></i> '+o.label+'</button>';
   }).join('');
 }
 function pickBillIcon(key){
@@ -488,7 +488,7 @@ function openAddBill(editKey){
     h+='<div class="fsec"><label class="fl">'+t.iconLbl+'</label><div id="bl-ic-grid" style="display:flex;flex-wrap:wrap;gap:6px">'+_billIconGridHtml(window._billIconPick)+'</div></div>';
     h+='<div class="fsec"><label class="fl">'+t.amountMKLbl+'</label><input type="number" class="fi" id="bl-amt" inputmode="decimal" placeholder="0" value="'+esc(existing?existing.amount:'')+'"></div>';
     h+='<div class="fsec"><label class="fl">'+t.dueDateLbl+'</label><input type="date" class="fi" id="bl-due" value="'+esc(existing?existing.dueDate:'')+'"></div>';
-    h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveBill()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>';
+    h+='<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-u&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveBill()"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>';
     g('mb-u').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]}); initIcons(); openM('mv-u');
   });
@@ -687,13 +687,13 @@ function delIt(key){
 }
 function openAddM(){
   const t=tx();
-  let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
+  let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.addMember+'</h3><div class="fsec"><label class="fl">'+t.memberName+'</label><input type="text" class="fi" id="nm-nm" placeholder="e.g. Son, Helper..."></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-new">'+MEMBER_COLORS.map((c,i)=>'<div class="cp'+(i===0?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-new\',\'nm-col\')"></div>').join('')+'</div><input type="hidden" id="nm-col" value="'+MEMBER_COLORS[0]+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="saveMember()"><i data-lucide="save" class="ic14m4"></i> '+t.add+'</button></div>';
   g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e');
 }
 function pickC(el,pid,hid){ g(hid).value=sC(el.style.background); document.querySelectorAll('#'+pid+' .cp').forEach(cp=>cp.classList.remove('on')); el.classList.add('on'); }
 function saveMember(){ const nm=val('nm-nm').trim(); if(!nm){toast(lang==='cw'?'Lembani dzina.':'Enter a name.','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users.push({id:'u'+Date.now(),name:nm,color:val('nm-col')||'#176B78'}); saveCfg(cfg); closeM('mv-e'); toast(tx().nameUpdated); _stgRefresh(); }
-function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(sC(u.color).toLowerCase()===String(c).toLowerCase()?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+sC(u.color)+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
+function openEU(i){ const u=lCfg.users[i],t=tx(); let h='<div class="dh"></div><h3><i data-lucide="user" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.editUser+'</h3><div class="fsec"><label class="fl">Name</label><input type="text" class="fi" id="eu-nm" value="'+esc(u.name)+'"></div><div class="fsec"><label class="fl">Colour</label><div class="cpick" id="cp-edit">'+MEMBER_COLORS.map(c=>'<div class="cp'+(sC(u.color).toLowerCase()===String(c).toLowerCase()?' on':'')+'" style="background:'+c+'" onclick="pickC(this,\'cp-edit\',\'eu-col\')"></div>').join('')+'</div><input type="hidden" id="eu-col" value="'+sC(u.color)+'"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEU('+i+')"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>'; g('mb-e').innerHTML=h;
   if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); initIcons(); openM('mv-e'); }
 function svEU(i){ const nm=val('eu-nm').trim(); if(!nm)return; const cfg=JSON.parse(JSON.stringify(lCfg)); cfg.users[i].name=nm; cfg.users[i].color=val('eu-col')||cfg.users[i].color; saveCfg(cfg); closeM('mv-e'); updatePill(); toast(tx().nameUpdated); _stgRefresh(); }
 function delMember(i){
@@ -722,7 +722,7 @@ function delMember(i){
     _stgRefresh();
   }, null, true);
 }
-function openEB(key){ const i=recIdx(lCfg.items,key); if(i<0){ _staleRec('item'); return; } const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+esc(key)+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="decimal"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
+function openEB(key){ const i=recIdx(lCfg.items,key); if(i<0){ _staleRec('item'); return; } const it=lCfg.items[i],t=tx(); g('mb-e').innerHTML='<div class="dh"></div><h3>'+ico(it.name)+' '+esc(trName(it.name))+'</h3><input type="hidden" id="eb-i" value="'+esc(key)+'"><div class="fsec"><label class="fl">'+t.mbudget+'</label><input type="number" class="fi" id="eb-v" value="'+it.budget+'" inputmode="decimal"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-e&quot;)">'+t.cancel+'</button><button class="btnM" style="flex:2" onclick="svEB()"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-e')]}); openM('mv-e'); }
 function svEB(){ const key=val('eb-i'),v=parseFloat(val('eb-v')); if(!v||isNaN(v)||v<=0||v>99999999){toast(lang==='cw'?'Lowetsani bajeti yolondola':'Enter a valid budget','e');return;} const cfg=JSON.parse(JSON.stringify(lCfg)); const i=recIdx(cfg.items,key); if(i<0){ closeM('mv-e'); _staleRec('item'); return; } cfg.items[i].budget=v;saveCfg(cfg);toast(tx().budgetUpdated); closeM('mv-e'); _stgRefresh(); }
 function openAddGoal(){
   const t=tx(), isCW=lang==='cw';
@@ -740,7 +740,7 @@ function openAddGoal(){
   h+='<input type="date" class="fi" id="g-dl" min="'+minDateStr+'"></div>';
   h+='<div style="display:flex;gap:8px">';
   h+='<button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+t.cancel+'</button>';
-  h+='<button class="btnM" style="flex:2" onclick="saveGoal()"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.add+'</button></div>';
+  h+='<button class="btnM" style="flex:2" onclick="saveGoal()"><i data-lucide="save" class="ic14m4"></i> '+t.add+'</button></div>';
   g('mb-gl').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-gl')]});
   openM('mv-gl');
@@ -758,7 +758,7 @@ function saveGoal(){
   cfg.goals.push(goal);
   saveCfg(cfg); closeM('mv-gl'); toast((lang==='cw'?'Cholinga chaonjezedwa!':'Goal added!')); _stgRefresh();
 }
-function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:var(--pos)"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="decimal" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
+function openTopUp(key){ const gi=recIdx(lCfg.goals,key); if(gi<0){ _staleRec('goal'); return; } const gl=lCfg.goals[gi],t=tx(); g('mb-gl').innerHTML='<div class="dh"></div><h3><i data-lucide="arrow-up" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;color:var(--pos)"></i>'+t.topup+': '+esc(gl.name)+'</h3><div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(lang==='cw'?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(lang==='cw'?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div><label class="fl">'+(lang==='cw'?'Ndalama Yowonjezera (MK)':'Amount to Add (MK)')+'</label><input type="number" class="fi" id="tu-amt" inputmode="decimal" placeholder="0"></div><div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(&quot;mv-gl&quot;)">'+(lang==='cw'?'Siyani':t.cancel)+'</button><button class="btnM" style="flex:2;background:linear-gradient(135deg,#1B5E20,#388E3C)" onclick="topUpGoal(\''+key+'\')"><i data-lucide="save" class="ic14m4"></i> '+t.topup+'</button></div>'; if(window.lucide)lucide.createIcons({nodes:[g('mb-gl')]}); openM('mv-gl'); }
 function topUpGoal(key){
   const amt=parseFloat(val('tu-amt'));
   if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}
@@ -771,18 +771,6 @@ function topUpGoal(key){
   if(gl.saved>=gl.target) toast(lang==='cw'?'Cholinga chakwaniritsidwa: '+gl.name+'!':'Goal complete! '+gl.name+' reached!','s');
   else toast(lang==='cw'?'Cholinga chasinthidwa! Ndalama '+MK(actual)+' yawonjezedwa.':'Goal updated! '+MK(actual)+' added.','s');
   _stgRefresh();
-}
-function openWithdraw(key){
-  const wi=recIdx(lCfg.goals,key); if(wi<0){ _staleRec('goal'); return; }
-  const gl=lCfg.goals[wi];
-  const isCW=lang==='cw';
-  g('mb-gl').innerHTML='<div class="dh"></div><h3>&#8595; '+(isCW?'Tengani Ndalama':'Withdraw')+': '+esc(gl.name)+'</h3>'
-    +'<div class="fsec" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mid);margin-bottom:6px"><span>'+(isCW?'Yosungidwa':'Saved')+': <strong>'+MK(gl.saved)+'</strong></span><span>'+(isCW?'Cholinga':'Target')+': <strong>'+MK(gl.target)+'</strong></span></div>'
-    +'<label class="fl">'+(isCW?'Ndalama Yochotsedwa (MK)':'Amount to Withdraw (MK)')+'</label>'
-    +'<input type="number" class="fi" id="wd-amt" inputmode="decimal" placeholder="0"></div>'
-    +'<div style="display:flex;gap:8px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-gl\')">'+(isCW?'Letsani':tx().cancel)+'</button>'
-    +'<button class="btnM" style="flex:2;background:linear-gradient(135deg,#B71C1C,#E53935)" onclick="doWithdraw(\''+key+'\')"><i data-lucide="arrow-down-circle" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"></i> '+(isCW?'Tengani':'Withdraw')+'</button></div>';
-  openM('mv-gl');
 }
 function doWithdraw(key){
   const amt=parseFloat(val('wd-amt')); if(!amt||amt<=0){toast(lang==='cw'?'Lowetsani ndalama':'Enter an amount','e');return;}

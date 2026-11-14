@@ -25,19 +25,19 @@ function rStg(){
     const nearExpiry = pStatus.daysLeft !== null && pStatus.daysLeft <= 7;
     if(nearExpiry){
       premiumChip = '<button onclick="showPremiumPage()" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0">'
-        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold-ink);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="clock" style="width:11px;height:11px"></i> '+pStatus.daysLeft+'d left</span>'
+        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold-ink);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="clock" class="ic11"></i> '+pStatus.daysLeft+'d left</span>'
         +'<span style="font-size:.72rem;color:var(--gold-ink);white-space:nowrap">'+(lang==='cw'?'Bwezani tsopano':'Tap to renew')+'</span>'
         +'</button>';
     } else {
       premiumChip = '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">'
-        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--pos-bg);color:var(--pos);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Premium</span>'
+        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--pos-bg);color:var(--pos);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Premium</span>'
         +(expiryStr?'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">Until '+expiryStr+'</span>':'')
         +'</div>';
     }
   } else if(pStatus.isPremium && pStatus.isTrial){
-    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Trial · '+pStatus.daysLeft+'d</button>';
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Trial · '+pStatus.daysLeft+'d</button>';
   } else {
-    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;min-height:36px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" style="width:11px;height:11px"></i> Upgrade</button>';
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;min-height:36px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Upgrade</button>';
   }
   h+='<div class="prof-hdr" style="align-items:center">';
   if(photo && /^https:\/\//i.test(photo)){h+='<div class="prof-av"><img src="'+esc(photo)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px"></div>';}
@@ -90,7 +90,7 @@ function rStg(){
     +'<label class="fl" style="display:block;font-size:.72rem;font-weight:700;color:var(--mid);margin-bottom:5px">'+(lang==='cw'?'Tsiku la Malipiro (1-28)':'Salary day (1-28)')+'</label>'
     +'<div style="display:flex;align-items:center;gap:8px">'
     +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:64px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:var(--cr-sm);padding:7px 6px;font-size:.9rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="decimal" onchange="updSalaryDay(this.value)">'
-    +(_periodActive?'<button onclick="updSalaryDay(\'\')" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;gap:4px"><i data-lucide="x" style="width:11px;height:11px"></i> '+(lang==='cw'?'Bwezeretsani':'Reset')+'</button>':'')
+    +(_periodActive?'<button onclick="updSalaryDay(\'\')" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;gap:4px"><i data-lucide="x" class="ic11"></i> '+(lang==='cw'?'Bwezeretsani':'Reset')+'</button>':'')
     +'</div>'
     +(_periodActive?'<div style="margin-top:9px;font-size:.72rem;background:var(--mist);border-radius:var(--cr-sm);padding:7px 11px;color:var(--mid);line-height:1.6">'
     +'<span style="font-weight:700;color:var(--ink)">Active budget period:</span><br>'
@@ -174,7 +174,7 @@ function showWhatsNew(){
   let h='<div class="dh"></div>';
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
   h+='<div style="width:44px;height:44px;background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:var(--cr-md);display:flex;align-items:center;justify-content:center;flex-shrink:0">';
-  h+='<i data-lucide="sparkles" style="width:22px;height:22px;color:#fff"></i></div>';
+  h+='<i data-lucide="party-popper" style="width:22px;height:22px;color:#fff"></i></div>';
   h+='<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(lang==='cw'?'Zatsopano mu v':'What\'s New in v')+APP_VERSION+'</div>';
   h+='<div style="font-size:.75rem;color:var(--mid)">'+(lang==='cw'?'Zomwe zasintha':'Release notes')+'</div></div></div>';
   changes.forEach(function(c){
@@ -214,9 +214,9 @@ function stgOpenSection(sec, keep){
     if(!keep){ try{ history.pushState({tab:'stg',section:sec},'',(location.pathname||'/')); }catch(e){} }
     const t=tx();
     let h='<div class="page">';
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:var(--cr);padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):sec==='goals'?(lang==='cw'?'Zolinga zosungira':'Savings Goals'):(lang==='cw'?'Zolipira':'Bill Tracker'))+'</h2></div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="history.back()" style="background:var(--mist);border:1.5px solid var(--border);border-radius:var(--cr);padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:5px;font-family:Hanken Grotesk,sans-serif"><i data-lucide="chevron-left" class="ic14"></i>'+(lang==='cw'?'Kubwerera':'Back')+'</button><h2 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem">'+(sec==='members'?(lang==='cw'?'Mamembala':'Members'):sec==='items'?(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets'):sec==='goals'?(lang==='cw'?'Zolinga zosungira':'Savings Goals'):(lang==='cw'?'Zolipira':'Bill Tracker'))+'</h2></div>';
     if(sec==='members'){
-      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+sC(u.color)+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" aria-label="'+L('Remove ','Remove ')+esc(u.name)+'" onclick="delMember('+i+')"><i data-lucide="x" style="width:12px;height:12px"></i></button>':'')+'<button class="umed" aria-label="'+L('Edit ','Edit ')+esc(u.name)+'" onclick="openEU('+i+')"><i data-lucide="pencil" style="width:12px;height:12px"></i></button><div class="umav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+(_pxFirst||!hhId?lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month':'<span class="sk sk-pill"></span>')+'</div></div>').join('')+'</div></div></div>';
+      h+='<div class="card"><div class="ch"><h2><i data-lucide="users" style="margin-right:5px;vertical-align:middle;color:#1565C0"></i> '+t.members+'</h2><button class="bsm be" onclick="openAddM()"><i data-lucide="plus" style="width:12px;height:12px;vertical-align:-2px;margin-right:2px"></i> '+t.addMember+'</button></div><div class="cb"><div class="umg">'+lCfg.users.map((u,i)=>'<div class="umc" style="background:'+sC(u.color)+'18">'+(lCfg.users.length>1&&curUser&&lHHDoc&&curUser.uid===lHHDoc.owner?'<button class="umdel" aria-label="'+L('Remove ','Remove ')+esc(u.name)+'" onclick="delMember('+i+')"><i data-lucide="x" class="ic12"></i></button>':'')+'<button class="umed" aria-label="'+L('Edit ','Edit ')+esc(u.name)+'" onclick="openEU('+i+')"><i data-lucide="pencil" class="ic12"></i></button><div class="umav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="umnm">'+esc(u.name)+'</div><div class="umct">'+(_pxFirst||!hhId?lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' this month':'<span class="sk sk-pill"></span>')+'</div></div>').join('')+'</div></div></div>';
       // Pending join requests — visible to owner
       // Check lHHDoc.owner first, fall back to ownedHouseholds on user doc for old households
       const isOwner = curUser && (
@@ -248,8 +248,8 @@ function stgOpenSection(sec, keep){
                 rh += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#BF360C;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">'+esc((jData.displayName||'?')[0].toUpperCase())+'</div>';
                 rh += '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+name+'</div>'+email+'</div>';
                 rh += '<div style="display:flex;gap:6px">';
-                rh += '<button data-uid="'+esc(jd.id)+'" onclick="approveJoin(this.dataset.uid)" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" style="width:12px;height:12px"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
-                rh += '<button data-uid="'+esc(jd.id)+'" onclick="declineJoin(this.dataset.uid)" style="background:var(--neg-bg);color:var(--neg);border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="x" style="width:12px;height:12px"></i> '+(lang==='cw'?'Kanani':'Decline')+'</button>';
+                rh += '<button data-uid="'+esc(jd.id)+'" onclick="approveJoin(this.dataset.uid)" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" class="ic12"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
+                rh += '<button data-uid="'+esc(jd.id)+'" onclick="declineJoin(this.dataset.uid)" style="background:var(--neg-bg);color:var(--neg);border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="x" class="ic12"></i> '+(lang==='cw'?'Kanani':'Decline')+'</button>';
                 rh += '</div></div>';
               });
               body.innerHTML = rh;
@@ -274,7 +274,7 @@ function stgOpenSection(sec, keep){
         h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:var(--pos)"':'')+'>'+( done?'<i data-lucide="party-popper" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px"></i>':'')+esc(gl.name)+'</div>';
         h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:var(--pos)"':'')+'>'+Math.round(pct*100)+'%</div>';
         if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.72rem" onclick="openTopUp(\''+recKey(gl,i)+'\')"><i data-lucide="arrow-up" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.topup+'</button>';
-        h+='<button class="bsm bd" aria-label="'+L('Delete goal','Delete goal')+'" style="padding:3px 7px;font-size:.72rem" onclick="delGoal(\''+recKey(gl,i)+'\')"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></div></div>';
+        h+='<button class="bsm bd" aria-label="'+L('Delete goal','Delete goal')+'" style="padding:3px 7px;font-size:.72rem" onclick="delGoal(\''+recKey(gl,i)+'\')"><i data-lucide="trash-2" class="ic12"></i></button></div></div>';
         h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
         h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
         if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.72rem;color:var(--gold-ink);font-weight:700;background:var(--gold-bg);border-radius:var(--cr-sm);padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+(lang==='cw'?' zofunika':' needed')+(ml!==null?' · '+ml+(lang==='cw'?' miyezi yatsala':' mths left'):'')+'</div>';
@@ -298,9 +298,9 @@ function stgOpenSection(sec, keep){
           h+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
           h+='<div class="bill-amt">'+MK(b.amount)+'</div>';
           h+='<div style="display:flex;gap:8px">';
-          h+='<button class="bsm" onclick="markBillPaid(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px;background:#2E7D32;color:#fff;border:none" aria-label="'+t.markPaid+'"><i data-lucide="check" style="width:13px;height:13px"></i></button>';
-          h+='<button class="bsm be" onclick="editBill(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px" aria-label="'+t.editP+'"><i data-lucide="pencil" style="width:13px;height:13px"></i></button>';
-          h+='<button class="bsm bd" onclick="delBill(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px" aria-label="'+t.del+'"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>';
+          h+='<button class="bsm" onclick="markBillPaid(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px;background:#2E7D32;color:#fff;border:none" aria-label="'+t.markPaid+'"><i data-lucide="check" class="ic13"></i></button>';
+          h+='<button class="bsm be" onclick="editBill(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px" aria-label="'+t.editP+'"><i data-lucide="pencil" class="ic13"></i></button>';
+          h+='<button class="bsm bd" onclick="delBill(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px" aria-label="'+t.del+'"><i data-lucide="trash-2" class="ic13"></i></button>';
           h+='</div></div></div>';
         });
       } else {

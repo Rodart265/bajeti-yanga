@@ -135,7 +135,7 @@ function pinFgt(){
     +'<div style="display:flex;gap:8px">'
     +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+cancel+'</button>'
     +'<button class="btnM" style="flex:2" onclick="pinFgtVerify()">'
-    +'<i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'
+    +'<i data-lucide="shield-check" class="ic14m5"></i>'
     +verify+'</button>'
     +'</div>';
   if(window.lucide)lucide.createIcons({nodes:[box]});
@@ -363,7 +363,7 @@ function _openSecurityPinVerify(onVerified){
     +'</div>'
     +'<div style="display:flex;gap:8px">'
     +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Letsani':'Cancel')+'</button>'
-    +'<button class="btnM" style="flex:2" onclick="_secPinVerifySubmit()"><i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
+    +'<button class="btnM" style="flex:2" onclick="_secPinVerifySubmit()"><i data-lucide="shield-check" class="ic14m5"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
   openM('mv-confirm');
@@ -407,7 +407,7 @@ function _openSecurityPasswordVerify(onVerified){
     +'</div>'
     +'<div style="display:flex;gap:8px">'
     +'<button class="btnG" style="flex:1" onclick="closeM(\'mv-confirm\')">'+(isCW?'Letsani':'Cancel')+'</button>'
-    +'<button class="btnM" style="flex:2" onclick="_secPwVerifySubmit()"><i data-lucide="shield-check" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
+    +'<button class="btnM" style="flex:2" onclick="_secPwVerifySubmit()"><i data-lucide="shield-check" class="ic14m5"></i>'+(isCW?'Tsimikizani':'Verify')+'</button>'
     +'</div>';
   if(window.lucide) lucide.createIcons({nodes:[box]});
   openM('mv-confirm');

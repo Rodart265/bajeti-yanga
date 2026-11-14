@@ -24,7 +24,7 @@ function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
   div.style.cssText = 'position:fixed;inset:0;background:#F3F6F8;z-index:9999;overflow-y:auto;padding:0';
   div.innerHTML = '<div style="max-width:640px;margin:0 auto;padding:0 0 40px">'
     +'<div style="background:linear-gradient(135deg,#142F4B,#176B78);padding:24px 20px 22px;margin-bottom:0">'
-    +'<button onclick="document.getElementById(\''+id+'\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--cr);padding:7px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px"><i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back</button>'
+    +'<button onclick="document.getElementById(\''+id+'\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--cr);padding:7px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px"><i data-lucide="chevron-left" class="ic14"></i> Back</button>'
     +'<div style="display:flex;align-items:center;gap:11px">'
     +'<div style="width:42px;height:42px;border-radius:var(--cr-md);background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+iconBadge+'" style="width:21px;height:21px;color:#fff"></i></div>'
     +'<div><h1 style="font-family:Hanken Grotesk,sans-serif;font-size:1.25rem;font-weight:800;color:#fff;margin-bottom:2px">'+heading+'</h1>'
@@ -93,7 +93,7 @@ function faqToggle(id){
 }
 function openFAQ(){
   const chips = polChips([
-    ['sparkles','#176B78','AI features'],
+    ['scan-line','#176B78','AI features'],
     ['gem','#E65100','Premium'],
     ['shield-check','#00695C','Security']
   ]);

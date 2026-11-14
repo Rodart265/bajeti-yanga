@@ -224,7 +224,7 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
   // (This prompt used to borrow the white-card colours, which made the text almost invisible on this screen.)
   box.classList.add('rst-card');
   const _until = userData.restoreBefore ? fmtDate(userData.restoreBefore) : '';
-  const _fresh = '<button class="setup-btn outline" onclick="confirmStartFresh()"><i data-lucide="plus-circle" style="width:16px;height:16px"></i>'+L('Start fresh with a new household','Start fresh with a new household')+'</button>'
+  const _fresh = '<button class="setup-btn outline" onclick="confirmStartFresh()"><i data-lucide="plus-circle" class="ic16"></i>'+L('Start fresh with a new household','Start fresh with a new household')+'</button>'
     +'<div class="rst-hint">'+L('Your login stays. You can then create a new household or join another.','Your login stays. You can then create a new household or join another.')+'</div>';
   if(stillRecoverable){
     const daysLeft = userData.restoreBefore ? Math.max(0, Math.ceil((new Date(userData.restoreBefore)-new Date())/86400000)) : 30;
@@ -235,7 +235,7 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
       +'<div class="rst-body">'+(isCW?'Akaunti yanu idzachotsedwa kwathunthu pakapita masiku '+daysLeft+'. Mukufuna kuibwezera?':'Your account is scheduled for permanent deletion'+(_until?' on <strong>'+_until+'</strong>':'')+' ('+_dayWord+' left).')+'</div>'
       +'<div class="rst-hh" id="rst-hh"></div>'
       +'<div class="rst-actions">'
-        +'<button class="setup-btn" onclick="restoreAccount()"><i data-lucide="history" style="width:16px;height:16px"></i>'+(isCW?'Inde, Bwezeretsani':'Restore my account')+'</button>'
+        +'<button class="setup-btn" onclick="restoreAccount()"><i data-lucide="history" class="ic16"></i>'+(isCW?'Inde, Bwezeretsani':'Restore my account')+'</button>'
         +_fresh
         +'<button class="rst-link" onclick="auth.signOut()">'+(isCW?'Ayi, Siyani':'Sign out')+'</button>'
       +'</div></div>';
@@ -259,7 +259,7 @@ function showAccountRestorePrompt(user, userData, stillRecoverable){
       +'<div class="rst-title">'+(isCW?'Akaunti Yachotsedwa':'This account can no longer be restored')+'</div>'
       +'<div class="rst-body">'+(isCW?'Nthawi ya masiku 30 yatha. Akaunti iyi siingathe kubwezeretsedwanso.':'The 30-day recovery window has passed.')+'</div>'
       +'<div class="rst-actions">'
-        +'<button class="setup-btn" onclick="confirmStartFresh()"><i data-lucide="plus-circle" style="width:16px;height:16px"></i>'+L('Start with a new household','Start with a new household')+'</button>'
+        +'<button class="setup-btn" onclick="confirmStartFresh()"><i data-lucide="plus-circle" class="ic16"></i>'+L('Start with a new household','Start with a new household')+'</button>'
         +'<div class="rst-hint">'+L('Your login stays. You can then create a new household or join another.','Your login stays. You can then create a new household or join another.')+'</div>'
         +'<button class="rst-link" onclick="auth.signOut()">'+(isCW?'Tsekani':'Sign out')+'</button>'
       +'</div></div>';
@@ -366,9 +366,9 @@ function renderSetupJoinChoice(){
     +'</div>'
     +'<div style="display:flex;gap:8px">'
       +'<button class="setup-btn" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="createHH()">'
-        +'<i data-lucide="plus-circle" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Pangani Yatsopano':'Create New')+'</button>'
+        +'<i data-lucide="plus-circle" class="ic14m5"></i>'+(isCW?'Pangani Yatsopano':'Create New')+'</button>'
       +'<button class="setup-btn outline" style="flex:1;margin-top:0;padding:11px 8px;font-size:.82rem" onclick="renderSetupJoinForm()">'
-        +'<i data-lucide="log-in" style="width:14px;height:14px;margin-right:5px;vertical-align:middle"></i>'+(isCW?'Lowani Ina':'Join Existing')+'</button>'
+        +'<i data-lucide="log-in" class="ic14m5"></i>'+(isCW?'Lowani Ina':'Join Existing')+'</button>'
     +'</div>'
     +'<div id="setup-deleted" class="dh-box" style="display:none"></div>';
   setupErr('');
@@ -383,7 +383,7 @@ function renderSetupJoinForm(){
   const isCW = lang === 'cw';
   box.innerHTML =
     '<button onclick="renderSetupJoinChoice()" style="background:none;border:none;color:rgba(255,255,255,.75);font-size:.78rem;display:flex;align-items:center;gap:3px;margin-bottom:14px;cursor:pointer;padding:0;font-family:inherit">'
-      +'<i data-lucide="chevron-left" style="width:14px;height:14px"></i>'+(isCW?'Bwerera':'Back')+'</button>'
+      +'<i data-lucide="chevron-left" class="ic14"></i>'+(isCW?'Bwerera':'Back')+'</button>'
     +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'
       +'<div style="width:44px;height:44px;background:rgba(255,255,255,.18);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
         +'<i data-lucide="log-in" style="color:#fff;width:22px;height:22px"></i>'
@@ -399,7 +399,7 @@ function renderSetupJoinForm(){
         +'<i data-lucide="scan-line" style="width:20px;height:20px;color:#fff"></i></button>'
     +'</div>'
     +'<button class="setup-btn" style="width:100%;margin-top:0;padding:13px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="joinHH()">'
-      +'<i data-lucide="arrow-right-circle" style="width:16px;height:16px"></i>'+(isCW?'Lowani Nyumba Iyi':'Join This Household')+'</button>';
+      +'<i data-lucide="arrow-right-circle" class="ic16"></i>'+(isCW?'Lowani Nyumba Iyi':'Join This Household')+'</button>';
   setupErr('');
   if(window.lucide) lucide.createIcons({nodes:[box]});
   box.classList.add('fade-in');

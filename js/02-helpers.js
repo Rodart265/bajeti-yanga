@@ -186,7 +186,7 @@ function fsErrMsg(e){
   if(c==='resource-exhausted') return cw?'Ntchito yatanganidwa kapena malire afika. Yesaninso mtsogolo.':'The service is busy or a limit was reached. Please try again later.';
   if(c==='not-found') return cw?'Sichinapezeke. Mwina chachotsedwa.':'That could not be found. It may have been removed.';
   if(c==='aborted'||c==='already-exists'||c==='failed-precondition') return cw?'Zinasintha pamene mukusunga. Yesaninso.':'This changed while you were saving. Please try again.';
-  if(c) return (cw?'Chinachake chinalakwika (':'Something went wrong (')+c+(cw?'). Yesaninso.':'). Please try again.');
+  if(c) return (cw?'Chinachake chinalakwika (':'Could not complete that (')+c+(cw?'). Yesaninso.':'). Please try again.');
   return (cw?'Pulogalamu yakumana ndi vuto: ':'The app hit an unexpected problem: ')+(((e&&e.message)||'unknown').toString().slice(0,120));
 }
 // fetch with a timeout, so a stalled connection ends in an error instead of a screen that never recovers.
@@ -244,9 +244,9 @@ function toast(msg,type){
   // Duration scales with message length so short messages don't linger and
   // long messages aren't cut off before they can be read.
   const duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
-  el.innerHTML = '<div class="t-ic-wrap"><i data-lucide="'+icons[type]+'" style="width:13px;height:13px"></i></div>'
+  el.innerHTML = '<div class="t-ic-wrap"><i data-lucide="'+icons[type]+'" class="ic13"></i></div>'
     +'<div class="t-msg">'+esc(msg)+'</div>'
-    +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="'+L('Dismiss','Tsekani')+'"><i data-lucide="x" style="width:13px;height:13px"></i></button>'
+    +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="'+L('Dismiss','Tsekani')+'"><i data-lucide="x" class="ic13"></i></button>'
     +'<div class="t-bar" style="animation-duration:'+duration+'ms"></div>';
   if(window.lucide) lucide.createIcons({nodes:[el]});
   clearTimeout(window._toastTimer);
