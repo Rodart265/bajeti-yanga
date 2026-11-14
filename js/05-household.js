@@ -141,6 +141,19 @@ function bootApp(){
             window._userOwnedHouseholds = doc.data().ownedHouseholds || [];
             const hid=doc.data().householdId;
             localStorage.setItem('nb_household',hid);
+            // No "Welcome back" screen (WELCOME_SCREEN in js/01-constants.js). Same destinations that Continue led to:
+            // the PIN screen when a PIN is set (fingerprint starts there), otherwise straight into the app.
+            // Switch Household lives in Profile.
+            if(!WELCOME_SCREEN){
+              if(hasPIN()){
+                _pendingHid = hid; pinMode = 'check';
+                hide('scr-auth'); hide('scr-setup'); hide('scr-welcome'); g('app').classList.add('hide'); showPIN();
+              } else {
+                _pendingHid = null;
+                hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); g('app').classList.remove('hide'); connectHH(hid);
+              }
+              return;
+            }
             // Show welcome screen - let user choose to continue or switch household
             const hhName = doc.data().householdName || null;
             if(hhName){
