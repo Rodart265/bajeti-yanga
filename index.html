@@ -108,7 +108,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
 (function(){
   var splash = document.getElementById('boot-splash');
   var shownAt = Date.now();
-  var MIN_DISPLAY_MS = 500; // give the icon/name a real moment on screen, even on a cached/instant load
+  var MIN_DISPLAY_MS = 0; // no forced wait: the splash stays only as long as the app is really loading (was 500)
   var ids = ['scr-auth','scr-setup','scr-pin','scr-welcome','scr-verify','app'];
   function els(){ return ids.map(function(id){ return document.getElementById(id); }).filter(Boolean); }
   function anyVisible(){
