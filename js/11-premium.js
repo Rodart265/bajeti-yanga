@@ -125,6 +125,7 @@ function approveJoin(uid){
     return batch.commit().then(()=>_markApproved(hhId, uid));
   })
     .then(()=>{
+      notifyViaWorker({type:'join-approved', householdId:hhId, uid:uid});   // push to the person who was approved
       toast(lang==='cw'?'Membala wavomerezedwa!':'Member approved!','s');
       stgOpenSection('members');
     })
@@ -545,18 +546,7 @@ function showPremiumSheet(){
   openM('mv-u');
 }
 
-// Builds the document for a brand-new household. The free trial starts from a SERVER timestamp at the ROOT of the
-// document: the security rules reject a trial date inside config and reject any client-supplied date, so it cannot
-// be back-dated. The trial is offered once per account: if users/{uid}.trialClaimedAt is set (stamped by the
-// onHouseholdCreated Cloud Function), no trial is started for this household.
-function _newHouseholdDoc(uData, cfg, extra){
-  const FV = firebase.firestore.FieldValue;
-  ensureRecIds(cfg);   // new households start with ids on every item
-  const doc = Object.assign({config:cfg, createdAt:FV.serverTimestamp(), owner:curUser.uid, memberUids:[curUser.uid]}, extra||{});
-  if(!(uData && uData.trialClaimedAt)) doc.trialStarted = FV.serverTimestamp();
-  return doc;
-}
-
+// (New households are created by the payments Worker now, see _createHouseholdOnServer in 05-household.js.)
 
 function copyPreviousMonth(){
   premiumGate('copy_month', function(){
@@ -598,10 +588,40 @@ function checkNameChange(){
   setTimeout(()=>{ if(div.parentNode)div.remove(); },8000);
 }
 
-// ── PUSH NOTIFICATIONS — FCM shell (activate in Firebase Console) ──────────
-// To enable real push: add firebase-messaging-compat.js, set VAPID key below,
-// and deploy the Cloud Function in /functions/index.js
-const FCM_VAPID = ''; // paste your VAPID key here when ready
+// ── PUSH NOTIFICATIONS (Firebase Cloud Messaging) ──────────────────────────
+// What gets sent, and by whom: the payments Worker (pay-worker/src/push.js) sends a reminder the day before a bill is due and on
+// the day (about 8:00 Malawi time), tells the owner when someone asks to join, and tells a person when they are approved.
+// This page only (1) asks permission, (2) registers this phone with Firebase and (3) saves the phone's address (a "token"):
+//   - in the household, pushTokens.<uid> = { tokens:[...], lang }   -> bill reminders and join requests
+//   - in the person's own users/<uid> document                     -> "you were approved" (they are not a member yet)
+// sw.js shows the message. The VAPID key is public (it is meant to sit in the page); it is not a password.
+const FCM_VAPID = 'BGcQxZ0Q7pQdvs5oordaGIVU-vsEmvYoXAg1Wyc5LRkQb2rpDCh5LWdPSwj6_-8-4X3dnpJTn7FFjflwpngcA7c';
+
+// Ask once, and only in a moment where it is obviously useful: right after someone saves their first bill (kind 'bill'),
+// when an owner opens the invite code ('join-owner') or a person has just asked to join ('join-reply'). Never on its own
+// at startup. Must run from a tap (iPhones refuse otherwise), which is why it is a button in a dialog, not a timer.
+const PUSH_ASK = {
+  'bill': ['Get a reminder before your bills are due?','Mukufuna kukumbutsidwa bilu isanafike?','We will send a notification the day before and on the day it is due. You can turn this off any time in your phone settings.','Tidzakutumizirani uthenga tsiku lisanafike komanso pa tsiku lolipira. Mukhoza kuzimitsa nthawi iliyonse mu makonda a foni.'],
+  'join-owner': ['Know when someone asks to join?','Mukufuna kudziwa munthu akapempha kulowa?','We will send you a notification when someone asks to join your household, so you can approve them quickly.','Tidzakutumizirani uthenga munthu akapempha kulowa m\'nyumba yanu kuti mumuvomereze msanga.'],
+  'join-reply': ['Get told when you are approved?','Mukufuna kudziwitsidwa mukavomerezedwa?','We will send a notification as soon as the owner approves your request.','Tidzakutumizirani uthenga mwini nyumba akavomereza pempho lanu.']
+};
+function offerPush(kind){
+  const q = PUSH_ASK[kind];
+  try{
+    if(!q || !('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if(Notification.permission!=='default') return;
+    if(localStorage.getItem('nb_push_asked')) return;
+    localStorage.setItem('nb_push_asked','1');
+  }catch(e){ return; }
+  appConfirm(
+    '<div style="text-align:center;padding:4px 0 6px"><div style="width:48px;height:48px;border-radius:var(--cr);background:linear-gradient(135deg,#142F4B,#176B78);display:flex;align-items:center;justify-content:center;margin:0 auto 10px"><i data-lucide="bell" style="width:24px;height:24px;color:#fff"></i></div>'
+    +'<div style="font-weight:800;margin-bottom:6px">'+L(q[0],q[1])+'</div>'
+    +'<div style="font-size:.8rem;color:var(--mid)">'+L(q[2],q[3])+'</div></div>',
+    function(){ requestPushPermission(); },
+    L('Yes, notify me','Inde, ndidziwitseni'));
+  if(window.lucide) lucide.createIcons({nodes:[g('mb-confirm')]});
+}
+function offerBillReminders(){ offerPush('bill'); }
 
 async function requestPushPermission(){
   if(!('Notification' in window)||!('serviceWorker' in navigator))return;
@@ -611,22 +631,37 @@ async function requestPushPermission(){
   if(perm==='granted') setupFCMToken();
 }
 
+// Registers this phone and saves its address. Safe to call often: it writes only when something changed
+// (a new address, another household, or the language was switched).
 async function setupFCMToken(){
-  // FCM token registration — no-op until firebase-messaging is loaded
-  // and VAPID key is set. Kept as a shell so enabling is just adding the
-  // SDK script and VAPID key above.
   try{
-    if(!window.firebase||!firebase.messaging)return;
-    const messaging=firebase.messaging();
-    if(FCM_VAPID){
-      const token=await messaging.getToken({vapidKey:FCM_VAPID});
-      if(token&&hhId){
-        db.collection('households').doc(hhId).update({
-          [`pushTokens.${curUser?curUser.uid:'anon'}`]:token
-        }).catch(()=>{});
-      }
+    if(!FCM_VAPID || !curUser) return;
+    if(!('Notification' in window) || Notification.permission!=='granted') return;
+    if(!window.firebase || !firebase.messaging || !(await firebase.messaging.isSupported())) return;
+    const reg = await navigator.serviceWorker.ready;
+    const token = await firebase.messaging().getToken({vapidKey:FCM_VAPID, serviceWorkerRegistration:reg});
+    if(!token) return;
+    const pl = lang==='cw' ? 'cw' : 'en', uid = curUser.uid;
+    const mark = token+'|'+(hhId||'')+'|'+uid+'|'+pl;
+    if(localStorage.getItem('nb_push_reg')===mark) return;
+    // the person's own document (used to tell them their request was approved)
+    const uRef = db.collection('users').doc(uid), uSnap = await uRef.get();
+    const had = (uSnap.exists && Array.isArray(uSnap.data().pushTokens)) ? uSnap.data().pushTokens : [];
+    await uRef.set({pushTokens: had.filter(t=>t!==token).concat(token).slice(-3), pushLang: pl},{merge:true});
+    // the household (used for bill reminders and join requests), once the person is in one
+    if(hhId){
+      const hRef = db.collection('households').doc(hhId), hSnap = await hRef.get();
+      const hm = (hSnap.exists && hSnap.data().pushTokens && hSnap.data().pushTokens[uid]) || {};
+      const hadH = Array.isArray(hm.tokens) ? hm.tokens : [];
+      await hRef.update({['pushTokens.'+uid]: {tokens: hadH.filter(t=>t!==token).concat(token).slice(-3), lang: pl}});
     }
-  }catch(e){}
+    localStorage.setItem('nb_push_reg', mark);
+  }catch(e){ /* push is a bonus: any failure here must never get in the way of the app */ }
+}
+
+// Asks the Worker to send a notification (it checks on the server that the request is real; the browser never sends pushes itself).
+function notifyViaWorker(body){
+  try{ _paymentsCall(Object.assign({action:'notify'}, body)).catch(function(){}); }catch(e){}
 }
 
 // In-app budget alert: show a browser Notification if tab is not visible

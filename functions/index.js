@@ -1,5 +1,9 @@
 'use strict';
-// Bajeti Yanga Cloud Functions (needs the Firebase Blaze plan). See docs/ROLLOUT-2026-10.md.
+// SUPERSEDED (November 2026). Bajeti Yanga runs on the Firebase Spark plan, which cannot run Cloud Functions, so nothing in
+// this folder is deployed. Its jobs now live in the Cloudflare Worker in ../pay-worker (payments, admin console, Bajeti AI,
+// push notifications, households, clean-up). Kept for reference only; do not deploy. See docs/ROLLOUT-2026-11.md.
+//
+// Original description (needs the Firebase Blaze plan). See docs/ROLLOUT-2026-10.md.
 //
 //   payments            HTTPS. One URL that does three jobs:
 //                         POST + sign-in token  -> the app starts a payment ("checkout") or asks if it went through ("check")

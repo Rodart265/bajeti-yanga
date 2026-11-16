@@ -42,8 +42,9 @@ function miniFirestore() {
     const { field, op, value } = where.fieldFilter;
     const x = decodeValue(f[field.fieldPath]), want = decodeValue(value);
     if (op === 'EQUAL') return JSON.stringify(x) === JSON.stringify(want);
-    if (op === 'GREATER_THAN') return x > want;
-    if (op === 'LESS_THAN') return x < want;
+    const num = v => (v && typeof v.toMillis === 'function' ? v.toMillis() : v);
+    if (op === 'GREATER_THAN') return x !== undefined && x !== null && num(x) > num(want);
+    if (op === 'LESS_THAN') return x !== undefined && x !== null && typeof num(x) === typeof num(want) && num(x) < num(want);
     throw new Error('fake does not know op ' + op);
   }
   api.seed = (path, obj, createMs) => { docs.set(path, encodeFields(obj)); if (!created.has(path)) created.set(path, new Date(createMs || T0).toISOString()); bump(path); };
@@ -62,8 +63,10 @@ function miniFirestore() {
     if (method === 'POST' && rest === ':beginTransaction') { const id = 'tx' + (++n); txs.set(id, { reads: new Map() }); return json(200, { transaction: id }); }
     if (method === 'POST' && rest === ':rollback') { txs.delete(body.transaction); return json(200, {}); }
     if (method === 'POST' && rest === ':commit') {
-      const t = txs.get(body.transaction); if (!t) return err(400, 'unknown transaction');
-      txs.delete(body.transaction);
+      const plain = !body.transaction;                                // clean-up deletes: no read lock
+      const t = plain ? { reads: new Map() } : txs.get(body.transaction); if (!t) return err(400, 'unknown transaction');
+      if (!plain) txs.delete(body.transaction);
+      api.commits = (api.commits || 0) + 1;
       if (api.failCommits > 0) { api.failCommits--; return err(409, 'aborted'); }
       for (const [p, v] of t.reads) if ((ver.get(p) || 0) !== v) return err(409, 'contention');   // someone changed it after we read it
       for (const w of body.writes) if (w.update && w.currentDocument && w.currentDocument.exists && !docs.has(pathOf(w.update.name))) return err(404, 'no such document');
@@ -77,10 +80,12 @@ function miniFirestore() {
       }
       return json(200, { writeResults: [] });
     }
-    if (method === 'POST' && rest === ':runQuery') {
-      const sq = body.structuredQuery, col = sq.from[0].collectionId;
+    if (method === 'POST' && rest.endsWith(':runQuery')) {
+      const sq = body.structuredQuery, col = sq.from[0].collectionId, all = !!sq.from[0].allDescendants;
+      const parent = rest === ':runQuery' ? '' : rest.slice(1, -':runQuery'.length).split('/').map(decodeURIComponent).join('/');
+      const inScope = parts => (all ? parts.length % 2 === 0 && parts[parts.length - 2] === col : (parent ? parts.length === parent.split('/').length + 2 && parts[parts.length - 2] === col : parts.length === 2 && parts[0] === col));
       let out = [];
-      for (const [p, f] of docs) { const parts = p.split('/'); if (parts.length === 2 && parts[0] === col && matches(f, sq.where)) out.push({ document: { name: ROOT + '/' + p, fields: f, createTime: created.get(p) }, readTime: 'x' }); }
+      for (const [p, f] of docs) { const parts = p.split('/'); if (inScope(parts) && (!parent || p.startsWith(parent + '/' + col + '/')) && matches(f, sq.where)) out.push({ document: { name: ROOT + '/' + p, fields: f, createTime: created.get(p) }, readTime: 'x' }); }
       if (sq.orderBy) {
         const keys = sq.orderBy.map(o => ({ path: segs(o.field.fieldPath), desc: o.direction === 'DESCENDING' }));
         out = out.filter(r => keys.every(k => getAt(r.document.fields, k.path) !== undefined));      // Firestore leaves out documents missing the sort field
@@ -149,6 +154,7 @@ function fakeIdentity() {
     }
     if (url.endsWith('/accounts:lookup')) { const u = s.users.find(x => x.localId === body.localId[0]); return json(200, u ? { users: [wire(u)] } : {}); }
     if (url.endsWith('/accounts:update')) { const u = s.users.find(x => x.localId === body.localId); if (!u) return json(400, { error: { message: 'USER_NOT_FOUND' } }); u.disabled = body.disableUser === true; return json(200, { localId: u.localId }); }
+    if (url.endsWith('/accounts:delete')) { const i = s.users.findIndex(x => x.localId === body.localId); if (i < 0) return json(400, { error: { message: 'USER_NOT_FOUND' } }); s.users.splice(i, 1); return json(200, {}); }
     throw new Error('fake identity: unhandled ' + method + ' ' + url);
   };
   return s;
@@ -806,6 +812,255 @@ section('admin console: notices and maintenance');
   const rows = (await adm('log')).body.rows;
   eq('the activity log lists changes newest first', [rows.length > 5, rows.every((r, i) => i === 0 || rows[i - 1].atMs >= r.atMs), rows.some(r => r.action === 'settings_save' && r.by === 'boss@x.com')], [true, true, true]);
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Real claims, November 2026: Premium-only AI, push notifications, Worker-made households, clean-up jobs.
+import { clearPremiumCache, catDate } from './src/ai.js';
+import { makeFcm, runBillReminders } from './src/push.js';
+import { BILLS_CRON, HOUSEKEEPING_CRON } from './src/index.js';
+import { runHousekeeping } from './src/housekeeping.js';
+import { makeIdentity } from './src/identity.js';
+
+world.gem = { calls: [], status: 200, text: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Hello' }] } }] }) };
+world.fcm = { sent: [], dead: new Set(), status: 200 };
+const prevFetch = globalThis.fetch;
+globalThis.fetch = async (url, init) => {
+  url = String(url);
+  if (url.startsWith('https://generativelanguage.googleapis.com/')) { world.gem.calls.push({ url, headers: init.headers, body: JSON.parse(init.body) }); return new Response(world.gem.text, { status: world.gem.status, headers: { 'Content-Type': 'application/json' } }); }
+  if (url.startsWith('https://fcm.googleapis.com/')) {
+    const m = JSON.parse(init.body).message;
+    if (world.fcm.dead.has(m.token)) return json(404, { error: { status: 'NOT_FOUND' } });
+    if (world.fcm.status !== 200) return json(world.fcm.status, { error: { status: 'INTERNAL' } });
+    world.fcm.sent.push({ token: m.token, data: m.data }); return json(200, { name: 'x' });
+  }
+  return prevFetch(url, init);
+};
+
+const AIENV = { ...ENV, GEMINI_API_KEY: 'gem-secret', GEMINI_MODEL: 'gemini-test' };
+const DAYSTR = () => catDate(Date.now());
+const chat = async (body, { token, hh = 'HHP', feature, env = AIENV } = {}) => {
+  clearPremiumCache();
+  const h = { Authorization: 'Bearer ' + (token || await idToken()), 'Content-Type': 'application/json', Origin: 'https://rodart265.github.io' };
+  if (hh) h['X-Household'] = hh; if (feature) h['X-AI-Feature'] = feature;
+  const r = await call('/chat', { method: 'POST', headers: h, body: JSON.stringify(body === undefined ? { contents: [{ role: 'user', parts: [{ text: 'hi' }] }] } : body) }, env);
+  let b = null; try { b = await r.clone().json(); } catch (_) {}
+  return { status: r.status, body: b, headers: r.headers };
+};
+function aiWorld() {
+  world.fs = miniFirestore(); world.gem.calls.length = 0; world.gem.status = 200; world.fs.failCommits = 0;
+  const now = Date.now();
+  world.fs.seed('households/HHP', { owner: 'u1', memberUids: ['u1', 'u2'], isPremium: true, premiumExpiry: plus(10), config: {} });
+  world.fs.seed('households/HHF', { owner: 'u1', memberUids: ['u1'], config: {} });
+  world.fs.seed('households/HHT', { owner: 'u1', memberUids: ['u1'], trialStarted: tsFromMillis(now - 3 * DAY), config: {} });
+  world.fs.seed('households/HHX', { owner: 'u1', memberUids: ['u1'], trialStarted: tsFromMillis(now - 20 * DAY), config: {} });
+  world.fs.seed('households/HHE', { owner: 'u1', memberUids: ['u1'], isPremium: true, premiumExpiry: plus(-3), config: {} });
+  world.fs.seed('households/HHD', { owner: 'u1', memberUids: ['u1'], isPremium: true, premiumExpiry: plus(9), deletedAt: tsFromMillis(now - DAY), config: {} });
+}
+
+section('AI: Premium only, on the server');
+{
+  aiWorld();
+  eq('no sign-in: refused', (await call('/chat', { method: 'POST', body: '{}' }, AIENV)).status, 401);
+  eq('not set up (no Gemini key): says so, nothing is sent', [(await chat(undefined, { env: ENV })).status, world.gem.calls.length], [500, 0]);
+  const ok1 = await chat(undefined, { feature: 'scan' });
+  eq('Premium member: answered', [ok1.status, ok1.body.candidates[0].content.parts[0].text], [200, 'Hello']);
+  eq('the Gemini key is sent by the Worker, and the model is the configured one', [world.gem.calls[0].headers['x-goog-api-key'], world.gem.calls[0].url.includes('gemini-test:generateContent')], ['gem-secret', true]);
+  ok('the key never reaches the browser', !JSON.stringify(ok1.body).includes('gem-secret'));
+  eq('free household: refused with premium_required, Gemini not called', [(await chat(undefined, { hh: 'HHF' })).body.error.code, world.gem.calls.length], ['premium_required', 1]);
+  eq('no household named: refused', (await chat(undefined, { hh: '' })).status, 403);
+  eq('someone not in the Premium household: refused', (await chat(undefined, { token: await idToken({ sub: 'stranger' }) })).status, 403);
+  eq('a member of it is fine', (await chat(undefined, { token: await idToken({ sub: 'u2' }) })).status, 200);
+  eq('running trial counts as Premium', (await chat(undefined, { hh: 'HHT' })).status, 200);
+  eq('ended trial does not', (await chat(undefined, { hh: 'HHX' })).status, 403);
+  eq('expired Premium does not', (await chat(undefined, { hh: 'HHE' })).status, 403);
+  eq('a household in the deletion period does not', (await chat(undefined, { hh: 'HHD' })).status, 403);
+  eq('unverified e-mail account: refused', (await chat(undefined, { token: await idToken({ firebase: { sign_in_provider: 'password' }, email_verified: false }) })).status, 401);
+  world.gem.calls.length = 0;
+  const r = await chat({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }], tools: [{ googleSearch: {} }], model: 'gemini-pro-evil', generationConfig: { maxOutputTokens: 99999, candidateCount: 8 }, safetySettings: [] });
+  eq('extra things (tools, other model, other settings) are dropped, output size is capped', [r.status, Object.keys(world.gem.calls[0].body).sort(), world.gem.calls[0].body.generationConfig], [200, ['contents', 'generationConfig'], { maxOutputTokens: 4096 }]);
+  eq('not a Gemini request: refused', [(await chat({ foo: 1 })).status, (await chat({ contents: [] })).status, (await chat({ contents: [{ role: 'system', parts: [{ text: 'x' }] }] })).status], [400, 400, 400]);
+  eq('only pictures are accepted as files', (await chat({ contents: [{ parts: [{ inline_data: { mime_type: 'text/html', data: 'AAAA' } }] }] })).status, 400);
+  eq('a photo is accepted', (await chat({ contents: [{ parts: [{ text: 'what is this' }, { inline_data: { mime_type: 'image/jpeg', data: 'AAAA' } }] }] }, { feature: 'scan' })).status, 200);
+  eq('the browser may send the household and feature headers', (await call('/chat', { method: 'OPTIONS', headers: { Origin: 'https://rodart265.github.io' } }, AIENV)).headers.get('Access-Control-Allow-Headers').includes('X-Household'), true);
+}
+
+section('AI: daily limits are counted on the server and fail closed');
+{
+  aiWorld();
+  const env = { ...AIENV, HARD_DAILY_CAP: '2', GLOBAL_DAILY_CAP: '3' };
+  eq('first two go through', [(await chat(undefined, { env })).status, (await chat(undefined, { env, feature: 'magic' })).status], [200, 200]);
+  const third = await chat(undefined, { env });
+  eq('the third is refused with quota_exceeded, and Gemini was not called for it', [third.status, third.body.error.code, world.gem.calls.length], [429, 'quota_exceeded', 2]);
+  const u = world.fs.peek('aiUsage/u1_' + DAYSTR());
+  eq('the count is in Firestore, per person and per feature', [u.total, u.msg, u.magic], [2, 1, 1]);
+  eq('another person has their own count', (await chat(undefined, { env, token: await idToken({ sub: 'u2' }) })).status, 200);
+  eq('the overall daily ceiling stops everyone', [(await chat(undefined, { env, token: await idToken({ sub: 'u2' }) })).body.error.code, world.fs.peek('aiUsage/_all_' + DAYSTR()).total], ['quota_exceeded', 3]);
+  aiWorld(); world.gem.status = 500;
+  eq('if Gemini fails the use is given back', [(await chat()).status, world.fs.peek('aiUsage/u1_' + DAYSTR()).total], [500, 0]);
+  aiWorld(); world.fs.failCommits = 9;
+  const busy = await chat();
+  eq('if the counter cannot be written: "busy", never "go ahead"', [busy.status, busy.body.error.code, world.gem.calls.length], [503, 'busy', 0]);
+  aiWorld();
+  const cheap = await Promise.all(Array.from({ length: 6 }, () => chat(undefined, { env: { ...AIENV, HARD_DAILY_CAP: '3' } })));
+  eq('six at the same moment still cannot pass the limit of 3', [cheap.filter(x => x.status === 200).length <= 3, (world.fs.peek('aiUsage/u1_' + DAYSTR()) || {}).total <= 3], [true, true]);
+}
+
+section('households: made by the Worker (one trial per account, limit of 3)');
+{
+  world.fs = miniFirestore();
+  const mk = (code, over = {}, token) => app({ action: 'createHousehold', code, config: { overallBudget: 5 }, displayName: 'Ann', ...over }, token);
+  eq('bad code', (await mk('A B')).status, 400);
+  eq('no config', (await mk('abcd1234', { config: null })).status, 400);
+  eq('config far too big', (await mk('abcd1234', { config: { x: 'y'.repeat(310000) } })).status, 413);
+  eq('unverified e-mail account', (await mk('abcd1234', {}, await idToken({ firebase: { sign_in_provider: 'password' }, email_verified: false }))).status, 403);
+  const a = await mk('abcd1234', { config: { overallBudget: 5, isPremium: true, premiumExpiry: '2099-01-01', trialStarted: 'x' } });
+  const ab = await a.json();
+  const h1 = world.fs.peek('households/abcd1234'), u1 = world.fs.peek('users/u1');
+  eq('first household: created with the trial', [a.status, ab.trial, h1.owner, h1.memberUids, h1.trialStarted instanceof Ts], [200, true, 'u1', ['u1'], true]);
+  eq('Premium fields sent by the browser are thrown away', [h1.isPremium, h1.config.isPremium, h1.config.premiumExpiry, h1.config.trialStarted, h1.config.overallBudget], [undefined, undefined, undefined, undefined, 5]);
+  eq('the account remembers the trial and its household', [u1.trialClaimedAt instanceof Ts, u1.trialHouseholdId, u1.householdId, u1.ownedHouseholds, u1.displayName], [true, 'abcd1234', 'abcd1234', ['abcd1234'], 'Ann']);
+  eq('same code again: taken', (await mk('abcd1234')).status, 409);
+  const b = await (await mk('efgh5678')).json();
+  eq('second household: no second trial', [b.trial, world.fs.peek('households/efgh5678').trialStarted], [false, undefined]);
+  await mk('ijkl9012');
+  const fourth = await mk('mnop3456');
+  eq('fourth household on the free plan: refused', [fourth.status, (await fourth.json()).error, world.fs.peek('households/mnop3456')], [403, 'household_limit', undefined]);
+  world.fs.seed('households/ijkl9012', { ...world.fs.peek('households/ijkl9012'), deletedAt: tsFromMillis(Date.now()) });
+  eq('a household being deleted does not count', (await mk('mnop3456')).status, 200);
+  const clearing = world.fs.peek('users/u1'); world.fs.seed('users/u1', { ...clearing, ownedHouseholds: [] });
+  eq('clearing the list in the user document does not help (counted from real households)', (await mk('qrst7890')).status, 403);
+  world.fs.seed('users/u1', { ...world.fs.peek('users/u1'), premiumUntil: tsFromMillis(Date.now() + 5 * DAY) });
+  eq('a Premium account may have more', (await mk('qrst7890')).status, 200);
+  world.fs = miniFirestore();
+  const both = await Promise.all([mk('race0001'), mk('race0002')]);
+  const trials = (await Promise.all(both.map(r => r.json()))).filter(x => x.trial).length;
+  eq('two at the same moment: only one trial', trials, 1);
+  eq('solo household flag is kept', (await (await mk('solo0001', { solo: true })).json()).ok, true);
+  eq('and stored', world.fs.peek('households/solo0001').solo, true);
+}
+
+section('push: join request and approval');
+{
+  const fresh = () => {
+    world.fs = miniFirestore(); world.fcm.sent.length = 0; world.fcm.dead.clear(); world.fcm.status = 200;
+    world.fs.seed('households/HH1', { owner: 'u1', memberUids: ['u1', 'u3'], config: {}, pushTokens: { u1: { tokens: ['tokA', 'tokA2'], lang: 'cw' }, u3: { tokens: ['tokC'], lang: 'en' } } });
+    world.fs.seed('households/HH1/joinRequests/u2', { uid: 'u2', displayName: 'Bea', email: 'bea@x.com', requestedAt: tsFromMillis(Date.now() - 1000) });
+    world.fs.seed('users/u2', { pushTokens: ['tokB'], pushLang: 'en' });
+  };
+  const notify = async (body, sub) => app({ action: 'notify', ...body }, await idToken({ sub }));
+  const asU = async (body, sub) => notify(body, sub);
+  fresh();
+  eq('no sign-in: refused', (await call('/', { method: 'POST', body: JSON.stringify({ action: 'notify' }) })).status, 401);
+  eq('bad household id', (await asU({ type: 'join-request', householdId: '../x' }, 'u2')).status, 400);
+  eq('no pending request: nothing is sent', [(await asU({ type: 'join-request', householdId: 'HH1' }, 'nobody')).status, world.fcm.sent.length], [404, 0]);
+  const r = await asU({ type: 'join-request', householdId: 'HH1' }, 'u2');
+  eq('the owner is told, on every phone, in their language', [r.status, (await r.json()).sent, world.fcm.sent.map(x => x.token).sort(), world.fcm.sent[0].data.body], [200, 2, ['tokA', 'tokA2'], "Bea akupempha kulowa m'nyumba yanu."]);
+  eq('asking again for the same request: not told twice', [(await (await asU({ type: 'join-request', householdId: 'HH1' }, 'u2')).json()).sent, world.fcm.sent.length], [0, 2]);
+  eq('another household member cannot ask us to notify the owner about someone else', (await asU({ type: 'join-request', householdId: 'HH1' }, 'u3')).status, 404);
+  fresh();
+  eq('unknown notification', (await asU({ type: 'boom', householdId: 'HH1' }, 'u1')).status, 400);
+  eq('only the owner can send an approval', (await asU({ type: 'join-approved', householdId: 'HH1', uid: 'u3' }, 'u3')).status, 403);
+  eq('the person must really be a member', (await asU({ type: 'join-approved', householdId: 'HH1', uid: 'u2' }, 'u1')).status, 400);
+  world.fs.seed('households/HH1', { ...world.fs.peek('households/HH1'), memberUids: ['u1', 'u2', 'u3'] });
+  const ap = await asU({ type: 'join-approved', householdId: 'HH1', uid: 'u2' }, 'u1');
+  eq('the approved person is told (their own phones, from their own profile)', [ap.status, world.fcm.sent.map(x => x.token), world.fcm.sent[0].data.body], [200, ['tokB'], 'Your request was approved. You are in!']);
+  eq('only once', [(await (await asU({ type: 'join-approved', householdId: 'HH1', uid: 'u2' }, 'u1')).json()).sent, world.fcm.sent.length], [0, 1]);
+  fresh(); world.fcm.dead.add('tokA2');
+  await asU({ type: 'join-request', householdId: 'HH1' }, 'u2');
+  const pt = world.fs.peek('households/HH1').pushTokens;
+  eq('an address Google says is gone is removed, and nobody else is touched', [pt.u1.tokens, pt.u1.lang, pt.u3], [['tokA'], 'cw', { tokens: ['tokC'], lang: 'en' }]);
+  fresh(); world.fcm.status = 500;
+  eq('Google having a bad moment is not an error for the app, and nothing is removed', [(await asU({ type: 'join-request', householdId: 'HH1' }, 'u2')).status, world.fs.peek('households/HH1').pushTokens.u1.tokens], [200, ['tokA', 'tokA2']]);
+}
+
+section('push: bill reminders in the morning');
+{
+  world.fs = miniFirestore(); world.fcm.sent.length = 0; world.fcm.dead.clear(); world.fcm.status = 200;
+  const today = catDate(Date.now()), tomorrow = catDate(Date.now() + DAY), later = catDate(Date.now() + 3 * DAY);
+  const hh = (id, extra = {}) => world.fs.seed('households/' + id, { owner: id + 'o', memberUids: [id + 'o', id + 'm'], config: {}, pushTokens: { [id + 'o']: { tokens: [id + 'tA'], lang: 'en' }, [id + 'm']: { tokens: [id + 'tB'], lang: 'cw' } }, ...extra });
+  hh('H1'); hh('H2'); hh('H3', { deletedAt: tsFromMillis(Date.now() - DAY) }); hh('H4');
+  world.fs.seed('households/H1/bills/b1', { name: 'Rent', amount: 150000, dueDate: today });
+  world.fs.seed('households/H1/bills/b2', { name: 'ESCOM', amount: 20000, dueDate: tomorrow });
+  world.fs.seed('households/H1/bills/b3', { name: 'Far away', amount: 1, dueDate: later });
+  world.fs.seed('households/H2/bills/b1', { name: 'School fees', amount: 90000, dueDate: tomorrow });
+  world.fs.seed('households/H3/bills/b1', { name: 'Gone', amount: 1, dueDate: today });
+  world.fs.seed('households/H4/bills/b1', { name: 'Not due', amount: 1, dueDate: later });
+  const out = await worker.scheduled({ cron: BILLS_CRON }, ENV, ctx);
+  eq('households with something due today or tomorrow are told; deleted ones and others are not', [out.households, out.sent], [2, 4]);
+  const by = t => world.fcm.sent.find(x => x.token === t).data;
+  eq('English member of H1: both bills, with amounts', [by('H1tA').title, by('H1tA').body], ['Bajeti Yanga: Bill due today', 'Due today: Rent (MK 150,000). Due tomorrow: ESCOM (MK 20,000).']);
+  eq('Chichewa member of H1', by('H1tB').body, 'Lero: Rent (MK 150,000). Mawa: ESCOM (MK 20,000).');
+  eq('H2: tomorrow only', by('H2tA').title, 'Bajeti Yanga: Bill due tomorrow');
+  eq('a bill due in 3 days is not mentioned', world.fcm.sent.some(x => /Far away/.test(x.data.body)), false);
+  const again = await worker.scheduled({ cron: BILLS_CRON }, ENV, ctx);
+  eq('the next run in the same morning tells nobody again', [again.households, world.fcm.sent.length], [0, 4]);
+  world.fs = miniFirestore(); world.fcm.sent.length = 0;
+  for (let i = 1; i <= 4; i++) { hh('G' + i); world.fs.seed('households/G' + i + '/bills/b', { name: 'Rent', amount: 1, dueDate: today }); }
+  const small = await runBillReminders({ deps: { db: new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.fs.fetch }), now: Date.now, tsFromMillis }, fcm: makeFcm({ projectId: 'bajeti-yanga', getToken: async () => 'tok' }), budget: { left: 36 } });
+  ok('with the 50-request limit nearly used up it stops early and says how many are waiting', small.waiting > 0 && small.households < 4, small);
+  const rest = await worker.scheduled({ cron: BILLS_CRON }, ENV, ctx);
+  eq('the next run finishes the rest, nobody twice', [small.households + rest.households, world.fcm.sent.length], [4, 8]);
+  world.fcm.sent.length = 0; world.fs = miniFirestore();
+  eq('a sweep for payments still runs on the 15-minute timer', Array.isArray(await worker.scheduled({ cron: '*/15 * * * *' }, ENV, ctx)), true);
+}
+
+section('clean-up: dry run first, then really');
+{
+  const DAYS = n => tsFromMillis(Date.now() - n * DAY), iso = n => new Date(Date.now() - n * DAY).toISOString();
+  const build = () => {
+    world.fs = miniFirestore(); world.idt = fakeIdentity();
+    const fs = world.fs;
+    fs.seed('households/HHA', { owner: 'usera', memberUids: ['usera'], deletedAt: DAYS(31), restoreBefore: iso(-1), config: {} });
+    fs.seed('households/HHA/purchases/p1', { amount: 1 }); fs.seed('households/HHA/items/i1', { n: 1 }); fs.seed('households/HHA/bills/b1', { n: 1 });
+    fs.seed('households/HHA/joinRequests/x', { uid: 'x' }); fs.seed('invites/HHA', { createdAt: DAYS(40) }); fs.seed('invites/HHA/approved/x', { uid: 'x' });
+    fs.seed('households/HHB', { owner: 'userb', memberUids: ['userb'], deletedAt: DAYS(10), config: {} });            // still inside the 30 days
+    fs.seed('households/HHB/purchases/p1', { amount: 1 });
+    fs.seed('households/HHC', { owner: 'userc', memberUids: ['userc'], deletedAt: null, config: {} });                // restored
+    fs.seed('households/HHC/purchases/old', { amount: 2, deletedAt: iso(45), deleted: true });                  // trash older than 30 days
+    fs.seed('households/HHC/purchases/recent', { amount: 3, deletedAt: iso(5), deleted: true });                // trash, still kept
+    fs.seed('households/HHC/purchases/live', { amount: 4, deletedAt: null, deleted: false });
+    fs.seed('households/HHC/purchases/never', { amount: 5 });
+    fs.seed('users/usera', { pendingDeletion: true, deletedAt: DAYS(31) });
+    fs.seed('users/userb', { pendingDeletion: true, deletedAt: DAYS(5) });
+    fs.seed('users/userc', { pendingDeletion: false, deletedAt: null });
+    fs.seed('users/userd', { pendingDeletion: false, deletedAt: DAYS(40) });                                     // odd: has a date but is not pending
+    fs.seed('payments/by_aaaaaa_0123456789', { uid: 'usera', status: 'paid' });
+    fs.seed('aiUsage/usera_' + catDate(Date.now() - 20 * DAY), { day: catDate(Date.now() - 20 * DAY), total: 3 });
+    fs.seed('aiUsage/usera_' + catDate(Date.now()), { day: catDate(Date.now()), total: 1 });
+    fs.seed('pushLog/old', { at: DAYS(9) }); fs.seed('pushLog/new', { at: DAYS(1) });
+    world.idt.users = [{ localId: 'usera', email: 'a@x.com', created: 1 }, { localId: 'userb', email: 'b@x.com', created: 1 }];
+  };
+  build();
+  const dry = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'dry-run' }, ctx);
+  eq('dry run: it reports what it would do', [dry.mode, dry.trash.found, dry.households.found, dry.accounts.found], ['dry-run', 1, 1, 1]);
+  eq('and removes nothing', [!!world.fs.peek('households/HHA'), !!world.fs.peek('households/HHC/purchases/old'), !!world.fs.peek('users/usera'), world.idt.users.length, !!world.fs.peek('pushLog/old')], [true, true, true, 2, true]);
+  const unset = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, ENV, ctx);
+  eq('no PURGE_MODE at all is also a dry run', [unset.mode, !!world.fs.peek('households/HHA')], ['dry-run', true]);
+  const live = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'delete' }, ctx);
+  eq('live: it reports', [live.mode, live.trash.removed, live.households.erased, live.accounts.erased], ['delete', 1, 1, 1]);
+  eq('trash older than 30 days is gone; newer, live and untouched entries stay', [!!world.fs.peek('households/HHC/purchases/old'), !!world.fs.peek('households/HHC/purchases/recent'), !!world.fs.peek('households/HHC/purchases/live'), !!world.fs.peek('households/HHC/purchases/never')], [false, true, true, true]);
+  eq('the deleted household and everything inside is gone', ['households/HHA', 'households/HHA/purchases/p1', 'households/HHA/items/i1', 'households/HHA/bills/b1', 'households/HHA/joinRequests/x', 'invites/HHA', 'invites/HHA/approved/x'].map(p => !!world.fs.peek(p)), Array(7).fill(false));
+  eq('a household still inside its 30 days, and a restored one, are untouched', [!!world.fs.peek('households/HHB'), !!world.fs.peek('households/HHB/purchases/p1'), !!world.fs.peek('households/HHC')], [true, true, true]);
+  eq('the account is erased: sign-in and profile', [world.idt.users.map(u => u.localId), !!world.fs.peek('users/usera')], [['userb'], false]);
+  eq('accounts still inside 30 days, restored accounts, and non-pending ones stay', [!!world.fs.peek('users/userb'), !!world.fs.peek('users/userc'), !!world.fs.peek('users/userd')], [true, true, true]);
+  eq('payment records are kept', !!world.fs.peek('payments/by_aaaaaa_0123456789'), true);
+  eq('old counters are tidied, recent ones stay', [!!world.fs.peek('aiUsage/usera_' + catDate(Date.now() - 20 * DAY)), !!world.fs.peek('aiUsage/usera_' + catDate(Date.now())), !!world.fs.peek('pushLog/old'), !!world.fs.peek('pushLog/new')], [false, true, false, true]);
+  build(); world.idt.status = 403;
+  const noRole = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'delete' }, ctx);
+  eq('if the sign-in cannot be erased (role missing) the profile is kept so it is tried again', [noRole.accounts.failed, !!world.fs.peek('users/usera')], [1, true]);
+  build(); world.idt.users = [];
+  await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'delete' }, ctx);
+  eq('a sign-in that is already gone does not block erasing the profile', !!world.fs.peek('users/usera'), false);
+  build();
+  const day10 = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'delete', PURGE_DAYS: '10' }, ctx);
+  eq('the 30 days cannot be shortened from the settings', [day10.households.erased, !!world.fs.peek('households/HHB')], [1, true]);
+  build();
+  for (let i = 0; i < 700; i++) world.fs.seed('households/HHA/purchases/q' + i, { amount: i });
+  const big = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'delete' }, ctx);
+  eq('a big household is finished over a couple of runs, never half-forgotten', [!!world.fs.peek('households/HHA')], [false]);
+}
+
+globalThis.fetch = prevFetch;
 
 // Only when asked for: save real Worker answers, so the console page can be checked in a browser without a live server.
 if (process.env.DUMP_FIXTURES) {

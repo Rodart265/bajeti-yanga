@@ -63,14 +63,21 @@ function aTab(mode){
   const pw2Field=g('a-pw2'); if(pw2Field) pw2Field.value='';
   showAErr('');
 }
-function aMethod(m){
-  g('mt-em').classList.toggle('on',m==='email');
-  g('mt-ph').classList.toggle('on',m==='phone');
-  const ep=g('a-em-p'),pp=g('a-ph-p'),sw=g('a-sw');
-  if(ep)ep.classList.toggle('hide',m!=='email');
-  if(pp)pp.classList.toggle('hide',m!=='phone');
-  if(sw)sw.style.display=m==='email'?'block':'none';
-  showAErr('');
+// Where Firebase's "Continue" button sends people after they finish a reset or verification link: back to the app.
+// If Firebase does not accept the address (it must be in Authentication > Settings > Authorized domains), the
+// email is sent again the plain way, so a setup gap can never stop someone getting their link.
+function _authEmailSettings(){ return { url: APP_BASE_URL, handleCodeInApp: false }; }
+function _sendAuthEmail(kind, target, email){
+  const call = function(opts){
+    return kind==='reset' ? auth.sendPasswordResetEmail(email, opts) : target.sendEmailVerification(opts);
+  };
+  return call(_authEmailSettings()).catch(function(e){
+    if(e && (e.code==='auth/unauthorized-continue-uri' || e.code==='auth/invalid-continue-uri' || e.code==='auth/missing-continue-uri')){
+      try{ console.error('[auth email] continue address not accepted, sending without it', e.code); }catch(_){}
+      return call(undefined);
+    }
+    throw e;
+  });
 }
 function showFgt(s){
   const fp=g('a-fgt'),mp=g('a-main'),sw=g('a-sw'),ok=g('fgt-ok');
@@ -204,17 +211,19 @@ function doEmailAuth(){
       .then(cred=>{
         const user=cred.user;
         const updates=[];
+        let sendErr=null;
         // Both are best-effort: the account already exists, so a failure here (e.g. too-many-requests) must not
-        // strand the user with an error and a half-created account. They can use "Resend" on the verify screen.
+        // strand the user with an error and a half-created account. They can use "Resend" on the verify screen,
+        // which now also tells them plainly that the first email did not go out.
         if(nm) updates.push(user.updateProfile({displayName:nm}).catch(()=>{}));
-        updates.push(user.sendEmailVerification().catch(()=>{}));
-        return Promise.all(updates).then(()=>user);
+        updates.push(_sendAuthEmail('verify', user).catch(e=>{ sendErr=e; try{ console.error('[verification email]', e&&e.code, e&&e.message); }catch(_){} }));
+        return Promise.all(updates).then(()=>({user, sendErr}));
       })
-      .then(user=>{
+      .then(r=>{
         // Stay signed in on the verify screen: Resend / "I Have Verified" need auth.currentUser, and
         // onAuthStateChanged already blocks unverified email users from reaching the app.
         if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);}
-        showVerifyScreen(email);
+        showVerifyScreen(email, r.sendErr);
       })
       .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} });
   } else {
@@ -227,8 +236,8 @@ function doFgt(){
   const em=val('fgt-em').trim(); if(!em){showAErr((lang==='cw'?'Lowetsani imelo yanu.':'Enter your email address.'));return;}
   const btn=g('fgt-btn'); if(btn){btn.disabled=true;btn.textContent='Sending...';}
   showAErr('');
-  auth.sendPasswordResetEmail(em)
-    .then(()=>{ const ok=g('fgt-ok');if(ok)ok.classList.add('on'); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" class="ic14m4"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} })
+  _sendAuthEmail('reset', null, em)
+    .then(()=>{ const ok=g('fgt-ok');if(ok){ ok.innerHTML='<i data-lucide="check-circle" style="width:13px;height:13px;margin-right:5px;vertical-align:middle;color:#A5D6A7"></i> '+esc(lang==='cw'?'Imelo yatumizidwa! Onani inbox yanu. Ulalo umagwira ntchito pafupifupi ola limodzi.':'Reset email sent! Check your inbox. The link works for about 1 hour.'); ok.classList.add('on'); if(window.lucide)lucide.createIcons({nodes:[ok]}); } if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" class="ic14m4"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} })
     .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="send" class="ic14m4"></i> Send Reset Link'; if(window.lucide)lucide.createIcons({nodes:[btn]});} });
 }
 
@@ -236,7 +245,7 @@ function doFgt(){
 // FIX: Persist cooldown in localStorage so page refresh cannot bypass the 60s rate limit
 let _resendCooldown = parseInt(localStorage.getItem('nb_resend_cd')||'0');
 
-function showVerifyScreen(email){
+function showVerifyScreen(email, sendErr){
   const isCW = lang === 'cw';
   // Clear any stale resend cooldown from a previous session/account
   localStorage.removeItem('nb_resend_cd');
@@ -257,6 +266,12 @@ function showVerifyScreen(email){
   const emailEl = g('verify-email-display');
   if(emailEl) emailEl.textContent = email || '';
   const msgEl = g('verify-msg'); if(msgEl) msgEl.textContent = '';
+  // The first email did not go out: say so instead of claiming it was sent, and point at the Resend button.
+  if(sendErr){
+    if(subEl) subEl.textContent = isCW ? 'Akaunti yanu yapangidwa, koma sitinathe kutumiza imelo yotsimikizira.' : 'Your account is created, but we could not send the verification email.';
+    if(bodyEl) bodyEl.textContent = isCW ? 'Dinani "Tumizaninso Imelo" pansipa. Ngati zikulephera, dikirani mphindi zingapo ndipo yesaninso.' : 'Tap "Resend Verification Email" below. If it keeps failing, wait a few minutes and try again.';
+    if(msgEl){ msgEl.style.color='#FFCDD2'; msgEl.textContent = fmtAErr(sendErr.code, sendErr); }
+  }
   const btn = g('resend-btn'); if(btn) btn.disabled = false;
   hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome');
   g('app').classList.add('hide');
@@ -312,7 +327,7 @@ function resendVerification(){
   if(!user){ backToLogin(); return; }
   const btn=g('resend-btn');
   if(btn){btn.disabled=true;}
-  user.sendEmailVerification()
+  _sendAuthEmail('verify', user)
     .then(()=>{
       _resendCooldown=Date.now()+60000;
       localStorage.setItem('nb_resend_cd', String(_resendCooldown));
@@ -338,33 +353,3 @@ function doGoogle(){
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
     .catch(e=>{ if(e.code!=='auth/popup-closed-by-user')showAErr(fmtAErr(e.code,e)); });
 }
-function sendOTP(){
-  const cc=val('a-cc')||'+265', num=val('a-ph').replace(/\s/g,'');
-  if(!num){showAErr((lang==='cw'?'Lowetsani nambala yanu ya foni.':'Enter your phone number.'));return;}
-  const btn=g('a-otp-btn'); if(btn){btn.disabled=true;btn.textContent='Sending...';}
-  showAErr('');
-  if(!rcapV) rcapV=new firebase.auth.RecaptchaVerifier('recaptcha-container',{size:'invisible',callback:()=>{}});
-  auth.signInWithPhoneNumber(cc+num,rcapV)
-    .then(res=>{
-      confResult=res;
-      show('a-ph-s2'); hide('a-ph-s1');
-      const ob0=g('ob0'); if(ob0)ob0.focus();
-      if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" class="ic14m4"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});}
-      toast((lang==='cw'?'Nambala yotsimikizira yatumizidwa!':'OTP sent!'),'i');
-    })
-    .catch(e=>{ showAErr(fmtAErr(e.code,e)); if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="smartphone" class="ic14m4"></i> Send OTP'; if(window.lucide)lucide.createIcons({nodes:[btn]});} if(rcapV){rcapV.clear();rcapV=null;} });
-}
-function otpN(el,idx){
-  el.value=el.value.replace(/\D/g,'');
-  if(el.value&&idx<5){const nx=g('ob'+(idx+1));if(nx)nx.focus();}
-  if(idx===5&&el.value){const code=[0,1,2,3,4,5].map(i=>(g('ob'+i)||{}).value||'').join('');if(code.length===6)vfyOTP();}
-}
-function vfyOTP(){
-  const code=[0,1,2,3,4,5].map(i=>(g('ob'+i)||{}).value||'').join('');
-  if(code.length!==6){showAErr((lang==='cw'?'Lowetsani manambala onse 6.':'Enter all 6 digits.'));return;}
-  if(!confResult){showAErr((lang==='cw'?'Nthawi yatha. Bwererani ndipo yesaninso.':'Session expired. Go back and try again.'));return;}
-  showAErr('');
-  confResult.confirm(code).catch(e=>showAErr(fmtAErr(e.code,e)));
-}
-function backPh(){ show('a-ph-s1');hide('a-ph-s2'); confResult=null; if(rcapV){rcapV.clear();rcapV=null;} }
-

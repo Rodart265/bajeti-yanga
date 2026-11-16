@@ -44,13 +44,14 @@ async function aiHeaders(feature){
   return h;
 }
 // Turns a failed Worker response into an Error carrying a machine-readable aiCode: 'auth' (401/403) or 'quota'
-// (429 with error.code === 'quota_exceeded'). Everything else is treated as a temporary "busy".
+// (429 with error.code === 'quota_exceeded'), or 'premium' (403 premium_required: free household). Everything else is treated as a temporary "busy".
 function _aiHttpErr(res, resData){
   const m = resData && resData.error && resData.error.message;
   const e = new Error(m || ('API Error '+res.status));
   e.status = res.status;
   const c = resData && resData.error && (resData.error.code || resData.error.status);
-  if(res.status===401 || res.status===403) e.aiCode='auth';
+  if(res.status===403 && c==='premium_required') e.aiCode='premium';
+  else if(res.status===401 || res.status===403) e.aiCode='auth';
   else if(res.status===429 && c==='quota_exceeded') e.aiCode='quota';
   return e;
 }
@@ -58,6 +59,7 @@ function _aiHttpErr(res, resData){
 function aiFailMessage(err, isCW){
   const code = err && err.aiCode;
   if(err && err.name==='AbortError') return isCW?'Kulumikizana kwatenga nthawi yaitali. Onani intaneti yanu ndipo yesaninso.':'The connection timed out. Check your internet and try again.';
+  if(code==='premium') return isCW?'Bajeti AI ndi ya Premium. Sandutsani kuti mugwiritse ntchito.':'Bajeti AI is a Premium feature. Upgrade to use it.';
   if(code==='auth') return isCW?'Chonde lowaninso kuti mugwiritse ntchito Bajeti AI.':'Please sign in again to use Bajeti AI.';
   if(code==='quota' || (err && err.message && /quota/i.test(err.message)))
     return isCW?'Bajeti AI yafika pa malire a lero. Yesaninso mawa.':'Bajeti AI has reached its daily limit. Please try again tomorrow.';
@@ -142,7 +144,9 @@ if(_origRender){
     ld.innerHTML='<div style="text-align:center;padding:24px 16px"><div style="font-weight:700;color:var(--ink);margin-bottom:6px">'+(cw?'Zikutenga nthawi yayitali kuposa nthawi zonse':'This is taking longer than usual')+'</div><div style="font-size:.8125rem;color:var(--mid);margin-bottom:14px">'+(cw?'Onani intaneti yanu, kenako yesaninso.':'Check your connection, then try again.')+'</div><button class="btnG" onclick="location.reload()">'+(cw?'Yesaninso':'Try again')+'</button></div>';
   }, 12000);
   setTimeout(checkNameChange, 2000);
-  setTimeout(requestPushPermission, 8000);
+  // Notifications: never ask on startup (it is asked right after the first bill is saved, see offerBillReminders).
+  // If someone already said yes, quietly keep this phone's address up to date.
+  setTimeout(function(){ if('Notification' in window && Notification.permission==='granted') setupFCMToken(); }, 8000);
 })();
 
 

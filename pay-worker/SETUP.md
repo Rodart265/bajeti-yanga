@@ -133,6 +133,16 @@ the app (it points the app at the Worker) and allows that address in the app's s
 
 ---
 
+## Part 7: The extra jobs this Worker does now (November 2026)
+
+Since version 9.20.0 this one Worker also runs Bajeti AI, makes new households, sends push notifications and cleans up old
+data. The extra settings, the two extra cron times, the two extra robot permissions and the two Firestore index settings are
+all in **`docs/ROLLOUT-2026-11.md`**, in the order to do them. Short list: secrets `GEMINI_API_KEY`; text variables
+`GEMINI_MODEL`, `PURGE_MODE` (start with `dry-run`), optional `HARD_DAILY_CAP` and `GLOBAL_DAILY_CAP`; roles **Firebase
+Authentication Admin** and **Firebase Cloud Messaging API Admin**.
+
+---
+
 ## If something goes wrong
 
 | What you see | Most likely reason | What to do |
@@ -154,7 +164,7 @@ the app (it points the app at the Worker) and allows that address in the app's s
 
 ## For developers
 
-- `src/` is the code; `test.mjs` runs 122 offline checks (`node pay-worker/test.mjs`); `dist/worker.js` is the same code
+- `src/` is the code; `test.mjs` runs 346 offline checks (`node pay-worker/test.mjs`); `dist/worker.js` is the same code
   bundled into one file (`npm run build` inside `pay-worker/` regenerates it; do that after any change to `src/`).
 - It replaces the `payments` and `reconcilePayments` Cloud Functions (which need the Blaze plan). The business rules are
   the same code as `functions/lib.js`. Differences: Web Crypto instead of Node `crypto`, a REST Firestore client instead of

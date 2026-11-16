@@ -5,9 +5,15 @@ main = "src/index.js"
 compatibility_date = "2025-09-01"
 
 [triggers]
-crons = ["*/15 * * * *"]        # every 15 minutes: settle payments whose webhook never arrived
+crons = [
+  "*/15 * * * *",            # every 15 minutes: settle payments whose webhook never arrived
+  "5,20,35,50 5-6 * * *",    # 07:05-08:50 Malawi time: bill reminders by push (several runs so every household is reached)
+  "10 */2 * * *",            # every 2 hours: clean-up of old trash and deleted households and accounts
+]
 
 [vars]
 APP_URL = "https://rodart265.github.io/bajeti-yanga/"
 ALLOWED_ORIGINS = "https://rodart265.github.io"
 FIREBASE_PROJECT_ID = "bajeti-yanga"
+# Clean-up is a DRY RUN until you change this to "delete" (see SETUP.md). In a dry run it only writes to the log what it would remove.
+PURGE_MODE = "dry-run"

@@ -533,16 +533,13 @@ service cloud.firestore {
 
     // ── Users ─────────────────────────────────────────────────────────────────
     match /users/{uid} {
-      // ownedHouseholds is intentionally left writable -- it's legitimately
-      // updated via arrayUnion on household creation and arrayRemove on
-      // account deletion. A user can therefore clear it to get around the
-      // free household cap. Closing that needs a Cloud Function.
+      // ownedHouseholds stays writable (the app removes a household from it on deletion). It no longer matters for the free
+      // household cap: the Worker counts the households that really exist with this person as owner.
       allow read: if request.auth != null && (request.auth.uid == uid || isPlatformAdmin());
 
-      // isPremium, premiumUntil, trialClaimedAt and trialHouseholdId can only be written by the
-      // Admin SDK / Cloud Functions or the Console, never by the signed-in
-      // user. trialClaimedAt is stamped by the onHouseholdCreated function and
-      // limits each ACCOUNT to one free trial (see functions/index.js).
+      // isPremium, premiumUntil, trialClaimedAt and trialHouseholdId can only be written by the payments Worker (service
+      // account) or the Console, never by the signed-in user. trialClaimedAt is stamped by the Worker when it creates the
+      // person's first household and limits each ACCOUNT to one free trial (pay-worker/src/households.js).
       allow create: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.keys().hasAny(['isPremium', 'premiumUntil', 'trialClaimedAt', 'trialHouseholdId']);
 
@@ -573,29 +570,11 @@ service cloud.firestore {
           || isPlatformAdmin()
         );
 
-      // Any signed-in user can create a household subject to ownership limits.
-      // Free users: max 3. Premium users: unlimited.
-      // Premium fields cannot be set at creation, at the root or inside
-      // config. The trial starts from a server timestamp at the root, so the
-      // client cannot back-date it. `trialStarted` is optional: it is allowed
-      // only while the account has not already used its one trial
-      // (users/{uid}.trialClaimedAt, written by a Cloud Function). Until that
-      // function is deployed nobody has a claim, so behaviour is unchanged.
-      // The document id IS the join code. It must look like one (the app makes 8 chars of a-z/2-9), so nobody can
-      // create a household whose id carries quotes or markup that would later be pasted into the page.
-      allow create: if request.auth != null
-        && verifiedOrNotPassword()
-        && hhId.matches('^[a-z0-9]{6,20}$')
-        && request.resource.data.memberUids == [request.auth.uid]
-        && request.auth.uid == request.resource.data.owner
-        && request.resource.data.keys().hasAll(['memberUids', 'owner', 'config'])
-        && !request.resource.data.keys().hasAny(['isPremium', 'premiumExpiry', 'premiumActivatedAt'])
-        && request.resource.data.config is map
-        && !request.resource.data.config.keys().hasAny(['isPremium', 'premiumExpiry', 'premiumActivatedAt', 'trialStarted'])
-        && (!('trialStarted' in request.resource.data)
-            || (request.resource.data.trialStarted == request.time
-                && !userData().keys().hasAny(['trialClaimedAt'])))
-        && (isPremiumUser() || ownedCount() < 3);
+      // Households are created ONLY by the payments Worker (pay-worker/src/households.js), which uses a service account and
+      // therefore is not bound by these rules. That is what makes "one free trial per account" and "3 free households"
+      // real: the Worker counts the households that exist and writes trialClaimedAt in the same all-or-nothing step, and
+      // nobody can create a household that is "already Premium". DEPLOY ORDER: Worker first, then the app, then these rules.
+      allow create: if false;
 
       // Members can update ONLY the fields listed here (an allowlist, so a
       // sensitive field added to the schema later is protected by default).

@@ -27,7 +27,7 @@ export function randomId(prefix) {
 }
 
 export function encodeValue(v) {
-  if (v === null) return { nullValue: null };
+  if (v === null || v === undefined) return { nullValue: null };
   if (v instanceof Ts) return { timestampValue: new Date(v.ms).toISOString() };
   switch (typeof v) {
     case 'boolean': return { booleanValue: v };
@@ -35,14 +35,16 @@ export function encodeValue(v) {
     case 'string': return { stringValue: v };
   }
   if (Array.isArray(v)) return { arrayValue: { values: v.map(encodeValue) } };
-  if (typeof v === 'object') return { mapValue: { fields: encodeFields(v) } };
+  if (typeof v === 'object') return { mapValue: { fields: encodeFields(v, true) } };
   throw new Error('cannot store a value of type ' + typeof v);
 }
-export function encodeFields(obj) {
+// `nested` is true inside a map value: there a dot in a key is just a character. At the top level of a write a dot
+// would mean "a path", so it is refused unless it is used with DELETE.
+export function encodeFields(obj, nested = false) {
   const f = {};
   for (const [k, v] of Object.entries(obj)) {
     if (v === undefined || v === DELETE) continue;
-    if (k.includes('.')) throw new Error('a dotted field name can only be used with DELETE: ' + k);
+    if (!nested && k.includes('.')) throw new Error('a dotted field name can only be used with DELETE: ' + k);
     f[k] = encodeValue(v);
   }
   return f;
@@ -160,6 +162,21 @@ export class FirestoreRest {
   }
 
   collection(name) { return new Col(this, name); }
+  // Every collection with this name, wherever it sits in the tree (needs a collection-group index for the field used).
+  collectionGroup(name) { return new Query(this, name, [], 0, [], null, true); }
+
+  // Several writes in one go with no read lock (used for clean-up deletes). `writes` use the REST shape.
+  async commitWrites(writes) { if (writes.length) await this._post(':commit', { writes }, 'commit'); }
+
+  // Deletes up to `max` documents of one sub-collection (e.g. 'households/abc/purchases'). Returns how many were removed
+  // and whether more are left, so a caller with a request budget can come back for the rest.
+  async deleteSubcollection(parentPath, name, max = 450) {
+    const rows = await this._post('/' + parentPath + ':runQuery', { structuredQuery: { from: [{ collectionId: name }], select: { fields: [{ fieldPath: '__name__' }] }, limit: max + 1 } }, 'list');
+    const names = (rows || []).filter(r => r.document).map(r => r.document.name);
+    const batch = names.slice(0, max);
+    await this.commitWrites(batch.map(n => ({ delete: n })));
+    return { deleted: batch.length, more: names.length > max };
+  }
 
   // Runs fn(tx) and commits its writes in one go. Reads inside fn lock the documents; if another request got there
   // first Firestore answers 409 (aborted) and the whole function is simply run again, up to 3 times.
@@ -213,8 +230,8 @@ class DocRef {
 }
 
 class Query {
-  constructor(db, name, filters, lim, order = [], sel = null) { this.db = db; this.name = name; this.filters = filters; this.lim = lim; this.order = order; this.sel = sel; }
-  _with(o) { return new Query(this.db, this.name, o.filters || this.filters, o.lim === undefined ? this.lim : o.lim, o.order || this.order, o.sel === undefined ? this.sel : o.sel); }
+  constructor(db, name, filters, lim, order = [], sel = null, group = false) { this.db = db; this.name = name; this.filters = filters; this.lim = lim; this.order = order; this.sel = sel; this.group = group; }
+  _with(o) { return new Query(this.db, this.name, o.filters || this.filters, o.lim === undefined ? this.lim : o.lim, o.order || this.order, o.sel === undefined ? this.sel : o.sel, this.group); }
   where(f, op, v) { return this._with({ filters: [...this.filters, [f, op, v]] }); }
   limit(n) { return this._with({ lim: n }); }
   orderBy(f, dir = 'asc') { return this._with({ order: [...this.order, [f, String(dir).toLowerCase() === 'desc' ? 'DESCENDING' : 'ASCENDING']] }); }
@@ -225,13 +242,13 @@ class Query {
       if (!OPS[op]) throw new Error('unsupported operator ' + op);
       return { fieldFilter: { field: { fieldPath: f }, op: OPS[op], value: encodeValue(v) } };
     });
-    const sq = { from: [{ collectionId: this.name }] };
+    const sq = { from: [this.group ? { collectionId: this.name, allDescendants: true } : { collectionId: this.name }] };
     if (fs.length === 1) sq.where = fs[0]; else if (fs.length > 1) sq.where = { compositeFilter: { op: 'AND', filters: fs } };
     if (this.order.length) sq.orderBy = this.order.map(([f, d]) => ({ field: { fieldPath: fieldPath(f) }, direction: d }));
     if (this.sel) sq.select = { fields: this.sel.map(f => ({ fieldPath: fieldPath(f) })) };
     if (this.lim) sq.limit = this.lim;
     const rows = await this.db._post(':runQuery', { structuredQuery: sq }, 'query');
-    const docs = (rows || []).filter(r => r.document).map(r => snap(r.document.name.split('/').pop(), decodeFields(r.document.fields), r.document));
+    const docs = (rows || []).filter(r => r.document).map(r => { const sn = snap(r.document.name.split('/').pop(), decodeFields(r.document.fields), r.document); sn.path = r.document.name.split('/documents/')[1]; return sn; });
     return { docs, size: docs.length, forEach: fn => docs.forEach(fn) };
   }
 }

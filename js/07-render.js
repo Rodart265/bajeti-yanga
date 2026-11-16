@@ -112,6 +112,7 @@ document.addEventListener('focusout', function(){
 });
 function toggleLang(){
   lang=lang==='en'?'cw':'en'; localStorage.setItem('nb_lang',lang); const btn=g('lbtn'); if(btn)btn.textContent=lang==='en'?'CW':'EN'; applyLang(); render();
+  if('Notification' in window && Notification.permission==='granted' && typeof setupFCMToken==='function') setupFCMToken();   // future notifications follow the language
 }
 function applyLang(){
   const t=tx();
@@ -534,6 +535,7 @@ function _qrJoin(code){
 
 function openQRCode(){
   if(!hhId){ toast((lang==='cw'?'Palibe kodi ya nyumba.':'No household code.'),'e'); return; }
+  setTimeout(function(){ offerPush('join-owner'); }, 1500);   // owners want to know when someone asks to join
   const isCW=lang==='cw';
   const joinUrl=APP_BASE_URL+'?join='+encodeURIComponent(hhId);
   let h='<div class="dh"></div>';

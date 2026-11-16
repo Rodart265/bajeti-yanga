@@ -10,8 +10,8 @@
 //
 // TO RELEASE: change APP_VERSION in js/01-constants.js, then run  node tools/release.js  (it writes V and BUILD
 // below), then  node tests/release.test.js  must pass. Do not edit V or BUILD by hand.
-const V = "bajeti-v9.19.8";
-const BUILD = "3f1c8c6f84be"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
+const V = "bajeti-v9.20.0";
+const BUILD = "0aaa65461b60"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
 
 // Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
 // deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
@@ -59,6 +59,7 @@ const RUNTIME_SEED = [
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js",
   "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js",
+  "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js",
 ];
 
 // Third-party libraries: best effort. One that cannot be fetched now is picked up the first time it loads online.
@@ -180,4 +181,36 @@ self.addEventListener("fetch", (e) => {
     );
   }
   // Everything else: not intercepted, the browser handles it normally.
+});
+
+// ── Push notifications (sent by the payments Worker through Firebase Cloud Messaging) ──────────────────────────────────
+// The messages are "data only": the Worker sends { title, body, tag, url } and this file decides how to show it. Every
+// push is shown as a notification (phones, iPhones especially, stop delivering to sites that receive pushes and show nothing).
+self.addEventListener("push", (e) => {
+  let d = {};
+  try {
+    const p = e.data ? e.data.json() : {};
+    d = (p && p.data) || p || {};
+  } catch (_) {}
+  const title = d.title || "Bajeti Yanga";
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body: d.body || "",
+      icon: "./icons/icon-192.png",
+      badge: "./icons/icon-96.png",
+      tag: d.tag || undefined,
+      data: { url: d.url || "./" },
+    })
+  );
+});
+
+// Tapping a notification brings the app forward, or opens it.
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) { if ("focus" in w) return w.focus(); }
+      return self.clients.openWindow((e.notification.data && e.notification.data.url) || "./");
+    })
+  );
 });

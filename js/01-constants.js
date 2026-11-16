@@ -145,12 +145,12 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.19.8';
+const APP_VERSION = '9.20.0';
 // Startup: false = a signed-in person goes straight to Home (or to the PIN screen if a PIN is set).
 // true = the old "Welcome back, <name>" screen with a Continue button comes first.
 const WELCOME_SCREEN = false;
 // The AI proxy (Cloudflare Worker). One place to change it.
-const AI_URL = 'https://nyumba-ai.kabangorodrick6.workers.dev/chat';
+const AI_URL = 'https://bajeti-pay.kabangorodrick6.workers.dev/chat';   // Bajeti AI runs inside the payments Worker (Premium only, counted on the server)
 // Premium plans: months -> price in MWK. Keep equal to PRICES in functions/lib.js (tests/prices.test.js checks it).
 const PLANS = { 1: { months:1, price:1500, label:'1 Month' }, 3: { months:3, price:4000, label:'3 Months' } };
 // Household limits — change these values to adjust limits app-wide
@@ -199,7 +199,6 @@ let pinEntry = '', pinMode = 'check', pinTmp = '';
 // again. Left null for all other PIN entry points (setup, resume-lock,
 // in-app PIN change) which keep their existing, already-correct fallback.
 let _pinBackTarget = null;
-let confResult = null, rcapV = null;
 let unsubHH = null; // Household document listener - separate from purchases listener
 let unsubJoinBadge = null; let _joinBadgeFor = null; // Pending-join-request badge listener (owner only)
 let _lastMemberUids = null; // Snapshot of memberUids from the previous household-doc update, used to detect new joins

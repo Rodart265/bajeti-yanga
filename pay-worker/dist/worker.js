@@ -271,7 +271,7 @@ function randomId(prefix) {
   return prefix + "_" + Date.now().toString(36) + "_" + [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 function encodeValue(v) {
-  if (v === null) return { nullValue: null };
+  if (v === null || v === void 0) return { nullValue: null };
   if (v instanceof Ts) return { timestampValue: new Date(v.ms).toISOString() };
   switch (typeof v) {
     case "boolean":
@@ -282,14 +282,14 @@ function encodeValue(v) {
       return { stringValue: v };
   }
   if (Array.isArray(v)) return { arrayValue: { values: v.map(encodeValue) } };
-  if (typeof v === "object") return { mapValue: { fields: encodeFields(v) } };
+  if (typeof v === "object") return { mapValue: { fields: encodeFields(v, true) } };
   throw new Error("cannot store a value of type " + typeof v);
 }
-function encodeFields(obj) {
+function encodeFields(obj, nested = false) {
   const f = {};
   for (const [k, v] of Object.entries(obj)) {
     if (v === void 0 || v === DELETE) continue;
-    if (k.includes(".")) throw new Error("a dotted field name can only be used with DELETE: " + k);
+    if (!nested && k.includes(".")) throw new Error("a dotted field name can only be used with DELETE: " + k);
     f[k] = encodeValue(v);
   }
   return f;
@@ -416,6 +416,23 @@ var FirestoreRest = class {
   collection(name) {
     return new Col(this, name);
   }
+  // Every collection with this name, wherever it sits in the tree (needs a collection-group index for the field used).
+  collectionGroup(name) {
+    return new Query(this, name, [], 0, [], null, true);
+  }
+  // Several writes in one go with no read lock (used for clean-up deletes). `writes` use the REST shape.
+  async commitWrites(writes) {
+    if (writes.length) await this._post(":commit", { writes }, "commit");
+  }
+  // Deletes up to `max` documents of one sub-collection (e.g. 'households/abc/purchases'). Returns how many were removed
+  // and whether more are left, so a caller with a request budget can come back for the rest.
+  async deleteSubcollection(parentPath, name, max = 450) {
+    const rows = await this._post("/" + parentPath + ":runQuery", { structuredQuery: { from: [{ collectionId: name }], select: { fields: [{ fieldPath: "__name__" }] }, limit: max + 1 } }, "list");
+    const names = (rows || []).filter((r) => r.document).map((r) => r.document.name);
+    const batch = names.slice(0, max);
+    await this.commitWrites(batch.map((n) => ({ delete: n })));
+    return { deleted: batch.length, more: names.length > max };
+  }
   // Runs fn(tx) and commits its writes in one go. Reads inside fn lock the documents; if another request got there
   // first Firestore answers 409 (aborted) and the whole function is simply run again, up to 3 times.
   async runTransaction(fn) {
@@ -499,16 +516,17 @@ var DocRef = class {
   }
 };
 var Query = class _Query {
-  constructor(db, name, filters, lim, order = [], sel = null) {
+  constructor(db, name, filters, lim, order = [], sel = null, group = false) {
     this.db = db;
     this.name = name;
     this.filters = filters;
     this.lim = lim;
     this.order = order;
     this.sel = sel;
+    this.group = group;
   }
   _with(o) {
-    return new _Query(this.db, this.name, o.filters || this.filters, o.lim === void 0 ? this.lim : o.lim, o.order || this.order, o.sel === void 0 ? this.sel : o.sel);
+    return new _Query(this.db, this.name, o.filters || this.filters, o.lim === void 0 ? this.lim : o.lim, o.order || this.order, o.sel === void 0 ? this.sel : o.sel, this.group);
   }
   where(f, op, v) {
     return this._with({ filters: [...this.filters, [f, op, v]] });
@@ -528,14 +546,18 @@ var Query = class _Query {
       if (!OPS[op]) throw new Error("unsupported operator " + op);
       return { fieldFilter: { field: { fieldPath: f }, op: OPS[op], value: encodeValue(v) } };
     });
-    const sq = { from: [{ collectionId: this.name }] };
+    const sq = { from: [this.group ? { collectionId: this.name, allDescendants: true } : { collectionId: this.name }] };
     if (fs.length === 1) sq.where = fs[0];
     else if (fs.length > 1) sq.where = { compositeFilter: { op: "AND", filters: fs } };
     if (this.order.length) sq.orderBy = this.order.map(([f, d]) => ({ field: { fieldPath: fieldPath(f) }, direction: d }));
     if (this.sel) sq.select = { fields: this.sel.map((f) => ({ fieldPath: fieldPath(f) })) };
     if (this.lim) sq.limit = this.lim;
     const rows = await this.db._post(":runQuery", { structuredQuery: sq }, "query");
-    const docs = (rows || []).filter((r) => r.document).map((r) => snap(r.document.name.split("/").pop(), decodeFields(r.document.fields), r.document));
+    const docs = (rows || []).filter((r) => r.document).map((r) => {
+      const sn = snap(r.document.name.split("/").pop(), decodeFields(r.document.fields), r.document);
+      sn.path = r.document.name.split("/documents/")[1];
+      return sn;
+    });
     return { docs, size: docs.length, forEach: (fn) => docs.forEach(fn) };
   }
 };
@@ -563,10 +585,6 @@ async function getKey(kid, fetchImpl) {
   const jwk = keyCache.keys.get(kid);
   if (!jwk) throw new Error("unknown key id");
   return crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
-}
-async function verifyFirebaseToken(token, env, fetchImpl = fetch, nowMs = Date.now()) {
-  const u = await verifyFirebaseTokenFull(token, env, fetchImpl, nowMs);
-  return { uid: u.uid, email: u.email };
 }
 async function verifyFirebaseTokenFull(token, env, fetchImpl = fetch, nowMs = Date.now()) {
   const projectId = env && env.FIREBASE_PROJECT_ID || "bajeti-yanga";
@@ -1497,11 +1515,562 @@ function makeIdentity({ projectId, getToken, fetchImpl = fetch }) {
     },
     async setDisabled(uid, disabled) {
       await call("POST", base + ":update", { localId: uid, disableUser: !!disabled });
+    },
+    // Erases the sign-in itself (used when an account's 30-day deletion period is over). An account that is already gone counts as done.
+    async deleteUser(uid) {
+      try {
+        await call("POST", base + ":delete", { localId: uid });
+      } catch (e) {
+        if (e.status === 400 && /USER_NOT_FOUND/.test(e.message)) return;
+        throw e;
+      }
     }
   };
 }
 
+// src/ai.js
+var MAX_BODY_BYTES = 12 * 1024 * 1024;
+var MAX_TEXT_CHARS = 8e4;
+var MAX_CONTENTS = 80;
+var FEATURES = ["msg", "magic", "scan", "summ"];
+var ALLOWED_GEN_KEYS = ["temperature", "topP", "topK", "maxOutputTokens", "responseMimeType"];
+var ALLOWED_MIME = /^image\/(jpeg|png|webp|heic|heif)$/;
+var CAT_OFFSET_MS2 = 2 * 3600 * 1e3;
+var num = (v, d) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : d;
+};
+function catDate(now = Date.now()) {
+  return new Date(now + CAT_OFFSET_MS2).toISOString().slice(0, 10);
+}
+function expiryEndMs(e) {
+  const s = String(e || "");
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], 23, 59, 59) - CAT_OFFSET_MS2;
+  const t = new Date(s).getTime();
+  return Number.isNaN(t) ? NaN : t;
+}
+var msOf = (v) => v && typeof v.toMillis === "function" ? v.toMillis() : v ? new Date(v).getTime() : NaN;
+function computePremium(root, uid, env, now = Date.now()) {
+  if (!root || !Array.isArray(root.memberUids) || !root.memberUids.includes(uid)) return null;
+  const trustCfg = String(env && env.TRUST_CONFIG_PREMIUM || "true") !== "false";
+  const cfg = trustCfg && root.config && typeof root.config === "object" ? root.config : {};
+  const isPrem = root.isPremium === true || cfg.isPremium === true;
+  const expiry = root.premiumExpiry || cfg.premiumExpiry || null;
+  if (isPrem) {
+    if (!expiry) return true;
+    const end = expiryEndMs(expiry);
+    return Number.isNaN(end) ? false : end >= now;
+  }
+  const started = root.trialStarted || cfg.trialStarted || null;
+  if (!started) return false;
+  const startMs = msOf(started);
+  if (Number.isNaN(startMs)) return false;
+  return Math.floor((now - startMs) / 864e5) < num(env && env.TRIAL_DAYS, 14);
+}
+function sanitizeBody(raw) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.contents)) return null;
+  if (raw.contents.length < 1 || raw.contents.length > MAX_CONTENTS) return null;
+  let chars = 0;
+  const cleanParts = (parts) => {
+    if (!Array.isArray(parts) || parts.length < 1 || parts.length > 20) return null;
+    const out = [];
+    for (const p of parts) {
+      if (p && typeof p.text === "string") {
+        chars += p.text.length;
+        out.push({ text: p.text });
+      } else if (p && (p.inline_data || p.inlineData)) {
+        const d = p.inline_data || p.inlineData;
+        const mime = d.mime_type || d.mimeType;
+        if (typeof mime !== "string" || !ALLOWED_MIME.test(mime) || typeof d.data !== "string") return null;
+        out.push({ inline_data: { mime_type: mime, data: d.data } });
+      } else return null;
+    }
+    return out;
+  };
+  const contents = [];
+  for (const c of raw.contents) {
+    if (!c || c.role !== void 0 && c.role !== "user" && c.role !== "model") return null;
+    const parts = cleanParts(c.parts);
+    if (!parts) return null;
+    contents.push(c.role ? { role: c.role, parts } : { parts });
+  }
+  const body = { contents };
+  if (raw.systemInstruction !== void 0) {
+    const parts = cleanParts(raw.systemInstruction && raw.systemInstruction.parts);
+    if (!parts) return null;
+    body.systemInstruction = { parts };
+  }
+  if (raw.generationConfig && typeof raw.generationConfig === "object") {
+    const g = {};
+    for (const k of ALLOWED_GEN_KEYS) if (raw.generationConfig[k] !== void 0) g[k] = raw.generationConfig[k];
+    if (g.maxOutputTokens !== void 0) g.maxOutputTokens = Math.min(num(g.maxOutputTokens, 1024), 4096);
+    if (Object.keys(g).length) body.generationConfig = g;
+  }
+  return chars > MAX_TEXT_CHARS ? null : body;
+}
+var premiumCache = /* @__PURE__ */ new Map();
+async function isHouseholdPremium(deps, uid, hh, env) {
+  if (!hh || !/^[A-Za-z0-9_-]{3,40}$/.test(hh)) return false;
+  const ck = uid + "|" + hh;
+  const hit = premiumCache.get(ck);
+  if (hit && deps.now() - hit.at < 60 * 1e3) return hit.value;
+  const snap2 = await deps.db.collection("households").doc(hh).get(["memberUids", "isPremium", "premiumExpiry", "trialStarted", "config.isPremium", "config.premiumExpiry", "config.trialStarted", "deletedAt"]);
+  let value = false;
+  if (snap2.exists) {
+    const d = snap2.data();
+    const c = d.deletedAt ? false : computePremium(d, uid, env, deps.now());
+    value = c === null ? false : c;
+  }
+  if (premiumCache.size > 500) premiumCache.clear();
+  premiumCache.set(ck, { at: deps.now(), value });
+  return value;
+}
+async function bump(deps, uid, day, feature, delta, limits) {
+  const col = deps.db.collection("aiUsage");
+  const mine = col.doc(uid + "_" + day), all = col.doc("_all_" + day);
+  return deps.db.runTransaction(async (tx) => {
+    const a = await tx.get(mine), b = await tx.get(all);
+    const u = a.exists ? a.data() : { day, uid, total: 0 };
+    const g = b.exists ? b.data() : { day, total: 0 };
+    if (delta > 0) {
+      if ((u.total || 0) >= limits.perUser) return { status: 429, code: "quota_exceeded", message: "Daily limit reached." };
+      if ((g.total || 0) >= limits.global) return { status: 429, code: "quota_exceeded", message: "Bajeti AI is very busy today. Please try again tomorrow." };
+    }
+    u.total = Math.max(0, (u.total || 0) + delta);
+    u[feature] = Math.max(0, (u[feature] || 0) + delta);
+    g.total = Math.max(0, (g.total || 0) + delta);
+    tx.set(mine, u);
+    tx.set(all, g);
+    return null;
+  });
+}
+async function handleChat({ req, env, deps, fetchImpl, cors }) {
+  const out = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...cors } });
+  const fail = (status, code, message) => out(status, { error: { code, message } });
+  if (!env.GEMINI_API_KEY || !env.GEMINI_MODEL) return fail(500, "not_configured", "AI is not set up yet (GEMINI_API_KEY / GEMINI_MODEL).");
+  const m = /^Bearer (.+)$/.exec(req.headers.get("authorization") || "");
+  if (!m) return fail(401, "unauthenticated", "Please sign in again.");
+  let who;
+  try {
+    who = await verifyFirebaseTokenFull(m[1], env, fetchImpl, deps.now());
+  } catch (_) {
+    return fail(401, "unauthenticated", "Please sign in again.");
+  }
+  if (who.provider === "password" && !who.emailVerified) return fail(401, "unauthenticated", "Please verify your email first.");
+  const uid = who.uid;
+  if (Number(req.headers.get("Content-Length") || 0) > MAX_BODY_BYTES) return fail(413, "too_large", "Request too large.");
+  let raw;
+  try {
+    raw = await req.json();
+  } catch (_) {
+    return fail(400, "bad_request", "Invalid JSON.");
+  }
+  const body = sanitizeBody(raw);
+  if (!body) return fail(400, "bad_request", "Unsupported request.");
+  let premium2;
+  try {
+    premium2 = await isHouseholdPremium(deps, uid, req.headers.get("x-household"), env);
+  } catch (e) {
+    console.error("premium check failed", e && e.message);
+    return fail(503, "busy", "Bajeti AI is busy. Please try again in a moment.");
+  }
+  if (!premium2) return fail(403, "premium_required", "Bajeti AI is a Premium feature.");
+  const featureHeader = req.headers.get("x-ai-feature");
+  const feature = FEATURES.includes(featureHeader) ? featureHeader : "msg";
+  const day = catDate(deps.now());
+  const limits = { perUser: num(env.HARD_DAILY_CAP, 300), global: num(env.GLOBAL_DAILY_CAP, 3e3) };
+  let refusal;
+  try {
+    refusal = await bump(deps, uid, day, feature, 1, limits);
+  } catch (e) {
+    console.error("ai counter failed", e && e.message);
+    return fail(503, "busy", "Bajeti AI is busy. Please try again in a moment.");
+  }
+  if (refusal) return fail(refusal.status, refusal.code, refusal.message);
+  let up = null;
+  try {
+    up = await (0, fetchImpl)(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.GEMINI_MODEL)}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      body: JSON.stringify(body)
+    });
+  } catch (_) {
+    up = null;
+  }
+  if (!up || !up.ok) await bump(deps, uid, day, feature, -1, limits).catch(() => {
+  });
+  if (!up) return fail(502, "upstream_unreachable", "AI service is unreachable.");
+  const text = await up.text();
+  return new Response(text, { status: up.status, headers: { "Content-Type": up.headers.get("Content-Type") || "application/json", "Cache-Control": "no-store", ...cors } });
+}
+
+// src/households.js
+var CODE = /^[a-z0-9]{6,20}$/;
+var BLOCKED_CFG_KEYS = ["isPremium", "premiumExpiry", "premiumActivatedAt", "trialStarted"];
+var MAX_CFG_CHARS = 3e5;
+var FIELDS = ["memberUids", "owner", "isPremium", "premiumExpiry", "trialStarted", "config.isPremium", "config.premiumExpiry", "config.trialStarted", "deletedAt"];
+var bad = (code, error) => ({ code, body: { error } });
+async function createHousehold({ deps, env, who, body }) {
+  if (who.provider === "password" && !who.emailVerified) return bad(403, "verify_email");
+  const code = body && body.code;
+  if (typeof code !== "string" || !CODE.test(code)) return bad(400, "bad_code");
+  const cfg = body.config;
+  if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) return bad(400, "bad_config");
+  let size = 0;
+  try {
+    size = JSON.stringify(cfg).length;
+  } catch (_) {
+    return bad(400, "bad_config");
+  }
+  if (size > MAX_CFG_CHARS) return bad(413, "config_too_large");
+  const clean = JSON.parse(JSON.stringify(cfg));
+  BLOCKED_CFG_KEYS.forEach((k) => {
+    delete clean[k];
+  });
+  const displayName = typeof body.displayName === "string" ? body.displayName.slice(0, 80) : "";
+  const uid = who.uid, now = deps.now();
+  const limit = Number(env.FREE_HOUSEHOLD_LIMIT) > 0 ? Number(env.FREE_HOUSEHOLD_LIMIT) : 3;
+  const owned = (await deps.db.collection("households").where("owner", "==", uid).select(...FIELDS).get()).docs.filter((d) => !d.data().deletedAt);
+  if (owned.length >= limit) {
+    const u = await deps.db.collection("users").doc(uid).get(["premiumUntil"]);
+    const until = u.exists ? u.data().premiumUntil : null;
+    const premiumUser = until && (typeof until.toMillis === "function" ? until.toMillis() : new Date(until).getTime()) > now;
+    const paid = (d) => {
+      const x = d.data(), c = x.config || {};
+      return computePremium({ memberUids: [uid], isPremium: x.isPremium, premiumExpiry: x.premiumExpiry, config: { isPremium: c.isPremium, premiumExpiry: c.premiumExpiry } }, uid, env, now) === true;
+    };
+    const anyPremium = owned.some(paid);
+    if (!premiumUser && !anyPremium) return bad(403, "household_limit");
+  }
+  return deps.db.runTransaction(async (tx) => {
+    const hhRef = deps.db.collection("households").doc(code), uRef = deps.db.collection("users").doc(uid);
+    const [hh, u] = [await tx.get(hhRef, ["owner"]), await tx.get(uRef)];
+    if (hh.exists) return bad(409, "code_taken");
+    const ud = u.exists ? u.data() : {};
+    const trial = !ud.trialClaimedAt;
+    const doc = { config: clean, createdAt: tsFromMillis(now), owner: uid, memberUids: [uid] };
+    if (body.solo === true) doc.solo = true;
+    if (trial) doc.trialStarted = tsFromMillis(now);
+    tx.set(hhRef, doc);
+    const owned2 = Array.isArray(ud.ownedHouseholds) ? ud.ownedHouseholds.filter((x) => x !== code).concat(code) : [code];
+    const upd = { householdId: code, ownedHouseholds: owned2 };
+    if (displayName) upd.displayName = displayName;
+    if (trial) {
+      upd.trialClaimedAt = tsFromMillis(now);
+      upd.trialHouseholdId = code;
+    }
+    tx.set(uRef, upd, { merge: true });
+    return { code: 200, body: { ok: true, code, trial } };
+  });
+}
+
+// src/push.js
+var FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
+var MAX_TOKENS_PER_USER = 3;
+var MAX_MEMBERS = 6;
+var HH = /^[A-Za-z0-9_-]{3,40}$/;
+var CLAIM_COST = 3;
+function makeFcm({ projectId, getToken, fetchImpl }) {
+  const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+  return {
+    // Data-only message: sw.js decides how to show it. `invalid` is true when Google says the address no longer exists.
+    async send(token, { title, body, tag, link }) {
+      const r = await (0, fetchImpl || fetch)(url, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + await getToken(), "Content-Type": "application/json" },
+        body: JSON.stringify({ message: { token, data: { title, body, tag: tag || "", url: link || "" }, webpush: { headers: { TTL: "86400", Urgency: "normal" } } } })
+      });
+      if (r.ok) return { ok: true };
+      let j = null;
+      try {
+        j = await r.json();
+      } catch (_) {
+      }
+      const st = j && j.error && j.error.status;
+      return { ok: false, status: r.status, invalid: r.status === 404 || st === "NOT_FOUND" || st === "UNREGISTERED" };
+    }
+  };
+}
+var asTokens = (v) => Array.isArray(v) ? v.filter((t) => typeof t === "string" && t).slice(-MAX_TOKENS_PER_USER) : [];
+var entryOf = (map, uid) => {
+  const e = map && map[uid];
+  return { tokens: asTokens(e && e.tokens), lang: e && e.lang === "cw" ? "cw" : "en" };
+};
+var money = (n) => "MK " + Math.round(Number(n) || 0).toLocaleString("en-US");
+var words = {
+  joinRequest: (lang, name) => lang === "cw" ? `${name} akupempha kulowa m'nyumba yanu.` : `${name} wants to join your household.`,
+  joinApproved: (lang) => lang === "cw" ? "Pempho lanu lavomerezedwa. Mwalowa!" : "Your request was approved. You are in!",
+  bills(lang, today, tomorrow) {
+    const list = (bs) => bs.map((b) => `${b.name} (${money(b.amount)})`).join(", ");
+    const parts = [];
+    if (today.length) parts.push(lang === "cw" ? `Lero: ${list(today)}.` : `Due today: ${list(today)}.`);
+    if (tomorrow.length) parts.push(lang === "cw" ? `Mawa: ${list(tomorrow)}.` : `Due tomorrow: ${list(tomorrow)}.`);
+    return parts.join(" ");
+  },
+  billTitle: (lang, today) => lang === "cw" ? today.length ? "Bajeti Yanga: Bilu ya lero" : "Bajeti Yanga: Bilu ya mawa" : today.length ? "Bajeti Yanga: Bill due today" : "Bajeti Yanga: Bill due tomorrow"
+};
+async function sendToTokens({ fcm, tokens, msg, spend, prune }) {
+  let sent = 0;
+  const dead = [];
+  for (const t of tokens) {
+    spend(1);
+    const r = await fcm.send(t, msg).catch((e) => {
+      console.error("push send failed", e && e.message);
+      return { ok: false };
+    });
+    if (r.ok) sent++;
+    else if (r.invalid) dead.push(t);
+  }
+  if (dead.length && prune) {
+    spend(3);
+    await prune(tokens.filter((t) => !dead.includes(t))).catch(() => {
+    });
+  }
+  return sent;
+}
+function pruneHousehold(deps, hhId, uid) {
+  return (keep) => deps.db.runTransaction(async (tx) => {
+    const ref = deps.db.collection("households").doc(hhId);
+    const snap2 = await tx.get(ref, ["pushTokens"]);
+    if (!snap2.exists) return;
+    const map = { ...snap2.data().pushTokens || {} };
+    if (!map[uid]) return;
+    map[uid] = { ...map[uid], tokens: keep };
+    tx.set(ref, { pushTokens: map }, { merge: true });
+  });
+}
+async function claim(deps, col, id) {
+  return deps.db.runTransaction(async (tx) => {
+    const ref = deps.db.collection(col).doc(id);
+    if ((await tx.get(ref)).exists) return false;
+    tx.set(ref, { at: deps.tsFromMillis(deps.now()) });
+    return true;
+  });
+}
+async function handleNotify({ deps, fcm, user, body }) {
+  const hhId = body && body.householdId;
+  if (typeof hhId !== "string" || !HH.test(hhId)) return { code: 400, body: { error: "Invalid household." } };
+  const spend = () => {
+  };
+  const hh = await deps.db.collection("households").doc(hhId).get(["owner", "memberUids", "deletedAt", "pushTokens"]);
+  if (!hh.exists || hh.data().deletedAt) return { code: 404, body: { error: "Not found." } };
+  const h = hh.data();
+  if (body.type === "join-request") {
+    const rq = await deps.db.collection("households/" + hhId + "/joinRequests").doc(user.uid).get();
+    if (!rq.exists) return { code: 404, body: { error: "No request found." } };
+    const r = rq.data();
+    const at = r.requestedAt && typeof r.requestedAt.toMillis === "function" ? r.requestedAt.toMillis() : 0;
+    if (!await claim(deps, "pushLog", "join_" + hhId + "_" + user.uid + "_" + at)) return { code: 200, body: { ok: true, sent: 0 } };
+    const name = String(r.displayName || (r.email ? String(r.email).split("@")[0] : "") || "Someone").slice(0, 40);
+    const owner = entryOf(h.pushTokens, h.owner);
+    const sent = await sendToTokens({
+      fcm,
+      spend,
+      tokens: owner.tokens,
+      msg: { title: "Bajeti Yanga", body: words.joinRequest(owner.lang, name), tag: "join-" + user.uid, link: "" },
+      prune: pruneHousehold(deps, hhId, h.owner)
+    });
+    return { code: 200, body: { ok: true, sent } };
+  }
+  if (body.type === "join-approved") {
+    if (h.owner !== user.uid) return { code: 403, body: { error: "Only the owner can do that." } };
+    const target = body.uid;
+    if (typeof target !== "string" || !Array.isArray(h.memberUids) || !h.memberUids.includes(target) || target === user.uid) return { code: 400, body: { error: "Invalid member." } };
+    if (!await claim(deps, "pushLog", "approved_" + hhId + "_" + target)) return { code: 200, body: { ok: true, sent: 0 } };
+    const u = await deps.db.collection("users").doc(target).get(["pushTokens", "pushLang"]);
+    const ud = u.exists ? u.data() : {};
+    const sent = await sendToTokens({
+      fcm,
+      spend,
+      tokens: asTokens(ud.pushTokens),
+      msg: { title: "Bajeti Yanga", body: words.joinApproved(ud.pushLang === "cw" ? "cw" : "en"), tag: "approved-" + hhId, link: "" },
+      prune: (keep) => deps.db.collection("users").doc(target).set({ pushTokens: keep }, { merge: true })
+    });
+    return { code: 200, body: { ok: true, sent } };
+  }
+  return { code: 400, body: { error: "Unknown notification." } };
+}
+async function runBillReminders({ deps, fcm, budget = { left: 44 } }) {
+  const spend = (n) => {
+    budget.left -= n;
+  };
+  const t0 = catDate(deps.now()), t1 = catDate(deps.now() + 864e5);
+  const byHh = /* @__PURE__ */ new Map();
+  for (const [date, slot] of [[t0, "today"], [t1, "tomorrow"]]) {
+    spend(1);
+    const res = await deps.db.collectionGroup("bills").where("dueDate", "==", date).get();
+    for (const d of res.docs) {
+      const m = /^households\/([^/]+)\/bills\/[^/]+$/.exec(d.path || "");
+      if (!m) continue;
+      const e = byHh.get(m[1]) || { today: [], tomorrow: [] };
+      const b = d.data();
+      e[slot].push({ name: String(b.name || "Bill").slice(0, 40), amount: b.amount });
+      byHh.set(m[1], e);
+    }
+  }
+  let households2 = 0, sent = 0, waiting = 0;
+  const MOST = CLAIM_COST + 1 + MAX_MEMBERS * MAX_TOKENS_PER_USER;
+  for (const [hhId, bills] of byHh) {
+    if (budget.left < MOST) {
+      waiting++;
+      continue;
+    }
+    spend(CLAIM_COST);
+    if (!await claim(deps, "pushLog", "bills_" + hhId + "_" + t0).catch(() => false)) continue;
+    spend(1);
+    const hh = await deps.db.collection("households").doc(hhId).get(["memberUids", "deletedAt", "pushTokens"]);
+    if (!hh.exists || hh.data().deletedAt) continue;
+    const h = hh.data(), members = (Array.isArray(h.memberUids) ? h.memberUids : []).slice(0, MAX_MEMBERS);
+    households2++;
+    for (const uid of members) {
+      const e = entryOf(h.pushTokens, uid);
+      if (!e.tokens.length) continue;
+      sent += await sendToTokens({
+        fcm,
+        spend,
+        tokens: e.tokens,
+        msg: { title: words.billTitle(e.lang, bills.today), body: words.bills(e.lang, bills.today, bills.tomorrow), tag: "bills-" + t0, link: "" },
+        prune: pruneHousehold(deps, hhId, uid)
+      });
+    }
+  }
+  return { households: households2, sent, waiting };
+}
+
+// src/housekeeping.js
+var DAY2 = 864e5;
+var HOUSEHOLD_SUBCOLLECTIONS = ["purchases", "items", "bills", "goals", "_usage", "_conversations", "joinRequests"];
+var ID = /^[A-Za-z0-9_-]{3,128}$/;
+var purgeDays = (env) => Math.max(30, Number(env && env.PURGE_DAYS) || 30);
+var purgeLive = (env) => String(env && env.PURGE_MODE || "").toLowerCase() === "delete";
+var fullName = (db, path) => db.root + "/" + path;
+async function purgeTrash({ deps, env, budget, log: log2 }) {
+  if (budget.left < 4) return { skipped: true };
+  const cutoff = new Date(deps.now() - purgeDays(env) * DAY2).toISOString();
+  budget.left -= 1;
+  const res = await deps.db.collectionGroup("purchases").where("deletedAt", "<", cutoff).select("__name__").limit(400).get();
+  const paths = res.docs.map((d) => d.path).filter((p) => /^households\/[^/]+\/purchases\/[^/]+$/.test(p || ""));
+  if (!purgeLive(env)) {
+    log2("trash: would remove " + paths.length + " entries (dry run)");
+    return { found: paths.length, removed: 0, dryRun: true };
+  }
+  if (paths.length) {
+    budget.left -= 1;
+    await deps.db.commitWrites(paths.map((p) => ({ delete: fullName(deps.db, p) })));
+  }
+  log2("trash: removed " + paths.length + " entries");
+  return { found: paths.length, removed: paths.length };
+}
+async function eraseHousehold({ deps, budget, id }) {
+  const base = "households/" + id;
+  for (const sub of HOUSEHOLD_SUBCOLLECTIONS) {
+    for (; ; ) {
+      if (budget.left < 4) return false;
+      budget.left -= 2;
+      const r = await deps.db.deleteSubcollection(base, sub, 450);
+      if (!r.more) break;
+    }
+  }
+  for (; ; ) {
+    if (budget.left < 4) return false;
+    budget.left -= 2;
+    const r = await deps.db.deleteSubcollection("invites/" + id, "approved", 450);
+    if (!r.more) break;
+  }
+  if (budget.left < 2) return false;
+  budget.left -= 1;
+  await deps.db.commitWrites([{ delete: fullName(deps.db, "invites/" + id) }, { delete: fullName(deps.db, base) }]);
+  return true;
+}
+async function purgeHouseholds({ deps, env, budget, log: log2 }) {
+  if (budget.left < 8) return { skipped: true };
+  const cutoff = deps.now() - purgeDays(env) * DAY2;
+  budget.left -= 1;
+  const res = await deps.db.collection("households").where("deletedAt", "<", deps.tsFromMillis(cutoff)).select("deletedAt").limit(5).get();
+  const due = res.docs.filter((d) => ID.test(d.id) && d.data().deletedAt && typeof d.data().deletedAt.toMillis === "function" && d.data().deletedAt.toMillis() < cutoff);
+  if (!purgeLive(env)) {
+    log2("households: would erase " + due.length + " (dry run): " + due.map((d) => d.id).join(", "));
+    return { found: due.length, erased: 0, dryRun: true };
+  }
+  let erased = 0;
+  for (const d of due) {
+    if (await eraseHousehold({ deps, budget, id: d.id })) {
+      erased++;
+      log2("households: erased " + d.id);
+    } else {
+      log2("households: " + d.id + " not finished, continues next run");
+      break;
+    }
+  }
+  return { found: due.length, erased };
+}
+async function purgeAccounts({ deps, env, identity, budget, log: log2 }) {
+  if (budget.left < 8) return { skipped: true };
+  const cutoff = deps.now() - purgeDays(env) * DAY2;
+  budget.left -= 1;
+  const res = await deps.db.collection("users").where("deletedAt", "<", deps.tsFromMillis(cutoff)).select("deletedAt", "pendingDeletion").limit(10).get();
+  const due = res.docs.filter((d) => ID.test(d.id) && d.data().pendingDeletion === true && d.data().deletedAt && typeof d.data().deletedAt.toMillis === "function" && d.data().deletedAt.toMillis() < cutoff);
+  if (!purgeLive(env)) {
+    log2("accounts: would erase " + due.length + " (dry run): " + due.map((d) => d.id).join(", "));
+    return { found: due.length, erased: 0, dryRun: true };
+  }
+  let erased = 0, failed = 0;
+  for (const d of due) {
+    if (budget.left < 4) break;
+    try {
+      budget.left -= 2;
+      await identity.deleteUser(d.id);
+      await deps.db.collection("users").doc(d.id).delete();
+      erased++;
+      log2("accounts: erased " + d.id);
+    } catch (e) {
+      failed++;
+      log2("accounts: could not erase " + d.id + ": " + String(e && e.message).slice(0, 160));
+    }
+  }
+  return { found: due.length, erased, failed };
+}
+async function purgeCounters({ deps, env, budget, log: log2 }) {
+  if (budget.left < 6) return { skipped: true };
+  const live = purgeLive(env);
+  const out = { aiUsage: 0, pushLog: 0 };
+  budget.left -= 1;
+  const oldDay = catDate(deps.now() - 14 * DAY2);
+  const ai = await deps.db.collection("aiUsage").where("day", "<", oldDay).select("__name__").limit(200).get();
+  budget.left -= 1;
+  const logs = await deps.db.collection("pushLog").where("at", "<", deps.tsFromMillis(deps.now() - 7 * DAY2)).select("__name__").limit(200).get();
+  const jobs = [["aiUsage", ai.docs.map((d) => "aiUsage/" + d.id)], ["pushLog", logs.docs.map((d) => "pushLog/" + d.id)]];
+  for (const [name, paths] of jobs) {
+    if (!paths.length) continue;
+    if (live && budget.left >= 2) {
+      budget.left -= 1;
+      await deps.db.commitWrites(paths.map((p) => ({ delete: fullName(deps.db, p) })));
+      out[name] = paths.length;
+    } else log2("counters: " + (live ? "later: " : "would remove ") + paths.length + " " + name + (live ? "" : " (dry run)"));
+  }
+  return out;
+}
+async function runHousekeeping({ deps, env, identity, budget = { left: 38 } }) {
+  const lines = [], log2 = (s) => {
+    lines.push(s);
+    console.log(s);
+  };
+  const result = { mode: purgeLive(env) ? "delete" : "dry-run" };
+  for (const [name, fn] of [["trash", purgeTrash], ["households", purgeHouseholds], ["accounts", purgeAccounts], ["counters", purgeCounters]]) {
+    try {
+      result[name] = await fn({ deps, env, identity, budget, log: log2 });
+    } catch (e) {
+      result[name] = { error: String(e && e.message).slice(0, 200) };
+      console.error("housekeeping " + name + " failed", e && e.message);
+    }
+  }
+  return result;
+}
+
 // src/index.js
+var BILLS_CRON = "5,20,35,50 5-6 * * *";
+var HOUSEKEEPING_CRON = "10 */2 * * *";
 var DEFAULT_APP_URL = "https://rodart265.github.io/bajeti-yanga/";
 function corsHeaders(req, env) {
   const origin = req.headers.get("Origin");
@@ -1510,7 +2079,7 @@ function corsHeaders(req, env) {
     return {
       "Access-Control-Allow-Origin": origin,
       Vary: "Origin",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Household, X-AI-Feature",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Max-Age": "86400"
     };
@@ -1521,16 +2090,17 @@ var json = (status, body, headers = {}) => new Response(JSON.stringify(body), { 
 var shared = { sig: null, db: null, identity: null };
 function makeDeps(env, injected) {
   if (injected && injected.db) {
-    return { db: injected.db, identity: injected.identity, fetchImpl: injected.fetchImpl || fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
+    return { db: injected.db, identity: injected.identity, fcm: injected.fcm, fetchImpl: injected.fetchImpl || fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: injected.now || Date.now, tsFromMillis: injected.tsFromMillis || tsFromMillis };
   }
   const projectId = env.FIREBASE_PROJECT_ID || "bajeti-yanga";
   const sig = projectId + "|" + env.GOOGLE_SERVICE_ACCOUNT;
   if (shared.sig !== sig) {
     const getToken = makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT });
     const identity = makeIdentity({ projectId, getToken: makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT, scope: IDENTITY_SCOPE }) });
-    shared = { sig, db: new FirestoreRest({ projectId, getToken }), identity };
+    const fcm = makeFcm({ projectId, getToken: makeTokenProvider({ serviceAccountJson: env.GOOGLE_SERVICE_ACCOUNT, scope: FCM_SCOPE }) });
+    shared = { sig, db: new FirestoreRest({ projectId, getToken }), identity, fcm };
   }
-  return { db: shared.db, identity: shared.identity, fetchImpl: fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
+  return { db: shared.db, identity: shared.identity, fcm: shared.fcm, fetchImpl: fetch, secretKey: env.PAYCHANGU_SECRET_KEY, now: Date.now, tsFromMillis };
 }
 function missingSettings(env) {
   return ["PAYCHANGU_SECRET_KEY", "PAYCHANGU_WEBHOOK_SECRET", "GOOGLE_SERVICE_ACCOUNT"].filter((k) => !env[k]);
@@ -1563,6 +2133,10 @@ var index_default = {
       if (req.method === "GET" && url.pathname === "/public") {
         const feed = await publicFeed({ deps, env, plan: url.searchParams.get("plan"), lang: url.searchParams.get("lang") });
         return json(200, feed, { ...cors, "Cache-Control": "public, max-age=60" });
+      }
+      if (url.pathname === "/chat") {
+        if (req.method !== "POST") return json(405, { error: "POST only" }, cors);
+        return handleChat({ req, env, deps, fetchImpl: injected.fetchImpl || fetch, cors });
       }
       if (url.pathname === "/admin") {
         if (req.method !== "POST") return json(405, { error: "POST only" }, cors);
@@ -1608,7 +2182,7 @@ var index_default = {
       if (!m) return json(401, { error: "Please sign in again." }, cors);
       let user;
       try {
-        user = await verifyFirebaseToken(m[1], env, injected.fetchImpl || fetch, deps.now());
+        user = await verifyFirebaseTokenFull(m[1], env, injected.fetchImpl || fetch, deps.now());
       } catch (_) {
         return json(401, { error: "Please sign in again." }, cors);
       }
@@ -1623,24 +2197,47 @@ var index_default = {
         if (!pay.exists || pay.data().uid !== user.uid) return json(404, { error: "Payment not found." }, cors);
         return json(200, await settlePayment({ deps, txRef: body.txRef }), cors);
       }
+      if (body.action === "createHousehold") {
+        const out = await createHousehold({ deps, env, who: user, body });
+        return json(out.code, out.body, { ...cors, "Cache-Control": "no-store" });
+      }
+      if (body.action === "notify") {
+        const out = await handleNotify({ deps, fcm: deps.fcm, user, body });
+        return json(out.code, out.body, { ...cors, "Cache-Control": "no-store" });
+      }
       return json(400, { error: "Unknown action." }, cors);
     } catch (e) {
       console.error("payments error", e && e.message);
       return json(500, { error: "Something went wrong. Please try again." }, cors);
     }
   },
-  // Every 15 minutes: settle payments that are still "pending" (webhook missed, customer closed the page, ...).
+  // The timers (see wrangler.toml). Each one is told which timer fired through event.cron:
+  //   "*/15 * * * *"             settle payments whose webhook never arrived
+  //   BILLS_CRON  (mornings)      bill reminders by push
+  //   HOUSEKEEPING_CRON           clean-up of old trash, deleted households and accounts
   async scheduled(event, env, ctx, injected = {}) {
     if (!injected.db && missingSettings(env).length) {
-      console.error("reconcile skipped, not set up");
+      console.error("scheduled job skipped, not set up");
       return;
     }
+    const cron = event && event.cron;
     const run2 = (async () => {
-      const out = await reconcilePending({ deps: makeDeps(env, injected) });
+      const deps = makeDeps(env, injected);
+      if (cron === BILLS_CRON) {
+        const out2 = await runBillReminders({ deps, fcm: deps.fcm });
+        console.log("bill reminders", JSON.stringify(out2));
+        return out2;
+      }
+      if (cron === HOUSEKEEPING_CRON) {
+        const out2 = await runHousekeeping({ deps, env, identity: deps.identity });
+        console.log("housekeeping", JSON.stringify(out2));
+        return out2;
+      }
+      const out = await reconcilePending({ deps });
       if (out.length) console.log("reconciled", JSON.stringify(out));
       return out;
     })().catch((e) => {
-      console.error("reconcile failed", e && e.message);
+      console.error("scheduled job failed", cron, e && e.message);
       return [];
     });
     if (ctx && ctx.waitUntil) ctx.waitUntil(run2);
@@ -1648,5 +2245,7 @@ var index_default = {
   }
 };
 export {
+  BILLS_CRON,
+  HOUSEKEEPING_CRON,
   index_default as default
 };

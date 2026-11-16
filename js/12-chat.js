@@ -8,12 +8,8 @@ let chatConversations = [];
 let activeChatId = null;
 let chatBusy = false;
 
-// Firestore-backed usage counters (source of truth — not localStorage)
+// Bajeti AI is Premium only (the free trial counts as Premium). The Worker checks this on the server and counts daily use there.
 const FREE_MAX_CONVOS=3;
-const FREE_DAILY_MSGS=10;
-const FREE_DAILY_MAGIC=5;
-const FREE_DAILY_SCAN=5;
-const FREE_DAILY_SUMM=5;
 let _aiInFlight=false;
 
 function chatStorageKey(){ return 'nb_chat_'+(hhId||'anon'); }
@@ -26,34 +22,22 @@ function saveChatHistory(){
   try{ localStorage.setItem(chatStorageKey(), JSON.stringify(chatHistory.slice(-50))); }catch(e){ /* storage full or blocked: chat still lives in memory and Firestore */ }
 }
 
-// ── Firestore usage helpers ──
+// Conversation count for the household (a small document; the daily AI counters now live on the Worker).
 function hhUsageRef(){ return db.collection('households').doc(hhId).collection('_usage').doc('ai'); }
 async function getHHUsage(){
-  if(!hhId) return {msgCount:0,msgDate:'',convoCount:0,magicCount:0,scanCount:0,summCount:0};
-  try{ const s=await hhUsageRef().get(); return s.exists?s.data():{msgCount:0,msgDate:'',convoCount:0,magicCount:0,scanCount:0,summCount:0}; }
-  catch(e){ return {msgCount:0,msgDate:'',convoCount:0,magicCount:0,scanCount:0,summCount:0}; }
-}
-async function getAiUsageTodayFS(feature){
-  const d=await getHHUsage(); if(d.msgDate!==today()) return 0;
-  return d[{msg:'msgCount',magic:'magicCount',scan:'scanCount',summ:'summCount'}[feature||'msg']]||0;
-}
-async function incAiUsageTodayFS(feature){
-  if(!hhId) return;
-  const d=await getHHUsage(); const isT=d.msgDate===today();
-  const key={msg:'msgCount',magic:'magicCount',scan:'scanCount',summ:'summCount'}[feature||'msg'];
-  const upd={msgDate:today(),convoCount:d.convoCount||0,[key]:(isT?(d[key]||0):0)+1};
-  if(!isT){upd.msgCount=0;upd.magicCount=0;upd.scanCount=0;upd.summCount=0;upd[key]=1;}
-  await hhUsageRef().set(upd,{merge:true}).catch(()=>{});
+  const none={convoCount:0};
+  if(!hhId) return none;
+  try{ const s=await hhUsageRef().get(); return s.exists?s.data():none; }
+  catch(e){ return none; }
 }
 
-// Legacy localStorage AI usage — kept only as fallback display; Firestore is truth
-function getAiUsageToday(){
-  const key='nb_ai_'+today();
-  return parseInt(localStorage.getItem(key)||'0');
-}
-function incAiUsageToday(){
-  const key='nb_ai_'+today();
-  localStorage.setItem(key,String(getAiUsageToday()+1));
+// Bajeti AI is a Premium feature. The Worker enforces it (403 premium_required); this check only saves the round trip and
+// shows the upgrade screen straight away.
+function aiPremiumGate(feature){
+  const st=getPremiumStatus();
+  if(st.isPremium) return true;
+  showUpgradePrompt(feature||'unlimited_ai', st);
+  return false;
 }
 
 // Show paywall when free user hits conversation limit
@@ -81,6 +65,16 @@ const CHAT_SUGGESTIONS_CW = ['Ndikuyenda bwanji mwezi uno?','Ndikuononga kwambir
 
 function rChat(){
   const isCW=lang==='cw';
+  if(!getPremiumStatus().isPremium){
+    // Free households do not get Bajeti AI at all (it is a Premium feature, checked again on the server).
+    setView('<div style="padding:32px 22px;text-align:center">'
+      +'<div style="width:60px;height:60px;border-radius:var(--cr);background:linear-gradient(135deg,#142F4B,#176B78);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><i data-lucide="gem" style="width:28px;height:28px;color:#fff"></i></div>'
+      +'<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+L('Bajeti AI is a Premium feature','Bajeti AI ndi ya Premium')+'</h3>'
+      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:18px">'+L('Ask questions about your budget, scan receipts and get a monthly AI review. Start your free trial or upgrade to use it.','Funsani mafunso pa bajeti yanu, jambulani risiti ndi kupeza chidule cha mwezi. Sandutsani kuti mugwiritse ntchito.')+'</div>'
+      +'<button class="btnM" style="width:100%" onclick="showPremiumPage()">'+L('See Premium','Onani Premium')+'</button></div>');
+    if(window.lucide) lucide.createIcons();
+    return;
+  }
   const placeholder=isCW?'Funsani funso pa bajeti yanu...':'Ask anything about your budget...';
   const sendIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>';
   const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
@@ -509,14 +503,7 @@ async function getConvoCountFS(){
 async function incConvoCountFS(){
   if(!hhId) return;
   const data = await getHHUsage();
-  await hhUsageRef().set({
-    convoCount: (data.convoCount||0) + 1,
-    msgCount: data.msgCount || 0,
-    msgDate: data.msgDate || '',
-    magicCount: data.magicCount || 0,
-    scanCount: data.scanCount || 0,
-    summCount: data.summCount || 0
-  }, {merge:true}).catch(()=>{});
+  await hhUsageRef().set({convoCount: (data.convoCount||0) + 1}, {merge:true}).catch(()=>{});
 }
 
 async function decConvoCountFS(){
@@ -683,16 +670,7 @@ Last 15 transactions (with IDs): ${JSON.stringify(recentWithIds)}`;
 async function sendChat(){
   if(chatBusy)return;
   if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
-  // Check free tier AI limit from Firestore (device-switch safe)
-  const status=getPremiumStatus();
-  if(!status.isPremium){
-    const used = await getAiUsageTodayFS('msg');
-    if(used >= FREE_DAILY_MSGS){
-      toast((lang==='cw'?'Malire a AI a lero afika (':'Daily AI limit reached (')+FREE_DAILY_MSGS+'/day). Upgrade for unlimited!','e');
-      showUpgradePrompt('unlimited_ai',status);
-      return;
-    }
-  }
+  if(!aiPremiumGate('unlimited_ai')) return;
   const inp=g('chat-inp'), sendBtn=g('chat-send');
   const msg=(inp?inp.value.trim():''); if(!msg)return;
   
@@ -764,11 +742,6 @@ async function sendChat(){
 
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || (lang==='cw'?'Pepani, pali chovuta. Chonde yesaninso.':'Bajeti AI could not answer that. Please try again.');
     
-    // Only count successful responses against the daily limit
-    if(!getPremiumStatus().isPremium){
-      incAiUsageTodayFS('msg'); // Firestore-backed, device-switch safe
-      incAiUsageToday();   // localStorage cache for instant UI updates
-    }
 
     // Parse any action from the reply
     const action = parseAiAction(reply);
@@ -801,6 +774,7 @@ async function sendChat(){
 
 // -- Magic Log (Extract Transactions) --
 function openMagicLog() {
+  if(!aiPremiumGate('unlimited_ai')) return;
   const t = tx();
   const isPrem = hasPremiumFeature('receipt_scan');
   let h = '<div class="dh"></div>';
@@ -934,7 +908,7 @@ async function scanReceiptFromChat(input){
 async function scanReceipt(input){
   if(!input.files||!input.files[0])return;
   if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
-  const _ss=getPremiumStatus();if(!_ss.isPremium){const _su=await getAiUsageTodayFS('scan');if(_su>=FREE_DAILY_SCAN){toast((lang==='cw'?'Malire ojambula risiti afika (':'Receipt scan limit (')+FREE_DAILY_SCAN+'/day) reached.','e');return;}}
+  if(!aiPremiumGate('receipt_scan')) return;
   _aiInFlight=true;
   const file=input.files[0];
   const resultsEl=g('magic-results');
@@ -965,7 +939,6 @@ async function scanReceipt(input){
       });
       if(resultsEl){resultsEl.innerHTML=renderMagicResults(); if(window.lucide)lucide.createIcons({nodes:[resultsEl]});}
       if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="save" class="ic14m4"></i> Save All '+pendingMagicTxs.length+' Items'; if(window.lucide)lucide.createIcons({nodes:[btn]}); btn.setAttribute('onclick','saveMagicTxs()');}
-      if(!getPremiumStatus().isPremium) incAiUsageTodayFS('scan');
       _aiInFlight=false;
       toast(lang==='cw'?'Risiti yawerengedwa!':'Receipt scanned!','s');
     }catch(err){
@@ -1024,7 +997,7 @@ async function processMagicLog() {
   const input=val('magic-input').trim();
   if(!input){toast((lang==='cw'?'Chonde lembani mawu.':'Please enter some text.'),'e');return;}
   if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
-  const _ms=getPremiumStatus(); if(!_ms.isPremium){const _mu=await getAiUsageTodayFS('magic'); if(_mu>=FREE_DAILY_MAGIC){toast((lang==='cw'?'Malire a Magic Log afika (':'Magic Log limit (')+FREE_DAILY_MAGIC+'/day) reached.','e');return;}}
+  if(!aiPremiumGate('unlimited_ai')) return;
   _aiInFlight=true;
   const btn=g('magic-btn-process');
   btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="ic14m5 spin-ico"></i> '+(lang==='cw'?'Kuwerenga...':'Extracting...'); if(window.lucide)lucide.createIcons({nodes:[btn]});
@@ -1078,7 +1051,6 @@ async function processMagicLog() {
     btn.innerHTML = '<i data-lucide="save" class="ic14m4"></i> Save All'; if(window.lucide)lucide.createIcons({nodes:[btn]});
     btn.setAttribute('onclick','saveMagicTxs()');
     btn.disabled=false;
-    if(!getPremiumStatus().isPremium) incAiUsageTodayFS('magic');
     _aiInFlight=false;
   } catch(err){
     const isCW = lang === 'cw';
@@ -1170,8 +1142,7 @@ function buildSummaryData(){
 }
 async function generateAiSummary() {
   if(_aiInFlight){toast((lang==='cw'?'Chonde dikirani.':'Please wait.'),'e');return;}
-  const _s=getPremiumStatus();
-  if(!_s.isPremium){ const _u=await getAiUsageTodayFS('summ'); if(_u>=FREE_DAILY_SUMM){toast((lang==='cw'?'Malire a Chidule cha AI afika (':'AI Summary limit (')+FREE_DAILY_SUMM+'/day) reached.','e');return;} }
+  if(!aiPremiumGate('unlimited_ai')) return;
   _aiInFlight=true;
   const btn=g('ai-sum-btn'),box=g('ai-sum-box');
   btn.disabled=true; btn.innerHTML='<i data-lucide="refresh-cw" style="margin-right:4px"></i> Analyzing...'; if(window.lucide)lucide.createIcons({nodes:[btn]});
@@ -1198,7 +1169,6 @@ Data: ${JSON.stringify(buildSummaryData())}`;
       if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if(!_s.isPremium) incAiUsageTodayFS('summ');
     box.innerHTML='<div class="ai-summary-box"><b><i data-lucide="zap" style="width:14px;height:14px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> AI Insight:</b><br>'+mdLite(reply||'')+'</div>';
     if(window.lucide)lucide.createIcons({nodes:[box]});
     box.classList.remove('hide'); btn.style.display='none'; _aiInFlight=false;
