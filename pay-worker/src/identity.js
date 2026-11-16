@@ -56,5 +56,10 @@ export function makeIdentity({ projectId, getToken, fetchImpl = fetch }) {
     async setDisabled(uid, disabled) {
       await call('POST', base + ':update', { localId: uid, disableUser: !!disabled });
     },
+    // Erases the sign-in itself (used when an account's 30-day deletion period is over). An account that is already gone counts as done.
+    async deleteUser(uid) {
+      try { await call('POST', base + ':delete', { localId: uid }); }
+      catch (e) { if (e.status === 400 && /USER_NOT_FOUND/.test(e.message)) return; throw e; }
+    },
   };
 }

@@ -985,6 +985,8 @@ function logout(){
   localStorage.removeItem('nb_uid');
   hhId=null; lCfg=JSON.parse(JSON.stringify(DEF_CFG)); lPx=[];
   authReg=false;
+  // Signed out: stop notifications reaching this phone (the Worker drops the old address the next time it tries it).
+  try{ localStorage.removeItem('nb_push_reg'); if(window.firebase && firebase.messaging && 'Notification' in window && Notification.permission==='granted') firebase.messaging().deleteToken().catch(()=>{}); }catch(e){}
   auth.signOut().catch(()=>{});
   chatHistory=[]; 
   toast((lang==='cw'?'Tionana posachedwa!':'See you soon!'),'i');

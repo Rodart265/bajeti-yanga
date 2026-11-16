@@ -96,19 +96,19 @@ function pinK(k) {
     },160);
   }
 }
-// Google and phone accounts have no password, so the password prompts below can never succeed for them.
+// Google accounts have no password, so the password prompts below can never succeed for them.
 function _authProviders(){ return ((curUser&&curUser.providerData)||[]).map(function(p){return p.providerId;}); }
 async function _reauthWithoutPassword(){
   if(_authProviders().indexOf('google.com')>=0){
     await curUser.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
     return true;
   }
-  return false; // phone-only: no in-app re-auth route
+  return false; // no password and no Google link: no in-app re-auth route
 }
 async function pinFgtNoPassword(){
   try{
     const ok=await _reauthWithoutPassword();
-    if(!ok){ toast(lang==='cw'?'Kuti musinthe PIN, tulukani ndi kulowanso ndi nambala yanu ya foni.':'To reset your PIN, sign out and sign back in with your phone number.','i'); return; }
+    if(!ok){ toast(lang==='cw'?'Kuti musinthe PIN, tulukani ndi kulowanso.':'To reset your PIN, sign out and sign back in.','i'); return; }
     localStorage.removeItem('nb_pin');
     hidePIN();
     toast((lang==='cw'?'Zatsimikizika! Ikani PIN yatsopano.':'Verified! Set a new PIN.'),'s');
@@ -388,7 +388,7 @@ async function _secPinVerifySubmit(){
 async function _secVerifyNoPassword(onVerified){
   try{
     const ok=await _reauthWithoutPassword();
-    if(!ok){ toast(lang==='cw'?'Tulukani ndi kulowanso ndi nambala yanu ya foni kuti musinthe zosankha za chitetezo.':'To change security settings, sign out and sign back in with your phone number.','i'); return; }
+    if(!ok){ toast(lang==='cw'?'Tulukani ndi kulowanso kuti musinthe zosankha za chitetezo.':'To change security settings, sign out and sign back in.','i'); return; }
     if(onVerified) onVerified();
   }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
 }

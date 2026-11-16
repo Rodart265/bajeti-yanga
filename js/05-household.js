@@ -417,88 +417,67 @@ function resetSetupJoinCard(){
   renderSetupJoinChoice();
 }
 
-// Premium lives on each household's own doc/config, not on the user account, so
-// "premium unlocks unlimited households" has to check every household this user
-// owns, not whichever one happens to be connected right now. Resolves true if the
-// user is still under the free cap, or if ANY owned household carries premium.
-function _canCreateAnotherHousehold(ownedHH){
-  if(ownedHH.length < HOUSEHOLD_LIMITS.free) return Promise.resolve(true);
-  return Promise.all(ownedHH.map(hid=>db.collection('households').doc(hid).get().catch(()=>null)))
-    .then(snaps=>snaps.some(s=>{
-      if(!s||!s.exists) return false;
-      const dd=s.data()||{};
-      return !!(dd.isPremium || (dd.config&&dd.config.isPremium));
-    }));
+// Households are created by the payments Worker, not by this page. That is what makes "one free trial per account" and
+// "3 free households" real: the browser cannot be trusted with either, so the Worker counts them and writes the household
+// itself (and the security rules no longer let the browser create one at all).
+async function _createHouseholdOnServer(cfg, solo){
+  ensureRecIds(cfg);   // new households start with ids on every item
+  const name = curUser.displayName||curUser.email||'User';
+  for(let i=0;i<3;i++){
+    const code = randCode();
+    try{
+      const r = await _paymentsCall({action:'createHousehold', code:code, config:cfg, solo:!!solo, displayName:name});
+      return (r && r.code) || code;
+    }catch(e){
+      if(e && e.message==='code_taken') continue;   // an id clash is astronomically rare, but just draw another
+      throw e;
+    }
+  }
+  throw new Error('code_taken');
+}
+function _createHHErr(e){
+  const isCW = lang==='cw', m = e && e.message;
+  if(m==='household_limit'){
+    setTimeout(()=>showPremiumPage(), 1500);
+    return isCW?'Ma nyumba a pa ntchito auluka ('+HOUSEHOLD_LIMITS.free+'). Sinthani imodzi kukhala Premium, kapena posani nyumba.':'Free accounts can only have '+HOUSEHOLD_LIMITS.free+' households. Upgrade one of your households to Premium for unlimited, or delete one first.';
+  }
+  if(m==='verify_email') return isCW?'Tsimikizani imelo yanu choyamba, kenako yesaninso.':'Please verify your email first, then try again.';
+  if(m==='config_too_large' || (e && e.status===413)) return isCW?'Zosintha ndi zazikulu kwambiri.':'The household settings are too large.';
+  if(e && e.status && e.status<500 && e.status!==429) return isCW?'Sitinathe kupanga nyumba. Yesaninso.':'Could not create the household. Please try again.';
+  return isCW?'Sitinathe kufikira seva. Onani intaneti yanu ndi kuyesanso.':'Could not reach the server. Check your internet and try again.';
+}
+function _householdCreated(code, msgEn, msgCw){
+  localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1');
+  hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code);
+  toast(lang==='cw'?msgCw:msgEn,'s');
 }
 
-function createHHSolo(){
+async function createHHSolo(){
   if(!curUser){setupErr(lang==='cw'?'Simunalowe muakaunti.':'Not signed in.');return;}
   if(_setupBusy) return;
   _setupLock();
   setDot('spin'); setupErr('');
-  // Check household limit using HOUSEHOLD_LIMITS config
-  db.collection('users').doc(curUser.uid).get().then(uDoc=>{
-    const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
-    return _canCreateAnotherHousehold(ownedHH).then(allowed=>{
-    if(!allowed){
-      setDot('off');
-      const isCW = lang === 'cw';
-      setupErr(isCW?'Ma nyumba a pa ntchito auluka ('+HOUSEHOLD_LIMITS.free+'). Sinthani imodzi kukhala Premium, kapena posani nyumba.':'Free accounts can only have '+HOUSEHOLD_LIMITS.free+' households. Upgrade one of your households to Premium for unlimited, or delete one first.');
-      setTimeout(()=>showPremiumPage(), 1500);
-      return;
-    }
-    const code=randCode();
+  try{
     const soloCfg=JSON.parse(JSON.stringify(DEF_CFG));
     const nm=(curUser&&(curUser.displayName||curUser.email||'').split('@')[0])||'Me';
     soloCfg.users=[{id:'u1',name:nm,color:'#176B78'}];
     soloCfg.solo=true;
-    return db.collection('households').doc(code)
-      .set(_newHouseholdDoc(uDoc.exists?uDoc.data():null, soloCfg, {solo:true}))
-      .then(()=>{
-        return db.collection('users').doc(curUser.uid).set({
-          householdId:code,
-          displayName:curUser.displayName||curUser.email||'Me',
-          ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
-        },{merge:true});
-      })
-      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Takulandirani! Muli wokonzeka.':'Welcome! You\'re all set.','s'); })
-      .catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); });
-    });
-  }).catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); })
-  .finally(()=>{ _setupUnlock(); });
+    const code = await _createHouseholdOnServer(soloCfg, true);
+    _householdCreated(code,'Welcome! You\'re all set.','Takulandirani! Muli wokonzeka.');
+  }catch(e){ setDot('off'); setupErr(_createHHErr(e)); }
+  finally{ _setupUnlock(); }
 }
 
-function createHH(){
+async function createHH(){
   if(!curUser){setupErr(lang==='cw'?'Simunalowe muakaunti.':'Not signed in.');return;}
   if(_setupBusy) return;
   _setupLock();
   setDot('spin'); setupErr('');
-  // Check household limit using HOUSEHOLD_LIMITS config
-  db.collection('users').doc(curUser.uid).get().then(uDoc=>{
-    const ownedHH = uDoc.exists && uDoc.data().ownedHouseholds ? uDoc.data().ownedHouseholds : [];
-    return _canCreateAnotherHousehold(ownedHH).then(allowed=>{
-    if(!allowed){
-      setDot('off');
-      const isCW = lang === 'cw';
-      setupErr(isCW?'Ma nyumba a pa ntchito auluka ('+HOUSEHOLD_LIMITS.free+'). Sinthani imodzi kukhala Premium, kapena posani nyumba.':'Free accounts can only have '+HOUSEHOLD_LIMITS.free+' households. Upgrade one of your households to Premium for unlimited, or delete one first.');
-      setTimeout(()=>showPremiumPage(), 1500);
-      return;
-    }
-    const code=randCode();
-    return db.collection('households').doc(code)
-      .set(_newHouseholdDoc(uDoc.exists?uDoc.data():null, JSON.parse(JSON.stringify(DEF_CFG))))
-      .then(()=>{
-        return db.collection('users').doc(curUser.uid).set({
-          householdId:code,
-          displayName:curUser.displayName||curUser.email||'User',
-          ownedHouseholds:firebase.firestore.FieldValue.arrayUnion(code)
-        },{merge:true});
-      })
-      .then(()=>{ localStorage.setItem('nb_household',code); localStorage.setItem('nb_uid','u1'); hide('scr-setup'); g('app').classList.remove('hide'); connectHH(code); toast(lang==='cw'?'Nyumba yapangidwa!':'Household created!','s'); })
-      .catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); });
-    });
-  }).catch(e=>{ setDot('off'); setupErr(fsErrMsg(e)); })
-  .finally(()=>{ _setupUnlock(); });
+  try{
+    const code = await _createHouseholdOnServer(JSON.parse(JSON.stringify(DEF_CFG)), false);
+    _householdCreated(code,'Household created!','Nyumba yapangidwa!');
+  }catch(e){ setDot('off'); setupErr(_createHHErr(e)); }
+  finally{ _setupUnlock(); }
 }
 
 // Restores the waiting-for-approval screen after app reopen during a pending join request
@@ -559,7 +538,7 @@ function _restoreWaitingScreen(code){
   renderSetupJoinWaiting(code, false);
   // Resume polling
   let _pollCount = 0;
-  const MAX_P = 120;
+  const MAX_P = 40;   // about 10 minutes at one check every 15 seconds (was 120 checks, every 5 seconds)
   function _poll(){
     if(_pollCount >= MAX_P){
       const ind = g('approval-listening-indicator');
@@ -586,12 +565,12 @@ function _restoreWaitingScreen(code){
                 location.reload();
                 return;
               }
-              setTimeout(_poll, 5000);
+              setTimeout(_poll, 15000);
             })
-            .catch(function(){ setTimeout(_poll, 5000); });
+            .catch(function(){ setTimeout(_poll, 15000); });
         }
       })
-      .catch(function(){ if(localStorage.getItem('nb_pending_join')) setTimeout(_poll, 8000); });
+      .catch(function(){ if(localStorage.getItem('nb_pending_join')) setTimeout(_poll, 20000); });
   }
   setTimeout(_poll, 3000);
 }
@@ -864,15 +843,17 @@ function joinHH(){
           g('app').classList.add('hide');
           show('scr-setup');
           renderSetupJoinWaiting(code, true);
+          notifyViaWorker({type:'join-request', householdId:code});   // push to the owner (the Worker checks the request is real)
+          setTimeout(function(){ offerPush('join-reply'); }, 1500);   // so this person can be told when they are approved
           toast(lang==='cw'?'Pempho latumizidwa. Mudzadziwitsidwa mukavomerezedwa.':'Join request sent. You\'ll be notified when approved.','i');
 
-          // Auto-detect approval: poll the household doc every 5 seconds
+          // Auto-detect approval: check every 15 seconds (each check costs Firestore reads, and a notification usually arrives first)
           // We poll with get() not onSnapshot() — non-members can only get(), never listen
           // This avoids the permission error that occurred with onSnapshot on household doc
           // and avoids the owner needing to write to someone else's user doc
           let _approvalUnsub = null;
           let _approvalPollCount = 0;
-          const MAX_POLLS = 120; // poll for up to 10 minutes (120 × 5s)
+          const MAX_POLLS = 40; // poll for up to 10 minutes (40 × 15s). A notification (if allowed) tells them sooner.
           function pollForApproval(){
             if(_approvalUnsub === false) return; // stopped
             if(_approvalPollCount >= MAX_POLLS){
@@ -907,14 +888,14 @@ function joinHH(){
                         location.reload();
                         return;
                       }
-                      setTimeout(pollForApproval, 5000);
+                      setTimeout(pollForApproval, 15000);
                     })
-                    .catch(function(){ if(_approvalUnsub !== false) setTimeout(pollForApproval, 5000); });
+                    .catch(function(){ if(_approvalUnsub !== false) setTimeout(pollForApproval, 15000); });
                 }
               })
               .catch(function(err){
                 console.warn('[approvalPoll] Error:', err.code);
-                if(_approvalUnsub !== false) setTimeout(pollForApproval, 8000); // back off on error
+                if(_approvalUnsub !== false) setTimeout(pollForApproval, 20000); // back off on error
               });
           }
           _approvalUnsub = null; // null = active
@@ -1118,8 +1099,8 @@ function connectHH(code){
 }
 
 // ── Entries window ──────────────────────────────────────────────────────────
-// The live listener covers the last PX_WINDOW_MONTHS months. A second small listener keeps every trashed entry
-// (any date) so Trash always works. Older months are loaded on demand by ensurePxFrom().
+// The live listener covers the last PX_WINDOW_MONTHS months. A second small listener keeps the entries trashed in the last 30 days
+// so Trash works. Older months are loaded on demand by ensurePxFrom().
 function _pxCol(){ return db.collection('households').doc(hhId||'_').collection('purchases'); }
 function _setPx(){
   const seen=new Map();
@@ -1137,7 +1118,10 @@ function _pxStartWindow(code){
   _pxTeardown();
   const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-(PX_WINDOW_MONTHS-1));
   pxSince=localISO(d); pxOlderSince='';
-  unsubTrash=db.collection('households').doc(code).collection('purchases').where('deleted','==',true).onSnapshot(snap=>{
+  // Trash keeps entries for 30 days (the Worker erases older ones for good), so only the last 30 days are read.
+  // Restored entries have deletedAt = null and are not matched. A single-field query: no extra index to create.
+  const trashSince=new Date(Date.now()-30*86400000).toISOString();
+  unsubTrash=db.collection('households').doc(code).collection('purchases').where('deletedAt','>=',trashSince).onSnapshot(snap=>{
     _pxTrash=snap.docs.map(d=>({id:d.id,...d.data()})); _setPx(); _invalidateMemo(); renderLive();
   }, err=>{ console.warn('[trash listener]', err&&err.code); });
 }

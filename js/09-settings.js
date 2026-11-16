@@ -321,7 +321,7 @@ function addItAndStay(){
   const cfg=JSON.parse(JSON.stringify(lCfg));cfg.items.push({name:n,budget:b});saveCfg(cfg);toast(t.itemAdded);stgOpenSection('items');
 }
 function tgDark(on){ document.body.classList.toggle('dark',on); localStorage.setItem('nb_dark',on?'1':'0'); toast(on?'Dark mode on':'Dark mode off','i'); }
-function doPwReset(){ if(!curUser||!curUser.email){toast((lang==='cw'?'Akaunti iyi ilibe imelo.':'No email on account.'),'e');return;} auth.sendPasswordResetEmail(curUser.email).then(()=>toast((lang==='cw'?'Link yosinthira mawu achinsinsi yatumizidwa ku ':'Reset link sent to ')+curUser.email,'s')).catch(e=>toast(e.message,'e')); }
+function doPwReset(){ if(!curUser||!curUser.email){toast((lang==='cw'?'Akaunti iyi ilibe imelo.':'No email on account.'),'e');return;} _sendAuthEmail('reset',null,curUser.email).then(()=>toast((lang==='cw'?'Link yosinthira mawu achinsinsi yatumizidwa ku ':'Reset link sent to ')+curUser.email+(lang==='cw'?'. Imagwira ntchito pafupifupi ola limodzi.':'. It works for about 1 hour.'),'s')).catch(e=>toast(fmtAErr(e.code,e),'e')); }
 function buildAndDownloadCSV(fromD, toD, periodLabel){
   const t=tx();
   const now=new Date();

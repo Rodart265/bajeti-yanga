@@ -513,6 +513,7 @@ function saveBill(){
   cfg.bills.sort(function(a,b){return a.dueDate.localeCompare(b.dueDate);});
   window._billEditKey = null;
   saveCfg(cfg); closeM('mv-u'); toast(editing?t.billUpdated:t.billAdded); _stgRefresh();
+  if(!editing) setTimeout(offerBillReminders, 900);   // first bill added: now is when reminders make sense
 }
 
 function delBill(key){

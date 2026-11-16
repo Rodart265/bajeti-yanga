@@ -1,3 +1,7 @@
+// RETIRED (November 2026). Bajeti AI now runs inside the payments Worker (pay-worker/src/ai.js), Premium only, with exact
+// counters in Firestore. Switch this Worker off once every phone has updated (docs/ROLLOUT-2026-11.md); until then it still
+// gives old app versions free AI.
+//
 // Bajeti Yanga AI proxy — Cloudflare Worker (replaces the current `nyumba-ai` Worker).
 //
 // What it does, in order, for POST /chat:
