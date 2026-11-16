@@ -69,6 +69,11 @@ Same way you deployed it before (GitHub connection, or paste `pay-worker/dist/wo
 `https://bajeti-pay.kabangorodrick6.workers.dev/health`: it must show `"ok":true`. Open
 `https://bajeti-pay.kabangorodrick6.workers.dev/chat`: you should get a short error, not a blank page (it expects a POST).
 
+**Tablet route (what was actually used):** pasting 100 KB into Cloudflare's editor freezes on a tablet, so instead connect
+`bajeti-pay` to GitHub: Settings → Builds → Connect → repo `Rodart265/bajeti-yanga`, production branch
+`feat/real-claims-nov-2026` (switch it to `main` after the pull request is merged), root directory `/pay-worker`,
+deploy command `npx wrangler deploy --keep-vars` (keeps your saved variables). A push to that branch deploys the Worker.
+
 ### 5. Merge the pull request → the app updates
 Wait about a minute, open the app, tap **Refresh** on the "New version ready" bar.
 
