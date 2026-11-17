@@ -214,9 +214,9 @@ function _skPage(inner){
   return '<div class="page" role="status" aria-busy="true" aria-label="'+L('Loading','Chonde dikirani')+'">'+inner+'</div>';
 }
 function skHome(){
-  return _skPage(monthNav('mnav')+'<span class="sk sk-hero"></span>'
-    +'<div class="chips"><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span></div>'
-    +'<div class="card">'+_skRows(4)+'</div>');
+  return _skPage(monthNav('mnav')+'<span class="sk sk-hero sk-hero-home"></span>'
+    +'<div class="card">'+_skRows(4)+'</div>'
+    +'<div class="chips chips3"><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span></div>');
 }
 function skList(){ return _skPage(monthNav('mnav')+'<div class="card">'+_skRows(7)+'</div>'); }
 function skChipCard(){ return '<span class="sk sk-chipcard" aria-hidden="true"></span>'; }

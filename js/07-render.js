@@ -267,12 +267,11 @@ function rHome(){
   const over=lCfg.items.filter(it=>iSpent(it.name)>it.budget).length;
   const near=lCfg.items.filter(it=>{const r=iSpent(it.name)/it.budget;return r>=.8&&r<1;}).length;
   const ok=lCfg.items.filter(it=>{const s=iSpent(it.name);return s>0&&s<it.budget*.8;}).length;
-  const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income'&&!p.deleted).length;      // purchases (expenses only)
   const cntAll=lPx.filter(p=>isTM(p.date)&&!p.deleted).length;                      // every entry this month, same as History
   const streak=getSpendingStreak();
   const isCW=lang==='cw';
   const balNum=_num(Math.abs(rem));
-  let h='<div class="page">';
+  let h='<div class="page home-page">';
   if(typeof installBannerHtml==='function') h+=installBannerHtml();
   h+=monthNav('mnav');
   h+='<div class="hero2'+(isOver?' is-over':'')+'">';
@@ -284,6 +283,7 @@ function rHome(){
   h+='<div class="h2-bal'+(isOver?' danger':'')+(balNum.length>=9?' long':'')+'"><span class="h2-cur">MK</span><span class="h2-num">'+balNum+'</span></div>';
   h+='<div class="h2-sub">'+(isCW?'pa bajeti ya mwezi ya MK '+_num(bg):'of MK '+_num(bg)+' monthly budget')+'</div>';
   h+='</div></div>';
+  h+='<div class="h2-bar" aria-hidden="true"><span style="width:'+Math.round(arc*100)+'%;background:'+stroke+'"></span></div>';
   h+='<div class="h2-cols">';
   h+='<div class="h2-col"><div class="h2-cl">'+t.income+'</div><div class="h2-cv gc">'+MK(inc)+'</div></div>';
   h+='<div class="h2-div"></div>';
@@ -291,7 +291,6 @@ function rHome(){
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cntAll+'</div></div>';
   h+='</div></div>';
-  h+='<div id="chip-home-slot">'+renderChipHomeCard()+'</div>';
   if(streak>=2){
     const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
     const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';
@@ -300,10 +299,6 @@ function rHome(){
       :(isCW?'Masabata 2 osapitirira bajeti!':'2 weeks under budget!');
     h+='<div class="streak-chip"><div class="streak-ico" style="width:36px;height:36px;border-radius:var(--cr-md);background:'+streakColor+'1A;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+streakIcon+'" style="width:18px;height:18px;color:'+streakColor+'"></i></div><div class="streak-main"><div class="streak-ttl">'+(isCW?'Kutsatira Bajeti Motsatizana':'Budget Streak')+'</div><div class="streak-sub">'+streakMsg+'</div></div></div>';
   }
-  h+='<div class="chips"><div class="chip cP"><div class="chip-lbl">'+(isCW?'Zogulidwa':'Purchases')+'</div><div class="chip-val">'+cnt+'</div><div class="chip-sub">'+(isCW?'mwezi uno':'this month')+'</div></div>';
-  h+='<div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yapitirira':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
-  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi ndi Malire':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
-  h+='<div class="chip cG"><div class="chip-lbl">'+(isCW?'Zabwino':'On Track')+'</div><div class="chip-val">'+ok+'</div><div class="chip-sub">'+t.chipItems+'</div></div></div>';
   const _billsDue=(lCfg.bills||[]).map(function(b){
     const due=new Date(b.dueDate);due.setHours(0,0,0,0);
     const t0=new Date();t0.setHours(0,0,0,0);
@@ -322,8 +317,8 @@ function rHome(){
     });
     h+='</div></div>';
   }
-  h+=renderTrendChart(getLast6MonthsData());
-  h+='<div class="card"><div class="ch"><h2>'+t.recent+'</h2><button class="btnG" onclick="insTab=&quot;hist&quot;;go(&quot;insights&quot;)" style="padding:5px 10px;font-size:.72rem">'+t.viewAll+'</button></div><div class="cb" style="padding:4px 15px 12px">';
+  h+='<div class="sec-h"><h2>'+t.recent+'</h2><button type="button" class="sec-link" onclick="insTab=&quot;hist&quot;;go(&quot;insights&quot;)">'+t.viewAll+'</button></div>';
+  h+='<div class="card home-recent"><div class="cb" style="padding:4px 15px 12px">';
   if(recent.length){
     recent.forEach(p=>{
       const u=uById(p.userId),isI=p.type==='income';
@@ -341,7 +336,14 @@ function rHome(){
     h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>';
     h+='<p><strong>'+(isCW?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span>'+emptyAction(L('Log your first entry','Lowetsani cholemba choyamba'),'go(&quot;log&quot;)')+'</p></div>';
   }
-  h+='</div></div></div>';
+  h+='</div></div>';
+  h+='<div class="sec-h"><h2>'+(isCW?'Momwe bajeti ikuyendera':'Budget health')+'</h2><button type="button" class="sec-link" onclick="insTab=&quot;summary&quot;;go(&quot;insights&quot;)">'+(isCW?'Zambiri':'Details')+'</button></div>';
+  h+='<div class="chips chips3"><div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yapitirira':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
+  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi ndi Malire':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
+  h+='<div class="chip cG"><div class="chip-lbl">'+(isCW?'Zabwino':'On Track')+'</div><div class="chip-val">'+ok+'</div><div class="chip-sub">'+t.chipItems+'</div></div></div>';
+  h+='<div id="chip-home-slot">'+renderChipHomeCard()+'</div>';
+  h+=renderTrendChart(getLast6MonthsData());
+  h+='</div>';
   setView(h);
 }
 function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(hhId).then(()=>toast(tx().codeCopied,'i')).catch(()=>toast(tx().codeCopied,'i'));} }
