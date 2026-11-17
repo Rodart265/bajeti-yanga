@@ -156,3 +156,38 @@ html.lite #topbar::before{display:none}
 .prem-chip:active{opacity:.8}
 .prem-chip.prem-soon{background:var(--gold-bg);border-color:transparent;color:var(--gold-ink)}
 .lock-badge{vertical-align:middle;color:var(--p1);margin-left:3px}
+
+/* ── Home dashboard layout ────────────────────────────────────────────────
+   Section order, headings, three-card Budget health row and the hero progress bar.
+   The hero card's own background, gradient and corner pattern are NOT restyled here:
+   they stay exactly as defined for .hero2 and .hero2::before in styles.css. */
+
+/* Section headings sit above their cards, with a text link on the right. */
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin:var(--sp-2) 2px 0;min-height:44px}
+.sec-h h2{font-family:Hanken Grotesk,sans-serif;font-size:var(--fs-md);font-weight:800;color:var(--ink);line-height:1.25}
+.sec-link{display:inline-flex;align-items:center;min-height:44px;padding:0 2px 0 var(--sp-3);background:none;border:0;cursor:pointer;
+  font-family:Hanken Grotesk,sans-serif;font-size:var(--fs-sm);font-weight:700;color:var(--p1-text);white-space:nowrap}
+.sec-link::after{content:"\2192";margin-left:5px}
+.sec-link:focus-visible{outline:2px solid var(--p1-text);outline-offset:2px;border-radius:var(--cr-sm)}
+
+/* Thin budget-used bar under the ring. Colour is set from the same value as the ring. */
+.h2-bar{position:relative;z-index:1;height:6px;margin:0 0 14px;border-radius:999px;background:rgba(255,255,255,.2);overflow:hidden}
+.h2-bar span{display:block;height:100%;border-radius:inherit}
+.sk-hero-home{height:196px}
+
+/* Recent transactions card: no rule under the last row. */
+.home-recent .pri:last-child{border-bottom:0}
+
+/* Budget health: three cards in one row at every width. */
+.chips3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:var(--sp-2)}
+.chips3 .chip{min-width:0;padding:11px 10px}
+.chips3 .chip-lbl{line-height:1.25;overflow-wrap:break-word}
+.chips3 .chip-val{margin-top:auto;font-size:1.35rem}
+
+/* Tablets and wider: keep Home a readable column instead of stretching edge to edge. */
+@media (min-width:600px){
+  .page.home-page{max-width:640px;margin-left:auto;margin-right:auto}
+  .chips3{gap:12px}
+  .chips3 .chip{padding:14px 16px}
+  .chips3 .chip-val{font-size:1.6rem}
+}

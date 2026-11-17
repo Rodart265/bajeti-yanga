@@ -1,0 +1,204 @@
+diff --git a/docs/CHANGES-9.20.1.md b/docs/CHANGES-9.20.1.md
+new file mode 100644
+index 0000000..e78565a
+--- /dev/null
++++ b/docs/CHANGES-9.20.1.md
+@@ -0,0 +1,38 @@
++# Changes in 9.20.1 (November 2026): Home dashboard layout
++
++A layout change to the Home screen only. No data, Firebase, sign-in, premium or payment code was touched.
++
++## What changed on Home
++
++New order, top to bottom: month switcher, hero card, (streak and bills-due cards when they apply), **Recent transactions**, **Budget health**, Chipereganyu card, 6-month chart.
++
++- Recent transactions: heading now sits above the card, with the "View All" link on the right. Rows are unchanged (icon, name, note, date, member badge, warning icons).
++- Budget health: new heading with a **Details** link (opens Insights, Summary). Three cards in one row: Over Budget, Near Limit, On Track. The separate "Purchases" card is gone; the hero's **Entries** count still shows every entry for the month.
++- Hero: a thin bar under the ring shows how much of the budget is used, in the same colour as the ring. **The hero's background, gradient and corner pattern are untouched.**
++- Tablets (600px and wider): the Home column is centred at a readable width. Phones and the desktop phone-frame look the same as before.
++- The loading skeleton for Home follows the new order.
++
++## Files
++
++| File | Change |
++|---|---|
++| `js/07-render.js` | `rHome()` reordered; Purchases card and its `cnt` variable removed; new `home-page` class on the page |
++| `js/02-helpers.js` | `skHome()` skeleton matches the new order |
++| `glass.css` | new block at the end: `.sec-h`, `.sec-link`, `.h2-bar`, `.chips3`, tablet width |
++| `js/01-constants.js` | `APP_VERSION` 9.20.0 to 9.20.1 |
++| `sw.js` | stamped by `node tools/release.js` (v9.20.1) |
++
++`version.json` is deliberately **not** changed: phones on 9.20.0 keep working and pick up 9.20.1 through the normal update.
++
++## Chichewa wording to check
++
++Two new strings were written for this change and are worth a native read before release:
++
++- "Budget health" is `Momwe bajeti ikuyendera`
++- "Details" is `Zambiri`
++
++Both are in `rHome()` in `js/07-render.js`.
++
++## Rolling back
++
++Put back the previous `js/07-render.js`, `js/02-helpers.js` and `glass.css`, then run `node tools/release.js` again.
+diff --git a/glass.css b/glass.css
+index fd6b726..571d017 100644
+--- a/glass.css
++++ b/glass.css
+@@ -156,3 +156,38 @@ html.lite #topbar::before{display:none}
+ .prem-chip:active{opacity:.8}
+ .prem-chip.prem-soon{background:var(--gold-bg);border-color:transparent;color:var(--gold-ink)}
+ .lock-badge{vertical-align:middle;color:var(--p1);margin-left:3px}
++
++/* ── Home dashboard layout ────────────────────────────────────────────────
++   Section order, headings, three-card Budget health row and the hero progress bar.
++   The hero card's own background, gradient and corner pattern are NOT restyled here:
++   they stay exactly as defined for .hero2 and .hero2::before in styles.css. */
++
++/* Section headings sit above their cards, with a text link on the right. */
++.sec-h{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin:var(--sp-2) 2px 0;min-height:44px}
++.sec-h h2{font-family:Hanken Grotesk,sans-serif;font-size:var(--fs-md);font-weight:800;color:var(--ink);line-height:1.25}
++.sec-link{display:inline-flex;align-items:center;min-height:44px;padding:0 2px 0 var(--sp-3);background:none;border:0;cursor:pointer;
++  font-family:Hanken Grotesk,sans-serif;font-size:var(--fs-sm);font-weight:700;color:var(--p1-text);white-space:nowrap}
++.sec-link::after{content:"\2192";margin-left:5px}
++.sec-link:focus-visible{outline:2px solid var(--p1-text);outline-offset:2px;border-radius:var(--cr-sm)}
++
++/* Thin budget-used bar under the ring. Colour is set from the same value as the ring. */
++.h2-bar{position:relative;z-index:1;height:6px;margin:0 0 14px;border-radius:999px;background:rgba(255,255,255,.2);overflow:hidden}
++.h2-bar span{display:block;height:100%;border-radius:inherit}
++.sk-hero-home{height:196px}
++
++/* Recent transactions card: no rule under the last row. */
++.home-recent .pri:last-child{border-bottom:0}
++
++/* Budget health: three cards in one row at every width. */
++.chips3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:var(--sp-2)}
++.chips3 .chip{min-width:0;padding:11px 10px}
++.chips3 .chip-lbl{line-height:1.25;overflow-wrap:break-word}
++.chips3 .chip-val{margin-top:auto;font-size:1.35rem}
++
++/* Tablets and wider: keep Home a readable column instead of stretching edge to edge. */
++@media (min-width:600px){
++  .page.home-page{max-width:640px;margin-left:auto;margin-right:auto}
++  .chips3{gap:12px}
++  .chips3 .chip{padding:14px 16px}
++  .chips3 .chip-val{font-size:1.6rem}
++}
+diff --git a/js/01-constants.js b/js/01-constants.js
+index 474c745..2f52c03 100644
+--- a/js/01-constants.js
++++ b/js/01-constants.js
+@@ -145,7 +145,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
+ const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
+ // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
+ // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
+-const APP_VERSION = '9.20.0';
++const APP_VERSION = '9.20.1';
+ // Startup: false = a signed-in person goes straight to Home (or to the PIN screen if a PIN is set).
+ // true = the old "Welcome back, <name>" screen with a Continue button comes first.
+ const WELCOME_SCREEN = false;
+diff --git a/js/02-helpers.js b/js/02-helpers.js
+index 75b82ba..d72936e 100644
+--- a/js/02-helpers.js
++++ b/js/02-helpers.js
+@@ -214,9 +214,9 @@ function _skPage(inner){
+   return '<div class="page" role="status" aria-busy="true" aria-label="'+L('Loading','Chonde dikirani')+'">'+inner+'</div>';
+ }
+ function skHome(){
+-  return _skPage(monthNav('mnav')+'<span class="sk sk-hero"></span>'
+-    +'<div class="chips"><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span></div>'
+-    +'<div class="card">'+_skRows(4)+'</div>');
++  return _skPage(monthNav('mnav')+'<span class="sk sk-hero sk-hero-home"></span>'
++    +'<div class="card">'+_skRows(4)+'</div>'
++    +'<div class="chips chips3"><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span></div>');
+ }
+ function skList(){ return _skPage(monthNav('mnav')+'<div class="card">'+_skRows(7)+'</div>'); }
+ function skChipCard(){ return '<span class="sk sk-chipcard" aria-hidden="true"></span>'; }
+diff --git a/js/07-render.js b/js/07-render.js
+index f1e411a..792a3f0 100644
+--- a/js/07-render.js
++++ b/js/07-render.js
+@@ -267,12 +267,11 @@ function rHome(){
+   const over=lCfg.items.filter(it=>iSpent(it.name)>it.budget).length;
+   const near=lCfg.items.filter(it=>{const r=iSpent(it.name)/it.budget;return r>=.8&&r<1;}).length;
+   const ok=lCfg.items.filter(it=>{const s=iSpent(it.name);return s>0&&s<it.budget*.8;}).length;
+-  const cnt=lPx.filter(p=>isTM(p.date)&&p.type!=='income'&&!p.deleted).length;      // purchases (expenses only)
+   const cntAll=lPx.filter(p=>isTM(p.date)&&!p.deleted).length;                      // every entry this month, same as History
+   const streak=getSpendingStreak();
+   const isCW=lang==='cw';
+   const balNum=_num(Math.abs(rem));
+-  let h='<div class="page">';
++  let h='<div class="page home-page">';
+   if(typeof installBannerHtml==='function') h+=installBannerHtml();
+   h+=monthNav('mnav');
+   h+='<div class="hero2'+(isOver?' is-over':'')+'">';
+@@ -284,6 +283,7 @@ function rHome(){
+   h+='<div class="h2-bal'+(isOver?' danger':'')+(balNum.length>=9?' long':'')+'"><span class="h2-cur">MK</span><span class="h2-num">'+balNum+'</span></div>';
+   h+='<div class="h2-sub">'+(isCW?'pa bajeti ya mwezi ya MK '+_num(bg):'of MK '+_num(bg)+' monthly budget')+'</div>';
+   h+='</div></div>';
++  h+='<div class="h2-bar" aria-hidden="true"><span style="width:'+Math.round(arc*100)+'%;background:'+stroke+'"></span></div>';
+   h+='<div class="h2-cols">';
+   h+='<div class="h2-col"><div class="h2-cl">'+t.income+'</div><div class="h2-cv gc">'+MK(inc)+'</div></div>';
+   h+='<div class="h2-div"></div>';
+@@ -291,7 +291,6 @@ function rHome(){
+   h+='<div class="h2-div"></div>';
+   h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cntAll+'</div></div>';
+   h+='</div></div>';
+-  h+='<div id="chip-home-slot">'+renderChipHomeCard()+'</div>';
+   if(streak>=2){
+     const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
+     const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';
+@@ -300,10 +299,6 @@ function rHome(){
+       :(isCW?'Masabata 2 osapitirira bajeti!':'2 weeks under budget!');
+     h+='<div class="streak-chip"><div class="streak-ico" style="width:36px;height:36px;border-radius:var(--cr-md);background:'+streakColor+'1A;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+streakIcon+'" style="width:18px;height:18px;color:'+streakColor+'"></i></div><div class="streak-main"><div class="streak-ttl">'+(isCW?'Kutsatira Bajeti Motsatizana':'Budget Streak')+'</div><div class="streak-sub">'+streakMsg+'</div></div></div>';
+   }
+-  h+='<div class="chips"><div class="chip cP"><div class="chip-lbl">'+(isCW?'Zogulidwa':'Purchases')+'</div><div class="chip-val">'+cnt+'</div><div class="chip-sub">'+(isCW?'mwezi uno':'this month')+'</div></div>';
+-  h+='<div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yapitirira':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
+-  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi ndi Malire':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
+-  h+='<div class="chip cG"><div class="chip-lbl">'+(isCW?'Zabwino':'On Track')+'</div><div class="chip-val">'+ok+'</div><div class="chip-sub">'+t.chipItems+'</div></div></div>';
+   const _billsDue=(lCfg.bills||[]).map(function(b){
+     const due=new Date(b.dueDate);due.setHours(0,0,0,0);
+     const t0=new Date();t0.setHours(0,0,0,0);
+@@ -322,8 +317,8 @@ function rHome(){
+     });
+     h+='</div></div>';
+   }
+-  h+=renderTrendChart(getLast6MonthsData());
+-  h+='<div class="card"><div class="ch"><h2>'+t.recent+'</h2><button class="btnG" onclick="insTab=&quot;hist&quot;;go(&quot;insights&quot;)" style="padding:5px 10px;font-size:.72rem">'+t.viewAll+'</button></div><div class="cb" style="padding:4px 15px 12px">';
++  h+='<div class="sec-h"><h2>'+t.recent+'</h2><button type="button" class="sec-link" onclick="insTab=&quot;hist&quot;;go(&quot;insights&quot;)">'+t.viewAll+'</button></div>';
++  h+='<div class="card home-recent"><div class="cb" style="padding:4px 15px 12px">';
+   if(recent.length){
+     recent.forEach(p=>{
+       const u=uById(p.userId),isI=p.type==='income';
+@@ -341,7 +336,14 @@ function rHome(){
+     h+='<div class="empty"><div class="ei"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>';
+     h+='<p><strong>'+(isCW?'Palibe cholemba.':'No transactions yet.')+'</strong><br><span style="font-size:.75rem;color:var(--mid)">'+(isCW?'Dinani + kuti mulowetse.':'Tap + to log your first expense.')+'</span>'+emptyAction(L('Log your first entry','Lowetsani cholemba choyamba'),'go(&quot;log&quot;)')+'</p></div>';
+   }
+-  h+='</div></div></div>';
++  h+='</div></div>';
++  h+='<div class="sec-h"><h2>'+(isCW?'Momwe bajeti ikuyendera':'Budget health')+'</h2><button type="button" class="sec-link" onclick="insTab=&quot;summary&quot;;go(&quot;insights&quot;)">'+(isCW?'Zambiri':'Details')+'</button></div>';
++  h+='<div class="chips chips3"><div class="chip '+(over>0?'cR':'cG')+'"><div class="chip-lbl">'+(isCW?'Yapitirira':'Over Budget')+'</div><div class="chip-val">'+over+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
++  h+='<div class="chip cO"><div class="chip-lbl">'+(isCW?'Pafupi ndi Malire':'Near Limit')+'</div><div class="chip-val">'+near+'</div><div class="chip-sub">'+t.chipItems+'</div></div>';
++  h+='<div class="chip cG"><div class="chip-lbl">'+(isCW?'Zabwino':'On Track')+'</div><div class="chip-val">'+ok+'</div><div class="chip-sub">'+t.chipItems+'</div></div></div>';
++  h+='<div id="chip-home-slot">'+renderChipHomeCard()+'</div>';
++  h+=renderTrendChart(getLast6MonthsData());
++  h+='</div>';
+   setView(h);
+ }
+ function cpCode(){ if(hhId){navigator.clipboard&&navigator.clipboard.writeText(hhId).then(()=>toast(tx().codeCopied,'i')).catch(()=>toast(tx().codeCopied,'i'));} }
+diff --git a/sw.js b/sw.js
+index f0c9ae3..24aa2dd 100644
+--- a/sw.js
++++ b/sw.js
+@@ -10,8 +10,8 @@
+ //
+ // TO RELEASE: change APP_VERSION in js/01-constants.js, then run  node tools/release.js  (it writes V and BUILD
+ // below), then  node tests/release.test.js  must pass. Do not edit V or BUILD by hand.
+-const V = "bajeti-v9.20.0";
+-const BUILD = "0aaa65461b60"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
++const V = "bajeti-v9.20.1";
++const BUILD = "baf389fa19dc"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
+ 
+ // Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
+ // deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
