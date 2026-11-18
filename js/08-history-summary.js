@@ -167,7 +167,7 @@ function doDel(id){
     +'<i data-lucide="trash-2" style="width:24px;height:24px;color:var(--neg)"></i></div>'
     +'<div style="font-size:.84rem;color:var(--mid);line-height:1.5">'+(lang==='cw'?'Chotsani':'Delete')+' <strong style="color:var(--ink)">'+label+'</strong>? '+(lang==='cw'?'Chidzasamutsidwa ku zochotsedwa ndipo mutha kuchibweza mkati mwa masiku 30.':'It will be moved to trash and recoverable for 30 days.')+'</div></div>',
     function(){
-      db.collection('households').doc(hhId).collection('purchases').doc(id)
+      _pxCol().doc(id)
         .update({deletedAt:new Date().toISOString(),deleted:true})
         .then(function(){ _invalidateMemo(); toast((lang==='cw'?'Chasamutsidwa ku zochotsedwa.':'Moved to trash.'),'i'); })
         .catch(function(e){ toast((lang==='cw'?'Sitinathe kuchisamutsira ku zochotsedwa. Palibe chachotsedwa. ':'Could not move to trash. Nothing was deleted. ')+fsErrMsg(e),'e'); });
@@ -204,7 +204,7 @@ function openTrash(){
 }
 
 function restoreTrash(id){
-  db.collection('households').doc(hhId).collection('purchases').doc(id)
+  _pxCol().doc(id)
     .update({deletedAt:null,deleted:false})
     .then(function(){ closeM('mv-u'); toast((lang==='cw'?'Zabwezeretsedwa!':'Restored!'),'s'); })
     .catch(function(e){ toast(fsErrMsg(e),'e'); });
@@ -791,4 +791,3 @@ function delGoal(key){
     cfg.goals.splice(i,1); saveCfg(cfg); _stgRefresh();
   }, null, true);
 }
-
