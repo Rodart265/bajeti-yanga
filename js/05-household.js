@@ -1272,7 +1272,7 @@ function addPx(p,opts){
   const itemName=String(p.item||'').trim();
   if(!itemName){toast(lang==='cw'?'Lowetsani dzina la chinthu':'Please enter an item name','e');return Promise.resolve(false);}
   setDot('spin');
-  const col=db.collection('households').doc(hhId).collection('purchases');
+  const col=_pxCol();
   // store the validated number (not whatever string/fraction the caller passed), rounded to 2dp to avoid float drift
   const data={...p,item:itemName,amount:Math.round(amt*100)/100,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
@@ -1283,5 +1283,5 @@ function addPx(p,opts){
   });
 }
 // Resolves true when the write worked, false when it failed (the failure toast is shown here).
-function updPx(id,data){ if(!hhId)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');return false;}); }
-function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return db.collection('households').doc(hhId).collection('purchases').doc(id).delete().then(()=>setDot('')).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');throw e;}); }
+function updPx(id,data){ if(!hhId)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return _pxCol().doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');return false;}); }
+function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return _pxCol().doc(id).delete().then(()=>setDot('')).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');throw e;}); }
