@@ -8,8 +8,6 @@ let chatConversations = [];
 let activeChatId = null;
 let chatBusy = false;
 
-// Bajeti AI is Premium only (the free trial counts as Premium). The Worker checks this on the server and counts daily use there.
-const FREE_MAX_CONVOS=3;
 let _aiInFlight=false;
 
 function chatStorageKey(){ return 'nb_chat_'+(hhId||'anon'); }
@@ -22,15 +20,6 @@ function saveChatHistory(){
   try{ localStorage.setItem(chatStorageKey(), JSON.stringify(chatHistory.slice(-50))); }catch(e){ /* storage full or blocked: chat still lives in memory and Firestore */ }
 }
 
-// Conversation count for the household (a small document; the daily AI counters now live on the Worker).
-function hhUsageRef(){ return db.collection('households').doc(hhId).collection('_usage').doc('ai'); }
-async function getHHUsage(){
-  const none={convoCount:0};
-  if(!hhId) return none;
-  try{ const s=await hhUsageRef().get(); return s.exists?s.data():none; }
-  catch(e){ return none; }
-}
-
 // Bajeti AI is a Premium feature. The Worker enforces it (403 premium_required); this check only saves the round trip and
 // shows the upgrade screen straight away.
 function aiPremiumGate(feature){
@@ -38,26 +27,6 @@ function aiPremiumGate(feature){
   if(st.isPremium) return true;
   showUpgradePrompt(feature||'unlimited_ai', st);
   return false;
-}
-
-// Show paywall when free user hits conversation limit
-function showConvoLimitWall(count){
-  let h='<div class="dh"></div>';
-  h+='<div style="text-align:center;padding:10px 0 16px">';
-  h+='<div style="margin-bottom:8px"><i data-lucide="message-circle" style="width:38px;height:38px;color:var(--mid);opacity:.6"></i></div>';
-  h+='<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1rem;margin-bottom:6px">'+(lang==='cw'?'Mwafika pa Malire a Zokambirana':'Conversation Limit Reached')+'</h3>';
-  h+='<div style="font-size:.78rem;color:var(--mid);margin-bottom:14px;line-height:1.5">'+(lang==='cw'?'Akaunti zaulere zimasunga zokambirana mpaka <strong>'+FREE_MAX_CONVOS+'</strong>. Mwagwiritsa '+count+'/'+FREE_MAX_CONVOS+'.':'Free accounts can save up to <strong>'+FREE_MAX_CONVOS+' conversations</strong>. You have '+count+'/'+FREE_MAX_CONVOS+' used.')+'</div>';
-  h+='<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 12px;margin-bottom:14px;font-size:.76rem;color:var(--mid);text-align:left">';
-  h+='To start a new conversation, either:<br>';
-  h+='<strong style="color:var(--ink)">• Delete</strong> an existing conversation<br>';
-  h+='<strong style="color:var(--p1-text)">• Upgrade to Premium</strong> for unlimited conversations';
-  h+='</div>';
-  h+='<button class="btnM" style="width:100%;margin-bottom:8px" onclick="closeM(&quot;mv-u&quot;);showPremiumPage()">'+(lang==='cw'?'Pitani ku Premium kuti musunge zokambirana zopanda malire':'Upgrade for Unlimited Chats')+'</button>';
-  h+='<button onclick="closeM(&quot;mv-u&quot;);openConvoList()" style="background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px;display:block;margin:0 auto">'+(lang==='cw'?'Sinthani Zokambirana Zomwe Zilipo':'Manage Existing Chats')+'</button>';
-  h+='</div>';
-  g('mb-u').innerHTML=h;
-  if(window.lucide)lucide.createIcons({nodes:[g('mb-u')]});
-  openM('mv-u');
 }
 
 const CHAT_SUGGESTIONS    = ['How am I doing this month?','Where am I overspending?','Can I afford my savings goals?','Give me tips to cut costs'];
@@ -104,7 +73,6 @@ function rChat(){
   // Render immediately with whatever is in memory — prevents blank flash
   renderBubbles();
   // Restore the last active conversation from localStorage then sync with Firestore
-  const _isPrem = hasPremiumFeature('chat_conversations');
   const savedConvoId = localStorage.getItem('nb_active_convo');
   loadConversations().then(()=>{
     if(savedConvoId && chatConversations.find(c=>c.id===savedConvoId)){
@@ -120,12 +88,6 @@ function rChat(){
       renderBubbles();
     }
   });
-  if(!_isPrem){
-    getConvoCountFS().then(count=>{
-      const indicator = g('convo-count-indicator');
-      if(indicator) indicator.textContent = count+'/'+FREE_MAX_CONVOS+' chats used';
-    });
-  }
 }
 
 function toggleChatSheet(e){
@@ -201,7 +163,6 @@ function sheet_summary(){
 
 function renderBubbles(){
   const el=g('chat-msgs'); if(!el)return;
-  const isPrem = hasPremiumFeature('chat_conversations');
 
   // Always show conversations header so user can always switch or start new chat
   const existingHdr = el.parentElement ? el.parentElement.querySelector('.chat-convo-header') : null;
@@ -209,15 +170,12 @@ function renderBubbles(){
   const convo = activeChatId ? activeConversation() : null;
   const hdr = document.createElement('div');
   hdr.className='chat-convo-header';
-  const usageTag = isPrem
-    ? '<span style="font-size:.72rem;color:var(--pos);font-weight:700;padding:2px 7px;background:var(--pos-bg);border-radius:8px">∞ Unlimited</span>'
-    : '<span id="convo-count-indicator" style="font-size:.72rem;color:var(--mid);font-weight:700;padding:2px 7px;background:var(--mist);border-radius:8px">…/'+FREE_MAX_CONVOS+' chats</span>';
+  const usageTag = '<span style="font-size:.72rem;color:var(--pos);font-weight:700;padding:2px 7px;background:var(--pos-bg);border-radius:8px">∞ Unlimited</span>';
   hdr.innerHTML='<button onclick="openConvoList()" style="background:none;border:none;cursor:pointer;color:var(--p1-text);padding:2px 6px;border-radius:6px;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px"><i data-lucide="list" class="ic13"></i> Chats</button>'
     +'<div class="chat-convo-header-title">'+(convo?esc(convo.title):'Chat')+'</div>'
     +'<div style="display:flex;align-items:center;gap:6px">'+usageTag+'<button class="chat-new-btn" onclick="startNewConversation()">+ New</button></div>';
   el.parentElement.insertBefore(hdr, el);
   if(window.lucide) lucide.createIcons({nodes:[hdr]});
-  if(!isPrem) getConvoCountFS().then(count=>{ const ind=g('convo-count-indicator'); if(ind)ind.textContent=count+'/'+FREE_MAX_CONVOS+' chats'; });
 
   if(!chatHistory.length){
     const isCW=lang==='cw';
@@ -442,17 +400,11 @@ async function saveConversationToFS(convo){
 }
 
 async function newConversation(){
-  const isPrem = hasPremiumFeature('chat_conversations');
-  if(!isPrem){
-    const count = await getConvoCountFS();
-    if(count >= FREE_MAX_CONVOS){ showConvoLimitWall(count); return null; }
-  }
   const id = 'cv_'+Date.now()+'_'+(Math.random().toString(36).slice(2,7));
   const convo = {id, title:'New chat', createdAt:Date.now(), messages:[]};
   chatConversations.unshift(convo);
   activeChatId = id;
   chatHistory = [];
-  if(!isPrem) await incConvoCountFS();
   await saveConversationToFS(convo);
   return convo;
 }
@@ -475,16 +427,12 @@ async function syncActiveConvo(){
 }
 
 async function deleteConversation(id){
-  const isPrem = hasPremiumFeature('chat_conversations');
   chatConversations = chatConversations.filter(c=>c.id!==id);
   if(activeChatId===id){
     activeChatId=null; chatHistory=[];
     if(chatConversations.length){ activeChatId=chatConversations[0].id; chatHistory=(chatConversations[0].messages||[]).slice(); }
   }
-  if(hhId){
-    await convosRef().doc(id).delete().catch(()=>{});
-    if(!isPrem) await decConvoCountFS();
-  }
+  if(hhId) await convosRef().doc(id).delete().catch(()=>{});
 }
 
 function loadConversationById(id){
@@ -495,23 +443,6 @@ function loadConversationById(id){
   localStorage.setItem('nb_active_convo', id);
 }
 
-async function getConvoCountFS(){
-  const data = await getHHUsage();
-  return data.convoCount || 0;
-}
-
-async function incConvoCountFS(){
-  if(!hhId) return;
-  const data = await getHHUsage();
-  await hhUsageRef().set({convoCount: (data.convoCount||0) + 1}, {merge:true}).catch(()=>{});
-}
-
-async function decConvoCountFS(){
-  if(!hhId) return;
-  const data = await getHHUsage();
-  await hhUsageRef().set({convoCount: Math.max(0,(data.convoCount||0)-1)}, {merge:true}).catch(()=>{});
-}
-
 // -- Multiple conversations (all users, Firestore-backed) --
 async function startNewConversation(){
   await syncActiveConvo(); // save current before starting new
@@ -520,11 +451,7 @@ async function startNewConversation(){
 }
 async function openConvoList(){
   await loadConversations();
-  const isPrem=hasPremiumFeature('chat_conversations');
-  const count = await getConvoCountFS();
-  const usageLine = isPrem
-    ? '<span style="font-size:.72rem;color:var(--pos);font-weight:700;padding:2px 8px;background:var(--pos-bg);border-radius:var(--cr-sm);margin-left:auto">∞ Unlimited</span>'
-    : '<span style="font-size:.72rem;color:var(--mid);font-weight:700;padding:2px 8px;background:var(--mist);border-radius:var(--cr-sm);margin-left:auto">'+count+'/'+FREE_MAX_CONVOS+' used</span>';
+  const usageLine = '<span style="font-size:.72rem;color:var(--pos);font-weight:700;padding:2px 8px;background:var(--pos-bg);border-radius:var(--cr-sm);margin-left:auto">∞ Unlimited</span>';
   let h='<div class="dh"></div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0"><i data-lucide="message-square" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--p1-text)"></i>'+(lang==='cw'?'Zokambirana':'Conversations')+'</h3>'+usageLine+'</div>';
   if(!chatConversations.length){
@@ -534,10 +461,10 @@ async function openConvoList(){
     chatConversations.forEach((c)=>{
       const isActive=c.id===activeChatId;
       const dateStr=new Date(c.createdAt).toLocaleDateString([],{month:'short',day:'numeric'});
-      h+='<div class="chat-convo-item'+(isActive?' on':'')+'" data-cid="'+esc(c.id)+'" onclick="switchConvoById(this)">'  
+      h+='<div class="chat-convo-item'+(isActive?' on':'')+'" data-cid="'+esc(c.id)+'" onclick="switchConversation(this.dataset.cid)">'  
         +'<div class="chat-convo-title">'+esc(c.title)+'</div>'
         +'<span class="chat-convo-date">'+dateStr+'</span>'
-        +'<button class="chat-convo-del" onclick="event.stopPropagation();delConvoById(this.closest(\'[data-cid]\')||this)" title="'+L('Delete','Chotsani')+'" aria-label="'+L('Delete','Chotsani')+'"><i data-lucide="x" class="ic11"></i></button>'
+        +'<button class="chat-convo-del" onclick="event.stopPropagation();deleteConvoFromList(this.closest(\'[data-cid]\').dataset.cid)" title="'+L('Delete','Chotsani')+'" aria-label="'+L('Delete','Chotsani')+'"><i data-lucide="x" class="ic11"></i></button>'
         +'</div>';
     });
     h+='</div>';
@@ -547,14 +474,6 @@ async function openConvoList(){
   g('mb-u').innerHTML=h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
   openM('mv-u');
-}
-function switchConvoById(el){
-  const id = el.closest('[data-cid]')?.dataset?.cid || el.dataset?.cid;
-  if(id) switchConversation(id);
-}
-function delConvoById(el){
-  const id = el.closest('[data-cid]')?.dataset?.cid || el.dataset?.cid;
-  if(id) deleteConvoFromList(id);
 }
 async function switchConversation(id){
   await syncActiveConvo(); // save current before switching
@@ -1175,7 +1094,7 @@ Data: ${JSON.stringify(buildSummaryData())}`;
   }catch(err){
     const isCW = lang === 'cw';
     const busyMsg = isCW
-      ? 'Bajeti AI ili otanganidwa, chonde yesaninso posachedwa.'
+      ? 'Bajeti AI ili yotanganidwa, chonde yesaninso posachedwa.'
       : 'Bajeti AI is busy right now, please try again in a moment.';
     toast(aiFailMessage(err, isCW) || busyMsg,'e');
     btn.disabled=false; btn.innerHTML='<i data-lucide="zap" style="margin-right:4px"></i> '+(isCW?'Yesaninso':'Try Again'); if(window.lucide)lucide.createIcons({nodes:[btn]}); _aiInFlight=false;
