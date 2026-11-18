@@ -562,7 +562,7 @@ function copyPreviousMonth(){
     const todayStr=today();
     const batch=db.batch();
     prevPx.forEach(function(p){
-      const ref=db.collection('households').doc(hhId).collection('purchases').doc();
+      const ref=_pxCol().doc();
       batch.set(ref,{item:p.item,amount:p.amount,date:todayStr,timestamp:Date.now(),
         qty:p.qty||'',unit:p.unit||'',notes:p.notes||'',userId:p.userId,
         cat:p.cat||catOf(p.item),type:'expense',recurring:p.recurring||false});
