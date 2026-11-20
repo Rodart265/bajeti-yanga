@@ -208,7 +208,8 @@ export class FirestoreRest {
 
 function snap(id, data, raw) {
   const t = raw && raw.createTime ? Date.parse(raw.createTime) : null;
-  return { id, exists: data !== null, createTime: Number.isNaN(t) ? null : t, data: () => (data === null ? undefined : data) };
+  const u = raw && raw.updateTime ? Date.parse(raw.updateTime) : null;     // the SERVER's time of the last change; a phone's clock cannot touch it
+  return { id, exists: data !== null, createTime: Number.isNaN(t) ? null : t, updateTime: Number.isNaN(u) ? null : u, data: () => (data === null ? undefined : data) };
 }
 
 class Col {

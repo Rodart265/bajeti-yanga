@@ -16,6 +16,10 @@ import { verifyFirebaseTokenFull } from './auth.js';
 
 const MAX_BODY_BYTES = 12 * 1024 * 1024;       // a phone photo as base64 is ~6-8 MB
 const MAX_TEXT_CHARS = 80000;
+const MAX_IMAGES = 2;                         // the app sends ONE picture per request; two leaves room, 1,600 did not
+const MAX_IMAGE_CHARS = 8000000;              // one picture as base64 text (~6 MB), the fallback of an undecodable original
+const MAX_IMAGES_TOTAL_CHARS = 10000000;
+const DEFAULT_MAX_OUTPUT_TOKENS = 4096;       // Gemini decides the length when nothing is said; 4096 is also the top allowed
 const MAX_CONTENTS = 80;
 export const FEATURES = ['msg', 'magic', 'scan', 'summ'];
 const ALLOWED_GEN_KEYS = ['temperature', 'topP', 'topK', 'maxOutputTokens', 'responseMimeType'];
@@ -58,8 +62,8 @@ export function computePremium(root, uid, env, now = Date.now()) {
 export function sanitizeBody(raw) {
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.contents)) return null;
   if (raw.contents.length < 1 || raw.contents.length > MAX_CONTENTS) return null;
-  let chars = 0;
-  const cleanParts = parts => {
+  let chars = 0, images = 0, imageChars = 0;
+  const cleanParts = (parts, allowImages = true) => {
     if (!Array.isArray(parts) || parts.length < 1 || parts.length > 20) return null;
     const out = [];
     for (const p of parts) {
@@ -67,7 +71,9 @@ export function sanitizeBody(raw) {
       else if (p && (p.inline_data || p.inlineData)) {
         const d = p.inline_data || p.inlineData;
         const mime = d.mime_type || d.mimeType;
-        if (typeof mime !== 'string' || !ALLOWED_MIME.test(mime) || typeof d.data !== 'string') return null;
+        if (!allowImages || typeof mime !== 'string' || !ALLOWED_MIME.test(mime) || typeof d.data !== 'string') return null;
+        images++; imageChars += d.data.length;
+        if (images > MAX_IMAGES || d.data.length > MAX_IMAGE_CHARS || imageChars > MAX_IMAGES_TOTAL_CHARS) return null;
         out.push({ inline_data: { mime_type: mime, data: d.data } });
       } else return null;
     }
@@ -82,16 +88,16 @@ export function sanitizeBody(raw) {
   }
   const body = { contents };
   if (raw.systemInstruction !== undefined) {
-    const parts = cleanParts(raw.systemInstruction && raw.systemInstruction.parts);
+    const parts = cleanParts(raw.systemInstruction && raw.systemInstruction.parts, false);
     if (!parts) return null;
     body.systemInstruction = { parts };
   }
+  const g = {};
   if (raw.generationConfig && typeof raw.generationConfig === 'object') {
-    const g = {};
     for (const k of ALLOWED_GEN_KEYS) if (raw.generationConfig[k] !== undefined) g[k] = raw.generationConfig[k];
-    if (g.maxOutputTokens !== undefined) g.maxOutputTokens = Math.min(num(g.maxOutputTokens, 1024), 4096);
-    if (Object.keys(g).length) body.generationConfig = g;
   }
+  g.maxOutputTokens = g.maxOutputTokens === undefined ? DEFAULT_MAX_OUTPUT_TOKENS : Math.min(num(g.maxOutputTokens, 1024), DEFAULT_MAX_OUTPUT_TOKENS);
+  body.generationConfig = g;
   return chars > MAX_TEXT_CHARS ? null : body;
 }
 
@@ -136,6 +142,27 @@ async function bump(deps, uid, day, feature, delta, limits) {
   });
 }
 
+// Reads the request body as JSON but stops as soon as more than `max` bytes have arrived, whatever the Content-Length header
+// says (a sender can leave it out or lie). Returns { json } or { tooLarge: true } or { bad: true }.
+export async function readJsonLimited(req, max) {
+  const declared = req.headers.get('Content-Length');
+  if (declared !== null && Number(declared) > max) return { tooLarge: true };
+  if (!req.body) return { bad: true };
+  const reader = req.body.getReader(), chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) { try { await reader.cancel(); } catch (_) { /* already closed */ } return { tooLarge: true }; }
+    chunks.push(value);
+  }
+  const buf = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) { buf.set(c, at); at += c.byteLength; }
+  try { return { json: JSON.parse(new TextDecoder().decode(buf)) }; } catch (_) { return { bad: true }; }
+}
+
 export async function handleChat({ req, env, deps, fetchImpl, cors }) {
   const out = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cors } });
   const fail = (status, code, message) => out(status, { error: { code, message } });
@@ -147,13 +174,14 @@ export async function handleChat({ req, env, deps, fetchImpl, cors }) {
   if (!m) return fail(401, 'unauthenticated', 'Please sign in again.');
   let who;
   try { who = await verifyFirebaseTokenFull(m[1], env, fetchImpl, deps.now()); } catch (_) { return fail(401, 'unauthenticated', 'Please sign in again.'); }
-  if (who.provider === 'password' && !who.emailVerified) return fail(401, 'unauthenticated', 'Please verify your email first.');
+  if (who.provider !== 'google.com' && !who.emailVerified) return fail(401, 'unauthenticated', 'Please verify your email first.');
   const uid = who.uid;
 
   // 2. what they are asking for
-  if (Number(req.headers.get('Content-Length') || 0) > MAX_BODY_BYTES) return fail(413, 'too_large', 'Request too large.');
-  let raw; try { raw = await req.json(); } catch (_) { return fail(400, 'bad_request', 'Invalid JSON.'); }
-  const body = sanitizeBody(raw);
+  const read = await readJsonLimited(req, MAX_BODY_BYTES);
+  if (read.tooLarge) return fail(413, 'too_large', 'Request too large.');
+  if (read.bad) return fail(400, 'bad_request', 'Invalid JSON.');
+  const body = sanitizeBody(read.json);
   if (!body) return fail(400, 'bad_request', 'Unsupported request.');
 
   // 3. Premium only

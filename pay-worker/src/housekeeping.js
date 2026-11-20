@@ -26,16 +26,22 @@ const fullName = (db, path) => db.root + '/' + path;
 
 // 1. ── trash ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 // Deleted purchases carry deletedAt as an ISO text (2026-10-01T08:00:00.000Z), which sorts correctly as text.
+// That text is written by the PERSON'S PHONE, so a phone with a wrong date (2000, say) could make a freshly deleted entry
+// look 30 days old. So an entry is only removed when the SERVER's own time of its last change (updateTime) is ALSO older
+// than the cutoff. An entry with no updateTime is never removed. Entries held back this way are looked at again later.
 export async function purgeTrash({ deps, env, budget, log }) {
   if (budget.left < 4) return { skipped: true };
-  const cutoff = new Date(deps.now() - purgeDays(env) * DAY).toISOString();
+  const cutoffMs = deps.now() - purgeDays(env) * DAY;
+  const cutoff = new Date(cutoffMs).toISOString();
   budget.left -= 1;
   const res = await deps.db.collectionGroup('purchases').where('deletedAt', '<', cutoff).select('__name__').limit(400).get();
-  const paths = res.docs.map(d => d.path).filter(p => /^households\/[^/]+\/purchases\/[^/]+$/.test(p || ''));
-  if (!purgeLive(env)) { log('trash: would remove ' + paths.length + ' entries (dry run)'); return { found: paths.length, removed: 0, dryRun: true }; }
+  const cand = res.docs.filter(d => /^households\/[^/]+\/purchases\/[^/]+$/.test(d.path || ''));
+  const paths = cand.filter(d => typeof d.updateTime === 'number' && d.updateTime < cutoffMs).map(d => d.path);
+  const heldBack = cand.length - paths.length;
+  if (!purgeLive(env)) { log('trash: would remove ' + paths.length + ' entries (dry run)' + (heldBack ? ', ' + heldBack + ' held back because the server says they were changed recently' : '')); return { found: paths.length, removed: 0, heldBack, dryRun: true }; }
   if (paths.length) { budget.left -= 1; await deps.db.commitWrites(paths.map(p => ({ delete: fullName(deps.db, p) }))); }
-  log('trash: removed ' + paths.length + ' entries');
-  return { found: paths.length, removed: paths.length };
+  log('trash: removed ' + paths.length + ' entries' + (heldBack ? ', ' + heldBack + ' held back (changed recently by the server clock)' : ''));
+  return { found: paths.length, removed: paths.length, heldBack };
 }
 
 // 2. ── households ─────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -4,6 +4,10 @@
 const enc = new TextEncoder();
 const JWK_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const KEY_TTL_MS = 60 * 60 * 1000;
+// A token naming a key we do not know makes us ask Google again, in case Google has just rotated its keys. Anyone can forge
+// such a token (the project id and issuer are public), so that reload may happen at most once a minute; otherwise a flood
+// of forged tokens would turn into a flood of requests to Google and use up the free plan's request allowance.
+const UNKNOWN_KEY_RELOAD_MS = 60 * 1000;
 let keyCache = { at: 0, keys: new Map() };
 
 function b64urlBytes(s) {
@@ -13,8 +17,8 @@ function b64urlBytes(s) {
 const b64urlJson = s => JSON.parse(new TextDecoder().decode(b64urlBytes(s)));
 
 async function getKey(kid, fetchImpl) {
-  const fresh = Date.now() - keyCache.at < KEY_TTL_MS;
-  if (!fresh || !keyCache.keys.has(kid)) {
+  const age = Date.now() - keyCache.at;
+  if (age >= KEY_TTL_MS || (!keyCache.keys.has(kid) && age >= UNKNOWN_KEY_RELOAD_MS)) {
     const r = await fetchImpl(JWK_URL);
     if (!r.ok) throw new Error('could not load Google keys');
     const j = await r.json();

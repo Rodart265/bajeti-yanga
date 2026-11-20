@@ -20,7 +20,7 @@ const FIELDS = ['memberUids', 'owner', 'isPremium', 'premiumExpiry', 'trialStart
 const bad = (code, error) => ({ code, body: { error } });
 
 export async function createHousehold({ deps, env, who, body }) {
-  if (who.provider === 'password' && !who.emailVerified) return bad(403, 'verify_email');
+  if (who.provider !== 'google.com' && !who.emailVerified) return bad(403, 'verify_email');
   const code = body && body.code;
   if (typeof code !== 'string' || !CODE.test(code)) return bad(400, 'bad_code');
   const cfg = body.config;

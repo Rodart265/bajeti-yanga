@@ -350,6 +350,10 @@ async function premium(ctx) {
   });
 }
 
+// Circle round and lap numbers come from documents that members can write. Only a whole number 1 or more goes to the
+// admin page; anything else (text, HTML, a fraction) becomes null, so it can never be shown as markup.
+export const wholeNum = v => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v < 1000000 ? v : null);
+
 async function chipereganyu(ctx) {
   const [snap, auth, userDocs] = await Promise.all([cached(ctx, 'grp', async () => (await ctx.deps.db.collection('chipereganyu_groups').select(...GROUP_FIELDS).get()).docs.map(d => ({ id: d.id, ...d.data() }))),
     loadAuth(ctx), loadUserDocs(ctx)]);
@@ -361,7 +365,7 @@ async function chipereganyu(ctx) {
     const stuck = sent.filter(x => tsMs(x.sentAt) !== null && ctx.now - tsMs(x.sentAt) > 3 * DAY).length;
     const overdueDays = cc && isYMD(cc.dueDate) ? Math.max(0, daysBetween(cc.dueDate, today)) : 0;
     return { id: g.id, name: g.name || g.id, status: g.status || 'unknown', admin: nameOf(people, g.createdBy), members: Array.isArray(g.memberUids) ? g.memberUids.length : 0,
-      frequency: g.frequency || null, amount: Number(g.contributionAmount) || 0, created: tsMs(g.createdAt), cycle: cc ? cc.cycleNumber || null : null, lap: cc ? cc.lap || null : null,
+      frequency: g.frequency || null, amount: Number(g.contributionAmount) || 0, created: tsMs(g.createdAt), cycle: cc ? wholeNum(cc.cycleNumber) : null, lap: cc ? wholeNum(cc.lap) : null,
       dueDate: cc ? cc.dueDate || null : null, overdueDays: paid < c.length ? overdueDays : 0, contributors: c.length, paid, sentNotConfirmed: sent.length, stuck };
   }).sort((a, b) => b.overdueDays - a.overdueDays || (b.created || 0) - (a.created || 0));
   const byStatus = {}; rows.forEach(r => { byStatus[r.status] = (byStatus[r.status] || 0) + 1; });
