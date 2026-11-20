@@ -160,3 +160,63 @@ html[data-look] .content:focus{outline:none}
 @media (max-width:520px){
   html[data-look] .tile .value{font-size:22px;white-space:nowrap}
 }
+
+/* ══ MOTION ═══════════════════════════════════════════════════════════════════
+   Only opacity and transform are animated, so it stays smooth on low-end phones.
+   Everything here is switched off for people who ask for reduced motion. */
+@media (prefers-reduced-motion:no-preference){
+  @keyframes by-rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes by-fade{from{opacity:0}to{opacity:1}}
+  @keyframes by-slide-r{from{transform:translateX(100%)}to{transform:none}}
+  @keyframes by-slide-l{from{transform:translateX(-100%)}to{transform:none}}
+  @keyframes by-pop{from{opacity:0;transform:translate(-50%,14px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+  @keyframes by-spin-in{from{opacity:0;transform:rotate(-70deg) scale(.6)}to{opacity:1;transform:none}}
+
+  /* each page's cards rise in one after another */
+  html[data-look] #view .card,
+  html[data-look] #view .banner,
+  html[data-look] #view .page-head{animation:by-rise .5s cubic-bezier(.2,.7,.2,1) backwards}
+  html[data-look] #view .page-head{animation-delay:0s}
+  html[data-look] #view .banner{animation-delay:.05s}
+  html[data-look] #view .tiles>*:nth-child(1){animation-delay:.08s}
+  html[data-look] #view .tiles>*:nth-child(2){animation-delay:.13s}
+  html[data-look] #view .tiles>*:nth-child(3){animation-delay:.18s}
+  html[data-look] #view .tiles>*:nth-child(4){animation-delay:.23s}
+  html[data-look] #view .tiles>*:nth-child(5){animation-delay:.28s}
+  html[data-look] #view .tiles>*:nth-child(6){animation-delay:.33s}
+  html[data-look] #view .tiles>*:nth-child(7){animation-delay:.38s}
+  html[data-look] #view .tiles>*:nth-child(8){animation-delay:.43s}
+  html[data-look] #view .grid:not(.tiles)>*:nth-child(1){animation-delay:.3s}
+  html[data-look] #view .grid:not(.tiles)>*:nth-child(2){animation-delay:.38s}
+  html[data-look] #view>.card{animation-delay:.12s}
+
+  /* chart bars grow up from the baseline */
+  @keyframes by-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  html[data-look] .chart .bar{transform-box:fill-box;transform-origin:50% 100%;animation:by-grow .7s cubic-bezier(.2,.7,.2,1) .35s backwards}
+  html[data-look] .seg i{transform-origin:left center;animation:by-grow-x .7s cubic-bezier(.2,.7,.2,1) .35s backwards}
+  @keyframes by-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+  /* press feedback: works with a finger, no hover needed */
+  html[data-look] .btn,html[data-look] .chip,html[data-look] .nav-item,html[data-look] .icon-btn{transition:transform .12s ease,background-color .15s ease,filter .15s ease}
+  html[data-look] .btn:active,html[data-look] .chip:active,html[data-look] .icon-btn:active{transform:scale(.94)}
+  html[data-look] .nav-item:active{transform:scale(.97)}
+  html[data-look] button.tile:active{transform:scale(.97);transition:transform .1s ease}
+  html[data-look] tr.row td{transition:background-color .15s ease}
+
+  /* drawer, menu, scrims, toast */
+  html[data-look] .drawer:not([hidden]){animation:by-slide-r .32s cubic-bezier(.2,.8,.2,1)}
+  html[data-look] .drawer-scrim:not([hidden]),html[data-look] .scrim:not([hidden]){animation:by-fade .25s ease}
+  html[data-look] .sidebar{transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+  html[data-look] .toast:not([hidden]){animation:by-pop .3s cubic-bezier(.2,.8,.2,1)}
+  html[data-look] .drawer-body>*{animation:by-rise .4s cubic-bezier(.2,.7,.2,1) backwards}
+  html[data-look] .drawer-body>*:nth-child(2){animation-delay:.06s}
+  html[data-look] .drawer-body>*:nth-child(3){animation-delay:.12s}
+  html[data-look] .drawer-body>*:nth-child(4){animation-delay:.18s}
+
+  /* sign-in card and the sun/moon button */
+  html[data-look] .login-card{animation:by-rise .6s cubic-bezier(.2,.7,.2,1) backwards}
+  html[data-look] .look-btn svg{animation:by-spin-in .45s cubic-bezier(.2,.8,.2,1)}
+
+  /* the look itself fades between dark and light instead of jumping */
+  html[data-look] body,html[data-look] .card,html[data-look] .sidebar,html[data-look] .topbar{transition:background-color .35s ease,border-color .35s ease,color .35s ease}
+}
