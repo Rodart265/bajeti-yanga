@@ -1,0 +1,162 @@
+/* Bajeti Yanga admin console: two looks on top of admin.css, switched by <html data-look="glass|bento">.
+   glass = dark frosted cards, cyan accents, hover lift (from the "Admin Dashboard V2" reference).
+   bento = light rounded cards, floating navy sidebar, one navy hero tile (from the V15 / V35 references).
+   Plain CSS only: no new scripts, fonts or origins, so the console's strict CSP stays as it is. */
+
+/* ── shared pieces ─────────────────────────────────────────────────────────── */
+.tile-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;margin-bottom:10px;background:var(--teal-soft);color:var(--teal)}
+.tile-ic svg.i{width:18px;height:18px}
+.look-btn .i-sun,.look-btn .i-moon{display:none}
+html[data-look="glass"] .look-btn .i-sun{display:block}
+html[data-look="bento"] .look-btn .i-moon{display:block}
+.login-look{position:fixed;top:max(12px,env(safe-area-inset-top));right:12px;z-index:5}
+html[data-look] body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+  html[data-look] .tile{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  html[data-look] .tile:hover{transform:translateY(-5px)}
+}
+
+/* ══ GLASS (dark) ═════════════════════════════════════════════════════════════ */
+html:root[data-look="glass"]{
+  --bg:#07151c;--surface:rgba(255,255,255,.07);--ink:#eaf4f4;--muted:#9db6bc;--line:rgba(255,255,255,.13);--line2:rgba(255,255,255,.07);
+  --navy:rgba(7,21,28,.62);--navy2:rgba(255,255,255,.09);--teal:#3fc3ae;--teal-ink:#5fd3c0;--teal-soft:rgba(63,195,174,.16);
+  --amber:#f0c070;--amber-soft:rgba(240,192,112,.14);--red:#f29a9a;--red-soft:rgba(238,110,110,.16);
+  --blue:#8db6f2;--blue-soft:rgba(141,182,242,.16);--green:#6fd3a0;--green-soft:rgba(111,211,160,.15);--grey-soft:rgba(255,255,255,.08);
+  --c1:#35c7e0;--c2:#6aa5ff;--c3:#ff8a5c;--c4:#7f98a0;--c5:#3a5560;--grid:rgba(255,255,255,.08);
+  --shadow:0 12px 40px rgba(0,0,0,.28);--r:20px;color-scheme:dark;
+}
+html[data-look="glass"] body{background:#07151c}
+html[data-look="glass"] body::before{
+  background:
+    radial-gradient(60vmax 50vmax at 8% 0%,rgba(53,199,224,.22),transparent 60%),
+    radial-gradient(55vmax 45vmax at 100% 18%,rgba(106,165,255,.18),transparent 62%),
+    radial-gradient(50vmax 45vmax at 40% 105%,rgba(63,195,174,.16),transparent 60%),
+    linear-gradient(180deg,#08202a,#06121a);
+}
+html[data-look="glass"] .login-wrap{background:transparent}
+html[data-look="glass"] .card,
+html[data-look="glass"] .login-card{
+  background:var(--surface);border:1px solid rgba(255,255,255,.14);
+  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.08);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);
+}
+html[data-look="glass"] .login-card{border-radius:26px}
+html[data-look="glass"] .drawer-body .card{box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-look="glass"] .sidebar{
+  background:rgba(7,21,28,.62);border-right:1px solid rgba(255,255,255,.08);
+  -webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);
+}
+html[data-look="glass"] .nav-item{border:1px solid transparent}
+html[data-look="glass"] .nav-item:hover{background:rgba(255,255,255,.07)}
+html[data-look="glass"] .nav-item.active{
+  background:linear-gradient(90deg,rgba(53,199,224,.30),rgba(53,199,224,.10));border-color:rgba(53,199,224,.38);box-shadow:none;color:#fff;
+}
+html[data-look="glass"] .who{border-top-color:rgba(255,255,255,.1)}
+html[data-look="glass"] .topbar{
+  background:rgba(7,21,28,.55);border-bottom:1px solid rgba(255,255,255,.08);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+}
+html[data-look="glass"] .role-chip{background:rgba(63,195,174,.16);color:#7fe0cf}
+html[data-look="glass"] .btn{border-color:rgba(255,255,255,.1)}
+html[data-look="glass"] .btn.primary,
+html[data-look="glass"] .chip.on{background:linear-gradient(135deg,#3fc3ae,#35c7e0);border-color:transparent;color:#062b28}
+html[data-look="glass"] .btn.primary:hover{filter:brightness(1.08);background:linear-gradient(135deg,#3fc3ae,#35c7e0)}
+html[data-look="glass"] .btn.ghost{border-color:rgba(255,255,255,.18)}
+html[data-look="glass"] .search,
+html[data-look="glass"] .select,
+html[data-look="glass"] .field input,
+html[data-look="glass"] .field select,
+html[data-look="glass"] .field textarea{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)}
+html[data-look="glass"] option{background:#0f2630;color:#eaf4f4}
+html[data-look="glass"] .chip{background:rgba(255,255,255,.06)}
+html[data-look="glass"] .tiles>.tile:first-child{background:linear-gradient(135deg,rgba(53,199,224,.28),rgba(63,195,174,.08))}
+html[data-look="glass"] .tile-ic{background:linear-gradient(135deg,rgba(53,199,224,.30),rgba(63,195,174,.14));color:#7fe9f5}
+html[data-look="glass"] .tile .value{font-size:26px}
+html[data-look="glass"] .tile.warn{border-color:rgba(240,192,112,.55)}
+html[data-look="glass"] .drawer{
+  background:rgba(8,24,32,.88);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);border-left:1px solid rgba(255,255,255,.1);
+}
+html[data-look="glass"] .drawer-head{background:transparent;border-bottom-color:rgba(255,255,255,.1)}
+html[data-look="glass"] .drawer-scrim,html[data-look="glass"] .scrim{background:rgba(2,9,13,.62)}
+html[data-look="glass"] .tip,html[data-look="glass"] .toast{background:rgba(10,28,36,.94);border:1px solid rgba(255,255,255,.14)}
+html[data-look="glass"] .toast.bad{background:rgba(120,38,38,.95)}
+html[data-look="glass"] .banner{border:1px solid rgba(255,255,255,.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+html[data-look="glass"] .chart .bar{rx:4}
+@media (max-width:700px){
+  html[data-look="glass"] .card,html[data-look="glass"] .login-card{-webkit-backdrop-filter:blur(10px) saturate(130%);backdrop-filter:blur(10px) saturate(130%)}
+}
+
+/* ══ BENTO (light) ════════════════════════════════════════════════════════════ */
+html:root[data-look="bento"]{
+  --bg:#e9eef6;--surface:#fff;--ink:#0f2530;--muted:#62767e;--line:#e3e9f1;--line2:#eef2f7;
+  --navy:#102a35;--navy2:#1d4350;--teal:#0a8a80;--teal-ink:#07716a;--teal-soft:#dcf3ef;
+  --c1:#10a39a;--c2:#4a7ee6;--c3:#f0743c;--c4:#8ea3a9;--c5:#d6dee8;--grid:#e8edf4;
+  --shadow:0 1px 2px rgba(16,42,53,.04),0 14px 34px rgba(16,42,53,.08);--r:22px;color-scheme:light;
+}
+html[data-look="bento"] body{background:#e9eef6}
+html[data-look="bento"] body::before{
+  background:
+    radial-gradient(50vmax 40vmax at 0% 0%,rgba(16,163,154,.12),transparent 60%),
+    radial-gradient(50vmax 45vmax at 100% 10%,rgba(122,110,230,.14),transparent 62%),
+    linear-gradient(160deg,#eaf3f3,#eceff9 55%,#f3edf8);
+}
+html[data-look="bento"] .login-wrap{background:transparent}
+html[data-look="bento"] .login-card{border-radius:30px;border-color:#fff}
+html[data-look="bento"] .card{border-color:rgba(255,255,255,.9)}
+html[data-look="bento"] .page-head h2{font-size:26px;letter-spacing:-.02em;font-weight:800}
+html[data-look="bento"] .btn{border-radius:12px}
+html[data-look="bento"] .btn.primary{background:var(--navy);color:#d8f35c}
+html[data-look="bento"] .btn.primary:hover{background:var(--navy2)}
+html[data-look="bento"] .chip.on{background:var(--navy);border-color:var(--navy);color:#d8f35c}
+html[data-look="bento"] .chip{border-radius:99px}
+html[data-look="bento"] .topbar{
+  background:rgba(233,238,246,.82);border-bottom:0;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+html[data-look="bento"] .role-chip{background:#fff;box-shadow:var(--shadow)}
+html[data-look="bento"] .sidebar{border-radius:0 26px 26px 0}
+html[data-look="bento"] .sidebar.open{box-shadow:0 20px 50px rgba(16,42,53,.28)}
+html[data-look="bento"] .nav-item{border-radius:14px}
+html[data-look="bento"] .nav-item.active{background:#fff;color:var(--navy);box-shadow:none}
+html[data-look="bento"] .nav-item.active svg.i{color:var(--teal)}
+html[data-look="bento"] .who{border-top-color:#28464e}
+html[data-look="bento"] .tiles>.tile:first-child{background:linear-gradient(135deg,#102a35,#1d4350);border-color:transparent;color:#fff}
+html[data-look="bento"] .tiles>.tile:first-child .label,
+html[data-look="bento"] .tiles>.tile:first-child .sub{color:#a9cbcd}
+html[data-look="bento"] .tiles>.tile:first-child .tile-ic{background:#d8f35c;color:#102a35}
+html[data-look="bento"] .tile .value{font-size:28px;letter-spacing:-.02em}
+html[data-look="bento"] .tile.warn{background:var(--amber-soft);border-color:#f0d9a8}
+html[data-look="bento"] .tile:hover{box-shadow:0 18px 40px rgba(16,42,53,.16)}
+html[data-look="bento"] .drawer{border-radius:26px 0 0 26px;box-shadow:-18px 0 50px rgba(16,42,53,.22)}
+html[data-look="bento"] .drawer-head{border-radius:26px 0 0 0}
+html[data-look="bento"] .banner{border-radius:16px}
+html[data-look="bento"] .search,html[data-look="bento"] .select,html[data-look="bento"] .field input,
+html[data-look="bento"] .field select,html[data-look="bento"] .field textarea{border-radius:12px}
+@media (min-width:960px){
+  html[data-look="bento"] .sidebar{inset:12px auto 12px 12px;width:228px;border-radius:26px;box-shadow:0 20px 50px rgba(16,42,53,.22)}
+  html[data-look="bento"] .main{margin-left:252px}
+}
+
+/* ── users who ask for less transparency or less motion ───────────────────── */
+@media (prefers-reduced-transparency:reduce){
+  html[data-look="glass"] .card,html[data-look="glass"] .login-card,html[data-look="glass"] .sidebar,
+  html[data-look="glass"] .topbar,html[data-look="glass"] .drawer,html[data-look="glass"] .banner{-webkit-backdrop-filter:none;backdrop-filter:none}
+  html:root[data-look="glass"]{--surface:#10262f}
+  html[data-look="glass"] .sidebar,html[data-look="glass"] .topbar{background:#0a1a21}
+  html[data-look="glass"] .drawer{background:#0c1d25}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  html:root[data-look="glass"]{--surface:#10262f}
+  html[data-look="glass"] .sidebar,html[data-look="glass"] .topbar{background:#0a1a21}
+  html[data-look="glass"] .drawer{background:#0c1d25}
+}
+@media print{
+  html[data-look] body::before{display:none}
+  html:root[data-look]{--bg:#fff;--surface:#fff;--ink:#000;--muted:#444;--line:#ccc;--line2:#ddd;--grey-soft:#f1f1f1}
+  html[data-look] .card{-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+}
+
+/* small fixes */
+html[data-look] .content:focus{outline:none}
+@media (max-width:520px){
+  html[data-look] .tile .value{font-size:22px;white-space:nowrap}
+}
