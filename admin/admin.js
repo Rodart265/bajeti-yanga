@@ -147,7 +147,8 @@
   const mixParts = s => [{ label: 'Premium', v: s.premium, c: '--c1' }, { label: 'On trial', v: s.trial, c: '--c2' }, { label: 'Premium ended', v: s.premium_expired, c: '--c3' }, { label: 'Trial over', v: s.trial_ended, c: '--c4' }, { label: 'Free', v: s.free, c: '--c5' }];
 
   // ── lists shared by pages ──────────────────────────────────────────────────
-  const tile = (label, value, sub, o = {}) => `<${o.go ? 'button type="button" data-a="go" data-id="' + o.go + '"' : 'div'} class="card tile${o.warn ? ' warn' : ''}"><div class="label">${esc(label)}</div><div class="value">${value}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</${o.go ? 'button' : 'div'}>`;
+  const TILE_ICON = { users: 'users', households: 'home', premium: 'star', payments: 'card', reports: 'chart', attention: 'alert' };
+  const tile = (label, value, sub, o = {}) => `<${o.go ? 'button type="button" data-a="go" data-id="' + o.go + '"' : 'div'} class="card tile${o.warn ? ' warn' : ''}">${TILE_ICON[o.go] ? `<span class="tile-ic">${icon(TILE_ICON[o.go])}</span>` : ''}<div class="label">${esc(label)}</div><div class="value">${value}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</${o.go ? 'button' : 'div'}>`;
   const chips = (key, list, counts) => `<div class="chips" role="group">${list.map(([id, label]) => `<button type="button" class="chip${(S.f[key] || {}).chip === id || (!(S.f[key] || {}).chip && id === 'all') ? ' on' : ''}" data-a="chip" data-key="${key}" data-id="${id}">${esc(label)}${counts && counts[id] !== undefined ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`;
   const searchBox = (key, ph) => `<input class="search" type="search" placeholder="${esc(ph)}" value="${esc((S.f[key] || {}).q || '')}" data-a="search" data-key="${key}" aria-label="${esc(ph)}">`;
   const fq = key => ((S.f[key] || {}).q || '').trim().toLowerCase(), fc = key => (S.f[key] || {}).chip || 'all';
