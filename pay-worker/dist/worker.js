@@ -470,7 +470,8 @@ var FirestoreRest = class {
 };
 function snap(id, data, raw) {
   const t = raw && raw.createTime ? Date.parse(raw.createTime) : null;
-  return { id, exists: data !== null, createTime: Number.isNaN(t) ? null : t, data: () => data === null ? void 0 : data };
+  const u = raw && raw.updateTime ? Date.parse(raw.updateTime) : null;
+  return { id, exists: data !== null, createTime: Number.isNaN(t) ? null : t, updateTime: Number.isNaN(u) ? null : u, data: () => data === null ? void 0 : data };
 }
 var Col = class {
   constructor(db, name) {
@@ -566,6 +567,7 @@ var Query = class _Query {
 var enc3 = new TextEncoder();
 var JWK_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 var KEY_TTL_MS = 60 * 60 * 1e3;
+var UNKNOWN_KEY_RELOAD_MS = 60 * 1e3;
 var keyCache = { at: 0, keys: /* @__PURE__ */ new Map() };
 function b64urlBytes(s) {
   const t = String(s).replace(/-/g, "+").replace(/_/g, "/");
@@ -573,8 +575,8 @@ function b64urlBytes(s) {
 }
 var b64urlJson = (s) => JSON.parse(new TextDecoder().decode(b64urlBytes(s)));
 async function getKey(kid, fetchImpl) {
-  const fresh = Date.now() - keyCache.at < KEY_TTL_MS;
-  if (!fresh || !keyCache.keys.has(kid)) {
+  const age = Date.now() - keyCache.at;
+  if (age >= KEY_TTL_MS || !keyCache.keys.has(kid) && age >= UNKNOWN_KEY_RELOAD_MS) {
     const r = await fetchImpl(JWK_URL);
     if (!r.ok) throw new Error("could not load Google keys");
     const j = await r.json();
@@ -1153,6 +1155,7 @@ async function premium(ctx) {
     legacy: rows.filter((r) => r.legacy)
   });
 }
+var wholeNum = (v) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v < 1e6 ? v : null;
 async function chipereganyu(ctx) {
   const [snap2, auth, userDocs] = await Promise.all([
     cached(ctx, "grp", async () => (await ctx.deps.db.collection("chipereganyu_groups").select(...GROUP_FIELDS).get()).docs.map((d) => ({ id: d.id, ...d.data() }))),
@@ -1175,8 +1178,8 @@ async function chipereganyu(ctx) {
       frequency: g.frequency || null,
       amount: Number(g.contributionAmount) || 0,
       created: tsMs(g.createdAt),
-      cycle: cc ? cc.cycleNumber || null : null,
-      lap: cc ? cc.lap || null : null,
+      cycle: cc ? wholeNum(cc.cycleNumber) : null,
+      lap: cc ? wholeNum(cc.lap) : null,
       dueDate: cc ? cc.dueDate || null : null,
       overdueDays: paid < c.length ? overdueDays : 0,
       contributors: c.length,
@@ -1531,6 +1534,10 @@ function makeIdentity({ projectId, getToken, fetchImpl = fetch }) {
 // src/ai.js
 var MAX_BODY_BYTES = 12 * 1024 * 1024;
 var MAX_TEXT_CHARS = 8e4;
+var MAX_IMAGES = 2;
+var MAX_IMAGE_CHARS = 8e6;
+var MAX_IMAGES_TOTAL_CHARS = 1e7;
+var DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 var MAX_CONTENTS = 80;
 var FEATURES = ["msg", "magic", "scan", "summ"];
 var ALLOWED_GEN_KEYS = ["temperature", "topP", "topK", "maxOutputTokens", "responseMimeType"];
@@ -1571,8 +1578,8 @@ function computePremium(root, uid, env, now = Date.now()) {
 function sanitizeBody(raw) {
   if (!raw || typeof raw !== "object" || !Array.isArray(raw.contents)) return null;
   if (raw.contents.length < 1 || raw.contents.length > MAX_CONTENTS) return null;
-  let chars = 0;
-  const cleanParts = (parts) => {
+  let chars = 0, images = 0, imageChars = 0;
+  const cleanParts = (parts, allowImages = true) => {
     if (!Array.isArray(parts) || parts.length < 1 || parts.length > 20) return null;
     const out = [];
     for (const p of parts) {
@@ -1582,7 +1589,10 @@ function sanitizeBody(raw) {
       } else if (p && (p.inline_data || p.inlineData)) {
         const d = p.inline_data || p.inlineData;
         const mime = d.mime_type || d.mimeType;
-        if (typeof mime !== "string" || !ALLOWED_MIME.test(mime) || typeof d.data !== "string") return null;
+        if (!allowImages || typeof mime !== "string" || !ALLOWED_MIME.test(mime) || typeof d.data !== "string") return null;
+        images++;
+        imageChars += d.data.length;
+        if (images > MAX_IMAGES || d.data.length > MAX_IMAGE_CHARS || imageChars > MAX_IMAGES_TOTAL_CHARS) return null;
         out.push({ inline_data: { mime_type: mime, data: d.data } });
       } else return null;
     }
@@ -1597,16 +1607,16 @@ function sanitizeBody(raw) {
   }
   const body = { contents };
   if (raw.systemInstruction !== void 0) {
-    const parts = cleanParts(raw.systemInstruction && raw.systemInstruction.parts);
+    const parts = cleanParts(raw.systemInstruction && raw.systemInstruction.parts, false);
     if (!parts) return null;
     body.systemInstruction = { parts };
   }
+  const g = {};
   if (raw.generationConfig && typeof raw.generationConfig === "object") {
-    const g = {};
     for (const k of ALLOWED_GEN_KEYS) if (raw.generationConfig[k] !== void 0) g[k] = raw.generationConfig[k];
-    if (g.maxOutputTokens !== void 0) g.maxOutputTokens = Math.min(num(g.maxOutputTokens, 1024), 4096);
-    if (Object.keys(g).length) body.generationConfig = g;
   }
+  g.maxOutputTokens = g.maxOutputTokens === void 0 ? DEFAULT_MAX_OUTPUT_TOKENS : Math.min(num(g.maxOutputTokens, 1024), DEFAULT_MAX_OUTPUT_TOKENS);
+  body.generationConfig = g;
   return chars > MAX_TEXT_CHARS ? null : body;
 }
 var premiumCache = /* @__PURE__ */ new Map();
@@ -1645,6 +1655,37 @@ async function bump(deps, uid, day, feature, delta, limits) {
     return null;
   });
 }
+async function readJsonLimited(req, max) {
+  const declared = req.headers.get("Content-Length");
+  if (declared !== null && Number(declared) > max) return { tooLarge: true };
+  if (!req.body) return { bad: true };
+  const reader = req.body.getReader(), chunks = [];
+  let size = 0;
+  for (; ; ) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      try {
+        await reader.cancel();
+      } catch (_) {
+      }
+      return { tooLarge: true };
+    }
+    chunks.push(value);
+  }
+  const buf = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    buf.set(c, at);
+    at += c.byteLength;
+  }
+  try {
+    return { json: JSON.parse(new TextDecoder().decode(buf)) };
+  } catch (_) {
+    return { bad: true };
+  }
+}
 async function handleChat({ req, env, deps, fetchImpl, cors }) {
   const out = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...cors } });
   const fail = (status, code, message) => out(status, { error: { code, message } });
@@ -1657,16 +1698,12 @@ async function handleChat({ req, env, deps, fetchImpl, cors }) {
   } catch (_) {
     return fail(401, "unauthenticated", "Please sign in again.");
   }
-  if (who.provider === "password" && !who.emailVerified) return fail(401, "unauthenticated", "Please verify your email first.");
+  if (who.provider !== "google.com" && !who.emailVerified) return fail(401, "unauthenticated", "Please verify your email first.");
   const uid = who.uid;
-  if (Number(req.headers.get("Content-Length") || 0) > MAX_BODY_BYTES) return fail(413, "too_large", "Request too large.");
-  let raw;
-  try {
-    raw = await req.json();
-  } catch (_) {
-    return fail(400, "bad_request", "Invalid JSON.");
-  }
-  const body = sanitizeBody(raw);
+  const read = await readJsonLimited(req, MAX_BODY_BYTES);
+  if (read.tooLarge) return fail(413, "too_large", "Request too large.");
+  if (read.bad) return fail(400, "bad_request", "Invalid JSON.");
+  const body = sanitizeBody(read.json);
   if (!body) return fail(400, "bad_request", "Unsupported request.");
   let premium2;
   try {
@@ -1712,7 +1749,7 @@ var MAX_CFG_CHARS = 3e5;
 var FIELDS = ["memberUids", "owner", "isPremium", "premiumExpiry", "trialStarted", "config.isPremium", "config.premiumExpiry", "config.trialStarted", "deletedAt"];
 var bad = (code, error) => ({ code, body: { error } });
 async function createHousehold({ deps, env, who, body }) {
-  if (who.provider === "password" && !who.emailVerified) return bad(403, "verify_email");
+  if (who.provider !== "google.com" && !who.emailVerified) return bad(403, "verify_email");
   const code = body && body.code;
   if (typeof code !== "string" || !CODE.test(code)) return bad(400, "bad_code");
   const cfg = body.config;
@@ -1947,20 +1984,23 @@ var purgeLive = (env) => String(env && env.PURGE_MODE || "").toLowerCase() === "
 var fullName = (db, path) => db.root + "/" + path;
 async function purgeTrash({ deps, env, budget, log: log2 }) {
   if (budget.left < 4) return { skipped: true };
-  const cutoff = new Date(deps.now() - purgeDays(env) * DAY2).toISOString();
+  const cutoffMs = deps.now() - purgeDays(env) * DAY2;
+  const cutoff = new Date(cutoffMs).toISOString();
   budget.left -= 1;
   const res = await deps.db.collectionGroup("purchases").where("deletedAt", "<", cutoff).select("__name__").limit(400).get();
-  const paths = res.docs.map((d) => d.path).filter((p) => /^households\/[^/]+\/purchases\/[^/]+$/.test(p || ""));
+  const cand = res.docs.filter((d) => /^households\/[^/]+\/purchases\/[^/]+$/.test(d.path || ""));
+  const paths = cand.filter((d) => typeof d.updateTime === "number" && d.updateTime < cutoffMs).map((d) => d.path);
+  const heldBack = cand.length - paths.length;
   if (!purgeLive(env)) {
-    log2("trash: would remove " + paths.length + " entries (dry run)");
-    return { found: paths.length, removed: 0, dryRun: true };
+    log2("trash: would remove " + paths.length + " entries (dry run)" + (heldBack ? ", " + heldBack + " held back because the server says they were changed recently" : ""));
+    return { found: paths.length, removed: 0, heldBack, dryRun: true };
   }
   if (paths.length) {
     budget.left -= 1;
     await deps.db.commitWrites(paths.map((p) => ({ delete: fullName(deps.db, p) })));
   }
-  log2("trash: removed " + paths.length + " entries");
-  return { found: paths.length, removed: paths.length };
+  log2("trash: removed " + paths.length + " entries" + (heldBack ? ", " + heldBack + " held back (changed recently by the server clock)" : ""));
+  return { found: paths.length, removed: paths.length, heldBack };
 }
 async function eraseHousehold({ deps, budget, id }) {
   const base = "households/" + id;
