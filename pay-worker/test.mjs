@@ -22,7 +22,7 @@ const T0 = Date.UTC(2026, 9, 18, 10, 0, 0);                 // 18 Oct 2026, 12:0
 function miniFirestore() {
   const ROOT = 'projects/bajeti-yanga/databases/(default)/documents';
   const PREFIX = 'https://firestore.googleapis.com/v1/' + ROOT;
-  const docs = new Map(), ver = new Map(), txs = new Map(), created = new Map();
+  const docs = new Map(), ver = new Map(), txs = new Map(), created = new Map(), updated = new Map();
   let n = 0;
   // nested field paths (dotted, with `quoting`) inside Google's typed-value format
   const segs = fp => { const out = []; let cur = '', q = false; for (let i = 0; i < fp.length; i++) { const c = fp[i]; if (c === '`') { q = !q; continue; } if (c === '\\' && q) { cur += fp[++i]; continue; } if (c === '.' && !q) { out.push(cur); cur = ''; continue; } cur += c; } out.push(cur); return out; };
@@ -47,7 +47,7 @@ function miniFirestore() {
     if (op === 'LESS_THAN') return x !== undefined && x !== null && typeof num(x) === typeof num(want) && num(x) < num(want);
     throw new Error('fake does not know op ' + op);
   }
-  api.seed = (path, obj, createMs) => { docs.set(path, encodeFields(obj)); if (!created.has(path)) created.set(path, new Date(createMs || T0).toISOString()); bump(path); };
+  api.seed = (path, obj, createMs, updateMs) => { docs.set(path, encodeFields(obj)); if (!created.has(path)) created.set(path, new Date(createMs || T0).toISOString()); if (updateMs) updated.set(path, new Date(updateMs).toISOString()); bump(path); };
   api.list = col => [...docs.entries()].filter(([p]) => p.startsWith(col + '/') && p.split('/').length === 2).map(([p, f]) => ({ id: p.split('/')[1], ...decodeFields(f) }));
   api.peek = path => (docs.has(path) ? decodeFields(docs.get(path)) : undefined);
   api.count = suffix => api.calls.filter(c => c.url.endsWith(suffix)).length;
@@ -85,7 +85,7 @@ function miniFirestore() {
       const parent = rest === ':runQuery' ? '' : rest.slice(1, -':runQuery'.length).split('/').map(decodeURIComponent).join('/');
       const inScope = parts => (all ? parts.length % 2 === 0 && parts[parts.length - 2] === col : (parent ? parts.length === parent.split('/').length + 2 && parts[parts.length - 2] === col : parts.length === 2 && parts[0] === col));
       let out = [];
-      for (const [p, f] of docs) { const parts = p.split('/'); if (inScope(parts) && (!parent || p.startsWith(parent + '/' + col + '/')) && matches(f, sq.where)) out.push({ document: { name: ROOT + '/' + p, fields: f, createTime: created.get(p) }, readTime: 'x' }); }
+      for (const [p, f] of docs) { const parts = p.split('/'); if (inScope(parts) && (!parent || p.startsWith(parent + '/' + col + '/')) && matches(f, sq.where)) out.push({ document: { name: ROOT + '/' + p, fields: f, createTime: created.get(p), updateTime: updated.get(p) || created.get(p) }, readTime: 'x' }); }
       if (sq.orderBy) {
         const keys = sq.orderBy.map(o => ({ path: segs(o.field.fieldPath), desc: o.direction === 'DESCENDING' }));
         out = out.filter(r => keys.every(k => getAt(r.document.fields, k.path) !== undefined));      // Firestore leaves out documents missing the sort field
@@ -101,7 +101,7 @@ function miniFirestore() {
         const t = query.get('transaction');
         if (t) { const tx = txs.get(t); if (!tx) return err(400, 'unknown transaction'); if (!tx.reads.has(p)) tx.reads.set(p, ver.get(p) || 0); }
         const fm = query.getAll('mask.fieldPaths');
-        return docs.has(p) ? json(200, { name: ROOT + '/' + p, fields: fm.length ? project(docs.get(p), fm) : docs.get(p), createTime: created.get(p) }) : err(404, 'not found');
+        return docs.has(p) ? json(200, { name: ROOT + '/' + p, fields: fm.length ? project(docs.get(p), fm) : docs.get(p), createTime: created.get(p), updateTime: updated.get(p) || created.get(p) }) : err(404, 'not found');
       }
       if (method === 'DELETE') { docs.delete(p); bump(p); return json(200, {}); }
       if (method === 'PATCH') {
@@ -173,7 +173,7 @@ const signJwt = async (priv, header, payload) => {
 };
 const idToken = (over = {}) => {
   const now = Math.floor(Date.now() / 1000);
-  return signJwt(idKeys.privateKey, { alg: 'RS256', kid: 'k1', typ: 'JWT' }, { aud: 'bajeti-yanga', iss: 'https://securetoken.google.com/bajeti-yanga', sub: 'u1', email: 'a@x.com', iat: now - 5, exp: now + 3600, ...over });
+  return signJwt(idKeys.privateKey, { alg: 'RS256', kid: 'k1', typ: 'JWT' }, { aud: 'bajeti-yanga', iss: 'https://securetoken.google.com/bajeti-yanga', sub: 'u1', email: 'a@x.com', email_verified: true, firebase: { sign_in_provider: 'google.com' }, iat: now - 5, exp: now + 3600, ...over });   // like a real Google sign-in token
 };
 const jwkFetch = async () => json(200, { keys: [idJwk] });
 async function verifyAssertion(assertion) {                     // what Google's token endpoint would check
@@ -252,6 +252,16 @@ section('checking who is asking (app sign-in token)');
   await throwsAsync('a token with edited contents is refused', () => verifyFirebaseToken(forged, env, jwkFetch), 'bad signature');
   await throwsAsync('a token signed with a different key is refused', async () => verifyFirebaseToken(await signJwt((await rsa()).privateKey, { alg: 'RS256', kid: 'k1' }, { aud: 'bajeti-yanga', iss: 'https://securetoken.google.com/bajeti-yanga', sub: 'u1', iat: 1, exp: 9999999999 }), env, jwkFetch), 'bad signature');
   await throwsAsync('junk is refused', () => verifyFirebaseToken('abc', env, jwkFetch), 'malformed');
+  // Anyone can forge a token that names a key id we do not know. That must not turn into a request to Google each time.
+  resetKeyCache(); let jwkCalls = 0;
+  const countingFetch = async (...a) => { jwkCalls++; return jwkFetch(...a); };
+  const nowS = Math.floor(Date.now() / 1000);
+  for (let i = 0; i < 5; i++) {
+    const t = await signJwt(idKeys.privateKey, { alg: 'RS256', kid: 'forged' + i, typ: 'JWT' }, { aud: 'bajeti-yanga', iss: 'https://securetoken.google.com/bajeti-yanga', sub: 'x', iat: nowS - 5, exp: nowS + 3600 });
+    await throwsAsync('forged token with an unknown key id #' + i + ' is refused', () => verifyFirebaseToken(t, env, countingFetch), 'unknown key id');
+  }
+  eq('five forged tokens with five different key ids cause ONE reload of Google keys, not five', jwkCalls, 1);
+  eq('a real token still works, with no further reload', [(await verifyFirebaseToken(await idToken(), env, countingFetch)).uid, jwkCalls], ['u1', 1]);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -655,7 +665,16 @@ section('admin console: looking');
   eq('Chipereganyu: overdue first', c.rows.map(r => r.id), ['GRP1', 'GRP2']);
   eq('counts only: overdue days, contributors, paid, sent-not-confirmed, stuck, members', [c.rows[0].overdueDays, c.rows[0].contributors, c.rows[0].paid, c.rows[0].sentNotConfirmed, c.rows[0].stuck, c.rows[0].members], [4, 2, 1, 1, 1, 3]);
   eq('Chipereganyu summary', c.summary, { total: 2, byStatus: { active: 1, gathering: 1 }, overdue: 1, stuck: 1 });
-  ok('no member names or amounts-per-person', !JSON.stringify(c).includes('ben@x.com') && !JSON.stringify(c).includes('"u2"'));
+  ok('no member names or amounts-per-person', !JSON.stringify(c).includes('ben@x.com') && !JSON.stringify(c).includes('\"u2\"'));
+  // A circle admin can write ANY text into currentCycle.lap (the rules do not limit extra fields). It must come out as a number or nothing.
+  world.fs.seed('chipereganyu_groups/GRPX', { name: 'Evil', status: 'active', createdBy: 'u1', memberUids: ['u1'], currentCycle: { cycleNumber: '<b>1</b>', lap: '<img src=x onerror=alert(1)>', dueDate: '2026-11-01', contributions: {} } });
+  world.fs.seed('chipereganyu_groups/GRPY', { name: 'Fine', status: 'active', createdBy: 'u1', memberUids: ['u1'], currentCycle: { cycleNumber: 3, lap: 2, dueDate: '2026-11-01', contributions: {} } });
+  world.fs.seed('chipereganyu_groups/GRPZ', { name: 'Odd', status: 'active', createdBy: 'u1', memberUids: ['u1'], currentCycle: { cycleNumber: 2.5, lap: -4, dueDate: '2026-11-01', contributions: {} } });
+  const cx = (await adm('chipereganyu', { fresh: true })).body, rowOf = id => cx.rows.find(r => r.id === id);
+  eq('circle round and lap: text becomes nothing', [rowOf('GRPX').cycle, rowOf('GRPX').lap], [null, null]);
+  eq('circle round and lap: real whole numbers still show', [rowOf('GRPY').cycle, rowOf('GRPY').lap], [3, 2]);
+  eq('circle round and lap: fractions and negatives become nothing', [rowOf('GRPZ').cycle, rowOf('GRPZ').lap], [null, null]);
+  ok('nothing the Worker sends contains markup from a circle', !JSON.stringify(cx).includes('<img') && !JSON.stringify(cx).includes('<b>'));
 }
 
 section('admin console: Premium changes');
@@ -884,6 +903,41 @@ section('AI: Premium only, on the server');
   eq('the browser may send the household and feature headers', (await call('/chat', { method: 'OPTIONS', headers: { Origin: 'https://rodart265.github.io' } }, AIENV)).headers.get('Access-Control-Allow-Headers').includes('X-Household'), true);
 }
 
+section('AI: abuse limits (pictures, body size, output length, accounts that are not Google)');
+{
+  aiWorld();
+  const pic = len => ({ inline_data: { mime_type: 'image/jpeg', data: 'A'.repeat(len) } });
+  const ask = parts => ({ contents: [{ parts }] });
+  eq('one picture is fine; three pictures in one request are refused', [(await chat(ask([{ text: 'x' }, pic(4)]))).status, (await chat(ask([pic(4), pic(4), pic(4)]))).status], [200, 400]);
+  eq('one picture over the size limit is refused', (await chat(ask([pic(8000001)]))).status, 400);
+  eq('a picture hidden inside the system prompt is refused', (await chat({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }], systemInstruction: { parts: [pic(4)] } })).status, 400);
+  world.gem.calls.length = 0;
+  await chat(undefined);
+  eq('output length is capped at 4096 even when the caller says nothing', world.gem.calls[0].body.generationConfig, { maxOutputTokens: 4096 });
+  // A sender can leave out Content-Length. The size limit must still stop the body.
+  clearPremiumCache(); world.gem.calls.length = 0;
+  const big = new ReadableStream({ start(c) { for (let i = 0; i < 14; i++) c.enqueue(new Uint8Array(1024 * 1024)); c.close(); } });
+  const rBig = await call('/chat', { method: 'POST', headers: { Authorization: 'Bearer ' + await idToken(), 'Content-Type': 'application/json', Origin: 'https://rodart265.github.io', 'X-Household': 'HHP' }, body: big, duplex: 'half' }, AIENV);
+  eq('a 14 MB body sent with NO Content-Length header is stopped, nothing goes to Gemini', [rBig.status, world.gem.calls.length], [413, 0]);
+  eq('anonymous sign-in is refused', (await chat(undefined, { token: await idToken({ firebase: { sign_in_provider: 'anonymous' }, email_verified: false, email: undefined }) })).status, 401);
+  eq('a token that does not say how the person signed in is refused', (await chat(undefined, { token: await idToken({ firebase: {}, email_verified: false }) })).status, 401);
+  eq('a Google sign-in is accepted', (await chat(undefined, { token: await idToken({ firebase: { sign_in_provider: 'google.com' }, email_verified: true }) })).status, 200);
+}
+
+import { readFileSync } from 'node:fs';
+section('admin page: circle table cannot be made to show markup (stored-XSS regression)');
+{
+  // Runs the REAL esc, badge and chipTable lines from admin/admin.js, with the other helpers stubbed.
+  const src = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  const grab = name => { const m = new RegExp('^[ \\t]*const ' + name + ' = [^\\n]*$', 'm').exec(src); if (!m) throw new Error('admin/admin.js: "' + name + '" not found'); return m[0]; };
+  const chipTable = new Function('DASH', 'money', 'fmtYmd', 'ROW_CAP', 'cap', [grab('esc'), grab('badge'), grab('chipTable')].join('\n') + '\nreturn chipTable;')('-', n => 'MK ' + n, d => d, 100, () => '');
+  const evil = '<img src=x onerror=alert(1)>';
+  const html = chipTable([{ id: 'g1', name: evil, status: evil, frequency: evil, amount: 1, admin: evil, members: evil, cycle: evil, lap: evil, dueDate: '2026-11-01', overdueDays: evil, contributors: evil, paid: evil, sentNotConfirmed: evil, stuck: evil }]);
+  ok('hostile text in any circle field is shown as plain text, never as an element', !html.includes('<img') && html.includes('&lt;img src=x onerror=alert(1)&gt;'), html.slice(0, 300));
+  const good = chipTable([{ id: 'g2', name: 'Umodzi', status: 'active', frequency: 'monthly', amount: 20000, admin: 'Ann', members: 3, cycle: 3, lap: 2, dueDate: '2026-11-01', overdueDays: 4, contributors: 2, paid: 1, sentNotConfirmed: 1, stuck: 0 }]);
+  ok('a normal circle still shows round, lap, paid and waiting', good.includes('Round 3, lap 2') && good.includes('1/2') && good.includes('4 d late'), good.slice(0, 400));
+}
+
 section('AI: daily limits are counted on the server and fail closed');
 {
   aiWorld();
@@ -913,6 +967,7 @@ section('households: made by the Worker (one trial per account, limit of 3)');
   eq('no config', (await mk('abcd1234', { config: null })).status, 400);
   eq('config far too big', (await mk('abcd1234', { config: { x: 'y'.repeat(310000) } })).status, 413);
   eq('unverified e-mail account', (await mk('abcd1234', {}, await idToken({ firebase: { sign_in_provider: 'password' }, email_verified: false }))).status, 403);
+  eq('anonymous account cannot create a household', (await mk('abcd1235', {}, await idToken({ firebase: { sign_in_provider: 'anonymous' }, email_verified: false, email: undefined }))).status, 403);
   const a = await mk('abcd1234', { config: { overallBudget: 5, isPremium: true, premiumExpiry: '2099-01-01', trialStarted: 'x' } });
   const ab = await a.json();
   const h1 = world.fs.peek('households/abcd1234'), u1 = world.fs.peek('users/u1');
@@ -1016,8 +1071,10 @@ section('clean-up: dry run first, then really');
     fs.seed('households/HHB', { owner: 'userb', memberUids: ['userb'], deletedAt: DAYS(10), config: {} });            // still inside the 30 days
     fs.seed('households/HHB/purchases/p1', { amount: 1 });
     fs.seed('households/HHC', { owner: 'userc', memberUids: ['userc'], deletedAt: null, config: {} });                // restored
-    fs.seed('households/HHC/purchases/old', { amount: 2, deletedAt: iso(45), deleted: true });                  // trash older than 30 days
-    fs.seed('households/HHC/purchases/recent', { amount: 3, deletedAt: iso(5), deleted: true });                // trash, still kept
+    fs.seed('households/HHC/purchases/old', { amount: 2, deletedAt: iso(45), deleted: true }, undefined, Date.now() - 45 * DAY);                  // trash older than 30 days
+    fs.seed('households/HHC/purchases/recent', { amount: 3, deletedAt: iso(5), deleted: true }, undefined, Date.now() - 5 * DAY);
+    // a phone with a wrong date wrote an old deletedAt, but the SERVER saw the change only yesterday: must be held back
+    fs.seed('households/HHC/purchases/wrongclock', { amount: 6, deletedAt: iso(45), deleted: true }, undefined, Date.now() - 1 * DAY);                // trash, still kept
     fs.seed('households/HHC/purchases/live', { amount: 4, deletedAt: null, deleted: false });
     fs.seed('households/HHC/purchases/never', { amount: 5 });
     fs.seed('users/usera', { pendingDeletion: true, deletedAt: DAYS(31) });
@@ -1039,6 +1096,7 @@ section('clean-up: dry run first, then really');
   const live = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, { ...ENV, PURGE_MODE: 'delete' }, ctx);
   eq('live: it reports', [live.mode, live.trash.removed, live.households.erased, live.accounts.erased], ['delete', 1, 1, 1]);
   eq('trash older than 30 days is gone; newer, live and untouched entries stay', [!!world.fs.peek('households/HHC/purchases/old'), !!world.fs.peek('households/HHC/purchases/recent'), !!world.fs.peek('households/HHC/purchases/live'), !!world.fs.peek('households/HHC/purchases/never')], [false, true, true, true]);
+  eq('a trashed entry whose phone clock was wrong (old deletedAt, but the server saw it change yesterday) is NOT erased', !!world.fs.peek('households/HHC/purchases/wrongclock'), true);
   eq('the deleted household and everything inside is gone', ['households/HHA', 'households/HHA/purchases/p1', 'households/HHA/items/i1', 'households/HHA/bills/b1', 'households/HHA/joinRequests/x', 'invites/HHA', 'invites/HHA/approved/x'].map(p => !!world.fs.peek(p)), Array(7).fill(false));
   eq('a household still inside its 30 days, and a restored one, are untouched', [!!world.fs.peek('households/HHB'), !!world.fs.peek('households/HHB/purchases/p1'), !!world.fs.peek('households/HHC')], [true, true, true]);
   eq('the account is erased: sign-in and profile', [world.idt.users.map(u => u.localId), !!world.fs.peek('users/usera')], [['userb'], false]);
