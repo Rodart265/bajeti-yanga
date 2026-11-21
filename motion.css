@@ -10,6 +10,8 @@
 @keyframes mo-rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes mo-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes mo-ring{from{stroke-dashoffset:201.06}}
+@keyframes mo-seg{from{stroke-dasharray:0 1000}}
+@keyframes mo-pop{from{opacity:0;transform:scale(.6) rotate(-40deg)}to{opacity:1;transform:none}}
 @keyframes mo-bounce{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-5px) scale(1.22)}65%{transform:translateY(1px) scale(.94)}100%{transform:translateY(0) scale(1.08)}}
 
 @media (prefers-reduced-motion:no-preference){
@@ -25,8 +27,25 @@
   #view.mo-in .page>*:nth-child(5){animation-delay:calc(280ms*var(--mo-t))}
   #view.mo-in .page>*:nth-child(6){animation-delay:calc(350ms*var(--mo-t))}
   #view.mo-in .page>*:nth-child(n+7){animation-delay:calc(420ms*var(--mo-t))}
-  #view.mo-in .h2-bar span,#view.mo-in .pf{transform-origin:left center;animation:mo-fill calc(.85s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(260ms*var(--mo-t)) backwards}
+  #view.mo-in .h2-bar span,#view.mo-in .pf,#view.mo-in .mg-pf,#view.mo-in .goal-fill{transform-origin:left center;animation:mo-fill calc(.85s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(260ms*var(--mo-t)) backwards}
   #view.mo-in .h2-ring svg circle:nth-child(2){animation:mo-ring calc(.95s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(250ms*var(--mo-t)) backwards}
+
+  /* Rows inside cards come in one after another (first eight only) */
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(-n+8){animation:mo-rise calc(.4s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(1){animation-delay:calc(160ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(2){animation-delay:calc(210ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(3){animation-delay:calc(260ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(4){animation-delay:calc(310ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(5){animation-delay:calc(360ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(n+6){animation-delay:calc(400ms*var(--mo-t))}
+
+  /* The donut chart: each slice grows round the ring, and the middle label fades in */
+  #view.mo-in svg[viewBox="0 0 140 140"] circle[stroke-dasharray]{animation:mo-seg calc(.9s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(200ms*var(--mo-t)) backwards}
+  #view.mo-in svg[viewBox="0 0 140 140"] text{animation:mo-rise calc(.5s*var(--mo-t)) ease calc(600ms*var(--mo-t)) backwards}
+
+  /* Chat: the conversation and the message box arrive */
+  #view.mo-in .chat-msgs .bubble-wrap{animation:mo-rise calc(.45s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(100ms*var(--mo-t)) backwards}
+  #view.mo-in .chat-footer{animation:mo-rise calc(.5s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(180ms*var(--mo-t)) backwards}
 
   /* 3. Press feedback: buttons dip a little under the finger */
   .nb,.btn,.chip,.sec-link,.pri,.stg-row,.lbtn{transition-property:transform,background,color,opacity;transition-duration:calc(.12s*var(--mo-t))}
