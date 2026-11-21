@@ -951,3 +951,10 @@ body.dark .pm-foot{background:#17212C}
 /* v9.20.3: say it in words when the connection is down */
 .sync-txt{font-size:var(--fs-xs);font-weight:700;color:#fff;margin-left:5px;white-space:nowrap}
 .sync-txt:empty{display:none}
+
+/* v9.20.3: History "..." menu */
+.hmenu-wrap{position:relative;display:flex;justify-content:flex-end;margin-bottom:8px}
+.hmenu-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;color:var(--mid);cursor:pointer}
+.hmenu{position:absolute;right:0;top:48px;z-index:20;background:var(--white);border:1px solid var(--border);border-radius:var(--cr-md);box-shadow:var(--sh);min-width:220px;padding:6px}
+.hmenu button{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 12px;background:none;border:0;border-radius:var(--cr-sm);font:inherit;font-weight:700;font-size:var(--fs-md);color:var(--ink);cursor:pointer;text-align:left}
+.hmenu button.danger{color:var(--neg)}

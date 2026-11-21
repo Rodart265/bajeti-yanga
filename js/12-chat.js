@@ -49,17 +49,17 @@ function rChat(){
   const attachIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
   const firstName = curUser&&curUser.displayName ? curUser.displayName.split(' ')[0] : (isCW?'kumeneko':'there');
   const greeting = isCW ? (curUser&&curUser.displayName ? 'Moni, '+firstName+'!' : 'Moni kumeneko!') : 'Hey, '+firstName+'!';
-  const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI, your personal budget partner!";
+  const subText = isCW ? 'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!' : "I'm Bajeti AI. Ask me anything about your budget.";
   const suggestions = isCW ? [
     {icon:'trending-up',color:'var(--pos)',txt:'Kodi ndikuchita bwanji mwezi uno?'},
-    {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
-    {icon:'target',color:'var(--b1)',txt:'Kodi ndingathe malipiro anga?'},
-    {icon:'lightbulb',color:'var(--gold-ink)',txt:'Ndipatseni malangizo obisa ndalama'},
+    {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Ndalama zanga zambiri zapita kuti mwezi uno?'},
+    {icon:'target',color:'var(--b1)',txt:'Ndingawononge ndalama zingati patsiku mpaka tsiku la malipiro?'},
+    {icon:'lightbulb',color:'var(--gold-ink)',txt:'Ndingachepetse bwanji ndalama za makala, airtime ndi mayendedwe?'},
   ] : [
     {icon:'trending-up',color:'var(--pos)',txt:'How am I doing this month?'},
-    {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Where am I overspending?'},
-    {icon:'target',color:'var(--b1)',txt:'Can I afford my savings goals?'},
-    {icon:'lightbulb',color:'var(--gold-ink)',txt:'Give me tips to cut costs'},
+    {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Where did most of my money go this month?'},
+    {icon:'target',color:'var(--b1)',txt:'How much can I spend each day until payday?'},
+    {icon:'lightbulb',color:'var(--gold-ink)',txt:'How can I spend less on charcoal, airtime and transport?'},
   ];
   // Build the chrome — renderBubbles() owns #chat-msgs content entirely, no heroHtml here
   setView(
@@ -182,17 +182,17 @@ function renderBubbles(){
     const u=actU();
     const firstName=curUser&&curUser.displayName?curUser.displayName.split(' ')[0]:(isCW?'kumeneko':'there');
     const greeting=isCW?(curUser&&curUser.displayName?'Moni, '+firstName+'!':'Moni kumeneko!'):'Hey, '+firstName+'!';
-    const subText=isCW?'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!':"I'm Bajeti AI, your personal budget partner!";
+    const subText=isCW?'Ine ndine Bajeti AI. Funsani chilichonse pa bajeti yanu!':"I'm Bajeti AI. Ask me anything about your budget.";
     const suggs=isCW?[
       {icon:'trending-up',color:'var(--pos)',txt:'Kodi ndikuchita bwanji mwezi uno?'},
-      {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Kodi ndikupita kupitirira bajeti yanga?'},
-      {icon:'target',color:'var(--b1)',txt:'Kodi ndingathe malipiro anga?'},
-      {icon:'lightbulb',color:'var(--gold-ink)',txt:'Ndipatseni malangizo obisa ndalama'},
+      {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Ndalama zanga zambiri zapita kuti mwezi uno?'},
+      {icon:'target',color:'var(--b1)',txt:'Ndingawononge ndalama zingati patsiku mpaka tsiku la malipiro?'},
+      {icon:'lightbulb',color:'var(--gold-ink)',txt:'Ndingachepetse bwanji ndalama za makala, airtime ndi mayendedwe?'},
     ]:[
       {icon:'trending-up',color:'var(--pos)',txt:'How am I doing this month?'},
-      {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Where am I overspending?'},
-      {icon:'target',color:'var(--b1)',txt:'Can I afford my savings goals?'},
-      {icon:'lightbulb',color:'var(--gold-ink)',txt:'Give me tips to cut costs'},
+      {icon:'alert-triangle',color:'var(--gold-ink)',txt:'Where did most of my money go this month?'},
+      {icon:'target',color:'var(--b1)',txt:'How much can I spend each day until payday?'},
+      {icon:'lightbulb',color:'var(--gold-ink)',txt:'How can I spend less on charcoal, airtime and transport?'},
     ];
     el.innerHTML=
       '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 20px 8px;flex-shrink:0">'

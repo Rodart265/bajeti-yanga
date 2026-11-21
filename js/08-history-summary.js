@@ -39,11 +39,12 @@ function rHist(){
     h+=monthNav('mnav hist-mnav');
   }
 
-  // Action buttons row
-  h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
-  h+='<button class="bsm be" style="flex:1;padding:10px;font-size:.75rem" onclick="copyPreviousMonth()"><i data-lucide="copy" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:var(--p1-text)"></i> '+(isCW?'Koperani za Mwezi Wapita':'Copy Last Month')+lockBadge(10)+'</button>';
-  h+='<button class="bsm bd" style="padding:10px;font-size:.75rem" onclick="openTrash()"><i data-lucide="trash-2" class="ic14m4"></i> '+(isCW?'Zochotsedwa':'Trash')+lockBadge(10)+'</button>';
-  h+='</div>';
+  // Copy last month and Trash are used rarely: they live in a "..." menu instead of two large buttons
+  h+='<div class="hmenu-wrap"><button type="button" class="hmenu-btn" aria-label="'+L('More','Zina')+'" aria-haspopup="true" aria-expanded="false" onclick="toggleHMenu(this)"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button>'
+    +'<div class="hmenu hide" id="hmenu" role="menu">'
+    +'<button type="button" role="menuitem" onclick="hideHMenu();copyPreviousMonth()"><i data-lucide="copy" class="ic14m4"></i> '+(isCW?'Koperani za Mwezi Wapita':'Copy last month')+lockBadge(10)+'</button>'
+    +'<button type="button" role="menuitem" class="danger" onclick="hideHMenu();openTrash()"><i data-lucide="trash-2" class="ic14m4"></i> '+(isCW?'Zochotsedwa':'Trash')+lockBadge(10)+'</button>'
+    +'</div></div>';
 
   // Running totals strip
   if(list.length>0){
@@ -175,6 +176,15 @@ function doDel(id){
   );
 }
 
+function toggleHMenu(btn){
+  const m=g('hmenu'); if(!m) return;
+  const opening=m.classList.contains('hide');
+  m.classList.toggle('hide',!opening);
+  btn.setAttribute('aria-expanded',opening?'true':'false');
+  if(opening) setTimeout(function(){ document.addEventListener('click',_hmOutside,{once:true}); },0);
+}
+function _hmOutside(e){ if(e.target.closest&&e.target.closest('.hmenu-wrap')) return; hideHMenu(); }
+function hideHMenu(){ const m=g('hmenu'); if(m) m.classList.add('hide'); const b=document.querySelector('.hmenu-btn'); if(b) b.setAttribute('aria-expanded','false'); }
 function openTrash(){
   premiumGate('trash', function(){
     const trashed=lPx.filter(function(p){return p.deleted;});
