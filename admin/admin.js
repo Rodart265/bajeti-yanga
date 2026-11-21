@@ -107,7 +107,7 @@
   async function render(force) {
     const page = (location.hash || '#overview').slice(1);
     S.page = PAGES[page] ? page : 'overview';
-    drawNav(); closeMenu();
+    drawNav(); closeMenu(); gsClose(true);
     $('pageTitle').textContent = (NAV.find(n => n[0] === S.page) || NAV[0])[1];
     const v = $('view');
     v.innerHTML = '<div class="grid tiles"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
@@ -161,6 +161,28 @@
   const stamp = () => new Date().toISOString().slice(0, 10);
 
   // ── pages ──────────────────────────────────────────────────────────────────
+  // Greeting on the Overview page. Add a role or an email to GREET_NAME to show a first name; anyone not listed gets no name.
+  const GREET_NAME = { owner: 'Rodrick' };
+  const hourNow = () => Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: TZ }).format(new Date()));
+  function greeting() {
+    const h = hourNow(), part = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    const name = S.me && (GREET_NAME[S.me.email] || GREET_NAME[S.me.role]);
+    return name ? part + ', ' + name : part;
+  }
+  const todayLine = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ });
+  // One timeline of new sign-ups and admin changes on the Overview page, newest first, with tabs to show just one kind.
+  const FEED_ICON = a => (a.startsWith('premium_') ? ['star', 'premium'] : a.startsWith('payment_') ? ['card', 'payment'] : a.startsWith('user_') ? ['users', 'account'] : a.startsWith('announcement_') || a === 'settings_save' ? ['mega', 'notice'] : a === 'denied' ? ['alert', 'denied'] : ['log', 'notice']);
+  function activityFeed(o) {
+    const items = [].concat(
+      (o.recentSignups || []).map(x => ({ t: x.created, kind: 'user', ic: 'users', tone: 'signup', title: x.name, sub: 'New sign-up' })),
+      (o.recentLog || []).map(x => { const [ic, tone] = FEED_ICON(x.action || ''); return { t: x.atMs, kind: 'admin', ic, tone, title: actionLabel(x.action), sub: (x.by || '') + (x.target ? ' · ' + x.target : '') }; })
+    ).filter(x => x.t).sort((a, b) => b.t - a.t).slice(0, 12);
+    const tabs = [['all', 'All'], ['user', 'New users'], ['admin', 'Admin changes']].map(([id, l]) => `<button type="button" class="chip${id === 'all' ? ' on' : ''}" data-a="feed-tab" data-id="${id}">${l}</button>`).join('');
+    const rows = items.map(x => `<div class="li feed-li" data-kind="${x.kind}"><span class="feed-ic tone-${x.tone}">${icon(x.ic)}</span><div class="feed-tx"><div class="t">${esc(x.title)}</div><div class="s">${esc(x.sub)}</div></div><div class="s feed-when">${esc(ago(x.t))}</div></div>`).join('');
+    return `<article class="card feed" data-show="all" style="margin-top:12px"><div class="card-head"><div><h3>Recent activity</h3><p class="muted small">Sign-ups and admin changes</p></div><button class="btn ghost sm" type="button" data-a="go" data-id="activity">Activity log</button></div>
+      <div class="chips" role="group" aria-label="Show">${tabs}</div>
+      ${rows ? `<div class="list feed-list">${rows}</div><p class="muted feed-none" hidden>Nothing of this kind yet.</p>` : '<p class="muted" style="margin-top:10px">Nothing yet. New sign-ups and every change made here show up in this list.</p>'}</article>`;
+  }
   const PAGES = {};
 
   PAGES.overview = async force => {
@@ -170,7 +192,7 @@
     const attn = o.attention.total
       ? `<button type="button" class="banner ${o.attention.high ? 'bad' : 'warn'}" style="width:100%;text-align:left;cursor:pointer" data-a="go" data-id="attention"><b>${o.attention.total} thing${o.attention.total === 1 ? '' : 's'} need${o.attention.total === 1 ? 's' : ''} a look</b>${o.attention.high ? ` (${o.attention.high} urgent)` : ''}. ${esc(o.attention.items[0].title)}. Tap to review.</button>`
       : '<div class="banner good">Nothing needs attention. Payments and Premium dates look consistent.</div>';
-    return `${header('Overview', 'How Bajeti Yanga is doing right now.')}${authBanner(o.auth)}${attn}
+    return `${header(greeting(), todayLine() + '. How Bajeti Yanga is doing right now.')}${authBanner(o.auth)}${attn}
       <div class="grid tiles">
         ${tile('Users', num(u.total), u.last7 === null ? '' : '+' + u.last7 + ' this week', { go: 'users' })}
         ${tile('Active this week', num(u.active7), u.active30 === null ? '' : num(u.active30) + ' in 30 days', { go: 'users' })}
@@ -196,10 +218,8 @@
             <dt>Average month</dt><dd>${money(r.avgMonthly3)} <span class="muted">over the last 3 full months</span></dd>
           </dl></article>
       </div>
-      <div class="grid two" style="margin-top:12px">
-        <article class="card"><div class="card-head"><h3>Newest users</h3></div>${o.recentSignups.length ? `<div class="list">${o.recentSignups.map(x => `<div class="li"><div class="t">${esc(x.name)}</div><div class="s">${esc(ago(x.created))}</div></div>`).join('')}</div>` : '<p class="muted">Not available until the sign-in list is connected.</p>'}</article>
-        <article class="card"><div class="card-head"><h3>Latest admin activity</h3><button class="btn ghost sm" type="button" data-a="go" data-id="activity">All</button></div>${o.recentLog.length ? `<div class="list">${o.recentLog.map(x => `<div class="li"><div><div class="t">${esc(actionLabel(x.action))}</div><div class="s">${esc(x.by || '')}${x.target ? ' · ' + esc(x.target) : ''}</div></div><div class="s">${esc(ago(x.atMs))}</div></div>`).join('')}</div>` : '<p class="muted">Nothing yet. Every change made here shows up in this list.</p>'}</article>
-      </div>${noteTrunc(r.truncated)}`;
+      ${activityFeed(o)}
+      ${noteTrunc(r.truncated)}`;
   };
 
   PAGES.attention = async force => {
@@ -518,6 +538,7 @@
     else if (key === 'chip') l.innerHTML = chipTable(chipFilter(d.rows)); else l.innerHTML = logTable(logFilter(d.rows));
   };
   const CLICK = {
+    'feed-tab': el => { const c = el.closest('.feed'); if (!c) return; const id = el.dataset.id; c.dataset.show = id; c.querySelectorAll('.chips .chip').forEach(x => x.classList.toggle('on', x === el)); const n = c.querySelector('.feed-none'); if (n) n.hidden = id === 'all' || !!c.querySelector('.feed-li[data-kind="' + id + '"]'); },
     go: el => go(el.dataset.id), reload: () => { forget(); render(true); }, resign: async () => { if (await reauth()) { toast('Signed in again.'); const n = document.querySelector('#drawerBody [data-fresh]'); if (n) n.innerHTML = ''; } },
     chip: el => { const k = el.dataset.key; S.f[k] = { ...(S.f[k] || {}), chip: el.dataset.id }; el.closest('.chips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el)); redraw(k); },
     'open-hh': el => openHousehold(el.dataset.id), 'open-pay': el => openPayment(el.dataset.id), 'open-user': el => openUser(el.dataset.id),
@@ -551,6 +572,59 @@
     else if (el.dataset.a === 'pf-amt' || el.id === 'pf-amt') { el.dataset.touched = '1'; }
   });
   document.addEventListener('change', e => { if (['pf-mode', 'pf-months', 'pf-rec'].includes(e.target.dataset.a)) syncPf(); });
+  // ── search everything (top bar) ────────────────────────────────────────────
+  // Looks through households, accounts and payments that are already loaded for the other pages. Nothing new is stored.
+  const gsKinds = { hh: 'Households', us: 'Accounts', pay: 'Payments' };
+  let gsTimer, gsLoading = null;
+  function gsLoad() {
+    if (gsLoading) return gsLoading;
+    gsLoading = Promise.allSettled([get('households'), get('users'), get('payments', { limit: 1000 })]).then(r => { gsLoading = null; return r; });
+    return gsLoading;
+  }
+  function gsRows(q) {
+    const has = (r, keys) => keys.some(k => r[k] && String(r[k]).toLowerCase().includes(q));
+    const hh = (S.data['households{}'] || { rows: [] }).rows.filter(r => has(r, ['id', 'name', 'ownerName'])).slice(0, 5);
+    const us = (S.data['users{}'] || { rows: [] }).rows.filter(r => has(r, ['name', 'uid'])).slice(0, 5);
+    const pay = (S.data['payments{"limit":1000}'] || { rows: [] }).rows.filter(r => has(r, ['id', 'who', 'householdId'])).slice(0, 5);
+    return { hh, us, pay };
+  }
+  function gsDraw(q) {
+    const out = $('gsOut'); if (!out) return;
+    out.hidden = false;
+    if (q.length < 2) { out.innerHTML = '<p class="gs-note">Type at least 2 letters. You can search a household code, a name, an email or phone, or a payment reference.</p>'; return; }
+    const { hh, us, pay } = gsRows(q);
+    const item = (t, id, main, sub, badgeHtml) => `<button type="button" class="gs-item" data-a="gs-open" data-t="${t}" data-id="${esc(id)}"><span class="gs-main"><b>${esc(main)}</b><small>${esc(sub)}</small></span>${badgeHtml || ''}</button>`;
+    const parts = [];
+    if (hh.length) parts.push(`<div class="gs-group"><div class="gs-head">${gsKinds.hh}</div>${hh.map(r => item('hh', r.id, r.id + (r.name ? ' · ' + r.name : ''), r.ownerName || 'no owner', r.deleted ? badge('low', 'Deleted') : stateBadge(r))).join('')}</div>`);
+    if (us.length) parts.push(`<div class="gs-group"><div class="gs-head">${gsKinds.us}</div>${us.map(r => item('us', r.uid, r.name, 'Last seen ' + ago(r.lastSignIn), r.disabled ? badge('disabled', 'Disabled') : '')).join('')}</div>`);
+    if (pay.length) parts.push(`<div class="gs-group"><div class="gs-head">${gsKinds.pay}</div>${pay.map(r => item('pay', r.id, money(r.amount) + ' · ' + (r.who || DASH), fmtDateTime(r.paidAtMs || r.createdAtMs) + ' · ' + r.id, badge(r.status))).join('')}</div>`);
+    out.innerHTML = parts.join('') || '<p class="gs-note">Nothing found. Phone numbers only match if the person signed up with that number.</p>';
+  }
+  async function gsRun() {
+    const q = $('gsInput').value.trim().toLowerCase();
+    if (q.length < 2) { gsDraw(q); return; }
+    if (!S.data['households{}'] || !S.data['users{}'] || !S.data['payments{"limit":1000}']) { $('gsOut').hidden = false; $('gsOut').innerHTML = '<p class="gs-note">Loading...</p>'; await gsLoad(); if ($('gsInput').value.trim().toLowerCase() !== q) return; }
+    gsDraw(q);
+  }
+  function gsOpen() { $('gsearch').classList.add('open'); document.querySelector('.topbar').classList.add('searching'); $('gsBtn').setAttribute('aria-expanded', 'true'); $('gsInput').focus(); gsLoad(); gsRun(); }
+  function gsClose(clear) { const g = $('gsearch'); if (!g) return; g.classList.remove('open'); document.querySelector('.topbar').classList.remove('searching'); $('gsBtn').setAttribute('aria-expanded', 'false'); $('gsOut').hidden = true; if (clear) $('gsInput').value = ''; }
+  CLICK['gs-open'] = el => { const f = { hh: openHousehold, us: openUser, pay: openPayment }[el.dataset.t]; gsClose(true); if (f) f(el.dataset.id); };
+  CLICK['gs-toggle'] = () => ($('gsearch').classList.contains('open') ? gsClose(true) : gsOpen());
+  document.addEventListener('input', e => { if (e.target.id === 'gsInput') { clearTimeout(gsTimer); gsTimer = setTimeout(gsRun, 120); } });
+  document.addEventListener('focusin', e => { if (e.target.id === 'gsInput') { gsLoad(); gsRun(); } });
+  document.addEventListener('click', e => { if (!e.target.closest('#gsearch')) { const g = $('gsearch'); if (g && !$('gsOut').hidden) gsClose(false); } });
+  document.addEventListener('keydown', e => {
+    const inp = $('gsInput'); if (!inp) return;
+    if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) && !$('appView').hidden) { e.preventDefault(); gsOpen(); return; }
+    if (document.activeElement === inp || ($('gsOut') && $('gsOut').contains(document.activeElement))) {
+      const items = [...$('gsOut').querySelectorAll('.gs-item')], i = items.indexOf(document.activeElement);
+      if (e.key === 'Escape') { gsClose(true); inp.blur(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); (items[i + 1] || items[0] || inp).focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (i > 0 ? items[i - 1] : inp).focus(); }
+      else if (e.key === 'Enter' && document.activeElement === inp && items[0]) { e.preventDefault(); items[0].click(); }
+    }
+  });
+
   async function finder(q) {
     q = q.trim().toLowerCase(); const out = $('finderOut'); if (!out) return;
     if (q.length < 2) { out.innerHTML = ''; return; }
