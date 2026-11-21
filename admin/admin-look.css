@@ -220,3 +220,64 @@ html[data-look] .content:focus{outline:none}
   /* the look itself fades between dark and light instead of jumping */
   html[data-look] body,html[data-look] .card,html[data-look] .sidebar,html[data-look] .topbar{transition:background-color .35s ease,border-color .35s ease,color .35s ease}
 }
+
+/* ══ BATCH 1: activity feed, search everything, steadier numbers ═════════════ */
+.tile .value{font-variant-numeric:tabular-nums}
+
+.feed .chips{margin-bottom:6px}
+.feed-li{justify-content:flex-start;gap:12px}
+.feed-tx{flex:1;min-width:0}
+.feed-when{white-space:nowrap;align-self:flex-start;margin-top:2px}
+.feed-ic{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--grey-soft);color:var(--muted)}
+.feed-ic svg.i{width:17px;height:17px}
+.feed-ic.tone-signup{background:var(--blue-soft);color:var(--blue)}
+.feed-ic.tone-premium{background:var(--amber-soft);color:var(--amber)}
+.feed-ic.tone-payment{background:var(--green-soft);color:var(--green)}
+.feed-ic.tone-account{background:var(--teal-soft);color:var(--teal)}
+.feed-ic.tone-denied{background:var(--red-soft);color:var(--red)}
+.feed[data-show="user"] .feed-li:not([data-kind="user"]),
+.feed[data-show="admin"] .feed-li:not([data-kind="admin"]){display:none}
+.feed-none{padding:14px 0 4px}
+
+.gsearch{position:relative;display:flex;align-items:center;min-width:0}
+.gs-input{display:none;width:100%;min-height:40px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 12px;font-size:14px}
+.gs-out{position:absolute;top:calc(100% + 8px);right:0;width:min(440px,calc(100vw - 28px));max-height:min(70vh,520px);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:6px;z-index:60;-webkit-overflow-scrolling:touch}
+.gs-note{padding:14px 12px;font-size:13px;color:var(--muted);line-height:1.5}
+.gs-head{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:10px 10px 4px}
+.gs-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;background:transparent;border-radius:11px;padding:9px 10px;cursor:pointer;min-height:48px}
+.gs-item:hover,.gs-item:focus-visible{background:var(--grey-soft);outline:0}
+.gs-main{display:grid;min-width:0}
+.gs-main b{font-size:13px;overflow-wrap:anywhere}
+.gs-main small{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.gs-item .badge{flex:none}
+@media (min-width:700px){
+  .gs-btn{display:none}
+  .gs-input{display:block;width:280px}
+  .gsearch{margin-right:4px}
+}
+@media (max-width:699px){
+  .topbar.searching .menu-btn,.topbar.searching #pageTitle,.topbar.searching .look-btn,.topbar.searching .role-chip,.topbar.searching .spacer{display:none}
+  .topbar.searching .gsearch{flex:1}
+  .topbar.searching .gs-input{display:block;flex:1}
+  .topbar.searching .gs-out{left:0;right:0;width:auto;position:fixed;top:calc(58px + env(safe-area-inset-top));margin:0 14px}
+}
+html[data-look="glass"] .gs-input{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
+html[data-look="glass"] .gs-out{background:rgba(9,26,34,.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-color:rgba(255,255,255,.14)}
+html[data-look="glass"] .gs-item:hover,html[data-look="glass"] .gs-item:focus-visible{background:rgba(255,255,255,.08)}
+html[data-look="glass"] .feed-ic.tone-signup{background:rgba(141,182,242,.16)}
+html[data-look="bento"] .gs-input{border-radius:99px;border-color:#fff;background:#fff;box-shadow:var(--shadow)}
+html[data-look="bento"] .gs-out{border-radius:20px;border-color:#fff}
+html[data-look="bento"] .feed-ic{border-radius:14px}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes by-drop{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+  .gs-out:not([hidden]){animation:by-drop .18s cubic-bezier(.2,.8,.2,1)}
+  .feed-li{animation:by-fade .3s ease backwards}
+}
+
+/* top bar on small phones: keep the page title on one line now that search sits beside it */
+.topbar #pageTitle{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){
+  .topbar{gap:4px;padding-left:10px;padding-right:10px}
+  .topbar h1{font-size:17px}
+}
+.feed .card-head .btn{white-space:nowrap;flex:none}
