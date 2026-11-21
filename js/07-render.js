@@ -710,3 +710,4 @@ function _saveP0(){
     commitPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});
   }
   selItem=null; rLog();
+}
