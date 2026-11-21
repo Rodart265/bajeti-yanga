@@ -291,6 +291,7 @@ function rHome(){
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cntAll+'</div></div>';
   h+='</div></div>';
+  { const _tB=lCfg.items.reduce((s,it)=>s+it.budget,0); h+=budgetGapNote(_tB,bg); }
   if(streak>=2){
     const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
     const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';
@@ -599,7 +600,7 @@ function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page log-page"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
-  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="scan-line" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+(lang==='cw'?'Mothandizidwa ndi AI — jambulani, ikani SMS, kapena lembani.':'AI-powered — scan, paste SMS, or type.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
+  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="scan-line" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+L('Paste an Airtel Money or Mpamba SMS, scan a receipt, or type.','Ikani SMS ya Airtel Money kapena Mpamba, jambulani risiti, kapena lembani.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" class="ic14m4"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" class="ic14m4"></i> '+t.income+'</button></div>';
   if(!isSolo())h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
@@ -633,11 +634,13 @@ function rLog(){
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Mtundu wa Ndalama':'Income Type')+'</label><div class="type-tog" style="margin-bottom:8px"><button class="tt inc" id="inc-t-ot" onclick="setIncType(this,0)"><i data-lucide="receipt" style="margin-right:3px"></i> '+(lang==='cw'?'Kamodzi Basi':'One Time')+'</button><button class="tt inc" id="inc-t-rc" onclick="setIncType(this,1)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+(lang==='cw'?'Nthawi Zonse':'Recurring')+'</button></div></div>';
     h+='<div class="fsec"><label class="fl">'+(lang==='cw'?'Gwero la ndalama':'Source')+'</label><select class="fs" id="inc-src"><option value="Salary/Income">'+tx().incomeSources.salary+'</option><option value="Business Income">'+tx().incomeSources.business+'</option><option value="Farm Income">'+tx().incomeSources.farm+'</option><option value="Other Income">'+tx().incomeSources.other+'</option></select></div>';
   }
-  h+='<div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="fa" placeholder="0" inputmode="decimal" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}"></div>';
+  h+='<div class="fsec"><label class="fl">'+t.amount+'</label><input type="number" class="fi" id="fa" placeholder="0" inputmode="decimal" oninput="clearFieldErr(this)" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}"><div class="ferr" id="fa-err" role="alert"></div></div>';
+  h+='<details class="more-d"><summary><span>'+L('More details: date, time, notes, repeat','Zina zowonjezera: tsiku, nthawi, zolemba, kubwereza')+'</span><i data-lucide="chevron-down" class="mdc"></i></summary>';
   h+='<div class="frow"><div class="fsec"><label class="fl">'+t.date+'</label><input type="date" class="fi" id="fd" value="'+today()+'"></div><div class="fsec"><label class="fl">'+t.time+'</label><input type="time" class="fi" id="ft" value="'+nowTime()+'"></div></div>';
   if(logType==='expense'){const _hn=selItem!==null?(lCfg.items[selItem]||{}).name:'';if(!NO_QTY_ITEMS.includes(_hn))h+='<div class="frow"><div class="fsec"><label class="fl">'+t.qty+'</label><input type="number" class="fi" id="fq" placeholder="1" inputmode="decimal"></div><div class="fsec"><label class="fl">'+t.unit+'</label><select class="fs" id="fu">'+t.units.map(u=>'<option>'+u+'</option>').join('')+'</select></div></div>';}
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="fn" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula ku Chipiku...':'e.g. Bought at Chipiku...')+'"></div>';
   if(logType==='expense')h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><input type="checkbox" id="frc" style="width:17px;height:17px;accent-color:var(--p1)"><label for="frc" style="font-size:.78rem;font-weight:600;color:var(--mid)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.recurrYes+'</label></div>';
+  h+='</details>';
   h+='</div></div></div>';
   h+='<div class="log-save-bar"><button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>';
   setView(h);
@@ -665,9 +668,22 @@ function saveP(){
   setTimeout(function(){ _saveBusy=false; const b2=document.querySelector('.log-save-bar .btnM'); if(b2) b2.disabled=false; },1200);
   _saveP0();
 }
+// Saves an entry, then says what was saved, with Undo. If the write fails, says why and offers Try again.
+function commitPx(p){
+  const t=tx(); let ref=null, wantUndo=false;
+  if(!hhId){ addPx(p); return; } // addPx says 'Not connected.'; do not cover it with 'Saved'
+  const label=trName(p.item)+', '+MK(p.amount);
+  function doUndo(){ ref.delete().then(function(){ toast(L('Entry removed.','Chachotsedwa.'),'i'); }).catch(function(e){ toast(fsErrMsg(e),'e'); }); }
+  function undo(){ if(ref) doUndo(); else { wantUndo=true; toast(L('Still saving. It will be removed as soon as it is saved.','Ikusunga. Chichotsedwa ikangosungidwa.'),'i'); } }
+  addPx(p,{
+    onRef:function(r){ ref=r; if(wantUndo) doUndo(); },
+    onFail:function(e){ if(wantUndo) return; toast(L('Not saved: ','Sizinasungidwa: ')+label+'. '+fsErrMsg(e),'e',{label:L('Try again','Yesaninso'),fn:function(){ commitPx(p); }}); }
+  });
+  toast(t.saved+': '+label,'s',{label:L('Undo','Bwezerani'),fn:undo});
+}
 function _saveP0(){
   const t=tx(), a=parseFloat(val('fa'));
-  if(!a||isNaN(a)||a<=0){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Enter a valid amount','e');return;}
+  if(!a||isNaN(a)||a<=0){showFieldErr('fa',lang==='cw'?'Lowetsani ndalama yolondola, mwachitsanzo 5000.':'Type how much, for example 5000.');return;}
   if(a>99999999){toast(lang==='cw'?'Ndalama yakula kwambiri':'Amount is too large','e');return;}
   const dStr=val('fd')||today(), tStr=val('ft')||'12:00';
   const ts=new Date(dStr+'T'+tStr).getTime();
@@ -685,13 +701,12 @@ function _saveP0(){
           cfg2.items.push({name:cName,budget:cB,cat:customCat}); saveCfg(cfg2);
         }
       }
-      addPx({item:cName,date:dStr,timestamp:ts,amount:a,qty:val('fq')||'',unit:val('fu')||'',notes:val('fn')||'',userId:actU().id,type:'expense',cat:customCat,recurring:(g('frc')||{}).checked||false});
-      selItem=null; customCat='Other'; toast(t.saved); rLog(); return;
+      commitPx({item:cName,date:dStr,timestamp:ts,amount:a,qty:val('fq')||'',unit:val('fu')||'',notes:val('fn')||'',userId:actU().id,type:'expense',cat:customCat,recurring:(g('frc')||{}).checked||false});
+      selItem=null; customCat='Other'; rLog(); return;
     }
     if(!lCfg.items[selItem]){toast((lang==='cw'?'Chinthuchi sichikupezekanso. Sankhaninso.':'Item no longer exists. Please re-select.'),'e');selItem=null;rLog();return;}
-    addPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
+    commitPx({item:lCfg.items[selItem].name,date:dStr,timestamp:ts,amount:a,qty:val('fq'),unit:val('fu'),notes:val('fn'),userId:actU().id,type:'expense',recurring:(g('frc')||{}).checked||false});
   } else {
-    addPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});
+    commitPx({item:val('inc-src')||'Salary/Income',date:dStr,timestamp:ts,amount:a,notes:val('fn'),userId:actU().id,type:'income'});
   }
-  selItem=null; toast(t.saved); rLog();
-}
+  selItem=null; rLog();
