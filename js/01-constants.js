@@ -145,7 +145,7 @@ const NO_QTY_ITEMS=['Money Sent','Airtime / Data','Rent','School Fees','Transpor
 const MEMBER_COLORS = ['#176B78','#E91E63','#1565C0','#2E7D32','#E65100','#6A4C93','#AD1457','#2F5D8A','#558B2F','#795548'];
 // Shown in Settings > About, the What's New popup, and the CSV/PDF export footers.
 // Keep this equal to the number in V at the top of sw.js ("bajeti-v" + this).
-const APP_VERSION = '9.20.4';
+const APP_VERSION = '9.20.5';
 // Startup: false = a signed-in person goes straight to Home (or to the PIN screen if a PIN is set).
 // true = the old "Welcome back, <name>" screen with a Continue button comes first.
 const WELCOME_SCREEN = false;
