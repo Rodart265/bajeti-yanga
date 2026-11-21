@@ -12,7 +12,7 @@
 
   function idx(t) { var i = ORDER.indexOf(t === 'hist' || t === 'sum' ? 'insights' : t); return i < 0 ? last : i; }
   function sig() {
-    var p = v.firstElementChild; if (!p) return '';
+    var p = v.querySelector('.page') || v.firstElementChild; if (!p) return '';
     var s = p.className + '#';
     for (var i = 0; i < p.children.length && i < 12; i++) s += p.children[i].className + '|';
     return s;
