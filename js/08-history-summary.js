@@ -304,10 +304,33 @@ function toggleSumZero(){
   if(window.lucide) lucide.createIcons({nodes:[btn||document.body]});
 }
 
+// Spending this month on entries whose item has no budget line (custom items, one-offs). Keyed by item name.
+function unbudgetedSpend(){
+  const names=new Set(lCfg.items.map(it=>it.name)), o={};
+  lPx.forEach(p=>{ if(p.deleted||p.type==='income'||!isTM(p.date)) return; if(names.has(p.item)) return; o[p.item]=(o[p.item]||0)+(Number(p.amount)||0); });
+  return o;
+}
+// The same three numbers as Home, so the two screens never disagree.
+function sumGlanceHtml(tB,tS){
+  const t=tx(), bg=lCfg.overallBudget||0, rem=bg-tS;
+  let h='<div class="card glance"><div class="glance-cols">'
+    +'<div class="gl-c"><div class="gl-l">'+L('Monthly budget','Bajeti ya mwezi')+'</div><div class="gl-v">'+MK(bg)+'</div></div>'
+    +'<div class="gl-c"><div class="gl-l">'+t.spent+'</div><div class="gl-v" style="color:var(--neg)">'+MK(tS)+'</div></div>'
+    +'<div class="gl-c"><div class="gl-l">'+t.left+'</div><div class="gl-v" style="color:'+(rem<0?'var(--neg)':'var(--pos)')+'">'+MK(rem)+'</div></div>'
+    +'</div></div>';
+  return h+budgetGapNote(tB,bg);
+}
+// Item budgets can add up to more than the monthly budget. Say so, in words.
+function budgetGapNote(tB,bg){
+  if(!(bg>0)||tB<=bg) return '';
+  return '<div class="bnote">'+L('Item budgets add up to '+MK(tB)+', which is '+MK(tB-bg)+' more than your monthly budget of '+MK(bg)+'.',
+    'Bajeti za zinthu zonse zikuwonjeza '+MK(tB)+', zomwe ndi '+MK(tB-bg)+' kuposa bajeti yanu ya mwezi ya '+MK(bg)+'.')+'</div>';
+}
 function rSum(){
   if(pxPending('list')) return;
   const t=tx(), tB=lCfg.items.reduce((s,it)=>s+it.budget,0), tS=totSp();
   let h='<div class="page">'+monthNav('mnav');
+  h+=sumGlanceHtml(tB,tS);
   
   h+='<button class="magic-btn" id="ai-sum-btn" onclick="generateAiSummary()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:white;border:none;"><i data-lucide="zap" class="ic14m5"></i>'+(lang==='cw'?'Chidule cha AI':'Get AI Financial Review')+'</button>';
   h+='<div id="ai-sum-box" class="hide"></div>';
@@ -394,6 +417,9 @@ function rSum(){
   } else {
     // Render only items with spending
     activeItems.forEach(it => { h += renderSumItem(it); });
+    Object.entries(unbudgetedSpend()).sort((a,b)=>b[1]-a[1]).forEach(([nm,v])=>{
+      h+='<div class="sumi"><div class="sir1"><div class="sil"><span style="font-size:1.05rem">'+ico(nm)+'</span><span class="siname">'+esc(trName(nm))+'</span></div><span class="sibadge bnone">'+L('No budget','Palibe bajeti')+'</span></div><div class="sir2"><span>'+t.spent+': <strong>'+MK(v)+'</strong></span></div></div>';
+    });
     // "Show all" toggle for zero-spend items
     if(zeroItems.length > 0){
       h += '<div id="sum-zero-items" class="hide">';
@@ -407,7 +433,7 @@ function rSum(){
     }
   }
 
-  h+='<div class="sumfoot"><div class="sfg"><div class="sfl">'+t.total+' '+t.budget+'</div><div class="sfv">'+MK(tB)+'</div></div><div class="sfg"><div class="sfl">'+t.total+' '+t.spent+'</div><div class="sfv">'+MK(tS)+'</div></div><div class="sfg"><div class="sfl">'+t.left+'</div><div class="sfv" style="color:'+(tS>tB?'#FF8A80':'#A5D6A7')+'">'+MK(tB-tS)+'</div></div></div></div>';
+  h+='<div class="sumfoot"><div class="sfg"><div class="sfl">'+L('Item budgets','Bajeti za zinthu')+'</div><div class="sfv">'+MK(tB)+'</div></div><div class="sfg"><div class="sfl">'+t.total+' '+t.spent+'</div><div class="sfv">'+MK(tS)+'</div></div><div class="sfg"><div class="sfl">'+L('No budget','Palibe bajeti')+'</div><div class="sfv">'+MK(Object.values(unbudgetedSpend()).reduce((a,b)=>a+b,0))+'</div></div></div></div>';
   if(lCfg.goals&&lCfg.goals.length){
     h+='<div class="card"><div class="ch"><h2><i data-lucide="target" style="margin-right:5px;vertical-align:middle;color:var(--a1)"></i> '+t.goals+'</h2></div><div class="cb">';
     lCfg.goals.forEach((gl,i)=>{

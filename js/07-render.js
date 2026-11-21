@@ -291,6 +291,7 @@ function rHome(){
   h+='<div class="h2-div"></div>';
   h+='<div class="h2-col"><div class="h2-cl">'+t.entries+'</div><div class="h2-cv">'+cntAll+'</div></div>';
   h+='</div></div>';
+  { const _tB=lCfg.items.reduce((s,it)=>s+it.budget,0); h+=budgetGapNote(_tB,bg); }
   if(streak>=2){
     const streakIcon=streak>=8?'flame':streak>=4?'star':'check-circle';
     const streakColor=streak>=8?'#E65100':streak>=4?'#F57F17':'#2E7D32';

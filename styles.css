@@ -939,3 +939,11 @@ body.dark .pm-foot{background:#17212C}
 .more-d[open]>summary .mdc{transform:rotate(180deg)}
 .toast .t-act{flex-shrink:0;min-height:36px;padding:0 10px;background:none;border:none;color:inherit;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.more-d>summary .mdc{transition:none}}
+
+/* v9.20.3: budget numbers that agree */
+.glance{padding:14px 8px}
+.glance-cols{display:flex}
+.gl-c{flex:1;text-align:center;min-width:0}
+.gl-l{font-size:var(--fs-xs);font-weight:600;color:var(--mid);margin-bottom:3px}
+.gl-v{font-size:var(--fs-md);font-weight:800;color:var(--ink);white-space:nowrap}
+.bnote{background:var(--gold-bg);color:var(--gold-ink);border-radius:var(--cr-md);padding:12px 14px;margin:12px 0;font-size:var(--fs-sm);line-height:1.45;font-weight:600}
