@@ -406,10 +406,11 @@ var FirestoreRest = class {
     const res = await this._send("DELETE", this._docUrl(path));
     if (!res.ok && res.status !== 404) throw this._fail(res, "delete");
   }
-  async _patch(path, data, { mask, mustExist }) {
+  async _patch(path, data, { mask, mustExist, mustNotExist }) {
     const q = [];
     if (mask) for (const fp of maskOf(data)) q.push("updateMask.fieldPaths=" + encodeURIComponent(fp));
     if (mustExist) q.push("currentDocument.exists=true");
+    if (mustNotExist) q.push("currentDocument.exists=false");
     const res = await this._send("PATCH", this._docUrl(path) + (q.length ? "?" + q.join("&") : ""), { fields: encodeFields(data) });
     if (!res.ok) throw this._fail(res, "write");
   }
@@ -512,12 +513,16 @@ var DocRef = class {
   update(data) {
     return this.db._patch(this.path, data, { mask: true, mustExist: true });
   }
+  // Creates the document only if it is not there yet. Throws an error with status 409 when it already exists.
+  create(data) {
+    return this.db._patch(this.path, data, { mask: false, mustNotExist: true });
+  }
   delete() {
     return this.db._delete(this.path);
   }
 };
 var Query = class _Query {
-  constructor(db, name, filters, lim, order = [], sel = null, group = false) {
+  constructor(db, name, filters, lim, order = [], sel = null, group = false, after = null) {
     this.db = db;
     this.name = name;
     this.filters = filters;
@@ -525,9 +530,14 @@ var Query = class _Query {
     this.order = order;
     this.sel = sel;
     this.group = group;
+    this.after = after;
   }
   _with(o) {
-    return new _Query(this.db, this.name, o.filters || this.filters, o.lim === void 0 ? this.lim : o.lim, o.order || this.order, o.sel === void 0 ? this.sel : o.sel, this.group);
+    return new _Query(this.db, this.name, o.filters || this.filters, o.lim === void 0 ? this.lim : o.lim, o.order || this.order, o.sel === void 0 ? this.sel : o.sel, this.group, o.after === void 0 ? this.after : o.after);
+  }
+  // Continue with the documents that come after this document id (in document-id order). Needs orderBy('__name__').
+  startAfterId(id) {
+    return this._with({ after: id });
   }
   where(f, op, v) {
     return this._with({ filters: [...this.filters, [f, op, v]] });
@@ -547,13 +557,18 @@ var Query = class _Query {
       if (!OPS[op]) throw new Error("unsupported operator " + op);
       return { fieldFilter: { field: { fieldPath: f }, op: OPS[op], value: encodeValue(v) } };
     });
-    const sq = { from: [this.group ? { collectionId: this.name, allDescendants: true } : { collectionId: this.name }] };
+    const nameParts = this.name.split("/"), collectionId = nameParts.pop(), parent = nameParts.join("/");
+    const sq = { from: [this.group ? { collectionId, allDescendants: true } : { collectionId }] };
     if (fs.length === 1) sq.where = fs[0];
     else if (fs.length > 1) sq.where = { compositeFilter: { op: "AND", filters: fs } };
     if (this.order.length) sq.orderBy = this.order.map(([f, d]) => ({ field: { fieldPath: fieldPath(f) }, direction: d }));
+    if (this.after !== null) {
+      if (!sq.orderBy) sq.orderBy = [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }];
+      sq.startAt = { values: [{ referenceValue: this.db.root + "/" + this.name + "/" + this.after }], before: false };
+    }
     if (this.sel) sq.select = { fields: this.sel.map((f) => ({ fieldPath: fieldPath(f) })) };
     if (this.lim) sq.limit = this.lim;
-    const rows = await this.db._post(":runQuery", { structuredQuery: sq }, "query");
+    const rows = await this.db._post((parent ? "/" + parent : "") + ":runQuery", { structuredQuery: sq }, "query");
     const docs = (rows || []).filter((r) => r.document).map((r) => {
       const sn = snap(r.document.name.split("/").pop(), decodeFields(r.document.fields), r.document);
       sn.path = r.document.name.split("/documents/")[1];
@@ -1768,23 +1783,21 @@ async function createHousehold({ deps, env, who, body }) {
   const displayName = typeof body.displayName === "string" ? body.displayName.slice(0, 80) : "";
   const uid = who.uid, now = deps.now();
   const limit = Number(env.FREE_HOUSEHOLD_LIMIT) > 0 ? Number(env.FREE_HOUSEHOLD_LIMIT) : 3;
-  const owned = (await deps.db.collection("households").where("owner", "==", uid).select(...FIELDS).get()).docs.filter((d) => !d.data().deletedAt);
-  if (owned.length >= limit) {
-    const u = await deps.db.collection("users").doc(uid).get(["premiumUntil"]);
-    const until = u.exists ? u.data().premiumUntil : null;
-    const premiumUser = until && (typeof until.toMillis === "function" ? until.toMillis() : new Date(until).getTime()) > now;
-    const paid = (d) => {
-      const x = d.data(), c = x.config || {};
-      return computePremium({ memberUids: [uid], isPremium: x.isPremium, premiumExpiry: x.premiumExpiry, config: { isPremium: c.isPremium, premiumExpiry: c.premiumExpiry } }, uid, env, now) === true;
-    };
-    const anyPremium = owned.some(paid);
-    if (!premiumUser && !anyPremium) return bad(403, "household_limit");
-  }
   return deps.db.runTransaction(async (tx) => {
     const hhRef = deps.db.collection("households").doc(code), uRef = deps.db.collection("users").doc(uid);
     const [hh, u] = [await tx.get(hhRef, ["owner"]), await tx.get(uRef)];
     if (hh.exists) return bad(409, "code_taken");
     const ud = u.exists ? u.data() : {};
+    const owned = (await deps.db.collection("households").where("owner", "==", uid).select(...FIELDS).get()).docs.filter((d) => !d.data().deletedAt);
+    if (owned.length >= limit) {
+      const until = ud.premiumUntil;
+      const premiumUser = until && (typeof until.toMillis === "function" ? until.toMillis() : new Date(until).getTime()) > now;
+      const paid = (d) => {
+        const x = d.data(), c = x.config || {};
+        return computePremium({ memberUids: [uid], isPremium: x.isPremium, premiumExpiry: x.premiumExpiry, config: { isPremium: c.isPremium, premiumExpiry: c.premiumExpiry } }, uid, env, now) === true;
+      };
+      if (!premiumUser && !owned.some(paid)) return bad(403, "household_limit");
+    }
     const trial = !ud.trialClaimedAt;
     const doc = { config: clean, createdAt: tsFromMillis(now), owner: uid, memberUids: [uid] };
     if (body.solo === true) doc.solo = true;
@@ -1805,9 +1818,9 @@ async function createHousehold({ deps, env, who, body }) {
 // src/push.js
 var FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 var MAX_TOKENS_PER_USER = 3;
-var MAX_MEMBERS = 6;
+var MAX_TOKENS_PER_HOUSEHOLD = 24;
+var MAX_TRIES = 3;
 var HH = /^[A-Za-z0-9_-]{3,40}$/;
-var CLAIM_COST = 3;
 function makeFcm({ projectId, getToken, fetchImpl }) {
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   return {
@@ -1848,7 +1861,7 @@ var words = {
   billTitle: (lang, today) => lang === "cw" ? today.length ? "Bajeti Yanga: Bilu ya lero" : "Bajeti Yanga: Bilu ya mawa" : today.length ? "Bajeti Yanga: Bill due today" : "Bajeti Yanga: Bill due tomorrow"
 };
 async function sendToTokens({ fcm, tokens, msg, spend, prune }) {
-  let sent = 0;
+  let sent = 0, temporary = 0;
   const dead = [];
   for (const t of tokens) {
     spend(1);
@@ -1858,13 +1871,14 @@ async function sendToTokens({ fcm, tokens, msg, spend, prune }) {
     });
     if (r.ok) sent++;
     else if (r.invalid) dead.push(t);
+    else temporary++;
   }
   if (dead.length && prune) {
     spend(3);
     await prune(tokens.filter((t) => !dead.includes(t))).catch(() => {
     });
   }
-  return sent;
+  return { sent, temporary };
 }
 function pruneHousehold(deps, hhId, uid) {
   return (keep) => deps.db.runTransaction(async (tx) => {
@@ -1877,14 +1891,17 @@ function pruneHousehold(deps, hhId, uid) {
     tx.set(ref, { pushTokens: map }, { merge: true });
   });
 }
-async function claim(deps, col, id) {
-  return deps.db.runTransaction(async (tx) => {
-    const ref = deps.db.collection(col).doc(id);
-    if ((await tx.get(ref)).exists) return false;
-    tx.set(ref, { at: deps.tsFromMillis(deps.now()) });
+async function claim(deps, col, id, extra = {}) {
+  try {
+    await deps.db.collection(col).doc(id).create({ at: deps.tsFromMillis(deps.now()), ...extra });
     return true;
-  });
+  } catch (e) {
+    if (e && (e.status === 409 || e.status === 400 && /exist/i.test(String(e.message)))) return false;
+    throw e;
+  }
 }
+var release = (deps, col, id) => deps.db.collection(col).doc(id).delete().catch(() => {
+});
 async function handleNotify({ deps, fcm, user, body }) {
   const hhId = body && body.householdId;
   if (typeof hhId !== "string" || !HH.test(hhId)) return { code: 400, body: { error: "Invalid household." } };
@@ -1897,34 +1914,37 @@ async function handleNotify({ deps, fcm, user, body }) {
     const rq = await deps.db.collection("households/" + hhId + "/joinRequests").doc(user.uid).get();
     if (!rq.exists) return { code: 404, body: { error: "No request found." } };
     const r = rq.data();
-    const at = r.requestedAt && typeof r.requestedAt.toMillis === "function" ? r.requestedAt.toMillis() : 0;
-    if (!await claim(deps, "pushLog", "join_" + hhId + "_" + user.uid + "_" + at)) return { code: 200, body: { ok: true, sent: 0 } };
+    const id = "join_" + hhId + "_" + user.uid + "_" + catDate(deps.now());
+    if (!await claim(deps, "pushLog", id)) return { code: 200, body: { ok: true, sent: 0 } };
     const name = String(r.displayName || (r.email ? String(r.email).split("@")[0] : "") || "Someone").slice(0, 40);
     const owner = entryOf(h.pushTokens, h.owner);
-    const sent = await sendToTokens({
+    const out = await sendToTokens({
       fcm,
       spend,
       tokens: owner.tokens,
       msg: { title: "Bajeti Yanga", body: words.joinRequest(owner.lang, name), tag: "join-" + user.uid, link: "" },
       prune: pruneHousehold(deps, hhId, h.owner)
     });
-    return { code: 200, body: { ok: true, sent } };
+    if (out.sent === 0 && out.temporary > 0) await release(deps, "pushLog", id);
+    return { code: 200, body: { ok: true, sent: out.sent } };
   }
   if (body.type === "join-approved") {
     if (h.owner !== user.uid) return { code: 403, body: { error: "Only the owner can do that." } };
     const target = body.uid;
     if (typeof target !== "string" || !Array.isArray(h.memberUids) || !h.memberUids.includes(target) || target === user.uid) return { code: 400, body: { error: "Invalid member." } };
-    if (!await claim(deps, "pushLog", "approved_" + hhId + "_" + target)) return { code: 200, body: { ok: true, sent: 0 } };
+    const aid = "approved_" + hhId + "_" + target;
+    if (!await claim(deps, "pushLog", aid)) return { code: 200, body: { ok: true, sent: 0 } };
     const u = await deps.db.collection("users").doc(target).get(["pushTokens", "pushLang"]);
     const ud = u.exists ? u.data() : {};
-    const sent = await sendToTokens({
+    const out = await sendToTokens({
       fcm,
       spend,
       tokens: asTokens(ud.pushTokens),
       msg: { title: "Bajeti Yanga", body: words.joinApproved(ud.pushLang === "cw" ? "cw" : "en"), tag: "approved-" + hhId, link: "" },
       prune: (keep) => deps.db.collection("users").doc(target).set({ pushTokens: keep }, { merge: true })
     });
-    return { code: 200, body: { ok: true, sent } };
+    if (out.sent === 0 && out.temporary > 0) await release(deps, "pushLog", aid);
+    return { code: 200, body: { ok: true, sent: out.sent } };
   }
   return { code: 400, body: { error: "Unknown notification." } };
 }
@@ -1946,33 +1966,145 @@ async function runBillReminders({ deps, fcm, budget = { left: 44 } }) {
       byHh.set(m[1], e);
     }
   }
-  let households2 = 0, sent = 0, waiting = 0;
-  const MOST = CLAIM_COST + 1 + MAX_MEMBERS * MAX_TOKENS_PER_USER;
+  const finished = /* @__PURE__ */ new Set(), tried = /* @__PURE__ */ new Map();
+  if (byHh.size) {
+    spend(1);
+    const logged = await deps.db.collection("pushLog").where("day", "==", t0).get();
+    for (const d of logged.docs) {
+      const m = /^bills_(.+)_\d{4}-\d{2}-\d{2}$/.exec(d.id);
+      if (!m) continue;
+      const x = d.data(), n = Number(x.tries) || 1;
+      if (x.done === true || n >= MAX_TRIES) finished.add(m[1]);
+      else tried.set(m[1], n);
+    }
+  }
+  let households2 = 0, sent = 0, waiting = 0, retried = 0;
   for (const [hhId, bills] of byHh) {
-    if (budget.left < MOST) {
+    if (finished.has(hhId)) continue;
+    if (budget.left < 6) {
       waiting++;
       continue;
     }
-    spend(CLAIM_COST);
-    if (!await claim(deps, "pushLog", "bills_" + hhId + "_" + t0).catch(() => false)) continue;
     spend(1);
     const hh = await deps.db.collection("households").doc(hhId).get(["memberUids", "deletedAt", "pushTokens"]);
-    if (!hh.exists || hh.data().deletedAt) continue;
-    const h = hh.data(), members = (Array.isArray(h.memberUids) ? h.memberUids : []).slice(0, MAX_MEMBERS);
-    households2++;
-    for (const uid of members) {
+    const logId = "bills_" + hhId + "_" + t0;
+    if (!hh.exists || hh.data().deletedAt) {
+      spend(1);
+      await claim(deps, "pushLog", logId, { day: t0, tries: 1, done: true }).catch(() => false);
+      continue;
+    }
+    const h = hh.data(), targets = [];
+    let tokenCount = 0;
+    for (const uid of Array.isArray(h.memberUids) ? h.memberUids : []) {
       const e = entryOf(h.pushTokens, uid);
-      if (!e.tokens.length) continue;
-      sent += await sendToTokens({
+      if (!e.tokens.length || tokenCount + e.tokens.length > MAX_TOKENS_PER_HOUSEHOLD) continue;
+      targets.push({ ...e, uid });
+      tokenCount += e.tokens.length;
+    }
+    const need = tokenCount ? 1 + tokenCount + 3 + 1 : 1;
+    if (budget.left < need) {
+      waiting++;
+      continue;
+    }
+    const n = (tried.get(hhId) || 0) + 1;
+    spend(1);
+    if (tried.has(hhId)) await deps.db.collection("pushLog").doc(logId).update({ tries: n, done: true }).catch(() => {
+    });
+    else if (!await claim(deps, "pushLog", logId, { day: t0, tries: n, done: true }).catch(() => false)) continue;
+    if (!tokenCount) continue;
+    households2++;
+    let gotThrough = 0, failed = 0;
+    for (const e of targets) {
+      const out = await sendToTokens({
         fcm,
         spend,
         tokens: e.tokens,
         msg: { title: words.billTitle(e.lang, bills.today), body: words.bills(e.lang, bills.today, bills.tomorrow), tag: "bills-" + t0, link: "" },
-        prune: pruneHousehold(deps, hhId, uid)
+        prune: pruneHousehold(deps, hhId, e.uid)
+      });
+      gotThrough += out.sent;
+      failed += out.temporary;
+    }
+    sent += gotThrough;
+    if (gotThrough === 0 && failed > 0) {
+      retried++;
+      spend(1);
+      await deps.db.collection("pushLog").doc(logId).update({ done: false }).catch(() => {
       });
     }
   }
-  return { households: households2, sent, waiting };
+  return { households: households2, sent, waiting, retried };
+}
+
+// src/billsync.js
+var PLAIN = /^[A-Za-z0-9_-]{1,40}$/;
+var DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
+var PAGE = 10;
+var MAX_WRITES = 400;
+function cleanBill(r, position) {
+  if (!r || typeof r !== "object" || !r.id || !PLAIN.test(String(r.id))) return null;
+  const name = typeof r.name === "string" ? r.name.trim().slice(0, 100) : "";
+  const amount = typeof r.amount === "number" ? r.amount : NaN;
+  if (!name || !Number.isFinite(amount) || amount < 0 || amount >= 1e11) return null;
+  if (typeof r.dueDate !== "string" || !DATE.test(r.dueDate)) return null;
+  const out = { id: String(r.id), name, amount, dueDate: r.dueDate, order: position };
+  if (typeof r.icon === "string" && r.icon) out.icon = r.icon.slice(0, 40);
+  return out;
+}
+async function syncBills({ deps, budget, log: log2, live }) {
+  if (budget.left < 6) return { skipped: true };
+  budget.left -= 3;
+  const state = await deps.db.collection("syncState").doc("bills").get();
+  const after = state.exists && typeof state.data().after === "string" ? state.data().after : "";
+  let query = deps.db.collection("households").orderBy("__name__").select("config.bills", "deletedAt").limit(PAGE);
+  if (after) query = query.startAfterId(after);
+  const page = await query.get();
+  const name = (path) => deps.db.root + "/" + path;
+  let checked = 0, created = 0, orphans = 0, removed = 0, unusable = 0, last = after, finished = true;
+  for (const d of page.docs) {
+    if (budget.left < 2) {
+      finished = false;
+      break;
+    }
+    const h = d.data(), list = h.config && h.config.bills;
+    if (!h.deletedAt && Array.isArray(list)) {
+      const want = /* @__PURE__ */ new Map();
+      list.forEach((r, i) => {
+        const c = cleanBill(r, i);
+        if (c) want.set(c.id, c);
+        else unusable++;
+      });
+      budget.left -= 1;
+      const have = new Set((await deps.db.collection("households/" + d.id + "/bills").select("__name__").get()).docs.map((x) => x.id));
+      const writes = [];
+      for (const [id, c] of want) {
+        if (have.has(id) || writes.length >= MAX_WRITES) continue;
+        writes.push({ update: { name: name("households/" + d.id + "/bills/" + id), fields: encodeFields({ ...c, updatedAt: deps.tsFromMillis(deps.now()) }) }, currentDocument: { exists: false } });
+        created++;
+      }
+      for (const id of have) if (!want.has(id)) {
+        orphans++;
+        if (live && writes.length < MAX_WRITES) {
+          writes.push({ delete: name("households/" + d.id + "/bills/" + id) });
+          removed++;
+        }
+      }
+      if (writes.length) {
+        budget.left -= 1;
+        await deps.db.commitWrites(writes).catch((e) => {
+          console.error("bill sync: " + d.id + " skipped", e && e.message);
+          created -= writes.filter((w) => w.update).length;
+          removed -= writes.filter((w) => w.delete).length;
+        });
+      }
+    }
+    checked++;
+    last = d.id;
+  }
+  const next = finished && page.docs.length < PAGE ? "" : last;
+  await deps.db.collection("syncState").doc("bills").set({ after: next, at: deps.tsFromMillis(deps.now()), checked, created, orphans: live ? removed : orphans });
+  log2("bills: looked at " + checked + " households, added " + created + " missing bills" + (orphans ? live ? ", removed " + removed : ", " + orphans + " leftover copies would be removed (dry run)" : "") + (unusable ? ", " + unusable + " bills cannot be used (no id, name, amount or date)" : "") + (next === "" ? " (round complete)" : ""));
+  return { checked, created, orphans, removed, unusable, next };
 }
 
 // src/housekeeping.js
@@ -2097,7 +2229,7 @@ async function runHousekeeping({ deps, env, identity, budget = { left: 38 } }) {
     console.log(s);
   };
   const result = { mode: purgeLive(env) ? "delete" : "dry-run" };
-  for (const [name, fn] of [["trash", purgeTrash], ["households", purgeHouseholds], ["accounts", purgeAccounts], ["counters", purgeCounters]]) {
+  for (const [name, fn] of [["trash", purgeTrash], ["households", purgeHouseholds], ["accounts", purgeAccounts], ["counters", purgeCounters], ["bills", (a) => syncBills({ ...a, live: purgeLive(env) })]]) {
     try {
       result[name] = await fn({ deps, env, identity, budget, log: log2 });
     } catch (e) {
