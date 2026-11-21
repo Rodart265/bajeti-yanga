@@ -14,6 +14,7 @@
 // it is nearly used up; the next run carries on where this one stopped.
 
 import { catDate } from './ai.js';
+import { syncBills } from './billsync.js';
 
 const DAY = 86400000;
 const HOUSEHOLD_SUBCOLLECTIONS = ['purchases', 'items', 'bills', 'goals', '_usage', '_conversations', 'joinRequests'];
@@ -129,7 +130,7 @@ export async function purgeCounters({ deps, env, budget, log }) {
 export async function runHousekeeping({ deps, env, identity, budget = { left: 38 } }) {
   const lines = [], log = s => { lines.push(s); console.log(s); };
   const result = { mode: purgeLive(env) ? 'delete' : 'dry-run' };
-  for (const [name, fn] of [['trash', purgeTrash], ['households', purgeHouseholds], ['accounts', purgeAccounts], ['counters', purgeCounters]]) {
+  for (const [name, fn] of [['trash', purgeTrash], ['households', purgeHouseholds], ['accounts', purgeAccounts], ['counters', purgeCounters], ['bills', a => syncBills({ ...a, live: purgeLive(env) })]]) {
     try { result[name] = await fn({ deps, env, identity, budget, log }); }
     catch (e) { result[name] = { error: String(e && e.message).slice(0, 200) }; console.error('housekeeping ' + name + ' failed', e && e.message); }
   }

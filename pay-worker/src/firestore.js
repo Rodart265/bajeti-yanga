@@ -153,10 +153,11 @@ export class FirestoreRest {
     const res = await this._send('DELETE', this._docUrl(path));
     if (!res.ok && res.status !== 404) throw this._fail(res, 'delete');
   }
-  async _patch(path, data, { mask, mustExist }) {
+  async _patch(path, data, { mask, mustExist, mustNotExist }) {
     const q = [];
     if (mask) for (const fp of maskOf(data)) q.push('updateMask.fieldPaths=' + encodeURIComponent(fp));
     if (mustExist) q.push('currentDocument.exists=true');
+    if (mustNotExist) q.push('currentDocument.exists=false');          // fails with HTTP 409 when the document is already there
     const res = await this._send('PATCH', this._docUrl(path) + (q.length ? '?' + q.join('&') : ''), { fields: encodeFields(data) });
     if (!res.ok) throw this._fail(res, 'write');
   }
@@ -227,12 +228,16 @@ class DocRef {
   get(fields) { return this.db._getDoc(this.path, null, fields); }
   set(data, opts) { return this.db._patch(this.path, data, { mask: !!(opts && opts.merge) }); }
   update(data) { return this.db._patch(this.path, data, { mask: true, mustExist: true }); }
+  // Creates the document only if it is not there yet. Throws an error with status 409 when it already exists.
+  create(data) { return this.db._patch(this.path, data, { mask: false, mustNotExist: true }); }
   delete() { return this.db._delete(this.path); }
 }
 
 class Query {
-  constructor(db, name, filters, lim, order = [], sel = null, group = false) { this.db = db; this.name = name; this.filters = filters; this.lim = lim; this.order = order; this.sel = sel; this.group = group; }
-  _with(o) { return new Query(this.db, this.name, o.filters || this.filters, o.lim === undefined ? this.lim : o.lim, o.order || this.order, o.sel === undefined ? this.sel : o.sel, this.group); }
+  constructor(db, name, filters, lim, order = [], sel = null, group = false, after = null) { this.db = db; this.name = name; this.filters = filters; this.lim = lim; this.order = order; this.sel = sel; this.group = group; this.after = after; }
+  _with(o) { return new Query(this.db, this.name, o.filters || this.filters, o.lim === undefined ? this.lim : o.lim, o.order || this.order, o.sel === undefined ? this.sel : o.sel, this.group, o.after === undefined ? this.after : o.after); }
+  // Continue with the documents that come after this document id (in document-id order). Needs orderBy('__name__').
+  startAfterId(id) { return this._with({ after: id }); }
   where(f, op, v) { return this._with({ filters: [...this.filters, [f, op, v]] }); }
   limit(n) { return this._with({ lim: n }); }
   orderBy(f, dir = 'asc') { return this._with({ order: [...this.order, [f, String(dir).toLowerCase() === 'desc' ? 'DESCENDING' : 'ASCENDING']] }); }
@@ -243,12 +248,18 @@ class Query {
       if (!OPS[op]) throw new Error('unsupported operator ' + op);
       return { fieldFilter: { field: { fieldPath: f }, op: OPS[op], value: encodeValue(v) } };
     });
-    const sq = { from: [this.group ? { collectionId: this.name, allDescendants: true } : { collectionId: this.name }] };
+    // A name like 'households/abc/bills' is the sub-collection 'bills' under the document households/abc.
+    const nameParts = this.name.split('/'), collectionId = nameParts.pop(), parent = nameParts.join('/');
+    const sq = { from: [this.group ? { collectionId, allDescendants: true } : { collectionId }] };
     if (fs.length === 1) sq.where = fs[0]; else if (fs.length > 1) sq.where = { compositeFilter: { op: 'AND', filters: fs } };
     if (this.order.length) sq.orderBy = this.order.map(([f, d]) => ({ field: { fieldPath: fieldPath(f) }, direction: d }));
+    if (this.after !== null) {
+      if (!sq.orderBy) sq.orderBy = [{ field: { fieldPath: '__name__' }, direction: 'ASCENDING' }];
+      sq.startAt = { values: [{ referenceValue: this.db.root + '/' + this.name + '/' + this.after }], before: false };
+    }
     if (this.sel) sq.select = { fields: this.sel.map(f => ({ fieldPath: fieldPath(f) })) };
     if (this.lim) sq.limit = this.lim;
-    const rows = await this.db._post(':runQuery', { structuredQuery: sq }, 'query');
+    const rows = await this.db._post((parent ? '/' + parent : '') + ':runQuery', { structuredQuery: sq }, 'query');
     const docs = (rows || []).filter(r => r.document).map(r => { const sn = snap(r.document.name.split('/').pop(), decodeFields(r.document.fields), r.document); sn.path = r.document.name.split('/documents/')[1]; return sn; });
     return { docs, size: docs.length, forEach: fn => docs.forEach(fn) };
   }

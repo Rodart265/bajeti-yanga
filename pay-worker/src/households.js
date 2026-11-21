@@ -32,25 +32,28 @@ export async function createHousehold({ deps, env, who, body }) {
   const displayName = typeof body.displayName === 'string' ? body.displayName.slice(0, 80) : '';
   const uid = who.uid, now = deps.now();
 
-  // How many households does this person own, and may they have another?
   const limit = Number(env.FREE_HOUSEHOLD_LIMIT) > 0 ? Number(env.FREE_HOUSEHOLD_LIMIT) : 3;
-  const owned = (await deps.db.collection('households').where('owner', '==', uid).select(...FIELDS).get()).docs.filter(d => !d.data().deletedAt);
-  if (owned.length >= limit) {
-    const u = await deps.db.collection('users').doc(uid).get(['premiumUntil']);
-    const until = u.exists ? u.data().premiumUntil : null;
-    const premiumUser = until && (typeof until.toMillis === 'function' ? until.toMillis() : new Date(until).getTime()) > now;
-    // Paid Premium on any of their households lifts the limit (as the FAQ says). A free trial does not.
-    const paid = d => { const x = d.data(), c = x.config || {}; return computePremium({ memberUids: [uid], isPremium: x.isPremium, premiumExpiry: x.premiumExpiry, config: { isPremium: c.isPremium, premiumExpiry: c.premiumExpiry } }, uid, env, now) === true; };
-    const anyPremium = owned.some(paid);
-    if (!premiumUser && !anyPremium) return bad(403, 'household_limit');
-  }
 
-  // One all-or-nothing step: claim the id, claim the trial if this account still has one, write both documents.
+  // One all-or-nothing step: claim the id, check the limit, claim the trial if this account still has one, write both documents.
+  // The limit is checked INSIDE the step, after this person's own document has been read in it. Every creation writes that
+  // same document, so two requests at the same moment cannot both pass: Firestore lets one finish and tells the other to
+  // run again (the function below then runs a second time), and the second run sees the household the first one made.
   return deps.db.runTransaction(async tx => {
     const hhRef = deps.db.collection('households').doc(code), uRef = deps.db.collection('users').doc(uid);
     const [hh, u] = [await tx.get(hhRef, ['owner']), await tx.get(uRef)];
     if (hh.exists) return bad(409, 'code_taken');
     const ud = u.exists ? u.data() : {};
+
+    // How many households does this person own, and may they have another?
+    const owned = (await deps.db.collection('households').where('owner', '==', uid).select(...FIELDS).get()).docs.filter(d => !d.data().deletedAt);
+    if (owned.length >= limit) {
+      const until = ud.premiumUntil;
+      const premiumUser = until && (typeof until.toMillis === 'function' ? until.toMillis() : new Date(until).getTime()) > now;
+      // Paid Premium on any of their households lifts the limit (as the FAQ says). A free trial does not.
+      const paid = d => { const x = d.data(), c = x.config || {}; return computePremium({ memberUids: [uid], isPremium: x.isPremium, premiumExpiry: x.premiumExpiry, config: { isPremium: c.isPremium, premiumExpiry: c.premiumExpiry } }, uid, env, now) === true; };
+      if (!premiumUser && !owned.some(paid)) return bad(403, 'household_limit');
+    }
+
     const trial = !ud.trialClaimedAt;
     const doc = { config: clean, createdAt: tsFromMillis(now), owner: uid, memberUids: [uid] };
     if (body.solo === true) doc.solo = true;
