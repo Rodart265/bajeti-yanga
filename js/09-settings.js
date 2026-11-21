@@ -68,6 +68,9 @@ function rStg(){
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="goals"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="target" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zolinga Zosungira':'Savings Goals')+'</div><div class="stg-row-sub">'+((lCfg.goals&&lCfg.goals.length)||0)+' '+(lang==='cw'?'zolinga':'goals')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Bill Tracker
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="bills"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="alarm-clock" style="color:var(--gold-ink)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.billTracker+lockBadge(11)+'</div><div class="stg-row-sub">'+((lCfg.bills&&lCfg.bills.length)||0)+' '+(lang==='cw'?'zolipira':'bills')+(pStatus.isPremium?'':' · Premium')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  // Chipereganyu (also on Home): opens the circle if you are in one, otherwise start or join
+  const _cg=(typeof chipHomeGroup==='function')?chipHomeGroup():null;
+  h+='<div class="stg-row" onclick="'+(_cg?'openChipView()':'openChipEntry()')+'"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="rotate-cw" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Chipereganyu</div><div class="stg-row-sub">'+(_cg?esc(_cg.name||''):(lang==='cw'?'Yambani kapena lowani mu gulu':'Start or join a savings circle'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Overall budget
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="wallet" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Yonse ya Mwezi':'Monthly Budget Cap')+'</div></div><div class="stg-row-right">'+budgetCapField('cap-prof')+'</div></div>';
   // Salary Day / Budget Period -- collapsed by default. Tapping the row reveals
@@ -145,7 +148,7 @@ function rStg(){
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+(lang==='cw'?'Zatsopano':'What\'s New')+'</button></div></div>';
   h+='</div>';
 
   // -- Danger zone --
