@@ -113,7 +113,7 @@ async function pinFgtNoPassword(){
     hidePIN();
     toast((lang==='cw'?'Zatsimikizika! Ikani PIN yatsopano.':'Verified! Set a new PIN.'),'s');
     setTimeout(()=>{ pinMode='set'; showPIN(); },400);
-  }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
+  }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(reauthMsg(e),'e'); }
 }
 function pinFgt(){
   if(_authProviders().indexOf('password')<0){ pinFgtNoPassword(); return; }
@@ -157,7 +157,7 @@ async function pinFgtVerify(){
   }catch(e){
     if(errEl){
       errEl.style.display='block';
-      errEl.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Incorrect password. Try again.':'Verification failed: '+(e.message||e.code);
+      errEl.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?L('Incorrect password. Try again.','Mawu achinsinsi olakwika.'):reauthMsg(e);
     }
   }
 }
@@ -278,7 +278,7 @@ async function tryBioUnlock(){
     hidePIN();
     if(!hhId){ hhId=hid; _pendingHid=null; connectHH(hid); }
     toast((lang==='cw'?'Takulandirani!':'Welcome back!'),'s');
-  } else { toast((lang==='cw'?'Biometric yakanika. Gwiritsani ntchito PIN yanu.':'Biometric failed. Use your PIN.'),'e'); }
+  } else { toast(L('Fingerprint did not work. Enter your PIN instead.','Chala sichinagwire ntchito. Lowetsani PIN yanu.'),'e'); }
 }
 
 async function triggerBio(){
@@ -340,7 +340,7 @@ function requestSecurityVerification(onVerified){
     toast(lang==='cw'?'Tsimikizani pogwiritsa ntchito chala kapena nkhope...':'Verifying with biometrics...','i');
     checkBio().then(function(ok){
       if(ok){ onVerified(); }
-      else { toast(lang==='cw'?'Kutsimikiza kwalephera.':'Verification failed.','e'); }
+      else { toast(L('Fingerprint did not work. Try again.','Chala sichinagwire ntchito. Yesaninso.'),'e'); }
     });
   } else if(curUser && curUser.email){
     _openSecurityPasswordVerify(onVerified);
@@ -390,7 +390,7 @@ async function _secVerifyNoPassword(onVerified){
     const ok=await _reauthWithoutPassword();
     if(!ok){ toast(lang==='cw'?'Tulukani ndi kulowanso kuti musinthe zosankha za chitetezo.':'To change security settings, sign out and sign back in.','i'); return; }
     if(onVerified) onVerified();
-  }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(lang==='cw'?'Kutsimikiza kwalephera. Yesaninso.':'Verification failed. Please try again.','e'); }
+  }catch(e){ if(!e||e.code!=='auth/popup-closed-by-user') toast(reauthMsg(e),'e'); }
 }
 function _openSecurityPasswordVerify(onVerified){
   if(_authProviders().indexOf('password')<0){ _secVerifyNoPassword(onVerified); return; }
@@ -428,7 +428,7 @@ async function _secPwVerifySubmit(){
   }catch(e){
     if(errEl){
       errEl.style.display='block';
-      errEl.textContent = e.code==='auth/wrong-password'||e.code==='auth/invalid-credential' ? (lang==='cw'?'Mawu achinsinsi olakwika.':'Incorrect password. Try again.') : (lang==='cw'?'Kutsimikiza kwalephera: ':'Verification failed: ')+(e.message||e.code);
+      errEl.textContent = e.code==='auth/wrong-password'||e.code==='auth/invalid-credential' ? (lang==='cw'?'Mawu achinsinsi olakwika.':'Incorrect password. Try again.') : reauthMsg(e);
     }
   }
 }

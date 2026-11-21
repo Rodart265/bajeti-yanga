@@ -319,7 +319,7 @@ function restoreAccount(){
     else toast(lang==='cw'?'Akaunti yabwezeretsedwa!':'Account restored!','s');
     _pendingRestoreHid=null;
     authReg=false; bootApp();
-  }).catch(()=>toast((lang==='cw'?'Kubwezeretsa kwalephera. Onani intaneti yanu.':'Restore failed. Check your connection.'),'e'));
+  }).catch(e=>toast(L('Could not restore it. ','Sitinathe kubwezeretsa. ')+fsErrMsg(e),'e'));
 }
 
 // Guards createHHSolo()/createHH()/joinHH() against double-submission: these three
@@ -724,7 +724,7 @@ function restoreHousehold(hid){
     try{ localStorage.setItem('nb_household', hid); }catch(e){}
     toast(L('Household restored.','Household restored.'),'s');
     authReg=false; bootApp();
-  }).catch(()=>toast(L('Restore failed. Check your connection.','Kubwezeretsa kwalephera. Onani intaneti yanu.'),'e'));
+  }).catch(e=>toast(L('Could not restore it. ','Sitinathe kubwezeretsa. ')+fsErrMsg(e),'e'));
 }
 
 function cancelPendingJoin(){

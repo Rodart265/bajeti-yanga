@@ -947,3 +947,7 @@ body.dark .pm-foot{background:#17212C}
 .gl-l{font-size:var(--fs-xs);font-weight:600;color:var(--mid);margin-bottom:3px}
 .gl-v{font-size:var(--fs-md);font-weight:800;color:var(--ink);white-space:nowrap}
 .bnote{background:var(--gold-bg);color:var(--gold-ink);border-radius:var(--cr-md);padding:12px 14px;margin:12px 0;font-size:var(--fs-sm);line-height:1.45;font-weight:600}
+
+/* v9.20.3: say it in words when the connection is down */
+.sync-txt{font-size:var(--fs-xs);font-weight:700;color:#fff;margin-left:5px;white-space:nowrap}
+.sync-txt:empty{display:none}

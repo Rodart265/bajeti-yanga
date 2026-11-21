@@ -188,7 +188,7 @@ function fsErrMsg(e){
   if(c==='not-found') return cw?'Sichinapezeke. Mwina chachotsedwa.':'That could not be found. It may have been removed.';
   if(c==='aborted'||c==='already-exists'||c==='failed-precondition') return cw?'Zinasintha pamene mukusunga. Yesaninso.':'This changed while you were saving. Please try again.';
   if(c) return (cw?'Chinachake chinalakwika (':'Could not complete that (')+c+(cw?'). Yesaninso.':'). Please try again.');
-  return (cw?'Pulogalamu yakumana ndi vuto: ':'The app hit an unexpected problem: ')+(((e&&e.message)||'unknown').toString().slice(0,120));
+  return cw?'Pulogalamu yakumana ndi vuto losayembekezereka. Yesaninso, ndipo mutitumizire pa WhatsApp ngati likupitirira.':'The app hit an unexpected problem. Try again, and WhatsApp us if it keeps happening.';
 }
 // fetch with a timeout, so a stalled connection ends in an error instead of a screen that never recovers.
 function fetchT(url, opts, ms){
@@ -200,6 +200,15 @@ function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='s
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
 // Pick the English or Chichewa wording for a string that is built outside t / tx().
 function L(en,cw){ return lang==='cw'?cw:en; }
+// Why a re-sign-in (password or Google) failed, in words. Never shows raw error text.
+function reauthMsg(e){
+  const c=(e&&e.code)||'';
+  if(c==='auth/network-request-failed') return L('No internet. Check your connection and try again.','Palibe intaneti. Onani kulumikizana kwanu kenako yesaninso.');
+  if(c==='auth/popup-blocked') return L('Your browser blocked the sign-in window. Allow pop-ups for this site and try again.','Browser yatseka zenera lolowera. Lolani ma pop-up pa tsambali kenako yesaninso.');
+  if(c==='auth/too-many-requests') return L('Too many tries. Wait a few minutes and try again.','Mwayesa kwambiri. Dikirani mphindi zingapo kenako yesaninso.');
+  if(c==='auth/user-mismatch') return L('That is a different account from the one you are signed in with.','Iyi ndi akaunti yosiyana ndi imene mwalowamo.');
+  return L('Could not confirm it is you. Try again.','Sitinatsimikizire kuti ndinu. Yesaninso.');
+}
 
 // -- Loading skeletons --------------------------------------------------------------------------------------------
 // Grey shapes the size of the real screen, shown until the first entries / groups arrive (_pxFirst, _chipFirst).
@@ -277,7 +286,8 @@ function dismissToast(){
 function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':'');
   const cw=(typeof lang!=='undefined'&&lang==='cw');
   const lbl=s==='off'?(cw?'Palibe kulumikizana':'Not connected'):s==='spin'?(cw?'Ikusunga…':'Saving…'):(cw?'Zasinthidwa':'Synced');
-  d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl; }
+  d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl;
+  const tx_=g('sync-txt'); if(tx_) tx_.textContent=(s==='off'?lbl:''); }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; btn.setAttribute('aria-label', sh?L('Show password','Show password'):L('Hide password','Hide password')); if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
 
