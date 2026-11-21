@@ -1,7 +1,10 @@
 /* motion.css: small animations for the main app. Loads after glass.css.
    Only opacity and transform move. Everything is inside prefers-reduced-motion:no-preference,
    so people who ask their phone for less motion get the app exactly as it was.
-   The screen-change classes (.mo-in) are set for about one second by motion.js when a tab is opened. */
+   The screen-change class (.mo-in) is set for a moment by motion.js when a screen is opened or its content is swapped by a tap. */
+
+/* Speed: 1 is the quick version, 1.5 is a bit slower. Change this one number to retune everything. */
+:root{--mo-t:1.5}
 
 @keyframes mo-screen{from{opacity:0;transform:translateX(var(--mo-dx,18px))}to{opacity:1;transform:none}}
 @keyframes mo-rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
@@ -12,32 +15,32 @@
 @media (prefers-reduced-motion:no-preference){
 
   /* 1. Tabs slide and fade in, in the direction you moved */
-  #view.mo-in{animation:mo-screen .28s cubic-bezier(.2,.8,.2,1)}
+  #view.mo-in{animation:mo-screen calc(.28s*var(--mo-t)) cubic-bezier(.2,.8,.2,1)}
 
   /* 2. Cards arrive one by one; the ring and bars fill from empty */
-  #view.mo-in .page>*{animation:mo-rise .5s cubic-bezier(.2,.7,.2,1) backwards}
-  #view.mo-in .page>*:nth-child(2){animation-delay:70ms}
-  #view.mo-in .page>*:nth-child(3){animation-delay:140ms}
-  #view.mo-in .page>*:nth-child(4){animation-delay:210ms}
-  #view.mo-in .page>*:nth-child(5){animation-delay:280ms}
-  #view.mo-in .page>*:nth-child(6){animation-delay:350ms}
-  #view.mo-in .page>*:nth-child(n+7){animation-delay:420ms}
-  #view.mo-in .h2-bar span,#view.mo-in .pf{transform-origin:left center;animation:mo-fill .85s cubic-bezier(.2,.7,.2,1) 260ms backwards}
-  #view.mo-in .h2-ring svg circle:nth-child(2){animation:mo-ring .95s cubic-bezier(.2,.7,.2,1) 250ms backwards}
+  #view.mo-in .page>*{animation:mo-rise calc(.5s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+  #view.mo-in .page>*:nth-child(2){animation-delay:calc(70ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(3){animation-delay:calc(140ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(4){animation-delay:calc(210ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(5){animation-delay:calc(280ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(6){animation-delay:calc(350ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(n+7){animation-delay:calc(420ms*var(--mo-t))}
+  #view.mo-in .h2-bar span,#view.mo-in .pf{transform-origin:left center;animation:mo-fill calc(.85s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(260ms*var(--mo-t)) backwards}
+  #view.mo-in .h2-ring svg circle:nth-child(2){animation:mo-ring calc(.95s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(250ms*var(--mo-t)) backwards}
 
   /* 3. Press feedback: buttons dip a little under the finger */
-  .nb,.btn,.chip,.sec-link,.pri,.stg-row,.lbtn{transition-property:transform,background,color,opacity;transition-duration:.12s}
+  .nb,.btn,.chip,.sec-link,.pri,.stg-row,.lbtn{transition-property:transform,background,color,opacity;transition-duration:calc(.12s*var(--mo-t))}
   .nb:active,.btn:active,.chip:active,.sec-link:active,.pri:active,.stg-row:active,.lbtn:active{transform:scale(.96)}
 
   /* 4. Pop-ups ease up with a softer curve, and messages pop in */
-  .mb{transition:transform .38s cubic-bezier(.2,.85,.25,1)}
-  .ov:not(.open) .mb{transition:transform .26s cubic-bezier(.4,0,1,1)}
-  .ov.open .mb>*{animation:mo-rise .42s cubic-bezier(.2,.7,.2,1) 120ms backwards}
-  .toast{transform:translateX(-50%) translateY(16px) scale(.94);transition:opacity .22s ease,transform .22s ease}
-  .toast.on{transform:translateX(-50%) translateY(0) scale(1);transition:opacity .2s ease,transform .42s cubic-bezier(.2,.9,.3,1.3)}
+  .mb{transition:transform calc(.38s*var(--mo-t)) cubic-bezier(.2,.85,.25,1)}
+  .ov:not(.open) .mb{transition:transform calc(.26s*var(--mo-t)) cubic-bezier(.4,0,1,1)}
+  .ov.open .mb>*{animation:mo-rise calc(.42s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(120ms*var(--mo-t)) backwards}
+  .toast{transform:translateX(-50%) translateY(16px) scale(.94);transition:opacity calc(.22s*var(--mo-t)) ease,transform calc(.22s*var(--mo-t)) ease}
+  .toast.on{transform:translateX(-50%) translateY(0) scale(1);transition:opacity calc(.2s*var(--mo-t)) ease,transform calc(.42s*var(--mo-t)) cubic-bezier(.2,.9,.3,1.3)}
   .toast.top{transform:translateX(-50%) translateY(-16px) scale(.94)}
   .toast.top.on{transform:translateX(-50%) translateY(0) scale(1)}
 
   /* 5. The tab you tap bounces its icon */
-  .nb.on .ni{animation:mo-bounce .45s cubic-bezier(.3,.7,.3,1)}
+  .nb.on .ni{animation:mo-bounce calc(.45s*var(--mo-t)) cubic-bezier(.3,.7,.3,1)}
 }
