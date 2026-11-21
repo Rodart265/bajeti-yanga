@@ -1276,8 +1276,9 @@ function addPx(p,opts){
   // store the validated number (not whatever string/fraction the caller passed), rounded to 2dp to avoid float drift
   const data={...p,item:itemName,amount:Math.round(amt*100)/100,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
-  return op.then(()=>{setDot('');return true;}).catch(e=>{
+  return op.then(r=>{setDot(''); try{ if(opts.onRef&&r&&r.id) opts.onRef(r); }catch(_){} return true;}).catch(e=>{
     if(opts.quiet){ setDot(''); return false; }
+    if(opts.onFail){ setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); opts.onFail(e); return false; }
     const msg=fsErrMsg(e); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
     return false;
   });

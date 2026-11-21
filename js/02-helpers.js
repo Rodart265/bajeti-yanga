@@ -233,7 +233,7 @@ function pxPending(kind){
 }
 // A button for an empty screen: says what to do next. `act` is the onclick code, with double quotes written as &quot;.
 function emptyAction(label,act){ return '<button class="btnM" style="margin-top:12px;min-height:44px;padding:10px 18px;width:auto" onclick="'+act+'">'+label+'</button>'; }
-function toast(msg,type){
+function toast(msg,type,act){
   const el=g('toast'); if(!el)return;
   type = type||'s';
   // Screen readers: say the message through a separate live region that is always on the page. The visible toast is
@@ -244,9 +244,12 @@ function toast(msg,type){
   el.className = 'toast '+type+(document.querySelector('.ov.open')?' top':'');
   // Duration scales with message length so short messages don't linger and
   // long messages aren't cut off before they can be read.
-  const duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
+  let duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
+  if(act) duration = 6000; // long enough to reach the action button
+  window._toastAct = act ? act.fn : null;
   el.innerHTML = '<div class="t-ic-wrap"><i data-lucide="'+icons[type]+'" class="ic13"></i></div>'
     +'<div class="t-msg">'+esc(msg)+'</div>'
+    +(act?'<button type="button" class="t-act" onclick="event.stopPropagation();toastAct()">'+esc(act.label)+'</button>':'')
     +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="'+L('Dismiss','Tsekani')+'"><i data-lucide="x" class="ic13"></i></button>'
     +'<div class="t-bar" style="animation-duration:'+duration+'ms"></div>';
   if(window.lucide) lucide.createIcons({nodes:[el]});
@@ -254,6 +257,18 @@ function toast(msg,type){
   el.classList.add('on');
   window._toastTimer = setTimeout(dismissToast, duration);
 }
+// Field errors: say what is wrong on the field itself, move to it and focus it. Cleared when the person types.
+function showFieldErr(id,msg){
+  const el=g(id), er=g(id+'-err');
+  if(el){ el.classList.add('err'); el.setAttribute('aria-invalid','true'); el.setAttribute('aria-describedby',id+'-err'); }
+  if(er) er.textContent=msg;
+  if(el){ try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){} try{ el.focus({preventScroll:true}); }catch(e){} }
+}
+function clearFieldErr(el){
+  if(!el) return; el.classList.remove('err'); el.removeAttribute('aria-invalid');
+  const er=g(el.id+'-err'); if(er) er.textContent='';
+}
+function toastAct(){ const f=window._toastAct; window._toastAct=null; dismissToast(); if(typeof f==='function') f(); }
 function dismissToast(){
   const el=g('toast'); if(!el)return;
   el.classList.remove('on');

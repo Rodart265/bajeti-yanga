@@ -927,3 +927,15 @@ body.dark .pm-foot{background:#17212C}
 
 /* v9.20.2: visible label beside the generic-name warning */
 .badname{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--gold-bg);color:var(--gold-ink);font-size:var(--fs-xs);font-weight:800;vertical-align:middle;white-space:nowrap}
+
+/* v9.20.3: Log - field errors, More details, toast action */
+.fi.err{border-color:var(--neg);border-width:2px}
+.ferr{color:var(--neg);font-size:var(--fs-sm);font-weight:700;margin-top:6px;line-height:1.35}
+.ferr:empty{display:none}
+.more-d{border-top:1px solid var(--border);margin:6px 0 10px}
+.more-d>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;font-size:var(--fs-md);font-weight:700;color:var(--p1-text)}
+.more-d>summary::-webkit-details-marker{display:none}
+.more-d>summary .mdc{width:18px;height:18px;transition:transform .2s}
+.more-d[open]>summary .mdc{transform:rotate(180deg)}
+.toast .t-act{flex-shrink:0;min-height:36px;padding:0 10px;background:none;border:none;color:inherit;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.more-d>summary .mdc{transition:none}}
