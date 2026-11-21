@@ -70,6 +70,7 @@ function miniFirestore() {
       if (api.failCommits > 0) { api.failCommits--; return err(409, 'aborted'); }
       for (const [p, v] of t.reads) if ((ver.get(p) || 0) !== v) return err(409, 'contention');   // someone changed it after we read it
       for (const w of body.writes) if (w.update && w.currentDocument && w.currentDocument.exists && !docs.has(pathOf(w.update.name))) return err(404, 'no such document');
+      for (const w of body.writes) if (w.update && w.currentDocument && w.currentDocument.exists === false && docs.has(pathOf(w.update.name))) return err(409, 'Document already exists');
       for (const w of body.writes) {
         if (w.delete) { const p = pathOf(w.delete); docs.delete(p); bump(p); continue; }
         const p = pathOf(w.update.name);
@@ -87,10 +88,12 @@ function miniFirestore() {
       let out = [];
       for (const [p, f] of docs) { const parts = p.split('/'); if (inScope(parts) && (!parent || p.startsWith(parent + '/' + col + '/')) && matches(f, sq.where)) out.push({ document: { name: ROOT + '/' + p, fields: f, createTime: created.get(p), updateTime: updated.get(p) || created.get(p) }, readTime: 'x' }); }
       if (sq.orderBy) {
-        const keys = sq.orderBy.map(o => ({ path: segs(o.field.fieldPath), desc: o.direction === 'DESCENDING' }));
-        out = out.filter(r => keys.every(k => getAt(r.document.fields, k.path) !== undefined));      // Firestore leaves out documents missing the sort field
-        out.sort((a, b) => { for (const k of keys) { const x = decodeValue(getAt(a.document.fields, k.path)), y = decodeValue(getAt(b.document.fields, k.path)); if (x !== y) return (x < y ? -1 : 1) * (k.desc ? -1 : 1); } return 0; });
+        const keys = sq.orderBy.map(o => ({ path: segs(o.field.fieldPath), byName: o.field.fieldPath === '__name__', desc: o.direction === 'DESCENDING' }));
+        out = out.filter(r => keys.every(k => k.byName || getAt(r.document.fields, k.path) !== undefined));      // Firestore leaves out documents missing the sort field
+        const val = (r, k) => (k.byName ? r.document.name : decodeValue(getAt(r.document.fields, k.path)));
+        out.sort((a, b) => { for (const k of keys) { const x = val(a, k), y = val(b, k); if (x !== y) return (x < y ? -1 : 1) * (k.desc ? -1 : 1); } return 0; });
       }
+      if (sq.startAt) { const ref = sq.startAt.values[0].referenceValue; out = out.filter(r => (sq.startAt.before ? r.document.name >= ref : r.document.name > ref)); }
       if (sq.limit) out = out.slice(0, sq.limit);
       if (sq.select) out = out.map(r => ({ ...r, document: { ...r.document, fields: project(r.document.fields, sq.select.fields.map(f => f.fieldPath)) } }));
       return json(200, out.length ? out : [{ readTime: 'x' }]);
@@ -106,6 +109,7 @@ function miniFirestore() {
       if (method === 'DELETE') { docs.delete(p); bump(p); return json(200, {}); }
       if (method === 'PATCH') {
         if (query.get('currentDocument.exists') === 'true' && !docs.has(p)) return err(404, 'no such document');
+        if (query.get('currentDocument.exists') === 'false' && docs.has(p)) return err(409, 'Document already exists');
         const masks = query.getAll('updateMask.fieldPaths');
         if (masks.length) docs.set(p, applyMask(docs.get(p), masks, body.fields));
         else docs.set(p, body.fields || {});
@@ -849,6 +853,7 @@ globalThis.fetch = async (url, init) => {
   if (url.startsWith('https://fcm.googleapis.com/')) {
     const m = JSON.parse(init.body).message;
     if (world.fcm.dead.has(m.token)) return json(404, { error: { status: 'NOT_FOUND' } });
+    world.fcm.attempts = (world.fcm.attempts || 0) + 1;
     if (world.fcm.status !== 200) return json(world.fcm.status, { error: { status: 'INTERNAL' } });
     world.fcm.sent.push({ token: m.token, data: m.data }); return json(200, { name: 'x' });
   }
@@ -990,6 +995,19 @@ section('households: made by the Worker (one trial per account, limit of 3)');
   const both = await Promise.all([mk('race0001'), mk('race0002')]);
   const trials = (await Promise.all(both.map(r => r.json()))).filter(x => x.trial).length;
   eq('two at the same moment: only one trial', trials, 1);
+  // The limit must hold when requests arrive at the same moment, not only one after the other.
+  world.fs = miniFirestore();
+  world.fs.seed('households/own00001', { owner: 'u1', memberUids: ['u1'], config: {} });
+  world.fs.seed('households/own00002', { owner: 'u1', memberUids: ['u1'], config: {} });
+  // The fake database answers so quickly that requests would simply queue up. To really have them overlap, every household
+  // count is held back until all four requests have got that far (or 300 ms have passed), as a busy server would.
+  const realFetch = world.fs.fetch; let arrived = 0, release; const gate = new Promise(r => { release = r; }); setTimeout(release, 300);
+  world.fs.fetch = async (url, init = {}) => { if (String(url).endsWith(':runQuery') && String(init.body || '').includes('"owner"') && ++arrived <= 4) { if (arrived === 4) release(); await gate; } return realFetch(url, init); };
+  const burst = await Promise.all(['burst001', 'burst002', 'burst003', 'burst004'].map(c => mk(c)));
+  world.fs.fetch = realFetch;
+  eq('four requests at the same moment with room for ONE more household: exactly one is made (before: all four)', [burst.filter(r => r.status === 200).length, world.fs.list('households').length], [1, 3]);
+  eq('the others are told the limit is reached, not that something broke', burst.filter(r => r.status !== 200).every(r => r.status === 403), true);
+  world.fs = miniFirestore();
   eq('solo household flag is kept', (await (await mk('solo0001', { solo: true })).json()).ok, true);
   eq('and stored', world.fs.peek('households/solo0001').solo, true);
 }
@@ -1026,6 +1044,18 @@ section('push: join request and approval');
   eq('an address Google says is gone is removed, and nobody else is touched', [pt.u1.tokens, pt.u1.lang, pt.u3], [['tokA'], 'cw', { tokens: ['tokC'], lang: 'en' }]);
   fresh(); world.fcm.status = 500;
   eq('Google having a bad moment is not an error for the app, and nothing is removed', [(await asU({ type: 'join-request', householdId: 'HH1' }, 'u2')).status, world.fs.peek('households/HH1').pushTokens.u1.tokens], [200, ['tokA', 'tokA2']]);
+  // The request document can be rewritten any number of times by its writer (a new requestedAt each time). That must not mean a new push each time.
+  fresh();
+  await asU({ type: 'join-request', householdId: 'HH1' }, 'u2');
+  for (let i = 1; i <= 3; i++) world.fs.seed('households/HH1/joinRequests/u2', { uid: 'u2', displayName: 'Bea', email: 'bea@x.com', requestedAt: tsFromMillis(Date.now() + i * 1000) });
+  const spam = [];
+  for (let i = 0; i < 3; i++) spam.push((await (await asU({ type: 'join-request', householdId: 'HH1' }, 'u2')).json()).sent);
+  eq('rewriting the request again and again: the owner is told once a day, not every time', [spam, world.fcm.sent.length], [[0, 0, 0], 2]);
+  fresh(); world.fcm.status = 500;
+  const failedTry = await (await asU({ type: 'join-request', householdId: 'HH1' }, 'u2')).json();
+  world.fcm.status = 200;
+  const secondTry = await (await asU({ type: 'join-request', householdId: 'HH1' }, 'u2')).json();
+  eq('when every send failed for a temporary reason, asking again later still works', [failedTry.sent, secondTry.sent], [0, 2]);
 }
 
 section('push: bill reminders in the morning');
@@ -1051,12 +1081,118 @@ section('push: bill reminders in the morning');
   eq('the next run in the same morning tells nobody again', [again.households, world.fcm.sent.length], [0, 4]);
   world.fs = miniFirestore(); world.fcm.sent.length = 0;
   for (let i = 1; i <= 4; i++) { hh('G' + i); world.fs.seed('households/G' + i + '/bills/b', { name: 'Rent', amount: 1, dueDate: today }); }
-  const small = await runBillReminders({ deps: { db: new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.fs.fetch }), now: Date.now, tsFromMillis }, fcm: makeFcm({ projectId: 'bajeti-yanga', getToken: async () => 'tok' }), budget: { left: 36 } });
+  const small = await runBillReminders({ deps: { db: new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.fs.fetch }), now: Date.now, tsFromMillis }, fcm: makeFcm({ projectId: 'bajeti-yanga', getToken: async () => 'tok' }), budget: { left: 14 } });
   ok('with the 50-request limit nearly used up it stops early and says how many are waiting', small.waiting > 0 && small.households < 4, small);
   const rest = await worker.scheduled({ cron: BILLS_CRON }, ENV, ctx);
   eq('the next run finishes the rest, nobody twice', [small.households + rest.households, world.fcm.sent.length], [4, 8]);
+  // ── Batch C: the morning runs must reach everyone, not just the first few ──
+  const runOnce = () => runBillReminders({ deps: { db: new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.fs.fetch }), now: Date.now, tsFromMillis }, fcm: makeFcm({ projectId: 'bajeti-yanga', getToken: async () => 'tok' }) });
+  const due = id => world.fs.seed('households/' + id + '/bills/b', { name: 'Rent', amount: 1, dueDate: today });
+  world.fs = miniFirestore(); world.fcm.sent.length = 0; world.fcm.status = 200;
+  for (let i = 1; i <= 50; i++) { hh('C' + i); due('C' + i); }
+  let reached = 0, runs = [];
+  for (let run = 1; run <= 8; run++) { const o = await runOnce(); reached += o.households; runs.push(o.households); }
+  eq('50 households with a bill due are all told within the 8 morning runs, and nobody twice (before: 7 of 50)', [reached, world.fcm.sent.length], [50, 100]);
+  world.fs = miniFirestore(); world.fcm.sent.length = 0;
+  world.fs.seed('households/NT', { owner: 'x', memberUids: ['x'], config: {} }); due('NT');              // nobody there has notifications on
+  for (let i = 0; i < 3; i++) await runOnce();
+  eq('a household with nobody to tell is read once, not again on every run', world.fs.calls.filter(c => c.method === 'GET' && c.url.includes('/households/NT')).length, 1);
+  world.fs = miniFirestore(); world.fcm.sent.length = 0;
+  world.fs.seed('households/BIG', { owner: 'b0', memberUids: Array.from({ length: 12 }, (_, i) => 'b' + i), config: {},
+    pushTokens: Object.fromEntries(Array.from({ length: 12 }, (_, i) => ['b' + i, { tokens: ['bt' + i], lang: 'en' }])) }); due('BIG');
+  await runOnce();
+  eq('a household with 12 members: all 12 are told (before: only the first 6)', world.fcm.sent.length, 12);
+  world.fs = miniFirestore(); world.fcm.sent.length = 0; world.fcm.status = 500; hh('R1'); due('R1');
+  const f1 = await runOnce();
+  eq('every send failed for a temporary reason: nobody told yet, the household is marked to try again', [f1.sent, f1.retried, world.fcm.sent.length], [0, 1, 0]);
+  world.fcm.status = 200;
+  const f2 = await runOnce();
+  eq('the next run tries again, and now it gets through', [f2.sent, f2.retried], [2, 0]);
+  const f3 = await runOnce();
+  eq('and then it is done: nobody is told twice', [f3.households, world.fcm.sent.length], [0, 2]);
+  world.fs = miniFirestore(); world.fcm.sent.length = 0; world.fcm.attempts = 0; world.fcm.status = 500; hh('R2'); due('R2');
+  for (let i = 0; i < 6; i++) await runOnce();
+  eq('a household whose sends keep failing is tried 3 times a day (2 phones each), not on every run', world.fcm.attempts, 6);
+  world.fcm.status = 200;
   world.fcm.sent.length = 0; world.fs = miniFirestore();
   eq('a sweep for payments still runs on the 15-minute timer', Array.isArray(await worker.scheduled({ cron: '*/15 * * * *' }, ENV, ctx)), true);
+}
+
+
+import { syncBills, cleanBill } from './src/billsync.js';
+section('bill sync: bills nobody has edited get their own document, so reminders can find them');
+{
+  const today = catDate(Date.now());
+  const mkDeps = () => ({ db: new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.fs.fetch }), now: Date.now, tsFromMillis });
+  const sync = (over = {}) => syncBills({ deps: mkDeps(), budget: { left: 38 }, log: () => {}, live: false, ...over });
+  const hhWith = (id, bills, extra = {}) => world.fs.seed('households/' + id, { owner: id + 'o', memberUids: [id + 'o'], config: { bills }, ...extra });
+  const bill = (id, over = {}) => ({ id, name: 'Rent', amount: 150000, dueDate: today, ...over });
+  const has = path => !!world.fs.peek(path);
+
+  world.fs = miniFirestore();
+  hhWith('S1', [bill('b1', { icon: 'home' }), bill('b2', { name: 'ESCOM', amount: 20000 })]);
+  const r1 = await sync(), d1 = world.fs.peek('households/S1/bills/b1');
+  eq('bills that were never copied get their own document, with their list position', [r1.created, d1.name, d1.amount, d1.dueDate, d1.icon, d1.order, d1.updatedAt instanceof Ts, world.fs.peek('households/S1/bills/b2').order], [2, 'Rent', 150000, today, 'home', 0, true, 1]);
+
+  world.fs = miniFirestore();
+  hhWith('S2', [bill('b1', { amount: 100 })]);
+  world.fs.seed('households/S2/bills/b1', { id: 'b1', name: 'Rent', amount: 999, dueDate: today, order: 0 });
+  const r2 = await sync();
+  eq('a document the app already wrote is never changed here (it is newer than the list)', [world.fs.peek('households/S2/bills/b1').amount, r2.created], [999, 0]);
+
+  world.fs = miniFirestore();
+  hhWith('S3', [{ name: 'No id', amount: 1, dueDate: today }, bill('b1', { name: '' }), bill('b2', { dueDate: '31/12/2026' }), bill('b3', { amount: -5 }), bill('b4', { amount: '100' }), bill('b5', { amount: 5 })]);
+  const r3 = await sync();
+  eq('bills that cannot be used are skipped and counted; the good one is added', [r3.created, r3.unusable, has('households/S3/bills/b5'), has('households/S3/bills/b1')], [1, 5, true, false]);
+  eq('a bill id with odd characters is refused', cleanBill({ id: '../x', name: 'a', amount: 1, dueDate: today }, 0), null);
+
+  world.fs = miniFirestore();
+  hhWith('S4', [bill('b1')]);
+  world.fs.seed('households/S4/bills/b1', { id: 'b1', name: 'Rent', amount: 150000, dueDate: today, order: 0 });
+  world.fs.seed('households/S4/bills/gone', { id: 'gone', name: 'Deleted long ago', amount: 1, dueDate: today, order: 1 });
+  const dry = await sync();
+  eq('a leftover copy of a deleted bill is only reported in a dry run', [dry.orphans, dry.removed, has('households/S4/bills/gone')], [1, 0, true]);
+  const live = await sync({ live: true });
+  eq('and removed when clean-up is live, the real bill stays', [live.removed, has('households/S4/bills/gone'), has('households/S4/bills/b1')], [1, false, true]);
+
+  world.fs = miniFirestore();
+  world.fs.seed('households/S5', { owner: 'o', memberUids: ['o'], config: {} });
+  world.fs.seed('households/S5/bills/b1', { id: 'b1', name: 'Rent', amount: 1, dueDate: today, order: 0 });
+  await sync({ live: true });
+  eq('a household with no bill list at all is left alone: nothing is treated as deleted', has('households/S5/bills/b1'), true);
+  hhWith('S6', [bill('b1')], { deletedAt: tsFromMillis(Date.now()) });
+  await sync();
+  eq('a household that is being deleted is skipped', has('households/S6/bills/b1'), false);
+
+  world.fs = miniFirestore();
+  for (let i = 1; i <= 25; i++) hhWith('P' + String(i).padStart(2, '0'), [bill('b1')]);
+  const p1 = await sync(), p2 = await sync(), p3 = await sync(), p4 = await sync();
+  eq('25 households are visited 10, 10 and 5 at a time, then the round starts again', [p1.checked, p2.checked, p3.checked, p3.next, p4.checked], [10, 10, 5, '', 10]);
+  eq('every one of them got its bill, and the second round adds nothing', [p1.created + p2.created + p3.created, p4.created], [25, 0]);
+
+  world.fs = miniFirestore();
+  for (let i = 1; i <= 6; i++) hhWith('B0' + i, [bill('b1')]);
+  const cut = await sync({ budget: { left: 9 } });
+  eq('with little budget left it stops early and remembers where', [cut.checked, cut.next], [3, 'B03']);
+  const rest = await sync();
+  eq('the next run carries on from there, nobody skipped', [rest.checked, rest.next, ['B01', 'B02', 'B03', 'B04', 'B05', 'B06'].every(id => has('households/' + id + '/bills/b1'))], [3, '', true]);
+  eq('a run with no budget at all does nothing', (await sync({ budget: { left: 3 } })).skipped, true);
+
+  // the point of it all: reminders can now see a bill nobody ever edited
+  world.fs = miniFirestore(); world.fcm.sent.length = 0; world.fcm.status = 200;
+  world.fs.seed('households/E1', { owner: 'e1o', memberUids: ['e1o'], pushTokens: { e1o: { tokens: ['e1t'], lang: 'en' } }, config: { bills: [bill('b1')] } });
+  const runOnce = () => runBillReminders({ deps: mkDeps(), fcm: makeFcm({ projectId: 'bajeti-yanga', getToken: async () => 'tok' }) });
+  const before = await runOnce();
+  eq('before the sync: a bill nobody edited is invisible, nobody is reminded', [before.households, world.fcm.sent.length], [0, 0]);
+  await sync();
+  const after = await runOnce();
+  eq('after the sync: the household is reminded', [after.households, world.fcm.sent.length, world.fcm.sent[0] && world.fcm.sent[0].data.body], [1, 1, 'Due today: Rent (MK 150,000).']);
+
+  // wired into the 2-hourly clean-up run
+  world.fs = miniFirestore();
+  hhWith('W1', [bill('b1')]);
+  const hk = await worker.scheduled({ cron: HOUSEKEEPING_CRON }, ENV, ctx);
+  eq('the 2-hourly clean-up run includes the bill sync', [hk.bills && hk.bills.checked, has('households/W1/bills/b1')], [1, true]);
 }
 
 section('clean-up: dry run first, then really');
