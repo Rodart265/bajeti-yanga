@@ -30,7 +30,7 @@ function _expiryEnd(e){
   return new Date(e);
 }
 // Notes saved by older versions end with a sparkle emoji (U+2728) after "Added via Magic Log". Show them without it.
-function cleanNote(n){ return String(n==null?'':n).replace(/[\u2728\uFE0F]/g,'').trim(); }
+function cleanNote(n){ const c=String(n==null?'':n).replace(/[\u2728\uFE0F]/g,'').trim(); return (c==='Added via Magic Log'&&lang==='cw')?'Yawonjezedwa ndi Kulemba Mwachangu':c; }
 function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return esc(p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s); }
 // Returns true if the stored item name is a reserved category label (data quality flag)
 function isBadItemName(n){ return ['other','ena','food','transport','household','personal','unknown','other income','zina'].includes(String(n||'').toLowerCase().trim()); }
@@ -188,7 +188,7 @@ function fsErrMsg(e){
   if(c==='not-found') return cw?'Sichinapezeke. Mwina chachotsedwa.':'That could not be found. It may have been removed.';
   if(c==='aborted'||c==='already-exists'||c==='failed-precondition') return cw?'Zinasintha pamene mukusunga. Yesaninso.':'This changed while you were saving. Please try again.';
   if(c) return (cw?'Chinachake chinalakwika (':'Could not complete that (')+c+(cw?'). Yesaninso.':'). Please try again.');
-  return (cw?'Pulogalamu yakumana ndi vuto: ':'The app hit an unexpected problem: ')+(((e&&e.message)||'unknown').toString().slice(0,120));
+  return cw?'Pulogalamu yakumana ndi vuto losayembekezereka. Yesaninso, ndipo mutitumizire pa WhatsApp ngati likupitirira.':'The app hit an unexpected problem. Try again, and WhatsApp us if it keeps happening.';
 }
 // fetch with a timeout, so a stalled connection ends in an error instead of a screen that never recovers.
 function fetchT(url, opts, ms){
@@ -200,6 +200,15 @@ function show(id){ const el=g(id); if(el)el.classList.remove('hide'); if(id==='s
 function hide(id){ const el=g(id); if(el)el.classList.add('hide'); }
 // Pick the English or Chichewa wording for a string that is built outside t / tx().
 function L(en,cw){ return lang==='cw'?cw:en; }
+// Why a re-sign-in (password or Google) failed, in words. Never shows raw error text.
+function reauthMsg(e){
+  const c=(e&&e.code)||'';
+  if(c==='auth/network-request-failed') return L('No internet. Check your connection and try again.','Palibe intaneti. Onani kulumikizana kwanu kenako yesaninso.');
+  if(c==='auth/popup-blocked') return L('Your browser blocked the sign-in window. Allow pop-ups for this site and try again.','Browser yatseka zenera lolowera. Lolani ma pop-up pa tsambali kenako yesaninso.');
+  if(c==='auth/too-many-requests') return L('Too many tries. Wait a few minutes and try again.','Mwayesa kwambiri. Dikirani mphindi zingapo kenako yesaninso.');
+  if(c==='auth/user-mismatch') return L('That is a different account from the one you are signed in with.','Iyi ndi akaunti yosiyana ndi imene mwalowamo.');
+  return L('Could not confirm it is you. Try again.','Sitinatsimikizire kuti ndinu. Yesaninso.');
+}
 
 // -- Loading skeletons --------------------------------------------------------------------------------------------
 // Grey shapes the size of the real screen, shown until the first entries / groups arrive (_pxFirst, _chipFirst).
@@ -233,7 +242,7 @@ function pxPending(kind){
 }
 // A button for an empty screen: says what to do next. `act` is the onclick code, with double quotes written as &quot;.
 function emptyAction(label,act){ return '<button class="btnM" style="margin-top:12px;min-height:44px;padding:10px 18px;width:auto" onclick="'+act+'">'+label+'</button>'; }
-function toast(msg,type){
+function toast(msg,type,act){
   const el=g('toast'); if(!el)return;
   type = type||'s';
   // Screen readers: say the message through a separate live region that is always on the page. The visible toast is
@@ -244,9 +253,12 @@ function toast(msg,type){
   el.className = 'toast '+type+(document.querySelector('.ov.open')?' top':'');
   // Duration scales with message length so short messages don't linger and
   // long messages aren't cut off before they can be read.
-  const duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
+  let duration = Math.min(6000, Math.max(2400, 1400 + msg.length*45));
+  if(act) duration = 6000; // long enough to reach the action button
+  window._toastAct = act ? act.fn : null;
   el.innerHTML = '<div class="t-ic-wrap"><i data-lucide="'+icons[type]+'" class="ic13"></i></div>'
     +'<div class="t-msg">'+esc(msg)+'</div>'
+    +(act?'<button type="button" class="t-act" onclick="event.stopPropagation();toastAct()">'+esc(act.label)+'</button>':'')
     +'<button class="t-close" onclick="event.stopPropagation();dismissToast()" aria-label="'+L('Dismiss','Tsekani')+'"><i data-lucide="x" class="ic13"></i></button>'
     +'<div class="t-bar" style="animation-duration:'+duration+'ms"></div>';
   if(window.lucide) lucide.createIcons({nodes:[el]});
@@ -254,6 +266,18 @@ function toast(msg,type){
   el.classList.add('on');
   window._toastTimer = setTimeout(dismissToast, duration);
 }
+// Field errors: say what is wrong on the field itself, move to it and focus it. Cleared when the person types.
+function showFieldErr(id,msg){
+  const el=g(id), er=g(id+'-err');
+  if(el){ el.classList.add('err'); el.setAttribute('aria-invalid','true'); el.setAttribute('aria-describedby',id+'-err'); }
+  if(er) er.textContent=msg;
+  if(el){ try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){} try{ el.focus({preventScroll:true}); }catch(e){} }
+}
+function clearFieldErr(el){
+  if(!el) return; el.classList.remove('err'); el.removeAttribute('aria-invalid');
+  const er=g(el.id+'-err'); if(er) er.textContent='';
+}
+function toastAct(){ const f=window._toastAct; window._toastAct=null; dismissToast(); if(typeof f==='function') f(); }
 function dismissToast(){
   const el=g('toast'); if(!el)return;
   el.classList.remove('on');
@@ -262,7 +286,8 @@ function dismissToast(){
 function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+(s==='off'?' off':s==='spin'?' spin':'');
   const cw=(typeof lang!=='undefined'&&lang==='cw');
   const lbl=s==='off'?(cw?'Palibe kulumikizana':'Not connected'):s==='spin'?(cw?'Ikusunga…':'Saving…'):(cw?'Zasinthidwa':'Synced');
-  d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl; }
+  d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl;
+  const tx_=g('sync-txt'); if(tx_) tx_.textContent=(s==='off'?lbl:''); }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; btn.setAttribute('aria-label', sh?L('Show password','Show password'):L('Hide password','Hide password')); if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
 
