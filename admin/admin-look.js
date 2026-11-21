@@ -28,4 +28,30 @@
     const next = root.getAttribute('data-look') === 'glass' ? 'bento' : 'glass';
     save(next); apply(next);
   });
+
+  // Count-up: the Overview tile figures run up from zero as each tile arrives. The real text is always put back at the end,
+  // and nothing happens for people who asked for less motion.
+  const still = () => !(window.matchMedia && matchMedia('(prefers-reduced-motion: no-preference)').matches);
+  function countUp(el) {
+    const text = el.textContent, m = /\d[\d,]*(\.\d+)?/.exec(text);
+    if (!m || el.dataset.counted) return;
+    el.dataset.counted = '1';
+    const to = parseFloat(m[0].replace(/,/g, '')); if (!(to > 0) || !isFinite(to)) return;
+    const dec = m[1] ? m[1].length - 1 : 0, pre = text.slice(0, m.index), post = text.slice(m.index + m[0].length);
+    const tile = el.closest('.tile'), delay = tile ? (parseFloat(getComputedStyle(tile).animationDelay) || 0) * 1000 : 0;
+    const fmt = n => pre + n.toLocaleString('en-GB', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + post;
+    const dur = 750, t0 = performance.now() + delay;
+    el.textContent = fmt(0);
+    (function frame(now) {
+      if (!el.isConnected) return;
+      const k = Math.min(1, Math.max(0, (now - t0) / dur)), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = k >= 1 ? text : fmt(dec ? Math.round(to * e * Math.pow(10, dec)) / Math.pow(10, dec) : Math.round(to * e));
+      if (k < 1) requestAnimationFrame(frame);
+    })(performance.now());
+  }
+  function scan() { if (still()) return; document.querySelectorAll('#view .tile .value').forEach(countUp); }
+  document.addEventListener('DOMContentLoaded', () => {
+    const view = document.getElementById('view'); if (!view) return;
+    new MutationObserver(scan).observe(view, { childList: true });
+  });
 })();
