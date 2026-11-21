@@ -48,8 +48,8 @@ function rHist(){
   // Running totals strip
   if(list.length>0){
     h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
-    if(listInc>0) h+='<div style="flex:1;background:var(--pos-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--pos)">'+(lang==='cw'?'Ndalama Zolowa':'Income')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--pos)">+'+MKs(listInc)+'</div></div>';
-    if(listExp>0) h+='<div style="flex:1;background:var(--neg-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--neg)">'+(lang==='cw'?'Zotuluka':'Spent')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--neg)">'+MKs(listExp)+'</div></div>';
+    if(listInc>0) h+='<div style="flex:1;background:var(--pos-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--pos)">'+(lang==='cw'?'Ndalama Zolowa':'Income')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--pos)">+'+MKc(listInc)+'</div></div>';
+    if(listExp>0) h+='<div style="flex:1;background:var(--neg-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--neg)">'+(lang==='cw'?'Zotuluka':'Spent')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--neg)">'+MKc(listExp)+'</div></div>';
     h+='<div style="flex:1;background:var(--mist);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">'+(lang==='cw'?'Zolemba':'Entries')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
     h+='</div>';
   }
@@ -94,7 +94,7 @@ function rHist(){
       var dayExp=byDate[date].filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
       h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 2px 4px;border-bottom:1.5px solid var(--border);margin-bottom:4px">';
       h+='<span style="font-size:.72rem;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px">'+fmtDate(date)+'</span>';
-      if(dayExp>0)h+='<span style="font-size:.72rem;font-weight:700;color:var(--neg)">− '+MKs(dayExp)+'</span>';
+      if(dayExp>0)h+='<span style="font-size:.72rem;font-weight:700;color:var(--neg)">− '+MKc(dayExp)+'</span>';
       h+='</div>';
       byDate[date].forEach(function(p){
         var u=uById(p.userId), isI=p.type==='income';
@@ -104,7 +104,7 @@ function rHist(){
         h+='<div class="pli pli-x'+(isI?' income-e':'')+'">';
         h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
         h+='<div class="plb"><div class="pltop">';
-        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+esc(catLabel)+'</span></div>';
+        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i><span class="badname">'+L('Add a name','Onjezani dzina')+'</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+esc(catLabel)+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(cleanNote(p.notes)) h+='<div class="plnote">'+esc(cleanNote(p.notes))+'</div>';
         var _who=isSolo()?'':'<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
@@ -344,7 +344,7 @@ function rSum(){
     h+=`<svg viewBox="0 0 140 140" width="100%" style="max-width:160px;height:auto;filter:drop-shadow(0 4px 18px rgba(0,0,0,.13))">
       ${donutSegs}
       <circle cx="${cx}" cy="${cy}" r="34" fill="var(--white)"/>
-      <text x="${cx}" y="${cy-6}" text-anchor="middle" font-family="Hanken Grotesk" font-weight="800" font-size="12" fill="var(--ink)">${MKs(tS)}</text>
+      <text x="${cx}" y="${cy-6}" text-anchor="middle" font-family="Hanken Grotesk" font-weight="800" font-size="12" fill="var(--ink)">${MKc(tS)}</text>
       <text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.5" fill="var(--mid)">${lang==='cw'?'zonse zotuluka':'total spent'}</text>
     </svg>`;
     h+='</div>';

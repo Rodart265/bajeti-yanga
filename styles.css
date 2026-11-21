@@ -924,3 +924,6 @@ body.dark .pm-foot{background:#17212C}
 .ic14m4{width:14px!important;height:14px!important;margin-right:4px!important;vertical-align:middle!important}
 .ic14m5{width:14px!important;height:14px!important;margin-right:5px!important;vertical-align:middle!important}
 .ic13m4{width:13px!important;height:13px!important;margin-right:4px!important;vertical-align:middle!important}
+
+/* v9.20.2: visible label beside the generic-name warning */
+.badname{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--gold-bg);color:var(--gold-ink);font-size:var(--fs-xs);font-weight:800;vertical-align:middle;white-space:nowrap}

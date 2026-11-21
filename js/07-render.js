@@ -277,7 +277,7 @@ function rHome(){
   h+='<div class="hero2'+(isOver?' is-over':'')+'">';
   h+='<div class="h2-top">';
   h+='<div class="h2-ring" role="img" aria-label="'+Math.round(pctRaw*100)+'% '+(isCW?'zagwiritsidwa ntchito':'used')+'"><svg viewBox="0 0 80 80" width="78" height="78" style="transform:rotate(-90deg)" aria-hidden="true"><circle fill="none" stroke="rgba(255,255,255,.18)" stroke-width="8" cx="40" cy="40" r="32"/><circle fill="none" stroke="'+stroke+'" stroke-width="8" stroke-linecap="round" cx="40" cy="40" r="32" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
-  h+='<div class="h2-rlbl"><b>'+Math.round(pctRaw*100)+'%</b><span>'+(isCW?'zagwiritsidwa ntchito':'used')+'</span></div></div>';
+  h+='<div class="h2-rlbl"><b>'+Math.round(pctRaw*100)+'%</b>'+(isCW?'':'<span>used</span>')+'</div></div>';
   h+='<div class="h2-main">';
   h+='<div class="h2-lbl">'+(isOver?(isCW?'Mwapitirira bajeti ndi':'Over budget by'):t.left+' '+(isCW?'mwezi uno':'this month'))+'</div>';
   h+='<div class="h2-bal'+(isOver?' danger':'')+(balNum.length>=9?' long':'')+'"><span class="h2-cur">MK</span><span class="h2-num">'+balNum+'</span></div>';
@@ -325,7 +325,7 @@ function rHome(){
       const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#176B78');
       h+='<div class="pri">';
       h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
-      h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
+      h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i><span class="badname">'+L('Add a name','Onjezani dzina')+'</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(cleanNote(p.notes)?'<div class="prnote">'+esc(cleanNote(p.notes))+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
       if(!isSolo())h+='<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';

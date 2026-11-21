@@ -109,13 +109,13 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Chitetezo':'Security')+'</span>';
   h+='<div class="stg-grp">';
   if(hasPIN()){
-    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="lock" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">PIN Lock</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito -- dinani kuti musinthe':'Active -- tap to change')+'</div></div><div class="stg-row-right"><button class="bsm bd" onclick="event.stopPropagation();removePIN()" style="padding:4px 9px;font-size:.72rem">'+(lang==='cw'?'Chotsani':'Remove')+'</button><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="lock" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">PIN Lock</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti musinthe':'Active - tap to change')+'</div></div><div class="stg-row-right"><button class="bsm bd" onclick="event.stopPropagation();removePIN()" style="padding:4px 9px;font-size:.72rem">'+(lang==='cw'?'Chotsani':'Remove')+'</button><span class="stg-chev">›</span></div></div>';
   } else {
     h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="unlock" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ikani PIN':'Set PIN Lock')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tetezani pulogalamuyi ndi PIN':'Protect app with a 4-digit PIN')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
   // Biometrics
   if(hasBio()){
-    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito -- dinani kuti muchotse':'Enabled -- tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti muchotse':'Enabled - tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
   } else {
     h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="fingerprint" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chala kapena nkhope kuti mutsegule':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
@@ -126,8 +126,8 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Deta':'Data')+'</span>';
   h+='<div class="stg-grp">';
   h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="table-2" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Sankhani nthawi kenako tsitsani':'Choose a period, then download')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:var(--pk1-bg)"><i data-lucide="file-text" style="color:var(--pk1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Export PDF'+lockBadge(11)+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tulutsani Lipoti':(pStatus.isPremium?'Printable report':'Printable report -- Premium'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Deta imasungidwa masiku 30 -- mutha kubwezeretsa':'Data kept for 30 days -- restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--neg)">›</span></div></div>';
+  h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:var(--pk1-bg)"><i data-lucide="file-text" style="color:var(--pk1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Export PDF'+lockBadge(11)+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tulutsani Lipoti':(pStatus.isPremium?'Printable report':'Printable report - Premium'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Deta imasungidwa masiku 30 - mutha kubwezeretsa':'Data kept for 30 days - restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--neg)">›</span></div></div>';
   h+='</div>';
 
   // -- Help --
@@ -599,7 +599,7 @@ function buildAndDownloadPdf(fromD, toD, periodLabel){
     }
     return;
   }
-  toast(lang==='cw'?'Lipoti lakonzeka -- Print kuti musunge':'PDF ready -- tap Print to save');
+  toast(lang==='cw'?'Lipoti lakonzeka - Print kuti musunge':'PDF ready - tap Print to save');
 }
 
 // ===============================================
@@ -612,7 +612,7 @@ function buildNotifs(){
   if(pct>=1) notifs.push({ico:'<i data-lucide="alert-triangle" style="color:var(--neg)"></i>',bg:'#FFEBEE',title:t.over,msg:'You have exceeded your monthly budget.'});
   else if(pct>=.8) notifs.push({ico:'<i data-lucide="alert-triangle" style="color:var(--a1)"></i>',bg:'#FFF3E0',title:t.near,msg:'You have used '+Math.round(pct*100)+'% of your budget.'});
   lCfg.items.forEach(it=>{const s=iSpent(it.name),r=s/it.budget;if(r>=1) notifs.push({ico:'<i data-lucide="x-circle" style="color:var(--neg)"></i>',bg:'#FFEBEE',title:esc(it.name)+' over budget',msg:MK(s)+' spent of '+MK(it.budget)});else if(r>=.85) notifs.push({ico:'<i data-lucide="circle" style="color:var(--a1)"></i>',bg:'#FFF3E0',title:esc(it.name)+' near limit',msg:Math.round(r*100)+'% used'});});
-  lCfg.goals&&lCfg.goals.forEach(gl=>{const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);if(ml!==null&&ml<=2&&gl.saved<gl.target) notifs.push({ico:'<i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i>',bg:'#E3F2FD',title:'Goal deadline: '+esc(gl.name),msg:ml===0?'Due this month!':'Only '+ml+' month(s) left -- need '+MK(mn)+'/mo'});});
+  lCfg.goals&&lCfg.goals.forEach(gl=>{const ml=goalMonthsLeft(gl.deadline),mn=goalMonthlyNeed(gl);if(ml!==null&&ml<=2&&gl.saved<gl.target) notifs.push({ico:'<i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i>',bg:'#E3F2FD',title:'Goal deadline: '+esc(gl.name),msg:ml===0?'Due this month!':'Only '+ml+' month(s) left - need '+MK(mn)+'/mo'});});
   return notifs;
 }
 function openNotifs(){

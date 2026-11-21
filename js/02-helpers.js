@@ -4,6 +4,7 @@
 
 const fmt = new Intl.NumberFormat('en-MW',{style:'currency',currency:'MWK',minimumFractionDigits:0,maximumFractionDigits:0});
 const MK  = n => fmt.format(Math.round(n||0)).replace('MWK','MK');
+const MKc = n => (Math.abs(Math.round(n||0))>=1e6 ? MKs(n) : MK(n)); // exact under a million, short above
 const MKs = n => { n=Math.round(n||0); if(n>=1e6)return 'MK '+(n/1e6).toFixed(1)+'M'; if(n>=1000)return 'MK '+(n/1e3).toFixed(0)+'K'; return MK(n); };
 const tx      = () => TX[lang];
 // Local-calendar YYYY-MM-DD. toISOString() is UTC, which is the previous day in Malawi (UTC+2) between 00:00 and 02:00.
