@@ -351,7 +351,7 @@ function rSum(){
   // and the slices add up to totSp() just like History and the PDF report.
   lPx.forEach(p=>{ if(p.deleted||p.type==='income'||!isTM(p.date)) return; const c=catOf(p.item,p.cat); catSpend[c]=(catSpend[c]||0)+(Number(p.amount)||0); });
   const cats=Object.entries(catSpend).sort((a,b)=>b[1]-a[1]);
-  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;color:var(--p1-text)"></i> Category Breakdown</h2></div><div style="padding:16px">';
+  h+='<div class="card" style="overflow:hidden"><div class="ch"><h2><i data-lucide="pie-chart" style="width:16px;height:16px;margin-right:6px;color:var(--p1-text)"></i> '+L('Category Breakdown','Zogula Mogawa Mmagulu')+'</h2></div><div style="padding:16px">';
   if(cats.length&&tS>0){
     const PC={Food:'#176B78',Household:'#1565C0',Personal:'#E91E63',Transport:'#E65100',Other:'#5D4037'};
     // Build donut SVG

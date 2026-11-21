@@ -30,7 +30,7 @@ function _expiryEnd(e){
   return new Date(e);
 }
 // Notes saved by older versions end with a sparkle emoji (U+2728) after "Added via Magic Log". Show them without it.
-function cleanNote(n){ return String(n==null?'':n).replace(/[\u2728\uFE0F]/g,'').trim(); }
+function cleanNote(n){ const c=String(n==null?'':n).replace(/[\u2728\uFE0F]/g,'').trim(); return (c==='Added via Magic Log'&&lang==='cw')?'Yawonjezedwa ndi Kulemba Mwachangu':c; }
 function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return esc(p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s); }
 // Returns true if the stored item name is a reserved category label (data quality flag)
 function isBadItemName(n){ return ['other','ena','food','transport','household','personal','unknown','other income','zina'].includes(String(n||'').toLowerCase().trim()); }

@@ -35,7 +35,7 @@ function rStg(){
         +'</div>';
     }
   } else if(pStatus.isPremium && pStatus.isTrial){
-    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Trial · '+pStatus.daysLeft+'d</button>';
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> '+(lang==='cw'?'Yesero · masiku '+pStatus.daysLeft:'Trial · '+pStatus.daysLeft+'d')+'</button>';
   } else {
     premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;min-height:36px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Upgrade</button>';
   }
@@ -59,11 +59,9 @@ function rStg(){
   if(typeof installRowHtml==='function') h+=installRowHtml();
   h+='</div>';
 
-  // -- Household --
-  h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Nyumba':'Household')+'</span>';
+  // -- Your money --
+  h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Ndalama Zanu':'Your money')+'</span>';
   h+='<div class="stg-grp">';
-  // Members
-  h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="members"><div class="stg-row-ico" style="background:var(--b1-bg)"><i data-lucide="users" style="color:var(--b1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mamembala':'Members')+'</div><div class="stg-row-sub">'+lCfg.users.length+' '+(lang==='cw'?'Mamembala':'members')+'</div></div><div class="stg-row-right"><span id="pending-join-badge"></span><span class="stg-chev">›</span></div></div>';
   // Items & Budgets
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="items"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="list-checks" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zinthu ndi Bajeti':'Items & Budgets')+'</div><div class="stg-row-sub">'+lCfg.items.length+' '+(lang==='cw'?'zinthu':'items')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Goals
@@ -99,10 +97,15 @@ function rStg(){
     +'</div>':'')
     +'</div>':'')
     +'</div>';
+  h+='</div>';
+
+  // -- Household --
+  h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Nyumba':'Household')+'</span>';
+  h+='<div class="stg-grp">';
+  h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="members"><div class="stg-row-ico" style="background:var(--b1-bg)"><i data-lucide="users" style="color:var(--b1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mamembala':'Members')+'</div><div class="stg-row-sub">'+lCfg.users.length+' '+(lang==='cw'?'Mamembala':'members')+'</div></div><div class="stg-row-right"><span id="pending-join-badge"></span><span class="stg-chev">›</span></div></div>';
   // Household Code
   if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" aria-label="'+L('Copy household code','Copy household code')+'" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.72rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1-text)"></i></button><button class="hc-btn hc-wa" aria-label="'+L('Share code on WhatsApp','Share code on WhatsApp')+'" onclick="event.stopPropagation();waCode()" style="font-size:.72rem;padding:5px 8px"><i data-lucide="send" style="width:13px;height:13px;vertical-align:middle"></i></button><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="switchHousehold()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="arrow-left-right" style="color:var(--gold-ink)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--gold-ink)">'+(lang==='cw'?'Siyani / Sintha Nyumba':'Switch / Leave Household')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Lowani mu nyumba ina popanda kutuluka mu akaunti':'Join a different household without signing out')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--gold-ink)">›</span></div></div>';
-  if(hhId && lHHDoc && curUser && lHHDoc.owner===curUser.uid) h+='<div class="stg-row" onclick="openDeleteHousehold()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+L('Delete this household','Delete this household')+'</div><div class="stg-row-sub">'+L('Others lose access. You keep your login.','Others lose access. You keep your login.')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
   // -- Security --
@@ -115,9 +118,9 @@ function rStg(){
   }
   // Biometrics
   if(hasBio()){
-    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti muchotse':'Enabled - tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chala kapena Nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti muchotse':'Enabled - tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
   } else {
-    h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="fingerprint" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Biometrics':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chala kapena nkhope kuti mutsegule':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="fingerprint" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chala kapena Nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chala kapena nkhope kuti mutsegule':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
   if(cu&&cu.email)h+='<div class="stg-row" onclick="doPwReset()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="key" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Sinthani Mawu Achinsinsi':'Change Password')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tumizani link ku '+cu.email:'Send reset link to '+cu.email)+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
@@ -126,14 +129,13 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Deta':'Data')+'</span>';
   h+='<div class="stg-grp">';
   h+='<div class="stg-row" onclick="doExport()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="table-2" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.exportCSV+'</div><div class="stg-row-sub">'+(lang==='cw'?'Sankhani nthawi kenako tsitsani':'Choose a period, then download')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:var(--pk1-bg)"><i data-lucide="file-text" style="color:var(--pk1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Export PDF'+lockBadge(11)+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tulutsani Lipoti':(pStatus.isPremium?'Printable report':'Printable report - Premium'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
-  h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Deta imasungidwa masiku 30 - mutha kubwezeretsa':'Data kept for 30 days - restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--neg)">›</span></div></div>';
+  h+='<div class="stg-row" onclick="doExportPDF()"><div class="stg-row-ico" style="background:var(--pk1-bg)"><i data-lucide="file-text" style="color:var(--pk1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Tsitsani PDF':'Export PDF')+lockBadge(11)+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tulutsani Lipoti':(pStatus.isPremium?'Printable report':'Printable report - Premium'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='</div>';
 
   // -- Help --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Thandizo':'Help & Support')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row" onclick="openFAQ()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="help-circle" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">FAQ</div><div class="stg-row-sub">'+(lang==='cw'?'Mafunso ofunsidwa kawirikawiri':'Frequently asked questions')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openFAQ()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="help-circle" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mafunso Ofunsidwa':'FAQ')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Mafunso ofunsidwa kawirikawiri':'Frequently asked questions')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row"><a href="https://wa.me/265888029029" target="_blank" style="display:flex;align-items:center;gap:12px;flex:1;color:inherit;text-decoration:none"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="message-circle" style="color:#25D366"></i></div><div class="stg-row-body"><div class="stg-row-lbl">WhatsApp</div><div class="stg-row-sub">+265 888 029 029</div></div></a><span class="stg-chev" style="color:#25D366">›</span></div>';
   h+='<div class="stg-row"><a href="mailto:rodartcreatives@gmail.com" style="display:flex;align-items:center;gap:12px;flex:1;color:inherit;text-decoration:none"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="mail" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Imelo':'Email')+'</div><div class="stg-row-sub">rodartcreatives@gmail.com</div></div></a><span class="stg-chev">›</span></div>';
   h+='<div class="stg-row" onclick="openPrivacySheet()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="shield" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndondomeko ya Chinsinsi':'Privacy Policy')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
@@ -144,6 +146,13 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
+  h+='</div>';
+
+  // -- Danger zone --
+  h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Chenjezo':'Danger zone')+'</span>';
+  h+='<div class="stg-grp">';
+  if(hhId && lHHDoc && curUser && lHHDoc.owner===curUser.uid) h+='<div class="stg-row" onclick="openDeleteHousehold()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+L('Delete this household','Chotsani nyumba iyi')+'</div><div class="stg-row-sub">'+L('Other members lose access. You keep your login.','Ena adzataya mwayi wolowa. Inu mudzasunga akaunti yanu.')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  h+='<div class="stg-row" onclick="openDeleteAccount()"><div class="stg-row-ico" style="background:var(--r1-bg)"><i data-lucide="trash-2" style="color:var(--neg)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--neg)">'+(lang==='cw'?'Chotsani Akaunti':'Delete Account')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Deta imasungidwa masiku 30 - mutha kubwezeretsa':'Data kept for 30 days - restorable')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--neg)">›</span></div></div>';
   h+='</div>';
 
   h+='<button class="stg-logout" onclick="logout()"><i data-lucide="log-out" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i> '+t.logout+'</button>';
