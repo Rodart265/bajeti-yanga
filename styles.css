@@ -1028,3 +1028,16 @@ body.dark .gs-ic{background:#1E2A37}
 .guest-strip button{flex-shrink:0;min-height:36px;padding:0 14px;border:0;border-radius:var(--cr-md);background:var(--p1);color:#fff;font:800 .74rem Hanken Grotesk,sans-serif;cursor:pointer}
 body.dark .guest-strip{background:#1B3A42;color:#9CCDD3}
 #app.is-guest .sync-dot,#app.is-guest .sync-txt{display:none}
+.guest-strip-btns{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.guest-strip button.guest-tour-btn{background:none;color:var(--p1);min-height:36px;padding:0 8px;font-weight:800;text-decoration:underline}
+body.dark .guest-strip button.guest-tour-btn{color:#9CCDD3}
+/* Guided tour: a dimmed screen with one lit-up spot and a card that explains it. */
+.gs-tour{position:fixed;inset:0;z-index:1600}
+.gs-tour-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(10,18,28,.62);pointer-events:none;transition:left .25s,top .25s,width .25s,height .25s}
+.gs-tour-card{position:fixed;left:50%;transform:translateX(-50%);width:min(456px,calc(100% - 24px));background:var(--white);color:var(--ink);border-radius:18px;padding:16px 16px 12px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.gs-tour-card h3{margin:0 0 6px;font-size:1rem}
+.gs-tour-card p{margin:0 0 12px;font-size:.84rem;line-height:1.55;color:var(--mid)}
+.gs-tour-count{font-size:.68rem;font-weight:800;color:var(--p1);margin-bottom:4px;letter-spacing:.3px}
+.gs-tour-row{display:flex;gap:8px}
+.gs-tour-row .gs-btn{margin-top:0}
+.gs-tour-skip{display:block;margin:6px auto 0}

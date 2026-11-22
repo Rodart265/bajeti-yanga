@@ -488,7 +488,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     </div>
   </div>
   <!-- Shown only in guest mode (js/12a-guest.js): the demo runs the real screens on sample data. -->
-  <div id="guest-strip" class="guest-strip hide" role="status"><span data-cw="Chitsanzo. Palibe chomwe chimasungidwa.">Demo. Nothing is saved.</span><button type="button" onclick="guestGate(&quot;account&quot;)" data-cw="Tsegulani akaunti">Create account</button></div>
+  <div id="guest-strip" class="guest-strip hide" role="status"><span data-cw="Chitsanzo. Palibe chomwe chimasungidwa.">Demo. Nothing is saved.</span><span class="guest-strip-btns"><button type="button" class="guest-tour-btn" onclick="guestTourOffer()" data-cw="Ulendo">Tour</button><button type="button" onclick="guestGate(&quot;account&quot;)" data-cw="Tsegulani akaunti">Create account</button></span></div>
   <div id="view"><div class="loading" role="status"><div class="spinner"></div><span id="load-txt" data-cw="Chonde dikirani...">Loading...</span></div></div>
   <nav id="nav" role="navigation" aria-label="Main navigation">
     <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
@@ -512,6 +512,8 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
 <div class="toast" id="toast" onclick="dismissToast()"></div>
 <!-- Guest mode: the "this needs an account" sheet (drawn by js/12a-guest.js). -->
 <div id="gs-sheet" class="gs-sheet hide" onclick="guestSheetBg(event)"></div>
+<!-- Guest mode: the guided tour (drawn by js/12a-guest.js). The spot is the lit-up part of the screen, the card is the text. -->
+<div id="gs-tour" class="gs-tour hide"><div id="gs-tour-spot" class="gs-tour-spot"></div><div id="gs-tour-card" class="gs-tour-card" role="dialog" aria-modal="true"></div></div>
 <div class="sr-only" id="toast-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- App code (was one big inline script; split by section, no logic changes).
