@@ -6,7 +6,7 @@ function polChips(items){
   items.forEach(function(it){
     c+='<div style="display:inline-flex;align-items:center;gap:5px;background:'+it[1]+'14;border:1px solid '+it[1]+'35;border-radius:var(--cr);padding:5px 12px 5px 9px">'
       +'<i data-lucide="'+it[0]+'" style="width:12px;height:12px;color:'+it[1]+'"></i>'
-      +'<span style="font-size:.7rem;font-weight:700;color:'+it[1]+'">'+it[2]+'</span></div>';
+      +'<span style="font-size:var(--fs-xs);font-weight:700;color:'+it[1]+'">'+it[2]+'</span></div>';
   });
   return c+'</div>';
 }
@@ -28,7 +28,7 @@ function polShell(id, iconBadge, heading, subtitle, chipsHtml, sectionsHtml){
     +'<div style="display:flex;align-items:center;gap:11px">'
     +'<div style="width:42px;height:42px;border-radius:var(--cr-md);background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="'+iconBadge+'" style="width:21px;height:21px;color:#fff"></i></div>'
     +'<div><h1 style="font-family:Hanken Grotesk,sans-serif;font-size:1.25rem;font-weight:800;color:#fff;margin-bottom:2px">'+heading+'</h1>'
-    +'<p style="font-size:.7rem;color:rgba(255,255,255,.65)">'+subtitle+'</p></div>'
+    +'<p style="font-size:var(--fs-xs);color:rgba(255,255,255,.65)">'+subtitle+'</p></div>'
     +'</div></div>'
     +'<div style="padding:20px">'
     +chipsHtml
@@ -101,7 +101,7 @@ function openFAQ(){
   s += faqItem('faq-2','How many households can I create for free?','Free accounts can own up to 3 households. Upgrading any one of your households to Premium unlocks unlimited households across your account.');
   s += faqItem('faq-3','Does Premium cover my whole account, or just one household?','Premium is tied to the specific household you buy it for, not your account as a whole. If you belong to more than one household, each one needs its own Premium subscription to unlock Bill Tracker, PDF export, and Bajeti AI inside that household. (Owning one Premium household does still unlock unlimited household creation, per the question above.)');
   s += faqItem('faq-4','What do I get with Premium?','Bill Tracker, PDF report export, unlimited households, and unlimited Bajeti AI (chat, Magic Log, Receipt Scan and AI Summary). Bajeti AI is available on Premium and during the free trial; free households do not include it.');
-  s += faqItem('faq-5','What is Magic Log?','An AI-powered way to log entries fast. Scan a receipt, paste an Airtel Money or Mpamba SMS, or just type what you bought in plain language, and it pulls out the items, amounts, and categories for you. Magic Log is part of Bajeti AI, so it needs Premium or the free trial.');
+  s += faqItem('faq-5','What is Magic Log?','A fast way to log entries. Scan a receipt, paste an Airtel Money or Mpamba SMS, or just type what you bought, and it fills in the items, amounts, and categories for you to check before saving. Magic Log is part of Bajeti AI, so it needs Premium or the free trial.');
   s += faqItem('faq-6','How do I join an existing household?','Ask the household owner for their household code or join link, then choose "Join a household" during setup, or use Switch/Leave Household in Settings. The owner has to approve your request before you get access.');
   s += faqItem('faq-7','Will I know when someone joins my household?','Yes. As the owner, you get a notification as soon as someone asks to join (allow notifications when the app asks). Once you approve them, they get a notification too, and members with the app open see the new member straight away.');
   s += faqItem('faq-8','How long is the free trial?','Each account gets one 14-day free trial of Premium features, started with the first household you create. After it ends, the household drops to the free tier unless you subscribe.');

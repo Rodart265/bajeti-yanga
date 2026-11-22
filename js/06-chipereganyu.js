@@ -172,7 +172,7 @@ function openChipCreate(){
   h+='<div class="fsec"><label class="fl">'+(isCW?'Nthawi yobwereza':'Frequency')+'</label><div class="usel"><div class="usb on" id="cg-freq-monthly" onclick="chipPickFreq(\'monthly\')" style="flex:1"><div class="usnm">'+(isCW?'Mwezi ndi mwezi':'Monthly')+'</div></div><div class="usb" id="cg-freq-weekly" onclick="chipPickFreq(\'weekly\')" style="flex:1"><div class="usnm">'+(isCW?'Sabata ndi sabata':'Weekly')+'</div></div></div><input type="hidden" id="cg-freq" value="monthly"></div>';
   h+='<div class="fsec" id="cg-day-m"><label class="fl">'+(isCW?'Tsiku lolipira la mwezi (1–31)':'Pay day (day of the month, 1–31)')+'</label><input type="number" class="fi" id="cg-day" inputmode="numeric" min="1" max="31" placeholder="'+(isCW?'Mwachitsanzo: 25':'e.g. 25')+'"></div>';
   h+='<div class="fsec" id="cg-day-w" style="display:none"><label class="fl">'+(isCW?'Tsiku lolipira la sabata':'Pay day (day of the week)')+'</label><select class="fs" id="cg-wday">'+wdOpts+'</select></div>';
-  h+='<p style="font-size:.72rem;color:var(--mid);margin:-2px 0 10px">'+(isCW?'Gawo lililonse, aliyense kupatula wolandira amalipira. Ndalama yonse = ndalama ya munthu mmodzi × (chiwerengero cha mamembala − 1).':'Each round, everyone except the person receiving pays. The pot = contribution × (members − 1).')+'</p>';
+  h+='<p style="font-size:var(--fs-xs);color:var(--mid);margin:-2px 0 10px">'+(isCW?'Gawo lililonse, aliyense kupatula wolandira amalipira. Ndalama yonse = ndalama ya munthu mmodzi × (chiwerengero cha mamembala − 1).':'Each round, everyone except the person receiving pays. The pot = contribution × (members − 1).')+'</p>';
   h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btnG" style="flex:1" onclick="closeM(\'mv-e\')">'+(isCW?'Letsani':'Cancel')+'</button><button class="btnM" style="flex:2" onclick="saveChipCreate(this)"><i data-lucide="save" class="ic14m4"></i>'+(isCW?'Pangani':'Create')+'</button></div>';
   g('mb-e').innerHTML=h; initIcons(); openM('mv-e');
 }
@@ -609,8 +609,8 @@ function chipHistoryHtml(grp){
     // and treat entries with neither as clean, since we have no record either way.
     const legacyShort=!hasCol && hh.contributions && Object.keys(hh.contributions).some(function(u){ return !(hh.contributions[u]&&hh.contributions[u].paid); });
     const flag=shortAmt>0
-      ? ' <span style="color:var(--gold-ink);font-size:.7rem;font-weight:700">'+(isCW?'· yasowa '+MK(shortAmt):'· short by '+MK(shortAmt))+'</span>'
-      : (legacyShort?' <span style="color:var(--gold-ink);font-size:.7rem;font-weight:700">'+(isCW?'· sanalipire onse':'· not everyone paid')+'</span>':'');
+      ? ' <span style="color:var(--gold-ink);font-size:var(--fs-xs);font-weight:700">'+(isCW?'· yasowa '+MK(shortAmt):'· short by '+MK(shortAmt))+'</span>'
+      : (legacyShort?' <span style="color:var(--gold-ink);font-size:var(--fs-xs);font-weight:700">'+(isCW?'· sanalipire onse':'· not everyone paid')+'</span>':'');
     h+='<div class="cg-row"><div class="cg-av2">'+esc((nm||'?')[0])+'</div><div class="cg-row-info"><b>'+esc(nm)+flag+'</b><span>'+(isCW?'Gawo ':'Round ')+hh.cycleNumber+' · '+fmtDate(hh.date)+'</span></div><div style="text-align:right"><b style="color:var(--g1);font-size:.8rem;display:block">'+MK(got)+'</b>'+(shortAmt>0?'<span style="font-size:.68rem;color:var(--mid)">'+(isCW?'mwa ':'of ')+MK(hh.amount)+'</span>':'')+'</div></div>';
   });
   return h;
@@ -686,20 +686,20 @@ function rChip(){
       : (isCW?'Ndalama yonse = '+MK(grp.contributionAmount)+' × (mamembala − 1)':'Pot per round = '+MK(grp.contributionAmount)+' × (members − 1)');
     h+='<p style="font-size:.76rem;color:var(--ink);font-weight:700;margin-bottom:2px">'+potLine+'</p>';
     const sched=chipScheduleLine(grp);
-    if(sched) h+='<p style="font-size:.72rem;color:var(--mid);margin-bottom:10px">'+sched+'</p>'; else h+='<div style="height:8px"></div>';
+    if(sched) h+='<p style="font-size:var(--fs-xs);color:var(--mid);margin-bottom:10px">'+sched+'</p>'; else h+='<div style="height:8px"></div>';
     (grp.rotationOrder||[]).forEach(function(uid,i){
       const m=grp.members[uid]||{name:'?',color:'#999'};
       const isAdminRow=uid===grp.createdBy;
-      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:.7rem;color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" class="ic14"></i></button>':'')+'</div>';
+      h+='<div class="cg-row"><span class="cg-order-num">'+(i+1)+'</span><div class="cg-av2" style="background:'+sC(m.color)+'30">'+esc((m.name||'?')[0])+'</div><b style="font-size:.8rem;flex:1">'+esc(m.name)+(curUser&&uid===curUser.uid?' ('+(isCW?'Inu':'You')+')':'')+'</b>'+(isAdminRow?'<span style="font-size:var(--fs-xs);color:var(--p1);font-weight:700;margin-right:4px">'+(isCW?'Mtsogoleri':'Admin')+'</span>':'')+(isAdmin&&!isAdminRow?'<button class="cg-row-x" onclick="chipRemoveMember(\''+uid+'\')" title="'+(isCW?'Chotsani':'Remove')+'"><i data-lucide="x" class="ic14"></i></button>':'')+'</div>';
     });
     if(!isAdmin){
       h+='<button class="cg-link-danger" style="color:var(--mid)" onclick="chipLeaveGroup()">'+(isCW?'Tulukani mu gululi':'Leave this group')+'</button>';
     }
     if(isAdmin){
       h+='<button class="cg-cta on" onclick="startChipRotation(this)" style="margin-top:10px"><i data-lucide="play" class="ic14m5"></i>'+(isCW?'Yambani Chipereganyu':'Start Chipereganyu')+'</button>';
-      if(nOrder<2) h+='<p style="font-size:.7rem;color:var(--mid);text-align:center;margin-top:8px">'+(isCW?'Muyenera kukhala ndi mamembala osachepera awiri kuti muyambe.':'You need at least 2 members to start.')+'</p>';
+      if(nOrder<2) h+='<p style="font-size:var(--fs-xs);color:var(--mid);text-align:center;margin-top:8px">'+(isCW?'Muyenera kukhala ndi mamembala osachepera awiri kuti muyambe.':'You need at least 2 members to start.')+'</p>';
     } else {
-      h+='<p style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Mukudikira mtsogoleri kuti ayambe.':'Waiting for the admin to start the rotation.')+'</p>';
+      h+='<p style="font-size:var(--fs-xs);color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Mukudikira mtsogoleri kuti ayambe.':'Waiting for the admin to start the rotation.')+'</p>';
     }
     if(isAdmin){
       h+='<button class="cg-link-danger" onclick="chipDeleteGroup()">'+(isCW?'Chotsani gulu lino':'Delete this group')+'</button>';
@@ -783,9 +783,9 @@ function rChip(){
     const canConfirm = curUser && (curUser.uid===cc.recipientUid || curUser.uid===grp.createdBy);
     if(sm.allReceived && canConfirm){
       h+='<button class="cg-cta on" onclick="chipConfirmClick(this)">'+(isCW?'Tsimikizani kuti ndalama zaperekedwa kwa '+first:'Confirm payout to '+first)+'</button>';
-      if(lastTurn) h+='<p style="font-size:.7rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Ili ndi gawo lomaliza la kuzungulira kumeneku.':'This is the last turn of this lap.')+'</p>';
+      if(lastTurn) h+='<p style="font-size:var(--fs-xs);color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Ili ndi gawo lomaliza la kuzungulira kumeneku.':'This is the last turn of this lap.')+'</p>';
     } else if(sm.allReceived){
-      h+='<div style="text-align:center;font-size:.72rem;color:var(--mid);padding:12px 0">'+(isCW?'Onse alipira — mukudikira '+first+' kuti atsimikizire':'All received — waiting for '+first+' to confirm')+'</div>';
+      h+='<div style="text-align:center;font-size:var(--fs-xs);color:var(--mid);padding:12px 0">'+(isCW?'Onse alipira. Mukudikira '+first+' kuti atsimikizire':'All received. Waiting for '+first+' to confirm')+'</div>';
     } else {
       const waiting=contributors.length-sm.received.length;
       h+='<button class="cg-cta off" disabled>'+(isCW?'Mukudikira zotsimikizira '+waiting:'Waiting on '+waiting+' more confirmation'+(waiting===1?'':'s'))+'</button>';

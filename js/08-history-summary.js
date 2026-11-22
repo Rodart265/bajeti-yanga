@@ -48,11 +48,7 @@ function rHist(){
 
   // Running totals strip
   if(list.length>0){
-    h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
-    if(listInc>0) h+='<div style="flex:1;background:var(--pos-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--pos)">'+(lang==='cw'?'Ndalama Zolowa':'Income')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--pos)">+'+MKc(listInc)+'</div></div>';
-    if(listExp>0) h+='<div style="flex:1;background:var(--neg-bg);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--neg)">'+(lang==='cw'?'Zotuluka':'Spent')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--neg)">'+MKc(listExp)+'</div></div>';
-    h+='<div style="flex:1;background:var(--mist);border-radius:var(--cr-md);padding:7px 10px;text-align:center"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid)">'+(lang==='cw'?'Zolemba':'Entries')+'</div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.82rem;color:var(--ink)">'+list.length+'</div></div>';
-    h+='</div>';
+    h+='<div class="hsumline">'+list.length+' '+(lang==='cw'?'zolemba':(list.length===1?'entry':'entries'))+(listInc>0?' · <b class="pos">+'+MKc(listInc)+'</b> '+(lang==='cw'?'zolowa':'income'):'')+(listExp>0?' · <b class="neg">'+MKc(listExp)+'</b> '+(lang==='cw'?'zotuluka':'spent'):'')+'</div>';
   }
 
   // Search, with a Filters button. Period chips stay visible; type and member filters live behind the button.
@@ -61,11 +57,11 @@ function rHist(){
   h+='<button class="hist-fbtn'+(_fActive?' active':'')+'" type="button" aria-expanded="'+(histFiltersOpen?'true':'false')+'" onclick="toggleHistFilters()">'+L('Filters','Filters')+(_fActive?'<span class="hist-fdot" aria-hidden="true"></span>':'')+'<i data-lucide="chevron-down" class="ic14"></i></button></div>';
 
   // Time range tabs
-  h+='<div class="hist-filter" style="margin-bottom:6px">';
-  h+='<button class="hf'+(histTime==='week'?' on':'')+'" onclick="setHT(this)" data-t="week"><i data-lucide="calendar" class="ic13m4"></i> '+(isCW?'Sabata':'Week')+'</button>';
-  h+='<button class="hf'+(histTime==='month'?' on':'')+'" onclick="setHT(this)" data-t="month"><i data-lucide="calendar-days" class="ic13m4"></i> '+(isCW?'Mwezi':'Month')+'</button>';
-  h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year"><i data-lucide="calendar-range" class="ic13m4"></i> '+(isCW?'Chaka':'Year')+'</button>';
-  h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all"><i data-lucide="infinity" class="ic13m4"></i> '+(isCW?'Zonse':'All')+'</button>';
+  h+='<div class="hist-filter seg-t" role="group" aria-label="'+L('Time range','Nthawi')+'" style="margin-bottom:6px">';
+  h+='<button class="hf'+(histTime==='week'?' on':'')+'" onclick="setHT(this)" data-t="week">'+(isCW?'Sabata':'Week')+'</button>';
+  h+='<button class="hf'+(histTime==='month'?' on':'')+'" onclick="setHT(this)" data-t="month">'+(isCW?'Mwezi':'Month')+'</button>';
+  h+='<button class="hf'+(histTime==='year'?' on':'')+'" onclick="setHT(this)" data-t="year">'+(isCW?'Chaka':'Year')+'</button>';
+  h+='<button class="hf'+(histTime==='all'?' on':'')+'" onclick="setHT(this)" data-t="all">'+(isCW?'Zonse':'All')+'</button>';
   h+='</div>';
   if(histFiltersOpen){
   h+='<div class="hist-filter">';
@@ -94,8 +90,8 @@ function rHist(){
     Object.keys(byDate).sort().reverse().forEach(function(date){
       var dayExp=byDate[date].filter(function(p){return p.type!=='income';}).reduce(function(s,p){return s+Number(p.amount||0);},0);
       h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 2px 4px;border-bottom:1.5px solid var(--border);margin-bottom:4px">';
-      h+='<span style="font-size:.72rem;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px">'+fmtDate(date)+'</span>';
-      if(dayExp>0)h+='<span style="font-size:.72rem;font-weight:700;color:var(--neg)">− '+MKc(dayExp)+'</span>';
+      h+='<span style="font-size:var(--fs-xs);font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px">'+fmtDate(date)+'</span>';
+      if(dayExp>0)h+='<span style="font-size:var(--fs-xs);font-weight:700;color:var(--neg)">− '+MKc(dayExp)+'</span>';
       h+='</div>';
       byDate[date].forEach(function(p){
         var u=uById(p.userId), isI=p.type==='income';
@@ -103,18 +99,19 @@ function rHist(){
         var catLabel=catOf(p.item,p.cat);
         var badName=isBadItemName(p.item);
         h+='<div class="pli pli-x'+(isI?' income-e':'')+'">';
-        h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item)+'</div>';
+        h+='<div class="plico" style="background:'+cc2+'1A;border-radius:14px">'+ico(p.item,catOf(p.item,p.cat))+'</div>';
         h+='<div class="plb"><div class="pltop">';
-        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i><span class="badname">'+L('Add a name','Onjezani dzina')+'</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:.72rem;font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+esc(catLabel)+'</span></div>';
+        h+='<div class="plname">'+esc(trName(p.item))+(badName?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i><span class="badname">'+L('Add a name','Onjezani dzina')+'</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+' <span style="font-size:var(--fs-xs);font-weight:700;background:'+(isI?'#E8F5E9':'#EDF5F6')+';color:'+(isI?'#1B5E20':'var(--p1)')+';padding:1px 5px;border-radius:5px">'+esc(catLabel)+'</span></div>';
         h+='<div class="plamt'+(isI?' inc':' exp')+'">'+(isI?'+ ':'− ')+MK(p.amount)+'</div></div>';
         if(cleanNote(p.notes)) h+='<div class="plnote">'+esc(cleanNote(p.notes))+'</div>';
         var _who=isSolo()?'':'<span class="prwho" style="background:'+sC(u.color)+'">'+esc(u.name)+'</span>';
-        var _qty=p.qty?'<span style="font-size:.72rem;color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'';
-        if(_who||_qty) h+='<div class="plrow2">'+_who+_qty+'</div>';
+        var _cat='<span class="plcat">'+esc((TX[lang].cats&&TX[lang].cats[catLabel])||catLabel)+'</span>';
+        var _qty=p.qty?'<span style="font-size:var(--fs-xs);color:var(--mid)">'+esc(p.qty)+' '+esc(p.unit||'')+'</span>':'';
+        h+='<div class="plrow2">'+_cat+_who+_qty+'</div>';
         h+='<div class="plact">';
         h+='<button class="bsm be" onclick="openEPd(this)" data-pid="'+esc(p.id)+'"><i data-lucide="pencil" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.editP+'</button>';
         h+='<button class="bsm bd" onclick="doDelD(this)" data-pid="'+esc(p.id)+'"><i data-lucide="trash-2" class="ic11"></i> '+t.del+'</button>';
-        h+='</div></div><button class="pli-more" type="button" aria-expanded="false" aria-label="'+L('Show actions','Show actions')+'"><i data-lucide="chevron-down"></i></button></div>';
+        h+='</div></div><button class="pli-more" type="button" aria-expanded="false" aria-label="'+L('Edit or delete','Sinthani kapena chotsani')+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button></div>';
       });
     });
   } else {
@@ -192,19 +189,19 @@ function openTrash(){
     if(!trashed.length){
       h+='<div class="empty" style="padding:14px 0"><div class="ei"><i data-lucide="check-circle" style="width:32px;height:32px;color:var(--g2)"></i></div><p>'+(lang==='cw'?'Palibe zochotsedwa':'Trash is empty')+'</p></div>';
     } else {
-      h+='<p style="font-size:.72rem;color:var(--mid);margin-bottom:10px">Items are permanently deleted after 30 days.</p>';
+      h+='<p style="font-size:var(--fs-xs);color:var(--mid);margin-bottom:10px">Items are permanently deleted after 30 days.</p>';
       trashed.forEach(function(p){
         const u=uById(p.userId);
         const daysLeft=p.deletedAt?Math.max(0,30-Math.floor((Date.now()-new Date(p.deletedAt).getTime())/86400000)):30;
         h+='<div class="trash-item">';
-        h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item,p.cat)])||'#176B78')+'1A">'+ico(p.item)+'</div>';
+        h+='<div class="trash-ico" style="background:'+((CAT_COLORS[catOf(p.item,p.cat)])||'#176B78')+'1A">'+ico(p.item,catOf(p.item,p.cat))+'</div>';
         h+='<div class="trash-info"><div class="trash-name">'+esc(trName(p.item))+'</div>';
         h+='<div class="trash-meta">'+esc(p.date)+' · '+esc(u.name)+' · '+daysLeft+'d left in trash</div></div>';
         h+='<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
         h+='<div class="trash-amt">'+MK(p.amount)+'</div>';
         h+='<div style="display:flex;gap:4px">';
-        h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+esc(p.id)+'" style="font-size:.72rem;padding:2px 8px">↩ Restore</button>';
-        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:.72rem;padding:2px 8px;color:var(--neg);border-color:var(--neg)"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>'+(lang==='cw'?'Kwamuyaya':'Forever')+'</button>';
+        h+='<button class="bsm be" onclick="restoreTrashD(this)" data-pid="'+esc(p.id)+'" style="font-size:var(--fs-xs);padding:2px 8px">↩ Restore</button>';
+        h+='<button class="bsm be" onclick="permaDeleteD(this)" data-pid="'+esc(p.id)+'" style="font-size:var(--fs-xs);padding:2px 8px;color:var(--neg);border-color:var(--neg)"><i data-lucide="x" style="width:10px;height:10px;vertical-align:middle;margin-right:2px"></i>'+(lang==='cw'?'Kwamuyaya':'Forever')+'</button>';
         h+='</div></div></div>';
       });
     }
@@ -394,7 +391,7 @@ function rSum(){
           </div>
           <div style="flex:1">
             <div style="font-size:.82rem;font-weight:700;color:var(--ink)">${esc(t.cats[cat]||cat)}</div>
-            <div style="font-size:.72rem;color:var(--mid);margin-top:1px">${pct}% of spending</div>
+            <div style="font-size:var(--fs-xs);color:var(--mid);margin-top:1px">${pct}% of spending</div>
           </div>
           <div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.88rem;color:${clr}">${MK(val_)}</div>
         </div>
@@ -452,7 +449,7 @@ function rSum(){
       h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:var(--pos)"':'')+'>'+( done?'<i data-lucide="party-popper" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px"></i>':'')+esc(gl.name)+'</div><div class="goal-pct"'+(done?' style="color:var(--pos)"':'')+'>'+Math.round(pct*100)+'%</div></div>';
       h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
       h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
-      if(!done&&mn!==null)h+='<div style="margin-top:5px;font-size:.72rem;color:var(--gold-ink);font-weight:700"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'mo')+(ml?' · '+ml+(lang==='cw'?' miyezi':' mths'):'')+'</div>';
+      if(!done&&mn!==null)h+='<div style="margin-top:5px;font-size:var(--fs-xs);color:var(--gold-ink);font-weight:700"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'mo')+(ml?' · '+ml+(lang==='cw'?' miyezi':' mths'):'')+'</div>';
       h+='</div>';
     });
     h+='</div></div>';
@@ -484,7 +481,7 @@ function rMGI(it,i){
   const bcls=st==='over'?'bover':st==='near'?'bnear':st==='ok'?'bok':'bnone';
   const t=tx(),btxt=st==='over'?t.over:st==='near'?t.near:st==='ok'?t.ok:t.none;
   const cc=CAT_COLORS[catOf(it.name)]||'#607D8B';
-  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:.72rem">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" class="ic13"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" class="ic13"></i></button></div></div>';
+  return '<div class="mgi"><div class="mgi-ico" style="background:'+cc+'18">'+ico(it.name)+'</div><div class="mgi-info"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="mgname">'+esc(trName(it.name))+'<span class="sibadge '+bcls+'" style="font-size:var(--fs-xs)">'+btxt+'</span></div><div class="mgrow2"><span class="mgbudget">'+MK(it.budget)+'</span><span class="mgspent">'+t.spent+': '+MK(sp)+'</span></div><div class="mg-pb"><div class="mg-pf '+pfcls+'" style="width:'+pct+'%"></div></div></div><div class="mgi-acts"><button class="bsm be" onclick="openEB(\''+k+'\')" aria-label="'+t.editP+'"><i data-lucide="pencil" class="ic13"></i></button><button class="bsm bd" onclick="delIt(\''+k+'\')" aria-label="'+t.del+'"><i data-lucide="trash-2" class="ic13"></i></button></div></div>';
 }
 
 function goalMonthsLeft(dl){ if(!dl)return null; const n=new Date(),d=new Date(dl+'T00:00:00'); const m=(d.getFullYear()-n.getFullYear())*12+(d.getMonth()-n.getMonth()); return Math.max(m,0); }
@@ -493,7 +490,7 @@ const BILL_ICON_OPTS=[{key:'zap',label:'Electricity',dfltName:'ESCOM'},{key:'dro
 function _billIconGridHtml(selected){
   return BILL_ICON_OPTS.map(function(o){
     const sel = o.key===selected;
-    return '<button type="button" data-k="'+o.key+'" onclick="pickBillIcon(this.dataset.k)" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+o.key+'" class="ic13"></i> '+o.label+'</button>';
+    return '<button type="button" data-k="'+o.key+'" onclick="pickBillIcon(this.dataset.k)" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(sel?'var(--p1)':'var(--border)')+';background:'+(sel?'var(--p1)':'var(--white)')+';color:'+(sel?'#fff':'var(--mid)')+';font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+o.key+'" class="ic13"></i> '+o.label+'</button>';
   }).join('');
 }
 function pickBillIcon(key){

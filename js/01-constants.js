@@ -42,7 +42,7 @@ const TX = {
     incomeSources:{salary:'Salary / Income',business:'Business Income',farm:'Farm Income',other:'Other Income'}
   },
   cw:{
-    appTitle:'Bajeti Yanga',appSub:'Dziwani komwe ndalama zanu zimapita',
+    appTitle:'Bajeti Yanga',appSub:'Dziwani komwe Kwacha yanu imapita',
     home:'Pakhomo',log:'Zolowetsa',hist:'Mbiri',sum:'Chidule',mgr:'Kasamalidwe',stg:'Zokhazikitsa',
     cap:'Malire a Mwezi',spent:'Zotuluka',left:'Zotsala',income:'Ndalama Zolowa',expense:'Ndalama Zotuluka',
     entries:'Zolembedwa',monthlyBudget:'bajeti ya mwezi',chipItems:'zinthu',
@@ -104,7 +104,7 @@ const DEF_CFG = {items:DEF_ITEMS,users:DEF_USERS,overallBudget:400000,goals:[],s
 // One line icon, same look as the others in ITEM_ICONS (the food and household items used to be emoji).
 const _ic = (n, c) => '<i data-lucide="' + n + '" style="width:18px;height:18px;color:' + c + ';vertical-align:middle"></i>';
 const ITEM_ICONS = {
-  'Tomatoes':_ic('apple','#E53935'),'Onions':_ic('salad','#8E24AA'),'Maize Flour (Ufa)':_ic('wheat','#F9A825'),
+  'Tomatoes':_ic('apple','#E53935'),'Onions':_ic('salad','#9C6B30'),'Maize Flour (Ufa)':_ic('wheat','#F9A825'),
   'Cooking Oil':'<i data-lucide="droplet" style="width:18px;height:18px;color:#F9A825;vertical-align:middle"></i>',
   'Sugar':'<i data-lucide="package" style="width:18px;height:18px;color:#42A5F5;vertical-align:middle"></i>',
   'Salt':_ic('cooking-pot','#78909C'),'Soap (bar)':_ic('sparkles','#26A69A'),'Washing Powder':_ic('washing-machine','#1E88E5'),

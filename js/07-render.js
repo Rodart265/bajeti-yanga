@@ -90,7 +90,7 @@ function _renderFailed(e){
 function _copyRenderErr(btn){
   const t=window._lastRenderErr||'';
   const done=()=>{ try{ toast(lang==='cw'?'Zakopedwa.':'Copied.','s'); }catch(_){} };
-  try{ navigator.clipboard.writeText(t).then(done,()=>{ prompt('Copy:',t); }); }catch(_){ try{ prompt('Copy:',t); }catch(__){} }
+  try{ navigator.clipboard.writeText(t).then(done,()=>{ prompt(L('Copy this:','Koperani izi:'),t); }); }catch(_){ try{ prompt(L('Copy this:','Koperani izi:'),t); }catch(__){} }
 }
 // Redraw for a live data update (a Firestore snapshot). If the person is typing in a form field, or has a
 // half-filled Log form, the redraw waits so it cannot wipe what they are entering; it runs once they are done.
@@ -250,7 +250,9 @@ function renderTrendChart(months){
     const daysInMonth=Math.round((_pe-_ps)/86400000)+1;
     const daysPassed=Math.floor((_t0-_ps)/86400000)+1;
     if(daysPassed<daysInMonth&&daysPassed>0){
-      const projected=Math.round(last.spent/daysPassed*daysInMonth);
+      // Items with no budget are usually one-off buys (e.g. motor oil), so they are added as they are, not stretched over the whole month.
+      const _one=(typeof unbudgetedSpend==='function')?Object.values(unbudgetedSpend()).reduce(function(a,b){return a+b;},0):0;
+      const projected=Math.round(Math.max(0,last.spent-_one)/daysPassed*daysInMonth+_one);
       h+='<div class="tc-proj '+(projected>bg?'over':'ok')+'">'+(isCW?'Zikuyembekezeka kuti mugwiritsa ntchito MK ':'On pace for MK ')+_num(projected)+'</div>';
     }
   }
@@ -325,7 +327,7 @@ function rHome(){
       const u=uById(p.userId),isI=p.type==='income';
       const cc=isI?'#1B5E20':(CAT_COLORS[catOf(p.item,p.cat)]||'#176B78');
       h+='<div class="pri">';
-      h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item)+'</div>';
+      h+='<div class="prico2" style="background:'+cc+'1A;border-radius:14px">'+ico(p.item,catOf(p.item,p.cat))+'</div>';
       h+='<div class="prinfo"><div class="prname">'+esc(trName(p.item))+(isBadItemName(p.item)?' <i data-lucide="alert-triangle" title="'+L('This entry needs a proper name','Cholembachi chikufunika dzina loyenera')+'" style="width:12px;height:12px;color:var(--gold-ink);vertical-align:middle"></i><span class="badname">'+L('Add a name','Onjezani dzina')+'</span>':'')+(p.recurring?' <i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i>':'')+'</div>';
       h+=(cleanNote(p.notes)?'<div class="prnote">'+esc(cleanNote(p.notes))+'</div>':'');
       h+='<div class="prmeta"><span class="prdate">'+fmtDate(p.date)+'</span>';
@@ -364,7 +366,7 @@ function openQRScanner(){
   h += '<div style="display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:12px">';
   h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center"><i data-lucide="scan-line" style="width:16px;height:16px;color:var(--p1-text)"></i></div>';
   h += '<div style="flex:1"><div style="font-weight:800;font-size:.88rem">'+(isCW?'Skani QR Code':'Scan QR Code')+'</div>';
-  h += '<div style="font-size:.72rem;color:var(--mid)">'+(isCW?'Ikani kamera pa QR code ya nyumba':'Point camera at a household QR code')+'</div></div>';
+  h += '<div style="font-size:var(--fs-xs);color:var(--mid)">'+(isCW?'Ikani kamera pa QR code ya nyumba':'Point camera at a household QR code')+'</div></div>';
   h += '<button onclick="stopQRScanner()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Letsani':'Cancel')+'</button>';
   h += '</div>';
   h += '<div style="position:relative;width:100%;border-radius:var(--cr);overflow:hidden;background:#000;aspect-ratio:1">';
@@ -388,7 +390,7 @@ function openQRScanner(){
   h += '<button onclick="qrConfirmJoin()" style="flex:1;padding:10px;border-radius:var(--cr-md);border:none;background:#fff;color:var(--p1-text);font-family:inherit;font-weight:800;font-size:.8rem;cursor:pointer">'+(isCW?'Lowani tsopano':'Join now')+'</button>';
   h += '</div></div>';
   h += '</div>';
-  h += '<div style="text-align:center;margin-top:10px;font-size:.72rem;color:var(--mid)" id="qr-scan-status">'+(isCW?'Ikani kamera pa QR code...':'Positioning camera on the QR code...')+'</div>';
+  h += '<div style="text-align:center;margin-top:10px;font-size:var(--fs-xs);color:var(--mid)" id="qr-scan-status">'+(isCW?'Ikani kamera pa QR code...':'Positioning camera on the QR code...')+'</div>';
 
   g('mb-u').innerHTML = h;
   if(window.lucide) lucide.createIcons({nodes:[g('mb-u')]});
@@ -550,7 +552,7 @@ function openQRCode(){
   h+='<div id="qr-canvas" style="width:200px;height:200px;border-radius:var(--cr-sm);display:flex;align-items:center;justify-content:center"></div>';
   h+='</div></div>';
   h+='<div style="background:var(--mist);border-radius:var(--cr-md);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
-  h+='<div><div style="font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Khodi ya nyumba':'Household Code')+'</div>';
+  h+='<div><div style="font-size:var(--fs-xs);font-weight:700;color:var(--mid);text-transform:uppercase;margin-bottom:2px">'+(isCW?'Khodi ya nyumba':'Household Code')+'</div>';
   h+='<div style="font-family:monospace;font-weight:800;font-size:1.1rem;color:var(--ink);letter-spacing:2px">'+hhId+'</div></div>';
   h+='<button onclick="cpCode()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-md);padding:8px 14px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:5px">';
   h+='<i data-lucide="copy" class="ic13"></i> '+(isCW?'Koperani':'Copy')+'</button>';
@@ -600,7 +602,7 @@ function rLog(){
   _syncSelItem();
   const t=tx(), hint=selItem!==null?lCfg.items[selItem]:null;
   let h='<div class="page log-page"><div class="card"><div class="ch"><h2><i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1-text)"></i> '+t.logTitle+'</h2></div><div class="cb">';
-  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="scan-line" style="width:16px;height:16px;color:#2A1400"></i></span><span class="mb-txt">'+'Magic Log'+'<span class="mb-sub">'+L('Paste an Airtel Money or Mpamba SMS, scan a receipt, or type.','Ikani SMS ya Airtel Money kapena Mpamba, jambulani risiti, kapena lembani.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#9FD2D9"></i></button></div>';
+  h+='<div class="magic-wrap"><button class="magic-btn" onclick="openMagicLog()"><span class="mb-ico"><i data-lucide="scan-line" style="width:16px;height:16px;color:#fff"></i></span><span class="mb-txt">'+L('Paste an Airtel Money or Mpamba SMS','Ikani SMS ya Airtel Money kapena Mpamba')+'<span class="mb-sub">'+L('Or scan a receipt. Magic Log fills this in for you.','Kapena jambulani risiti. Kulemba Mwachangu kudzadzaza m\'malo mwanu.')+'</span></span><i data-lucide="chevron-right" style="width:16px;height:16px;color:#fff"></i></button></div>';
   h+='<div class="type-tog"><button class="tt exp'+(logType==='expense'?' on':'')+'" onclick="setLT(&quot;expense&quot;)"><i data-lucide="trending-down" class="ic14m4"></i> '+t.expense+'</button><button class="tt inc'+(logType==='income'?' on':'')+'" onclick="setLT(&quot;income&quot;)"><i data-lucide="trending-up" class="ic14m4"></i> '+t.income+'</button></div>';
   if(!isSolo())h+='<div class="fsec"><label class="fl">'+t.selUser+'</label><div class="usel">'+lCfg.users.map(u=>'<div class="usb'+(actU().id===u.id?' on':'')+'" data-uid="'+esc(u.id)+'" onclick="setU(this.dataset.uid)">'+'<div class="usav" style="background:'+sC(u.color)+'">'+esc(u.name[0])+'</div><div class="usnm">'+esc(u.name)+'</div></div>').join('')+'</div></div>';
   if(logType==='expense'){
@@ -621,7 +623,7 @@ function rLog(){
         +'<input type="text" class="fi" id="custom-item-name" placeholder="'+(lang==='cw'?'Mwachitsanzo: Mankhwala, Ndalama ya basi...':'e.g. Medicine, Bus fare...')+'" style="margin-bottom:8px" oninput="autoDetectCustomCat(this.value)">'
         +'<label class="fl" style="margin-bottom:6px">'+(lang==='cw'?'Gulu':'Category')+'</label>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="custom-cat-grid">'
-        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" class="ic12"></i>'+ct.label+'</button>').join('')
+        +CAT_OPTS.map(ct=>'<button data-cat="'+ct.key+'" onclick="pickCustomCat(\''+ct.key+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--cr-sm);border:1.5px solid '+(customCat===ct.key?'var(--p1)':'var(--border)')+';background:'+(customCat===ct.key?'var(--p1)':'var(--white)')+';color:'+(customCat===ct.key?'#fff':'var(--mid)')+';font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif"><i data-lucide="'+ct.icon+'" class="ic12"></i>'+ct.label+'</button>').join('')
         +'</div>'
         +'<label style="display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:600;color:var(--mid);cursor:pointer">'
         +'<input type="checkbox" id="custom-save-perm" onchange="g(\'custom-budget-row\').style.display=this.checked?\'block\':\'none\'" style="width:16px;height:16px;accent-color:var(--p1)">'
@@ -641,8 +643,9 @@ function rLog(){
   h+='<div class="fsec"><label class="fl">'+t.notes+'</label><input type="text" class="fi" id="fn" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();saveP();}" placeholder="'+(lang==='cw'?'Mwachitsanzo: Ndagula ku Chipiku...':'e.g. Bought at Chipiku...')+'"></div>';
   if(logType==='expense')h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><input type="checkbox" id="frc" style="width:17px;height:17px;accent-color:var(--p1)"><label for="frc" style="font-size:.78rem;font-weight:600;color:var(--mid)"><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.recurrYes+'</label></div>';
   h+='</details>';
+  h+='<div class="save-note">'+L('Saves as today, ','Chisungidwa ngati lero, ')+fmtDate(today())+L(' · change under More details',' · sinthani pa Zina zowonjezera')+'</div>';
   h+='</div></div></div>';
-  h+='<div class="log-save-bar"><button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'linear-gradient(135deg,#1B5E20,#388E3C)':'')+'"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>';
+  h+='<div class="log-save-bar"><button class="btnM" onclick="saveP()" style="background:'+(logType==='income'?'var(--g-fill)':'')+'"><i data-lucide="save" class="ic14m4"></i> '+t.save+'</button></div>';
   setView(h);
   if(logSrch) filterLogItems(logSrch);
 }
