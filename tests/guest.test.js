@@ -150,18 +150,19 @@ function world(opts) {
   const els = {};
   const el = (id, hidden) => (els[id] = els[id] || { id, innerHTML: '', textContent: '', value: '', querySelector: () => null, classList: {
     _h: !!hidden, contains(c) { return c === 'hide' && this._h; }, add(c) { if (c === 'hide') this._h = true; }, remove(c) { if (c === 'hide') this._h = false; } } });
-  ['scr-guest-entry', 'scr-auth', 'app', 'guest-strip', 'gs-sheet'].forEach((id) => el(id, true));
+  ['scr-guest-entry', 'scr-auth', 'app', 'guest-strip', 'gs-sheet', 'gs-tour'].forEach((id) => el(id, true));
+  ['gs-tour-card', 'gs-tour-spot', 'view'].forEach((id) => { el(id, false); els[id].style = {}; });
   el('a-guest-back', true);
-  const calls = [];
+  const calls = [], timers = [];
   const ctx = {
     g: (id) => els[id] || null, hide: (id) => els[id] && els[id].classList.add('hide'), show: (id) => els[id] && els[id].classList.remove('hide'),
     L: (en) => en, esc: (s) => String(s).replace(/[&<>"']/g, '_'), _ic: (n) => '<i data-lucide="' + n + '"></i>',
-    aTab: (m) => calls.push('aTab:' + m), applyStaticLang() {}, applyLang() {}, go: (t) => { ctx.tab = t; calls.push('go:' + t); }, renderLive() {},
+    aTab: (m) => calls.push('aTab:' + m), applyStaticLang() {}, applyLang() {}, go: (t) => { vm.runInContext('tab=' + JSON.stringify(t), ctx); calls.push('go:' + t); }, renderLive() {},
     ensureRecIds: (cfg) => { ['items', 'goals', 'bills'].forEach((k) => (cfg[k] || []).forEach((r, i) => { r.id = r.id || k[0] + i; })); },
     localISO: (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
     DEF_CFG: { items: DEF_ITEM_NAMES.map((n) => ({ name: n, budget: 10000 })), users: [{ id: 'u1', name: 'Person 1' }], overallBudget: 400000, goals: [], salaryDay: 0 },
     _pendingJoinCode: opts.join || null, window: null, console,
-    document: { querySelectorAll: () => [], addEventListener() {} },
+    document: { querySelectorAll: () => [], querySelector: () => null, addEventListener() {} }, addEventListener() {}, innerHeight: 800, setTimeout: (f) => { timers.push(f); return 0; },
     localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => delete store[k] },
   };
   if (opts.brokenStorage) ctx.localStorage = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
@@ -173,8 +174,8 @@ function world(opts) {
     function logout(){ __real.push('logout'); } function showPremiumPage(){ __real.push('premium'); } function sendChat(){ __real.push('chat'); }`, ctx);
   ctx.__real = [];
   vm.runInContext(guest + '\n;this.__x={guestRoute,guestNoteSignedIn,guestIsReturning,guestOpenDemo,guestGoAuth,guestBackFromAuth,guestGate,guestPxCol,guestPxFull,' +
-    'guestBuildPx,guestBuildCfg,get:()=>({isGuestMode,lCfg,lPx,_pxMain,tab,lHHDoc,_pxFirst,_chipFirst,_guestUid}),setPx:(a)=>{_pxMain.length=0;a.forEach(x=>_pxMain.push(x));}};', ctx);
-  return { x: ctx.__x, els, store, calls, ctx, real: () => ctx.__real, vis: (id) => !els[id].classList.contains('hide') };
+    'guestBuildPx,guestBuildCfg,guestTourOffer,guestTourStart,guestTourShow,guestTourEnd,guestTourOn,GUEST_TOUR,GUEST_GATES,get:()=>({isGuestMode,lCfg,lPx,_pxMain,tab,lHHDoc,_pxFirst,_chipFirst,_guestUid}),setPx:(a)=>{_pxMain.length=0;a.forEach(x=>_pxMain.push(x));}};', ctx);
+  return { x: ctx.__x, els, store, calls, ctx, timers, real: () => ctx.__real, vis: (id) => !els[id].classList.contains('hide') };
 }
 const FRESH = { ls: {} };
 test('a first-time visitor is shown the guest entry screen', () => {
@@ -249,6 +250,60 @@ test('signing in remembers the phone, closes the demo and throws the demo data a
 test('for an ordinary sign-in (not a guest) guestNoteSignedIn leaves the real data alone', () => {
   const w = world(FRESH); w.ctx.lPx = [{ id: 'real1' }]; vm.runInContext("lPx=[{id:'real1'}]; _pxMain.push({id:'real1'});", w.ctx);
   w.x.guestNoteSignedIn(); assert.strictEqual(w.x.get()._pxMain.length, 1); assert.strictEqual(w.store.nb_seen_auth, '1');
+});
+
+// ── Tour and trial wording ──────────────────────────────────────────────────
+test('the tour container and the Tour button exist, inside the right places', () => {
+  assert(html.includes('id="gs-tour"') && html.includes('id="gs-tour-spot"') && html.includes('id="gs-tour-card"'));
+  const stripAt = html.indexOf('id="guest-strip"'), viewAt = html.indexOf('<div id="view">');
+  const btn = html.indexOf('guestTourOffer()');
+  assert(btn > stripAt && btn < viewAt, 'the Tour button must be in the demo strip');
+});
+test('every tour step goes to a real tab and lights up something that exists', () => {
+  const w = world(FRESH), steps = w.x.GUEST_TOUR, render = read('js/07-render.js');
+  assert(steps.length >= 5);
+  steps.forEach((s, i) => {
+    assert(['home', 'log', 'insights', 'chat', 'stg'].includes(s.tab), 'step ' + (i + 1) + ' tab');
+    assert(s.en.length === 2 && s.cw.length === 2 && s.en[0] && s.en[1] && s.cw[0] && s.cw[1], 'step ' + (i + 1) + ' needs English and Chichewa text');
+    if (s.sel && s.sel[0] === '#') assert(html.includes('id="' + s.sel.slice(1) + '"'), 'step ' + (i + 1) + ' target ' + s.sel + ' is not in index.html');
+    if (s.sel && s.sel[0] === '.') assert(render.includes(s.sel.slice(1)), 'step ' + (i + 1) + ' target ' + s.sel + ' is not drawn by the app');
+  });
+  assert(steps[steps.length - 1].last && !steps[steps.length - 1].sel);
+});
+test('the demo opens by ASKING about the tour (it never starts by itself) and Skip just closes the offer', () => {
+  const w = world(FRESH); w.x.guestOpenDemo();
+  assert(!w.x.guestTourOn() && !w.vis('gs-tour'));
+  w.timers.forEach((f) => f());                                        // the short delay before the offer
+  assert(w.vis('gs-sheet') && /Start tour/.test(w.els['gs-sheet'].innerHTML) && /Skip/.test(w.els['gs-sheet'].innerHTML));
+  assert(!w.x.guestTourOn() && !w.vis('gs-tour'), 'the tour must wait for a tap');
+  w.x.guestTourStart; vm.runInContext('guestCloseSheet()', w.ctx);   // what the Skip button does
+  assert(!w.vis('gs-sheet') && !w.x.guestTourOn());
+});
+test('the tour walks through every step, switching tabs, and ends on the trial button', () => {
+  const w = world(FRESH); w.x.guestOpenDemo(); w.calls.length = 0; w.x.guestTourStart();
+  assert(w.vis('gs-tour') && w.x.guestTourOn() && /1 \/ \d/.test(w.els['gs-tour-card'].innerHTML) && !/Back/.test(w.els['gs-tour-card'].innerHTML));
+  const n = w.x.GUEST_TOUR.length;
+  for (let i = 1; i < n; i++) w.x.guestTourShow(i);
+  const goes = w.calls.filter((c) => c.startsWith('go:')).map((c) => c.slice(3));
+  assert(goes.includes('log') && goes.includes('insights') && goes.includes('chat') && goes.includes('stg'), 'tabs visited: ' + goes.join(','));
+  assert(/Start free trial/.test(w.els['gs-tour-card'].innerHTML) && /Keep exploring/.test(w.els['gs-tour-card'].innerHTML) && /14-day/.test(w.els['gs-tour-card'].innerHTML));
+  w.x.guestTourEnd(); assert(!w.vis('gs-tour') && !w.x.guestTourOn() && w.x.get().isGuestMode, 'ending the tour keeps the demo open');
+});
+test('going to sign-in, or ending the demo, closes the tour; the tour stores nothing on the phone', () => {
+  const w = world(FRESH); w.x.guestOpenDemo(); w.x.guestTourStart(); assert(w.x.guestTourOn());
+  w.x.guestGoAuth('register'); assert(!w.x.guestTourOn() && !w.vis('gs-tour'));
+  w.x.guestBackFromAuth(); w.x.guestTourStart(); w.x.guestNoteSignedIn(); assert(!w.x.guestTourOn() && !w.vis('gs-tour'));
+  assert.deepStrictEqual(Object.keys(w.store), ['nb_seen_auth']);
+});
+test('Premium prompts for a guest say "free for 14 days" and offer "Start free trial"', () => {
+  const w = world(FRESH); w.x.guestOpenDemo();
+  ['premium', 'ai', 'bills'].forEach((k) => {
+    assert(w.x.GUEST_GATES[k].cta === true && /14/.test(w.x.GUEST_GATES[k].en[0]) && /14/.test(w.x.GUEST_GATES[k].cw[1] + w.x.GUEST_GATES[k].cw[0]), k);
+    w.x.guestGate(k); assert(/Start free trial/.test(w.els['gs-sheet'].innerHTML), k + ' sheet has no trial button');
+  });
+  w.x.guestGate('household'); assert(/Create account/.test(w.els['gs-sheet'].innerHTML) && !/Start free trial/.test(w.els['gs-sheet'].innerHTML));
+  assert(/the first household you create/.test(read('js/10-legal.js')), 'the app FAQ no longer says the trial starts with the first household: update the wording');
+  assert(/TRIAL_DAYS = 14/.test(read('js/11-premium.js')), 'trial length changed: update the "14 days" wording');
 });
 
 console.log(passed + ' passed' + (process.exitCode ? ', some FAILED' : ''));
