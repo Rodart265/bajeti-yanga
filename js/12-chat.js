@@ -195,17 +195,17 @@ function renderBubbles(){
       {icon:'lightbulb',color:'var(--gold-ink)',txt:'How can I spend less on charcoal, airtime and transport?'},
     ];
     el.innerHTML=
-      '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 20px 8px;flex-shrink:0">'
-      +'<div style="width:68px;height:68px;background:linear-gradient(135deg,#142F4B,#176B78);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 24px rgba(23,107,120,.28)">'
-      +'<svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg>'
+      '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 20px 4px;flex-shrink:0">'
+      +'<div style="width:52px;height:52px;background:linear-gradient(135deg,#142F4B,#176B78);border-radius:var(--cr);display:flex;align-items:center;justify-content:center;margin-bottom:8px;box-shadow:0 8px 24px rgba(23,107,120,.28)">'
+      +'<svg width="28" height="28" viewBox="0 0 52 52" fill="none"><rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.45)"/><rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.7)"/><rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/><polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/></svg>'
       +'</div>'
-      +'<div style="font-family:Hanken Grotesk,sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1-text);margin-bottom:5px">'+greeting+'</div>'
+      +'<div style="font-family:Hanken Grotesk,sans-serif;font-size:1.2rem;font-weight:800;color:var(--p1-text);margin-bottom:3px">'+greeting+'</div>'
       +'<div style="font-size:.8rem;color:var(--mid);max-width:240px;line-height:1.5">'+subText+'</div>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 4px;flex-shrink:0">'
+      +'<div style="display:grid;grid-template-columns:1fr;gap:6px;padding:8px 14px 4px;flex-shrink:0">'
       +suggs.map(s=>
-        '<button onclick="chipSend(this)" data-txt="'+s.txt+'" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--cr);padding:11px 10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(23,107,120,.06)">'
-        +'<div style="width:28px;height:28px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">'
+        '<button onclick="chipSend(this)" data-txt="'+s.txt+'" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--cr);padding:8px 10px;min-height:44px;display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(23,107,120,.06)">'
+        +'<div style="width:28px;height:28px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
         +'<i data-lucide="'+s.icon+'" style="width:14px;height:14px;color:'+s.color+'"></i></div>'
         +'<span style="font-size:var(--fs-xs);font-weight:600;color:var(--ink);line-height:1.35">'+s.txt+'</span>'
         +'</button>'
@@ -697,7 +697,7 @@ function openMagicLog() {
   const t = tx();
   const isPrem = hasPremiumFeature('receipt_scan');
   let h = '<div class="dh"></div>';
-  h += '<div class="magic-modal-header"><div class="mmh-top"><span class="mmh-ico"><i data-lucide="scan-line" style="width:17px;height:17px;color:#fff"></i></span><span class="mmh-title">'+(lang==='cw'?'Onjezani kuchokera ku SMS kapena risiti':'Add from an SMS or receipt')+'</span></div><div class="mmh-sub">'+(lang==='cw'?'Ikani SMS ya Airtel Money kapena Mpamba, jambulani risiti, kapena lembani zomwe mwagula. Mudzaona zonse musanasunge.':'Paste an Airtel Money or Mpamba SMS, scan a receipt, or type what you bought. You can check everything before it is saved.')+'</div></div>';
+  h += '<div class="magic-modal-header"><div class="mmh-top"><span class="mmh-ico"><i data-lucide="scan-line" style="width:17px;height:17px;color:#fff"></i></span><span class="mmh-title">'+(lang==='cw'?'Kulemba Mwachangu':'Magic Log')+'</span></div><div class="mmh-sub">'+(lang==='cw'?'Ikani SMS ya Airtel Money kapena Mpamba, jambulani risiti, kapena lembani zomwe mwagula. Mudzaona zonse musanasunge.':'Paste an Airtel Money or Mpamba SMS, scan a receipt, or type what you bought. You can check everything before it is saved.')+'</div></div>';
 
   // Camera scan row (Premium)
   h += '<div style="display:flex;gap:8px;margin-bottom:10px">';
