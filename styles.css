@@ -865,10 +865,10 @@ body.dark .pm-foot{background:#17212C}
 .plact .bsm{display:inline-flex;align-items:center;justify-content:center;gap:5px}
 .plact .bsm svg{width:12px;height:12px;flex-shrink:0}
 /* Monthly Budget Cap: no empty status line under the field; on narrow phones the field sits under the label */
-.cap-st:empty{min-height:0}
+.cap-st:empty{display:none}
 @media (max-width:400px){
-  .stg-row:has(.cap-field){flex-wrap:wrap;row-gap:2px}
-  .stg-row:has(.cap-field) .stg-row-right{flex:1 0 100%;justify-content:flex-end}
+  .stg-row:has(.cap-field) .stg-row-lbl{font-size:.8rem;line-height:1.25}
+  .cap-inp{width:96px}
 }
 /* Restore-account screen: white text on a darker glass card so it reads on every part of the gradient */
 .setup-card.rst-card{background:rgba(8,28,46,.55);border-color:rgba(255,255,255,.22)}
@@ -991,3 +991,13 @@ body.dark .pm-foot{background:#17212C}
 .tb-ico{position:relative}
 .tb-ico::after{content:'';position:absolute;inset:-4px}
 .fi::placeholder,.fs::placeholder,textarea::placeholder{color:var(--mid);opacity:1}
+
+/* ---- Small phones: tidy two-column quick picks, one-line budget cap row ---- */
+.qsugg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.qsb{display:flex;align-items:center;min-height:44px;padding:6px 8px;white-space:normal;line-height:1.2;min-width:0}
+.qsb svg{flex-shrink:0}
+.qsn{min-width:0;overflow-wrap:anywhere}
+.stg-row:has(.cap-field){flex-wrap:nowrap}
+.stg-row:has(.cap-field) .stg-row-right{flex:0 0 auto}
+.cap-field{flex-wrap:nowrap}
+.cap-st{flex-basis:auto}
