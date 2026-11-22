@@ -1105,7 +1105,8 @@ function connectHH(code){
 // ── Entries window ──────────────────────────────────────────────────────────
 // The live listener covers the last PX_WINDOW_MONTHS months. A second small listener keeps the entries trashed in the last 30 days
 // so Trash works. Older months are loaded on demand by ensurePxFrom().
-function _pxCol(){ return db.collection('households').doc(hhId||'_').collection('purchases'); }
+// In guest mode this returns an in-memory stand-in (js/12a-guest.js), so every entry add, edit and delete stays on the phone.
+function _pxCol(){ if(isGuestMode) return guestPxCol(); return db.collection('households').doc(hhId||'_').collection('purchases'); }
 function _setPx(){
   const seen=new Map();
   [_pxMain,_pxOlder,_pxTrash].forEach(a=>a.forEach(p=>{ if(!seen.has(p.id)) seen.set(p.id,p); }));
@@ -1270,7 +1271,8 @@ function saveCfg(cfg){
 // opts.docId makes the write idempotent (same id => same document), used to stop two devices both adding the same recurring entry.
 function addPx(p,opts){
   opts=opts||{};
-  if(!hhId){toast((lang==='cw'?'Simunalumikizidwe.':'Not connected.'),'e');return Promise.resolve(false);}
+  if(isGuestMode && guestPxFull()){toast(L('The demo is full. Create an account to keep going.','Chitsanzochi chadzaza. Tsegulani akaunti kuti mupitirize.'),'e');return Promise.resolve(false);}
+  if(!hhId && !isGuestMode){toast((lang==='cw'?'Simunalumikizidwe.':'Not connected.'),'e');return Promise.resolve(false);}
   const amt=Number(p.amount);
   if(!amt||amt<=0||isNaN(amt)){toast(lang==='cw'?'Lowetsani ndalama yolondola':'Please enter a valid amount','e');return Promise.resolve(false);}
   const itemName=String(p.item||'').trim();
@@ -1288,5 +1290,5 @@ function addPx(p,opts){
   });
 }
 // Resolves true when the write worked, false when it failed (the failure toast is shown here).
-function updPx(id,data){ if(!hhId)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return _pxCol().doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');return false;}); }
-function delPx(id){ if(!hhId)return Promise.resolve(); setDot('spin'); return _pxCol().doc(id).delete().then(()=>setDot('')).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');throw e;}); }
+function updPx(id,data){ if(!hhId&&!isGuestMode)return Promise.resolve(false); _invalidateMemo(); setDot('spin'); return _pxCol().doc(id).update(data).then(()=>{setDot('');return true;}).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');return false;}); }
+function delPx(id){ if(!hhId&&!isGuestMode)return Promise.resolve(); setDot('spin'); return _pxCol().doc(id).delete().then(()=>setDot('')).catch(e=>{toast(fsErrMsg(e),'e');setDot('off');throw e;}); }

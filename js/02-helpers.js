@@ -142,7 +142,7 @@ function nextM() { if(isCurM())return; const v=vmObj(); viewMonth=v.m===11?{m:0,
 function iSpent(name){ _ensureMemo(); return _memoByItem[name]||0; }
 function totSp()     { _ensureMemo(); return _memoSp; }
 function totIn()     { _ensureMemo(); return _memoIn; }
-function actU()      { return lCfg.users.find(u=>u.id===localStorage.getItem('nb_uid'))||lCfg.users[0]; }
+function actU()      { const id=isGuestMode?_guestUid:localStorage.getItem('nb_uid'); return lCfg.users.find(u=>u.id===id)||lCfg.users[0]; }
 function uById(id)   { return lCfg.users.find(u=>u.id===id)||lCfg.users[0]; }
 // One person in the household: screens skip the member picker, member filter and member tags (they come back with 2+ members).
 function isSolo()    { return !lCfg || !lCfg.users || lCfg.users.length<=1; }

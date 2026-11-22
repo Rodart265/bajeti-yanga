@@ -650,7 +650,7 @@ function rLog(){
   if(logSrch) filterLogItems(logSrch);
 }
 function setLT(t){ logType=t; selItem=null; selItemKey=null; logSrch=''; rLog(); }
-function setU(id){ localStorage.setItem('nb_uid',id); updatePill(); rLog(); }
+function setU(id){ if(isGuestMode) _guestUid=id; else localStorage.setItem('nb_uid',id); updatePill(); rLog(); }
 function pickI(i){ selItem=i; selItemKey=(typeof i==='number'&&lCfg.items[i])?recKey(lCfg.items[i],i):null; rLog(); }
 function filterLogItems(q){
   logSrch=q;
@@ -674,7 +674,10 @@ function saveP(){
 // Saves an entry, then says what was saved, with Undo. If the write fails, says why and offers Try again.
 function commitPx(p){
   const t=tx(); let ref=null, wantUndo=false;
-  if(!hhId){ addPx(p); return; } // addPx says 'Not connected.'; do not cover it with 'Saved'
+  if(!hhId){ // addPx says 'Not connected.' (or, in the demo, keeps the entry in memory); do not cover it with 'Saved'
+    addPx(p).then(function(ok){ if(ok && isGuestMode) toast(L('Added to the demo. Nothing is saved.','Zawonjezedwa pa chitsanzo. Palibe chosungidwa.'),'s'); });
+    return;
+  }
   const label=trName(p.item)+', '+MK(p.amount);
   function doUndo(){ ref.delete().then(function(){ toast(L('Entry removed.','Chachotsedwa.'),'i'); }).catch(function(e){ toast(fsErrMsg(e),'e'); }); }
   function undo(){ if(ref) doUndo(); else { wantUndo=true; toast(L('Still saving. It will be removed as soon as it is saved.','Ikusunga. Chichotsedwa ikangosungidwa.'),'i'); } }
