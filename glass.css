@@ -64,7 +64,7 @@ body.dark{--nav-glass:rgba(19,28,38,.92);--nav-glass-edge:rgba(255,255,255,.12)}
   box-shadow:0 10px 30px rgba(23,31,28,.14),inset 0 1px 0 rgba(255,255,255,.6);
 }
 .nb{min-height:56px;padding:8px 4px 7px;border-radius:18px;transition:background .2s,color .2s}
-.nb .nl{font-size:.72rem;letter-spacing:0;text-transform:none;font-weight:600}
+.nb .nl{font-size:var(--fs-xs);letter-spacing:0;text-transform:none;font-weight:600}
 .nb.on{background:var(--p1-bg)}
 .nb.on .nl{font-weight:700}
 .nb.on::after{display:none}
