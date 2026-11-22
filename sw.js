@@ -10,8 +10,8 @@
 //
 // TO RELEASE: change APP_VERSION in js/01-constants.js, then run  node tools/release.js  (it writes V and BUILD
 // below), then  node tests/release.test.js  must pass. Do not edit V or BUILD by hand.
-const V = "bajeti-v9.20.4";
-const BUILD = "a3c07a2017eb"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
+const V = "bajeti-v9.20.7";
+const BUILD = "5c92ab1222ba"; // fingerprint of every file in APP_SHELL, written by tools/release.js. Changing it changes this file, which is what makes phones fetch the release.
 
 // Third-party libraries (Firebase SDK, QR libraries, fonts) live in their own cache that is NOT wiped on each
 // deploy. Their URLs carry a version number, so a copy stays valid until the URL itself changes. Before this,
