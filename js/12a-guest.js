@@ -51,20 +51,20 @@ const GUEST_GATES = {
         cw:['Sungani zolemba zanu','Tsegulani akaunti kuti musunge ndalama zanu zolowa ndi zotuluka, ndi kuziona pa foni iliyonse.']},
   household:{icon:'users', en:['Share a budget with your family','Households need an account so everyone sees the same records.'],
         cw:['Gawanani bajeti ndi banja lanu','Nyumba imafuna akaunti kuti aliyense aone zolemba zomwezo.']},
-  bills:{icon:'receipt', en:['Track your bills','Create an account to keep bills and get reminders before they are due.'],
-        cw:['Lembani ma bilu anu','Tsegulani akaunti kuti musunge ma bilu ndi kulandira chikumbutso nthawi isanakwane.']},
+  bills:{cta:true, icon:'receipt', en:['Bill Tracker is Premium. Free for 14 days','Create an account and your first household starts a 14-day free trial of Premium, including the Bill Tracker.'],
+        cw:['Bill Tracker ndi ya Premium. Yaulere masiku 14','Tsegulani akaunti ndipo nyumba yanu yoyamba iyamba nthawi yoyesera ya Premium ya masiku 14, kuphatikiza Bill Tracker.']},
   chip:{icon:'landmark', en:['Chipereganyu savings circles','Create an account to start or join a savings circle with people you trust.'],
         cw:['Chipereganyu','Tsegulani akaunti kuti muyambe kapena kulowa mu gulu la Chipereganyu ndi anthu amene mumawadalira.']},
-  premium:{icon:'gem', en:['Premium','Create an account to see the Premium plans.'],
-        cw:['Premium','Tsegulani akaunti kuti muone mapulani a Premium.']},
-  ai:{icon:'sparkles', en:['Bajeti AI','Create an account first. Bajeti AI is a Premium feature that answers questions about your own spending.'],
-        cw:['Bajeti AI','Tsegulani akaunti poyamba. Bajeti AI ndi ya Premium, imayankha mafunso okhudza ndalama zanu.']}
+  premium:{cta:true, icon:'gem', en:['Premium feature. Free for 14 days','Create an account and your first household starts a 14-day free trial of Premium: Bajeti AI, Bill Tracker, PDF export and more.'],
+        cw:['Gawoli ndi la Premium. Yaulere masiku 14','Tsegulani akaunti ndipo nyumba yanu yoyamba iyamba nthawi yoyesera ya Premium ya masiku 14: Bajeti AI, Bill Tracker, PDF ndi zina.']},
+  ai:{cta:true, icon:'sparkles', en:['Bajeti AI is Premium. Free for 14 days','Create an account and your first household starts a 14-day free trial. Ask about your own spending, scan receipts and get a monthly review.'],
+        cw:['Bajeti AI ndi ya Premium. Yaulere masiku 14','Tsegulani akaunti ndipo nyumba yanu yoyamba iyamba nthawi yoyesera ya masiku 14. Funsani za ndalama zanu, jambulani ma risiti ndi kupeza ndemanga ya mwezi.']}
 };
 
 // Functions that need a real account. In demo mode each one opens the matching sheet above instead of running.
 // (tests/guest.test.js checks every name here is a real function, so a rename cannot silently open a hole.)
 const GUEST_BLOCKED = {
-  premium:   ['showPremiumPage', 'showPremiumSheet', 'copyPreviousMonth', 'proceedToPayment', 'startCheckout', 'claimPayment', 'showClaimScreen'],
+  premium:   ['showPremiumPage', 'showPremiumSheet', 'showUpgradePrompt', 'copyPreviousMonth', 'proceedToPayment', 'startCheckout', 'claimPayment', 'showClaimScreen'],
   ai:        ['sendChat', 'processMagicLog', 'scanReceipt', 'scanReceiptFromChat', 'generateAiSummary'],
   household: ['openSwitch', 'switchHousehold', 'openQRCode', 'cpCode', 'waCode', 'openAddM', 'saveMember', 'delMember',
               'approveJoin', 'declineJoin', 'openDeleteHousehold', 'openDeleteAccount'],
@@ -153,6 +153,7 @@ function guestStartData(){
 }
 // Throws every trace of the demo away and puts the app's own lists back the way a signed-out app has them.
 function guestEndDemo(){
+  guestTourEnd();
   isGuestMode = false; guestDemoStarted = false; _guestUid = null;
   lHHDoc = {}; lCfg = JSON.parse(JSON.stringify(DEF_CFG)); lPx = [];
   _pxMain.length = 0; _pxOlder.length = 0; _pxTrash.length = 0;
@@ -217,7 +218,7 @@ function guestPxCol(){
 
 // ── Moving between screens ──────────────────────────────────────────────────
 function guestShowEntry(){
-  guestCloseSheet(); hide('scr-auth');
+  guestCloseSheet(); guestTourEnd(); hide('scr-auth');
   const a = g('app'); if(a) a.classList.add('hide');
   show('scr-guest-entry'); guestSyncLangBtns();
 }
@@ -228,10 +229,11 @@ function guestOpenDemo(){
   show('guest-strip');
   try{ applyLang(); }catch(e){}
   go('home');
+  setTimeout(function(){ if(isGuestMode && !guestTourOn() && g('gs-sheet') && g('gs-sheet').classList.contains('hide')) guestTourOffer(); }, 500);   // asks first, and can be skipped
 }
 // Hands over to the EXISTING sign-in screen and its existing functions. Nothing is duplicated here.
 function guestGoAuth(mode){
-  guestCloseSheet(); hide('scr-guest-entry');
+  guestCloseSheet(); guestTourEnd(); hide('scr-guest-entry');
   const a = g('app'); if(a) a.classList.add('hide');
   show('scr-auth'); aTab(mode==='register'?'register':'login');
   const b = g('a-guest-back'); if(b) b.classList.remove('hide');
@@ -269,8 +271,77 @@ function guestSheetBg(ev){ if(ev && ev.target && ev.target.id==='gs-sheet') gues
 function guestGate(key){
   const d = GUEST_GATES[key] || GUEST_GATES.account, c = lang==='cw' ? d.cw : d.en;
   guestOpenSheet('<div class="gs-gate"><div class="gs-ic big">'+_ic(d.icon,'currentColor')+'</div><h3>'+esc(c[0])+'</h3><p>'+esc(c[1])+'</p></div>'
-    +'<button type="button" class="gs-btn gs-primary" onclick="guestGoAuth(&quot;register&quot;)">'+L('Create account','Tsegulani akaunti')+'</button>'
+    +'<button type="button" class="gs-btn gs-primary" onclick="guestGoAuth(&quot;register&quot;)">'+(d.cta?L('Start free trial','Yambani kuyesa kwaulere'):L('Create account','Tsegulani akaunti'))+'</button>'
     +'<button type="button" class="gs-btn gs-outline" onclick="guestGoAuth(&quot;login&quot;)">'+L('Sign in','Lowani')+'</button>'
     +'<button type="button" class="gs-link" style="display:block;margin:12px auto 0" onclick="guestCloseSheet()">'+L('Keep exploring','Pitirizani kuyesa')+'</button>');
 }
-document.addEventListener('keydown', function(e){ if(e.key==='Escape') guestCloseSheet(); });
+
+// ── Guided tour ─────────────────────────────────────────────────────────────
+// Only draws on top of the screen and moves between the real tabs. It reads and writes no data and stores nothing on the phone.
+// sel = the part of the screen to light up (null = no spotlight, card in the middle).
+const GUEST_TOUR = [
+  {tab:'home', sel:'.hero2', en:['Your month at a glance','This ring shows how much of your monthly budget is left. Below it you see income, spending and your latest entries.'],
+    cw:['Mwezi wanu pang\'ono','Mpheteyi ikuonetsa ndalama za bajeti ya mwezi zotsala. Pansi pake mukuona ndalama zolowa, zotuluka ndi zolemba zaposachedwa.']},
+  {tab:'log', sel:'#nb-log', en:['Log in a few taps','Pick an item, type the amount and save. Add income the same way. You can fix or delete any entry later.'],
+    cw:['Lembani mwachangu','Sankhani chinthu, lowetsani ndalama ndi kusunga. Ndalama zolowa mumalemba chimodzimodzi. Mukhoza kusintha kapena kuchotsa cholemba nthawi iliyonse.']},
+  {tab:'insights', sel:'#nb-insights', en:['See where the money goes','History lists every entry. Summary shows each item against its budget, so you spot overspending early.'],
+    cw:['Onani ndalama zikupita kuti','History imalemba zonse. Summary imaonetsa chinthu chilichonse poyerekeza ndi bajeti yake, kuti muone kuwononga mochuluka msanga.']},
+  {tab:'chat', sel:'#nb-chat', en:['Bajeti AI (Premium)','Ask about your own spending, scan receipts and get a monthly review. Free for 14 days when you create your first household.'],
+    cw:['Bajeti AI (Premium)','Funsani za ndalama zanu, jambulani ma risiti ndi kupeza ndemanga ya mwezi. Yaulere masiku 14 mukapanga nyumba yanu yoyamba.']},
+  {tab:'stg', sel:'#nb-stg', en:['Make it yours','Set a budget for each item, add savings goals, invite family and switch language here.'],
+    cw:['Isintheni kukhala yanu','Ikani bajeti ya chinthu chilichonse, zolinga zosungira, itanani banja lanu ndi kusintha chinenero pano.']},
+  {tab:'home', sel:null, last:true, en:['Ready to keep your own records?','Create an account and your first household starts a 14-day free trial of Premium.'],
+    cw:['Mwakonzeka kusunga zolemba zanu?','Tsegulani akaunti ndipo nyumba yanu yoyamba iyamba nthawi yoyesera ya Premium ya masiku 14.']}
+];
+let guestTourStep = -1;
+function guestTourOn(){ return guestTourStep > -1; }
+function guestTourOffer(){
+  if(!isGuestMode) return;
+  guestTourEnd();
+  guestOpenSheet('<div class="gs-gate"><div class="gs-ic big">'+_ic('sparkles','currentColor')+'</div><h3>'+L('Take a 1-minute tour?','Mukufuna ulendo wa mphindi imodzi?')+'</h3>'
+    +'<p>'+L('See the key features of Bajeti Yanga in '+GUEST_TOUR.length+' quick steps.','Onani zinthu zazikulu za Bajeti Yanga m\'masitepe '+GUEST_TOUR.length+' achidule.')+'</p></div>'
+    +'<button type="button" class="gs-btn gs-primary" onclick="guestTourStart()">'+L('Start tour','Yambani ulendo')+'</button>'
+    +'<button type="button" class="gs-btn gs-outline" onclick="guestCloseSheet()">'+L('Skip','Dumphani')+'</button>');
+}
+function guestTourStart(){ if(!isGuestMode) return; guestCloseSheet(); show('gs-tour'); guestTourShow(0); }
+function guestTourShow(i){
+  const s = GUEST_TOUR[i]; if(!s){ guestTourEnd(); return; }
+  guestTourStep = i;
+  if(tab !== s.tab) go(s.tab);
+  if(i === 0){ const v = g('view'); if(v) v.scrollTop = 0; }
+  const c = lang==='cw' ? s.cw : s.en, n = GUEST_TOUR.length, card = g('gs-tour-card'); if(!card) return;
+  let h = '<div class="gs-tour-count">'+(i+1)+' / '+n+'</div><h3>'+esc(c[0])+'</h3><p>'+esc(c[1])+'</p>';
+  if(s.last){
+    h += '<button type="button" class="gs-btn gs-primary" onclick="guestTourEnd();guestGoAuth(&quot;register&quot;)">'+L('Start free trial','Yambani kuyesa kwaulere')+'</button>'
+      +'<button type="button" class="gs-btn gs-outline" style="margin-top:8px" onclick="guestTourEnd()">'+L('Keep exploring','Pitirizani kuyesa')+'</button>';
+  } else {
+    h += '<div class="gs-tour-row">'+(i>0?'<button type="button" class="gs-btn gs-outline" onclick="guestTourShow('+(i-1)+')">'+L('Back','Bwererani')+'</button>':'')
+      +'<button type="button" class="gs-btn gs-primary" onclick="guestTourShow('+(i+1)+')">'+L('Next','Pitirizani')+'</button></div>'
+      +'<button type="button" class="gs-link gs-tour-skip" onclick="guestTourEnd()">'+L('Skip tour','Dumphani ulendo')+'</button>';
+  }
+  card.innerHTML = h;
+  guestTourPlace();
+  setTimeout(guestTourPlace, 150);                       // the tab may still be drawing: place again once it has
+}
+function guestTourPlace(){
+  const s = GUEST_TOUR[guestTourStep], spot = g('gs-tour-spot'), card = g('gs-tour-card');
+  if(!s || !spot || !card) return;
+  let r = null;
+  try{ const t = s.sel && document.querySelector(s.sel); if(t){ const b = t.getBoundingClientRect(); if(b.width > 0 && b.height > 0) r = b; } }catch(e){}
+  const vh = window.innerHeight || 640, pad = 6;
+  if(r){
+    spot.style.cssText = 'left:'+(r.left-pad)+'px;top:'+(r.top-pad)+'px;width:'+(r.width+pad*2)+'px;height:'+(r.height+pad*2)+'px';
+    if(r.top + r.height/2 < vh/2){ card.style.top = (r.bottom+16)+'px'; card.style.bottom = 'auto'; }     // target in the top half: card goes under it
+    else { card.style.bottom = (vh - r.top + 16)+'px'; card.style.top = 'auto'; }                          // target in the bottom half (tab bar): card goes above it
+  } else {
+    spot.style.cssText = 'left:50%;top:50%;width:0;height:0';
+    card.style.top = '28%'; card.style.bottom = 'auto';
+  }
+}
+function guestTourEnd(){
+  guestTourStep = -1;
+  hide('gs-tour');
+  const c = g('gs-tour-card'); if(c) c.innerHTML = '';
+}
+window.addEventListener('resize', function(){ if(guestTourOn()) guestTourPlace(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ guestCloseSheet(); guestTourEnd(); } });
