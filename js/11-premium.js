@@ -161,7 +161,7 @@ function showPremiumPage(){
   h += '<div style="display:flex;align-items:center;gap:11px;padding:12px 14px;margin-bottom:10px;background:linear-gradient(145deg,#142F4B 0%,#1B4F66 45%,#1F7A87 100%);border-radius:18px">';
   h += '<div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+APP_LOGO_SVG(30)+'</div>';
   h += '<div><div style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.02rem;color:#fff;letter-spacing:-.2px">Bajeti Yanga Premium</div>';
-  h += '<div style="font-size:.72rem;color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px">'+(isCW?'Tsegulani mphamvu zonse za ndalama zanu.':'Unlock the full power of your money.')+'</div></div>';
+  h += '<div style="font-size:var(--fs-xs);color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px">'+(isCW?'Gwiritsani ntchito bajeti yanu mokwanira.':'Get the most out of your budget.')+'</div></div>';
   h += '</div>';
 
   // If already premium — show status (comfortably active: no urgent action needed)
@@ -177,7 +177,7 @@ function showPremiumPage(){
       h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
       h += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#BF360C20;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:18px;height:18px;color:var(--gold-ink)"></i></div>';
       h += '<div><div style="font-weight:800;font-size:.88rem;color:var(--gold-ink)">'+(isCW?'Premium Yanu Yatsala Masiku '+daysLeft:'Premium Expires in '+daysLeft+' Day'+(daysLeft===1?'':'s'))+'</div>';
-      h += '<div style="font-size:.72rem;color:var(--gold-ink)">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+'</div></div></div>';
+      h += '<div style="font-size:var(--fs-xs);color:var(--gold-ink)">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+'</div></div></div>';
       h += '<div style="font-size:.76rem;color:#5D4037;line-height:1.6">'+(isCW?'Bwezerani tsopano kuti mupitirize kugwiritsa ntchito zonse za Premium mopanda kusokonezeka.':'Renew now to keep uninterrupted access to Bill Tracker, PDF export, unlimited AI, and more.')+'</div>';
       h += '</div>';
       // fall through — plan selector + Proceed to Payment button render below
@@ -186,7 +186,7 @@ function showPremiumPage(){
       h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
       h += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#2E7D3220;display:flex;align-items:center;justify-content:center"><i data-lucide="gem" style="width:18px;height:18px;color:var(--pos)"></i></div>';
       h += '<div><div style="font-weight:800;font-size:.88rem;color:var(--pos)">'+(isCW?'Premium Yanu Ikugwira Ntchito!':'Your Premium is Active!')+'</div>';
-      h += '<div style="font-size:.72rem;color:var(--pos)">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+(daysLeft!==null?' ('+daysLeft+(isCW?' tsiku':'d')+')':'')+'</div></div></div>';
+      h += '<div style="font-size:var(--fs-xs);color:var(--pos)">'+(isCW?'Idzatha pa':'Expires')+': '+expiryStr+(daysLeft!==null?' ('+daysLeft+(isCW?' tsiku':'d')+')':'')+'</div></div></div>';
       h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:1.5px solid #A5D6A7;border-radius:var(--cr-md);padding:9px;font-family:Hanken Grotesk,sans-serif;font-weight:700;font-size:.8rem;color:var(--pos);cursor:pointer">'+(isCW?'Tsekani':'Close')+'</button>';
       h += '</div>';
       g('mb-u').innerHTML = h;
@@ -229,7 +229,7 @@ function showPremiumPage(){
   h += '</div>';
 
   // Why pay
-  h += '<div style="border:1.5px solid #A5D6A7;background:linear-gradient(135deg,#F1F8E9,#E8F5E9);border-radius:var(--cr-md);padding:8px 10px;margin-top:10px;font-size:.7rem;color:var(--pos);line-height:1.45;display:flex;align-items:flex-start;gap:7px">';
+  h += '<div style="border:1.5px solid #A5D6A7;background:linear-gradient(135deg,#F1F8E9,#E8F5E9);border-radius:var(--cr-md);padding:8px 10px;margin-top:10px;font-size:var(--fs-xs);color:var(--pos);line-height:1.45;display:flex;align-items:flex-start;gap:7px">';
   h += '<i data-lucide="heart" style="width:14px;height:14px;color:var(--pos);flex-shrink:0;margin-top:2px"></i>';
   h += '<div><strong>'+(isCW?'Chifukwa chani kulipira?':'Why pay?')+'</strong> '+(isCW?'Bajeti Yanga yapangidwa ku Malawi, ya mabanja a ku Malawi. Ndalama zomwe mumalipira zimathandiza kuti app ipitirize kugwira ntchito. Palibe zotsatsa, ndipo sitigulitsa deta yanu, konse.':'Bajeti Yanga is built in Malawi, for Malawian families. Your subscription keeps the app running. No ads, no data selling, ever.')+'</div>';
   h += '</div>';
@@ -273,24 +273,24 @@ function showPaychanguIframe(){
   h += '<div style="display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:12px">';
   h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:var(--p1-bg);display:flex;align-items:center;justify-content:center"><i data-lucide="lock" style="width:16px;height:16px;color:var(--p1-text)"></i></div>';
   h += '<div style="flex:1"><div style="font-weight:800;font-size:.88rem">'+(isCW?'Chilipiro Chotetezeka':'Secure Payment')+'</div>';
-  h += '<div style="font-size:.72rem;color:var(--mid)">'+plan.label+' · MK '+plan.price.toLocaleString()+' · PayChangu</div></div>';
+  h += '<div style="font-size:var(--fs-xs);color:var(--mid)">'+plan.label+' · MK '+plan.price.toLocaleString()+' · PayChangu</div></div>';
   h += '<button onclick="closeM(\'mv-u\');showPremiumPage()" style="background:none;border:none;color:var(--mid);font-size:.75rem;cursor:pointer;font-family:inherit;padding:4px 8px">'+(isCW?'Bwelera':'Back')+'</button>';
   h += '</div>';
   if(PAYMENTS_API){
     h += '<div style="font-size:.74rem;color:var(--mid);margin-bottom:12px;line-height:1.55">'+(isCW?'Tidzakutengerani ku PayChangu kuti mulipire MK <strong style="color:var(--ink)">'+plan.price.toLocaleString()+'</strong> ndi Airtel Money, TNM Mpamba kapena khadi.':'We will take you to PayChangu to pay <strong style="color:var(--ink)">MK '+plan.price.toLocaleString()+'</strong> with Airtel Money, TNM Mpamba or card.')+'</div>';
     h += '<button onclick="startCheckout(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#142F4B,#176B78);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(20,47,75,.4);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><i data-lucide="lock" style="width:18px;height:18px"></i> '+(isCW?'Lipirani pa PayChangu':'Pay with PayChangu')+'</button>';
     h += '<button onclick="claimPayment(this)" style="width:100%;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px"><i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Ndalipira. Tsegulani Premium':'I\'ve paid. Activate my Premium')+'</button>';
-    h += '<div style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:8px;line-height:1.5">'+(isCW?'Premium imatseguka yokha mkati mwa mphindi zochepa mukalipira. Mukavuta, tumizani screenshot pa WhatsApp.':'Premium switches on by itself within a few minutes of paying. If anything goes wrong, send your screenshot on WhatsApp instead.')+'</div>';
-    h += '<button onclick="showClaimScreen()" style="width:100%;background:none;border:none;color:var(--mid);font-size:.72rem;font-family:inherit;cursor:pointer;padding:8px 16px;text-decoration:underline">'+(isCW?'Ndavutika. Ndituma pa WhatsApp':'Having trouble? Pay manually instead')+'</button>';
+    h += '<div style="font-size:var(--fs-xs);color:var(--mid);text-align:center;margin-top:8px;line-height:1.5">'+(isCW?'Premium imatseguka yokha mkati mwa mphindi zochepa mukalipira. Mukavuta, tumizani screenshot pa WhatsApp.':'Premium switches on by itself within a few minutes of paying. If anything goes wrong, send your screenshot on WhatsApp instead.')+'</div>';
+    h += '<button onclick="showClaimScreen()" style="width:100%;background:none;border:none;color:var(--mid);font-size:var(--fs-xs);font-family:inherit;cursor:pointer;padding:8px 16px;text-decoration:underline">'+(isCW?'Ndavutika. Ndituma pa WhatsApp':'Having trouble? Pay manually instead')+'</button>';
   } else {
-    h += '<div style="font-size:.72rem;color:var(--mid);margin-bottom:8px;line-height:1.5">';
+    h += '<div style="font-size:var(--fs-xs);color:var(--mid);margin-bottom:8px;line-height:1.5">';
     h += (isCW?'Lowetsani MK <strong style="color:var(--ink)">'+plan.price.toLocaleString()+'</strong> pa kalata ya PayChangu:':'Enter <strong style="color:var(--ink)">MK '+plan.price.toLocaleString()+'</strong> as the amount on the PayChangu page:');
     h += '</div>';
     h += '<iframe src="'+PAYCHANGU_LINK+'" style="width:100%;height:420px;border:none;border-radius:var(--cr);background:#f5f5f5" allow="payment" loading="lazy"></iframe>';
     h += '<button onclick="showClaimScreen()" style="width:100%;margin-top:12px;padding:14px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 6px 20px rgba(27,94,32,.35);display:flex;align-items:center;justify-content:center;gap:8px">';
     h += '<i data-lucide="gem" style="width:18px;height:18px"></i> '+(isCW?'Tsegulani Premium Yanga':'Claim My Premium Access');
     h += '</button>';
-    h += '<div style="font-size:.72rem;color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Dinani \'Tsegulani Premium Yanga\' mukamaliza kulipira pa PayChangu':'Tap Claim after completing payment on PayChangu')+'</div>';
+    h += '<div style="font-size:var(--fs-xs);color:var(--mid);text-align:center;margin-top:6px">'+(isCW?'Dinani \'Tsegulani Premium Yanga\' mukamaliza kulipira pa PayChangu':'Tap Claim after completing payment on PayChangu')+'</div>';
   }
 
   g('mb-u').innerHTML = h;
@@ -323,8 +323,8 @@ async function startCheckout(btn){
   }catch(e){
     // Short reason code (the HTTP number, or 'net' when the phone could not reach the server) so a failure can be traced quickly.
     const why = e && e.status ? String(e.status) : 'net';
-    const shown = (e && (e.status===401||e.status===403||e.status===429) && e.message) ? e.message : (isCW?'Sitinathe kuyamba chilipiro. Yesaninso.':'Could not start the payment. Please try again.');
-    toast(aiFailMessage(e,isCW) || (shown+' ['+why+']'),'e');
+    const shown = (e && (e.status===401||e.status===403||e.status===429) && e.message) ? e.message : (!(e && e.status)?(isCW?'Palibe intaneti. Yesaninso.':'No internet connection. Try again.'):(isCW?'Sitinathe kuyamba chilipiro. Yesaninso.':'Could not start the payment. Please try again.'));
+    toast(aiFailMessage(e,isCW) || (shown+(e && e.status?' ('+(isCW?'cholakwika ':'error ')+why+')':'')),'e');
   }finally{ if(btn) btn.disabled = false; }
 }
 // Asks the server to check the payment with PayChangu and, if it really went through, activate Premium.
@@ -433,10 +433,10 @@ function showClaimScreen(){
 
   // Household code card
   h += '<div style="background:var(--p1-bg);border:2px solid #9CCDD3;border-radius:var(--cr);padding:14px;margin-bottom:14px">';
-  h += '<div style="font-size:.72rem;font-weight:700;color:var(--p1-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">'+(isCW?'Nambala ya Nyumba Yanu:':'Your Household Code:')+'</div>';
+  h += '<div style="font-size:var(--fs-xs);font-weight:700;color:var(--p1-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">'+(isCW?'Nambala ya Nyumba Yanu:':'Your Household Code:')+'</div>';
   h += '<div style="display:flex;align-items:center;gap:10px">';
   h += '<div style="font-family:Hanken Grotesk,sans-serif;font-weight:900;font-size:1.4rem;color:var(--ink);letter-spacing:2px;flex:1">'+esc(hhId)+'</div>';
-  h += '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(hhId)+'\').then(()=>toast(\''+(isCW?'Yakopedwa!':'Copied!')+'\')).catch(()=>{})" style="background:#176B78;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 12px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:4px"><i data-lucide="copy" class="ic13"></i> '+(isCW?'Koperani':'Copy')+'</button>';
+  h += '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(hhId)+'\').then(()=>toast(\''+(isCW?'Yakopedwa!':'Copied!')+'\')).catch(()=>{})" style="background:#176B78;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 12px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:4px"><i data-lucide="copy" class="ic13"></i> '+(isCW?'Koperani':'Copy')+'</button>';
   h += '</div></div>';
 
   // WhatsApp instruction
@@ -445,7 +445,7 @@ function showClaimScreen(){
   h += '<div style="width:32px;height:32px;border-radius:var(--cr-sm);background:#25D36620;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="message-circle" style="width:16px;height:16px;color:#25D366"></i></div>';
   h += '<div>';
   h += '<div style="font-weight:800;font-size:.8rem;color:var(--pos);margin-bottom:3px">'+(isCW?'Tumizani Screenshot pa WhatsApp':'Send Payment Screenshot on WhatsApp')+'</div>';
-  h += '<div style="font-size:.7rem;color:var(--pos);line-height:1.5">'+(isCW?'Tumizani screenshot ya chilipiro chanu ndi nambala ya nyumba kwa +265 888 029 029. Tidzatsegula Premium yanu mkati mwa maola 24.':'Send your payment screenshot and household code to +265 888 029 029. We will activate your Premium within 24 hours.')+'</div>';
+  h += '<div style="font-size:var(--fs-xs);color:var(--pos);line-height:1.5">'+(isCW?'Tumizani screenshot ya chilipiro chanu ndi nambala ya nyumba kwa +265 888 029 029. Tidzatsegula Premium yanu mkati mwa maola 24.':'Send your payment screenshot and household code to +265 888 029 029. We will activate your Premium within 24 hours.')+'</div>';
   h += '</div></div></div>';
 
   // WhatsApp CTA button
@@ -458,7 +458,7 @@ function showClaimScreen(){
   h += '<button onclick="window.open(\'https://wa.me/265888029029?text='+waMsg+'\',\'_blank\')" style="width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:var(--cr);font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:.9rem;cursor:pointer;box-shadow:0 6px 20px rgba(37,211,102,.35);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">';
   h += '<i data-lucide="message-circle" style="width:18px;height:18px"></i> '+(isCW?'Tsegulani Premium Yanga':'Claim My Premium Access');
   h += '</button>';
-  h += '<div style="font-size:.72rem;color:var(--mid);text-align:center;margin-bottom:4px">'+(isCW?'Tidzatsegula mkati mwa maola 24 mukatitumizira uthenga.':'We activate within 24 hours of receiving your message.')+'</div>';
+  h += '<div style="font-size:var(--fs-xs);color:var(--mid);text-align:center;margin-bottom:4px">'+(isCW?'Tidzatsegula mkati mwa maola 24 mukatitumizira uthenga.':'We activate within 24 hours of receiving your message.')+'</div>';
   h += '<button onclick="closeM(\'mv-u\')" style="width:100%;background:none;border:none;color:var(--mid);font-size:.8rem;font-family:inherit;cursor:pointer;padding:8px 16px">'+(isCW?'Zatheka':'Done')+'</button>';
 
   g('mb-u').innerHTML = h;

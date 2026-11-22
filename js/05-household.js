@@ -1013,7 +1013,7 @@ function connectHH(code){
         unsubJoinBadge = db.collection('households').doc(code).collection('joinRequests').onSnapshot(function(snap){
             const badge = g('pending-join-badge');
             if(badge) badge.innerHTML = snap.size > 0
-              ? '<span style="background:#BF360C;color:#fff;border-radius:var(--cr-md);font-size:.7rem;font-weight:800;padding:2px 7px;margin-right:5px">'+snap.size+'</span>'
+              ? '<span style="background:#BF360C;color:#fff;border-radius:var(--cr-md);font-size:var(--fs-xs);font-weight:800;padding:2px 7px;margin-right:5px">'+snap.size+'</span>'
               : '';
             if(_prevJoinReqCount>=0 && snap.size > _prevJoinReqCount){
               const _isCW = lang === 'cw';

@@ -17,7 +17,7 @@ function rStg(){
   if(pStatus.isExpired){
     premiumChip = '<button onclick="showPremiumPage()" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0">'
       +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;border-radius:var(--cr-md);white-space:nowrap;min-height:36px">'+(lang==='cw'?'Konzaninso':'Renew')+'</span>'
-      +'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">'+(lang==='cw'?'Premium yatha':'Premium ended')+'</span>'
+      +'<span style="font-size:var(--fs-xs);color:var(--mid);white-space:nowrap">'+(lang==='cw'?'Premium yatha':'Premium ended')+'</span>'
       +'</button>';
   } else if(pStatus.isPremium && !pStatus.isTrial){
     const expiry = _premiumExpiry();
@@ -25,17 +25,17 @@ function rStg(){
     const nearExpiry = pStatus.daysLeft !== null && pStatus.daysLeft <= 7;
     if(nearExpiry){
       premiumChip = '<button onclick="showPremiumPage()" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0">'
-        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold-ink);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="clock" class="ic11"></i> '+pStatus.daysLeft+'d left</span>'
-        +'<span style="font-size:.72rem;color:var(--gold-ink);white-space:nowrap">'+(lang==='cw'?'Bwezani tsopano':'Tap to renew')+'</span>'
+        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold-ink);font-size:var(--fs-xs);font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="clock" class="ic11"></i> '+pStatus.daysLeft+'d left</span>'
+        +'<span style="font-size:var(--fs-xs);color:var(--gold-ink);white-space:nowrap">'+(lang==='cw'?'Bwezani tsopano':'Tap to renew')+'</span>'
         +'</button>';
     } else {
       premiumChip = '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">'
-        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--pos-bg);color:var(--pos);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Premium</span>'
-        +(expiryStr?'<span style="font-size:.72rem;color:var(--mid);white-space:nowrap">Until '+expiryStr+'</span>':'')
+        +'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--pos-bg);color:var(--pos);font-size:var(--fs-xs);font-weight:800;padding:4px 10px;border-radius:var(--cr-md);white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Premium</span>'
+        +(expiryStr?'<span style="font-size:var(--fs-xs);color:var(--mid);white-space:nowrap">Until '+expiryStr+'</span>':'')
         +'</div>';
     }
   } else if(pStatus.isPremium && pStatus.isTrial){
-    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> '+(lang==='cw'?'Yesero · masiku '+pStatus.daysLeft:'Trial · '+pStatus.daysLeft+'d')+'</button>';
+    premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--p1-bg);color:var(--p1-deep);font-size:var(--fs-xs);font-weight:800;padding:4px 10px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> '+(lang==='cw'?'Yesero · masiku '+pStatus.daysLeft:'Trial · '+pStatus.daysLeft+'d')+'</button>';
   } else {
     premiumChip = '<button onclick="showPremiumPage()" style="display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--on-gold);font-size:.75rem;font-weight:800;padding:8px 14px;min-height:36px;border-radius:var(--cr-md);border:none;cursor:pointer;font-family:Hanken Grotesk,sans-serif;flex-shrink:0;white-space:nowrap"><i data-lucide="gem" class="ic11"></i> Upgrade</button>';
   }
@@ -68,6 +68,9 @@ function rStg(){
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="goals"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="target" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Zolinga Zosungira':'Savings Goals')+'</div><div class="stg-row-sub">'+((lCfg.goals&&lCfg.goals.length)||0)+' '+(lang==='cw'?'zolinga':'goals')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Bill Tracker
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="bills"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="alarm-clock" style="color:var(--gold-ink)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+t.billTracker+lockBadge(11)+'</div><div class="stg-row-sub">'+((lCfg.bills&&lCfg.bills.length)||0)+' '+(lang==='cw'?'zolipira':'bills')+(pStatus.isPremium?'':' · Premium')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
+  // Chipereganyu (also on Home): opens the circle if you are in one, otherwise start or join
+  const _cg=(typeof chipHomeGroup==='function')?chipHomeGroup():null;
+  h+='<div class="stg-row" onclick="'+(_cg?'openChipView()':'openChipEntry()')+'"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="rotate-cw" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Chipereganyu</div><div class="stg-row-sub">'+(_cg?esc(_cg.name||''):(lang==='cw'?'Yambani kapena lowani mu gulu':'Start or join a savings circle'))+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   // Overall budget
   h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="wallet" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ndalama Yonse ya Mwezi':'Monthly Budget Cap')+'</div></div><div class="stg-row-right">'+budgetCapField('cap-prof')+'</div></div>';
   // Salary Day / Budget Period -- collapsed by default. Tapping the row reveals
@@ -80,17 +83,17 @@ function rStg(){
     +'<div class="stg-row-ico" style="background:var(--b1-bg);flex-shrink:0"><i data-lucide="calendar-check" style="color:var(--b1)"></i></div>'
     +'<div class="stg-row-body" style="flex:1">'
     +'<div class="stg-row-lbl">'+(lang==='cw'?'Tsiku la Malipiro (Salary Day)':'Salary Day')+'</div>'
-    +'<div class="stg-row-sub" style="font-size:.72rem;color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?'Period: '+budgetPeriodLabel():(lang==='cw'?'Silinakhazikitsidwe. Mukugwiritsa ntchito mwezi wa kalendala.':'Not set. Using calendar month'))+'</div>'
+    +'<div class="stg-row-sub" style="font-size:var(--fs-xs);color:'+(_periodActive?'var(--p1)':'var(--mid)')+'">'+(_periodActive?'Period: '+budgetPeriodLabel():(lang==='cw'?'Silinakhazikitsidwe. Mukugwiritsa ntchito mwezi wa kalendala.':'Not set. Using calendar month'))+'</div>'
     +'</div>'
     +'<span class="stg-chev" style="display:inline-block;transform:rotate('+(_sdPanelOpen?'90deg':'0deg')+');transition:transform .2s">›</span>'
     +'</div>'
     +(_sdPanelOpen?'<div style="margin:10px 0 4px 52px" onclick="event.stopPropagation()">'
-    +'<label class="fl" style="display:block;font-size:.72rem;font-weight:700;color:var(--mid);margin-bottom:5px">'+(lang==='cw'?'Tsiku la Malipiro (1-28)':'Salary day (1-28)')+'</label>'
+    +'<label class="fl" style="display:block;font-size:var(--fs-xs);font-weight:700;color:var(--mid);margin-bottom:5px">'+(lang==='cw'?'Tsiku la Malipiro (1-28)':'Salary day (1-28)')+'</label>'
     +'<div style="display:flex;align-items:center;gap:8px">'
     +'<input type="number" min="1" max="28" id="stg-sd-inp" style="width:64px;text-align:center;border:1.5px solid '+ (_periodActive?'var(--p1)':'var(--border)')+';border-radius:var(--cr-sm);padding:7px 6px;font-size:.9rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif;font-weight:800" placeholder="e.g. 25" value="'+(_sd||'')+'" inputmode="decimal" onchange="updSalaryDay(this.value)">'
-    +(_periodActive?'<button onclick="updSalaryDay(\'\')" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-family:inherit;cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;gap:4px"><i data-lucide="x" class="ic11"></i> '+(lang==='cw'?'Bwezeretsani':'Reset')+'</button>':'')
+    +(_periodActive?'<button onclick="updSalaryDay(\'\')" style="background:none;border:1.5px solid var(--border);border-radius:var(--cr-sm);padding:6px 10px;font-size:var(--fs-xs);font-family:inherit;cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;gap:4px"><i data-lucide="x" class="ic11"></i> '+(lang==='cw'?'Bwezeretsani':'Reset')+'</button>':'')
     +'</div>'
-    +(_periodActive?'<div style="margin-top:9px;font-size:.72rem;background:var(--mist);border-radius:var(--cr-sm);padding:7px 11px;color:var(--mid);line-height:1.6">'
+    +(_periodActive?'<div style="margin-top:9px;font-size:var(--fs-xs);background:var(--mist);border-radius:var(--cr-sm);padding:7px 11px;color:var(--mid);line-height:1.6">'
     +'<span style="font-weight:700;color:var(--ink)">Active budget period:</span><br>'
     +'<i data-lucide="calendar" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i><strong>'+budgetPeriodLabel()+'</strong><br>'
     +'All totals, budget caps, summary and insights track this window, not the calendar month.'
@@ -104,7 +107,7 @@ function rStg(){
   h+='<div class="stg-grp">';
   h+='<div class="stg-row" onclick="stgOpenSection(this.dataset.s)" data-s="members"><div class="stg-row-ico" style="background:var(--b1-bg)"><i data-lucide="users" style="color:var(--b1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Mamembala':'Members')+'</div><div class="stg-row-sub">'+lCfg.users.length+' '+(lang==='cw'?'Mamembala':'members')+'</div></div><div class="stg-row-right"><span id="pending-join-badge"></span><span class="stg-chev">›</span></div></div>';
   // Household Code
-  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" aria-label="'+L('Copy household code','Copy household code')+'" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:.72rem"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1-text)"></i></button><button class="hc-btn hc-wa" aria-label="'+L('Share code on WhatsApp','Share code on WhatsApp')+'" onclick="event.stopPropagation();waCode()" style="font-size:.72rem;padding:5px 8px"><i data-lucide="send" style="width:13px;height:13px;vertical-align:middle"></i></button><span class="stg-chev">›</span></div></div>';
+  if(hhId)h+='<div class="stg-row" onclick="openQRCode()"><div class="stg-row-ico" style="background:var(--ix1-bg)"><i data-lucide="qr-code" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Kodi ya Nyumba':'Household Code')+'</div><div class="stg-row-sub" style="font-family:monospace;letter-spacing:1px">'+hhId+'</div></div><div class="stg-row-right"><button class="bsm be" aria-label="'+L('Copy household code','Copy household code')+'" onclick="event.stopPropagation();cpCode()" style="padding:4px 9px;font-size:var(--fs-xs)"><i data-lucide="copy" style="width:13px;height:13px;vertical-align:middle;color:var(--p1-text)"></i></button><button class="hc-btn hc-wa" aria-label="'+L('Share code on WhatsApp','Share code on WhatsApp')+'" onclick="event.stopPropagation();waCode()" style="font-size:var(--fs-xs);padding:5px 8px"><i data-lucide="send" style="width:13px;height:13px;vertical-align:middle"></i></button><span class="stg-chev">›</span></div></div>';
   h+='<div class="stg-row" onclick="switchHousehold()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="arrow-left-right" style="color:var(--gold-ink)"></i></div><div class="stg-row-body"><div class="stg-row-lbl" style="color:var(--gold-ink)">'+(lang==='cw'?'Siyani / Sintha Nyumba':'Switch / Leave Household')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Lowani mu nyumba ina popanda kutuluka mu akaunti':'Join a different household without signing out')+'</div></div><div class="stg-row-right"><span class="stg-chev" style="color:var(--gold-ink)">›</span></div></div>';
   h+='</div>';
 
@@ -112,13 +115,13 @@ function rStg(){
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Chitetezo':'Security')+'</span>';
   h+='<div class="stg-grp">';
   if(hasPIN()){
-    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="lock" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">PIN Lock</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti musinthe':'Active - tap to change')+'</div></div><div class="stg-row-right"><button class="bsm bd" onclick="event.stopPropagation();removePIN()" style="padding:4px 9px;font-size:.72rem">'+(lang==='cw'?'Chotsani':'Remove')+'</button><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="lock" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">PIN Lock</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti musinthe':'Active - tap to change')+'</div></div><div class="stg-row-right"><button class="bsm bd" onclick="event.stopPropagation();removePIN()" style="padding:4px 9px;font-size:var(--fs-xs)">'+(lang==='cw'?'Chotsani':'Remove')+'</button><span class="stg-chev">›</span></div></div>';
   } else {
     h+='<div class="stg-row" onclick="openSetPIN()"><div class="stg-row-ico" style="background:var(--o1-bg)"><i data-lucide="unlock" style="color:var(--a1)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Ikani PIN':'Set PIN Lock')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Tetezani pulogalamuyi ndi PIN':'Protect app with a 4-digit PIN')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
   // Biometrics
   if(hasBio()){
-    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chala kapena Nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti muchotse':'Enabled - tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:.7rem;color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
+    h+='<div class="stg-row" onclick="removeBio()"><div class="stg-row-ico" style="background:var(--g1-bg)"><i data-lucide="fingerprint" style="color:var(--pos)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chala kapena Nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Ikugwira ntchito - dinani kuti muchotse':'Enabled - tap to remove')+'</div></div><div class="stg-row-right"><span style="font-size:var(--fs-xs);color:var(--pos);font-weight:700">ON</span><span class="stg-chev">›</span></div></div>';
   } else {
     h+='<div class="stg-row" onclick="registerBio()"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="fingerprint" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">'+(lang==='cw'?'Chala kapena Nkhope':'Biometrics')+'</div><div class="stg-row-sub">'+(lang==='cw'?'Gwiritsa ntchito chala kapena nkhope kuti mutsegule':'Use fingerprint or face to unlock')+'</div></div><div class="stg-row-right"><span class="stg-chev">›</span></div></div>';
   }
@@ -145,7 +148,7 @@ function rStg(){
   // -- About --
   h+='<span class="stg-sec-lbl">'+(lang==='cw'?'Za Pulogalamuyi':'About')+'</span>';
   h+='<div class="stg-grp">';
-  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">What\'s New</button></div></div>';
+  h+='<div class="stg-row no-tap"><div class="stg-row-ico" style="background:var(--p1-bg)"><i data-lucide="home" style="color:var(--p1-text)"></i></div><div class="stg-row-body"><div class="stg-row-lbl">Bajeti Yanga</div><div class="stg-row-sub">Version '+APP_VERSION+' · © Rodart Creatives</div></div><div class="stg-row-right"><button onclick="showWhatsNew()" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:var(--cr-sm);padding:4px 9px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif">'+(lang==='cw'?'Zatsopano':'What\'s New')+'</button></div></div>';
   h+='</div>';
 
   // -- Danger zone --
@@ -252,13 +255,13 @@ function stgOpenSection(sec, keep){
               snap.docs.forEach(function(jd){
                 const jData = jd.data();
                 const name = esc(jData.displayName || jData.uid);
-                const email = jData.email ? '<div style="font-size:.72rem;color:var(--mid)">'+esc(jData.email)+'</div>' : '';
+                const email = jData.email ? '<div style="font-size:var(--fs-xs);color:var(--mid)">'+esc(jData.email)+'</div>' : '';
                 rh += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
                 rh += '<div style="width:36px;height:36px;border-radius:var(--cr-md);background:#BF360C;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">'+esc((jData.displayName||'?')[0].toUpperCase())+'</div>';
                 rh += '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+name+'</div>'+email+'</div>';
                 rh += '<div style="display:flex;gap:6px">';
-                rh += '<button data-uid="'+esc(jd.id)+'" onclick="approveJoin(this.dataset.uid)" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" class="ic12"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
-                rh += '<button data-uid="'+esc(jd.id)+'" onclick="declineJoin(this.dataset.uid)" style="background:var(--neg-bg);color:var(--neg);border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="x" class="ic12"></i> '+(lang==='cw'?'Kanani':'Decline')+'</button>';
+                rh += '<button data-uid="'+esc(jd.id)+'" onclick="approveJoin(this.dataset.uid)" style="background:#2E7D32;color:#fff;border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="check" class="ic12"></i> '+(lang==='cw'?'Vomeleza':'Approve')+'</button>';
+                rh += '<button data-uid="'+esc(jd.id)+'" onclick="declineJoin(this.dataset.uid)" style="background:var(--neg-bg);color:var(--neg);border:none;border-radius:var(--cr-sm);padding:6px 10px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:Hanken Grotesk,sans-serif;display:flex;align-items:center;gap:3px"><i data-lucide="x" class="ic12"></i> '+(lang==='cw'?'Kanani':'Decline')+'</button>';
                 rh += '</div></div>';
               });
               body.innerHTML = rh;
@@ -282,11 +285,11 @@ function stgOpenSection(sec, keep){
         h+='<div class="goal-card" style="margin-bottom:9px'+(done?';background:var(--pos-bg)':'')+'">';
         h+='<div class="goal-top"><div class="goal-name"'+(done?' style="color:var(--pos)"':'')+'>'+( done?'<i data-lucide="party-popper" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px"></i>':'')+esc(gl.name)+'</div>';
         h+='<div style="display:flex;gap:5px;align-items:center"><div class="goal-pct"'+(done?' style="color:var(--pos)"':'')+'>'+Math.round(pct*100)+'%</div>';
-        if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:.72rem" onclick="openTopUp(\''+recKey(gl,i)+'\')"><i data-lucide="arrow-up" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.topup+'</button>';
-        h+='<button class="bsm bd" aria-label="'+L('Delete goal','Delete goal')+'" style="padding:3px 7px;font-size:.72rem" onclick="delGoal(\''+recKey(gl,i)+'\')"><i data-lucide="trash-2" class="ic12"></i></button></div></div>';
+        if(!done)h+='<button class="bsm be" style="padding:3px 8px;font-size:var(--fs-xs)" onclick="openTopUp(\''+recKey(gl,i)+'\')"><i data-lucide="arrow-up" style="width:11px;height:11px;vertical-align:-1px"></i> '+t.topup+'</button>';
+        h+='<button class="bsm bd" aria-label="'+L('Delete goal','Delete goal')+'" style="padding:3px 7px;font-size:var(--fs-xs)" onclick="delGoal(\''+recKey(gl,i)+'\')"><i data-lucide="trash-2" class="ic12"></i></button></div></div>';
         h+='<div class="goal-bar"><div class="goal-fill" style="width:'+Math.round(pct*100)+'%'+(done?';background:linear-gradient(90deg,#2E7D32,#43A047)':'')+'"></div></div>';
         h+='<div class="goal-meta"><span>'+MK(gl.saved)+' '+(lang==='cw'?'yosungidwa':'saved')+'</span><span>'+(lang==='cw'?'Cholinga':'Target')+': '+MK(gl.target)+'</span></div>';
-        if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:.72rem;color:var(--gold-ink);font-weight:700;background:var(--gold-bg);border-radius:var(--cr-sm);padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+(lang==='cw'?' zofunika':' needed')+(ml!==null?' · '+ml+(lang==='cw'?' miyezi yatsala':' mths left'):'')+'</div>';
+        if(!done&&mn!==null)h+='<div style="margin-top:6px;font-size:var(--fs-xs);color:var(--gold-ink);font-weight:700;background:var(--gold-bg);border-radius:var(--cr-sm);padding:5px 8px"><i data-lucide="calendar" style="margin-right:3px;vertical-align:middle;color:var(--a1)"></i> '+MK(mn)+'/'+(lang==='cw'?'mwezi':'month')+(lang==='cw'?' zofunika':' needed')+(ml!==null?' · '+ml+(lang==='cw'?' miyezi yatsala':' mths left'):'')+'</div>';
         h+='</div>';
       });}
       else{h+='<div class="empty" style="padding:10px 0"><p>'+t.noGoals+'</p>'+emptyAction(t.addGoal,'openAddGoal()')+'</div>';}
@@ -307,9 +310,9 @@ function stgOpenSection(sec, keep){
           h+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
           h+='<div class="bill-amt">'+MK(b.amount)+'</div>';
           h+='<div style="display:flex;gap:8px">';
-          h+='<button class="bsm" onclick="markBillPaid(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px;background:#2E7D32;color:#fff;border:none" aria-label="'+t.markPaid+'"><i data-lucide="check" class="ic13"></i></button>';
-          h+='<button class="bsm be" onclick="editBill(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px" aria-label="'+t.editP+'"><i data-lucide="pencil" class="ic13"></i></button>';
-          h+='<button class="bsm bd" onclick="delBill(\''+recKey(b,i)+'\')" style="font-size:.72rem;padding:6px 9px" aria-label="'+t.del+'"><i data-lucide="trash-2" class="ic13"></i></button>';
+          h+='<button class="bsm" onclick="markBillPaid(\''+recKey(b,i)+'\')" style="font-size:var(--fs-xs);padding:6px 9px;background:#2E7D32;color:#fff;border:none" aria-label="'+t.markPaid+'"><i data-lucide="check" class="ic13"></i></button>';
+          h+='<button class="bsm be" onclick="editBill(\''+recKey(b,i)+'\')" style="font-size:var(--fs-xs);padding:6px 9px" aria-label="'+t.editP+'"><i data-lucide="pencil" class="ic13"></i></button>';
+          h+='<button class="bsm bd" onclick="delBill(\''+recKey(b,i)+'\')" style="font-size:var(--fs-xs);padding:6px 9px" aria-label="'+t.del+'"><i data-lucide="trash-2" class="ic13"></i></button>';
           h+='</div></div></div>';
         });
       } else {
@@ -465,13 +468,13 @@ function openExportRangePicker(format){
   h += '</div>';
 
   h += '<div style="border-top:1.5px solid var(--border);padding-top:12px;margin-bottom:12px">';
-  h += '<label style="font-size:.72rem;font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Mwezi wapita (miyezi 12)':'Pick a Past Month (last 12 months)')+'</label>';
+  h += '<label style="font-size:var(--fs-xs);font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Mwezi wapita (miyezi 12)':'Pick a Past Month (last 12 months)')+'</label>';
   h += '<div style="display:flex;gap:8px"><select id="exp-month-sel" style="flex:1;border:1.5px solid var(--border);border-radius:var(--cr-md);padding:9px;font-size:.8rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">'+monthOptions+'</select>';
   h += '<button class="btnM" style="width:auto;padding:9px 16px;font-size:.78rem" onclick="genExportForMonth(g(\'exp-month-sel\').value,\''+format+'\')">'+(isCW?'Tulutsani':'Export')+'</button></div>';
   h += '</div>';
 
   h += '<div style="border-top:1.5px solid var(--border);padding-top:12px">';
-  h += '<label style="font-size:.72rem;font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Nthawi Yanu':'Custom Range')+'</label>';
+  h += '<label style="font-size:var(--fs-xs);font-weight:700;color:var(--mid);display:block;margin-bottom:6px">'+(isCW?'Nthawi Yanu':'Custom Range')+'</label>';
   h += '<div style="display:flex;gap:8px;margin-bottom:8px">';
   h += '<input type="date" id="exp-from" value="'+monthAgoStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:var(--cr-md);padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
   h += '<input type="date" id="exp-to" value="'+todayStr+'" max="'+todayStr+'" style="flex:1;border:1.5px solid var(--border);border-radius:var(--cr-md);padding:8px;font-size:.76rem;background:var(--white);color:var(--ink);font-family:Hanken Grotesk,sans-serif">';
@@ -642,7 +645,7 @@ function setHT(el){
 }
 function openSwitch(){
   const t=tx();
-  g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?sC(u.color):'var(--border)')+';background:'+(actU().id===u.id?sC(u.color)+'18':'var(--white)')+';cursor:pointer" data-uid="'+esc(u.id)+'" onclick="swU(this.dataset.uid)">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:.72rem;color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+sC(u.color)+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
+  g('mb-u').innerHTML='<div class="dh"></div><h3><i data-lucide="refresh-cw" style="width:12px;height:12px;margin-right:3px;vertical-align:middle"></i> '+t.switchUser+'</h3><div style="display:flex;flex-direction:column;gap:8px">'+lCfg.users.map(u=>'<div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--cr-md);border:2.5px solid '+(actU().id===u.id?sC(u.color):'var(--border)')+';background:'+(actU().id===u.id?sC(u.color)+'18':'var(--white)')+';cursor:pointer" data-uid="'+esc(u.id)+'" onclick="swU(this.dataset.uid)">'+'<div style="width:42px;height:42px;border-radius:50%;background:'+sC(u.color)+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff">'+esc(u.name[0])+'</div><div style="flex:1"><div style="font-weight:800;font-size:.9rem">'+esc(u.name)+'</div><div style="font-size:var(--fs-xs);color:var(--mid)">'+lPx.filter(p=>p.userId===u.id&&isTM(p.date)).length+' entries this month</div></div>'+(actU().id===u.id?'<span style="color:'+sC(u.color)+';font-size:1.05rem">&#10003;</span>':'')+'</div>').join('')+'</div>';
   openM('mv-u');
 }
 function swU(id){ localStorage.setItem('nb_uid',id); updatePill(); closeM('mv-u'); render(); }

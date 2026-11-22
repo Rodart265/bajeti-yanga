@@ -34,7 +34,13 @@ function cleanNote(n){ const c=String(n==null?'':n).replace(/[\u2728\uFE0F]/g,''
 function fmtDate(s){ if(!s)return ''; const p=String(s).split('T')[0].split('-'); return esc(p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s); }
 // Returns true if the stored item name is a reserved category label (data quality flag)
 function isBadItemName(n){ return ['other','ena','food','transport','household','personal','unknown','other income','zina'].includes(String(n||'').toLowerCase().trim()); }
-const ico     = name => ITEM_ICONS[name] || '<i data-lucide="shopping-cart" style="margin-right:5px;vertical-align:middle;color:var(--p1)"></i>';
+const ico     = (name,cat) => ITEM_ICONS[name] || catIco(cat);
+// A custom item has no icon of its own, so it gets its category's icon instead of a generic cart.
+function catIco(cat){
+  const o=(typeof CAT_OPTS!=='undefined'&&cat)?CAT_OPTS.find(c=>c.key===cat):null;
+  const col=(typeof CAT_COLORS!=='undefined'&&CAT_COLORS[cat])||'var(--p1)';
+  return '<i data-lucide="'+(o?o.icon:'shopping-cart')+'" style="margin-right:5px;vertical-align:middle;color:'+col+'"></i>';
+}
 // Displays an item's name in the active language, falling back to the original
 // (English) name when no translation exists for it in t.itemNames.
 const trName  = name => (TX[lang].itemNames && TX[lang].itemNames[name]) || name;
@@ -287,7 +293,7 @@ function setDot(s){ const d=g('sync-dot'); if(!d)return; d.className='sync-dot'+
   const cw=(typeof lang!=='undefined'&&lang==='cw');
   const lbl=s==='off'?(cw?'Palibe kulumikizana':'Not connected'):s==='spin'?(cw?'Ikusunga…':'Saving…'):(cw?'Zasinthidwa':'Synced');
   d.setAttribute('aria-label',lbl); d.title=lbl; d.dataset.lbl=lbl;
-  const tx_=g('sync-txt'); if(tx_) tx_.textContent=(s==='off'?lbl:''); }
+  const tx_=g('sync-txt'); if(tx_) tx_.textContent=lbl; }
 function tgPW(id,btn){ const el=g(id); if(!el)return; const sh=el.type==='text'; el.type=sh?'password':'text'; btn.innerHTML=sh?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>'; btn.setAttribute('aria-label', sh?L('Show password','Show password'):L('Hide password','Hide password')); if(window.lucide)lucide.createIcons({nodes:[btn]}); }
 
 
