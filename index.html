@@ -61,7 +61,7 @@
 
 <!-- BOOT SPLASH: visible immediately (no JS/CSS framework dependency), removed
      automatically once a real screen (#scr-auth, #scr-setup, #scr-pin,
-     #scr-welcome, #scr-verify, #scr-guest-entry, #scr-guest, #app) becomes visible. If nothing becomes
+     #scr-welcome, #scr-verify, #scr-guest-entry, #app) becomes visible. If nothing becomes
      visible within ~9s (e.g. first-ever offline visit, no cached session),
      it swaps to an offline/retry message instead of staying blank forever. -->
 <script>
@@ -110,7 +110,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   var splash = document.getElementById('boot-splash');
   var shownAt = Date.now();
   var MIN_DISPLAY_MS = 0; // no forced wait: the splash stays only as long as the app is really loading (was 500)
-  var ids = ['scr-auth','scr-guest-entry','scr-guest','scr-setup','scr-pin','scr-welcome','scr-verify','app'];
+  var ids = ['scr-auth','scr-guest-entry','scr-setup','scr-pin','scr-welcome','scr-verify','app'];
   function els(){ return ids.map(function(id){ return document.getElementById(id); }).filter(Boolean); }
   function anyVisible(){
     return els().some(function(el){ return !el.classList.contains('hide'); });
@@ -317,20 +317,6 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   </p>
 </div>
 
-<!-- GUEST DEMO: sample household, in-memory only. Drawn by js/12a-guest.js. -->
-<div id="scr-guest" class="screen hide">
-  <div class="gs-top">
-    <button type="button" class="gs-icbtn" onclick="guestShowEntry()" aria-label="Back"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></button>
-    <div class="gs-brand">Bajeti Yanga</div>
-    <span class="gs-pill" data-cw="Chitsanzo">Demo</span>
-    <button type="button" class="gs-lang" onclick="guestToggleLang()" aria-label="Language / Chilankhulo">CW</button>
-  </div>
-  <div class="gs-strip" data-cw="Chitsanzo chokhala ndi zitsanzo. Palibe chomwe mungalowetse chimasungidwa.">Demo with sample data. Nothing you enter is saved.</div>
-  <div class="gs-body" id="gs-body"></div>
-  <nav class="gs-nav" id="gs-nav" aria-label="Demo"></nav>
-  <div id="gs-sheet" class="gs-sheet hide" onclick="guestSheetBg(event)"></div>
-</div>
-
 <!-- SETUP -->
 <div id="scr-setup" class="screen hide">
   <div class="setup-logo-wrap" style="width:72px;height:72px;border-radius:24px;margin-bottom:20px">
@@ -501,6 +487,8 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
       </div>
     </div>
   </div>
+  <!-- Shown only in guest mode (js/12a-guest.js): the demo runs the real screens on sample data. -->
+  <div id="guest-strip" class="guest-strip hide" role="status"><span data-cw="Chitsanzo. Palibe chomwe chimasungidwa.">Demo. Nothing is saved.</span><button type="button" onclick="guestGate(&quot;account&quot;)" data-cw="Tsegulani akaunti">Create account</button></div>
   <div id="view"><div class="loading" role="status"><div class="spinner"></div><span id="load-txt" data-cw="Chonde dikirani...">Loading...</span></div></div>
   <nav id="nav" role="navigation" aria-label="Main navigation">
     <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
@@ -522,6 +510,8 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
 <div class="ov" id="mv-gl"><div class="mb" id="mb-gl"></div></div>
 <div class="ov" id="mv-magic"><div class="mb" id="mb-magic"></div></div>
 <div class="toast" id="toast" onclick="dismissToast()"></div>
+<!-- Guest mode: the "this needs an account" sheet (drawn by js/12a-guest.js). -->
+<div id="gs-sheet" class="gs-sheet hide" onclick="guestSheetBg(event)"></div>
 <div class="sr-only" id="toast-live" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- App code (was one big inline script; split by section, no logic changes).
