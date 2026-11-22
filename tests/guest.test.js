@@ -1,39 +1,122 @@
-// Guards guest mode (js/12a-guest.js): a first-time visitor can try the app with sample data, and guest mode can
-// never reach Firebase, the Worker, or a real account. Run: node tests/guest.test.js
+// Guards guest mode (js/12a-guest.js). The demo runs the REAL app screens on made-up data kept in memory, so these tests make
+// sure that data can never reach Firebase, the Worker or a real account. Run: node tests/guest.test.js
 const fs = require('fs'), path = require('path'), assert = require('assert'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const guest = read('js/12a-guest.js'), html = read('index.html'), hh = read('js/05-household.js'), sw = read('sw.js');
+const jsFiles = fs.readdirSync(path.join(root, 'js')).filter((f) => f.endsWith('.js') && f !== '12a-guest.js');
 let passed = 0;
 function test(name, fn) { try { fn(); passed++; console.log('PASS ' + name); } catch (e) { console.log('FAIL ' + name + ' :: ' + e.message); process.exitCode = 1; } }
 
 // Code only: drop comments so the notes at the top of the file do not trip the checks.
-const code = guest.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/([^:'"])\/\/[^\n]*$/gm, '$1');
+const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/([^:'"])\/\/[^\n]*$/gm, '$1');
+const code = strip(guest);
+// Body of a top-level function, from its "function name(" line to the next top-level "function".
+function body(src, name) {
+  const m = new RegExp('^(?:async )?function ' + name + '\\b[^\\n]*', 'm').exec(src);
+  assert(m, 'function ' + name + ' not found');
+  const rest = src.slice(m.index + 1), next = rest.search(/\n(?:async )?function \w+/);
+  return src.slice(m.index, next < 0 ? src.length : m.index + 1 + next);
+}
 
 // ── Isolation ───────────────────────────────────────────────────────────────
 test('guest code never touches Firebase, Firestore, the Worker or the real app startup', () => {
-  const banned = [/\bdb\b/, /\bfirebase\b/, /\bauth\./, /\.collection\(/, /\.doc\(/, /\bfetch\(/, /XMLHttpRequest/, /\bAI_URL\b/,
-    /\baddPx\b/, /\bconnectHH\b/, /\bbootApp\b/, /\bcurUser\b/, /\bhhId\b/, /\blPx\b/, /\blCfg\b/, /sessionStorage/, /indexedDB/, /sendBeacon/];
+  const banned = [/\bdb\b/, /\bfirebase\b/, /\bauth\./, /\.collection\(/, /\bfetch\(/, /fetchT\(/, /XMLHttpRequest/, /\bAI_URL\b/,
+    /\baddPx\b/, /\bconnectHH\b/, /\bbootApp\b/, /\bcurUser\b/, /\bhhId\b/, /sessionStorage/, /indexedDB/, /sendBeacon/, /\bsetupFCMToken\b/];
   const hit = banned.filter((r) => r.test(code)).map(String);
   assert.deepStrictEqual(hit, [], 'js/12a-guest.js uses: ' + hit.join(', '));
 });
-test('the only things guest mode stores on the phone are nb_seen_auth and the language', () => {
+test('the only things guest mode stores on the phone by name are nb_seen_auth and the language', () => {
   const keys = [...code.matchAll(/localStorage\.(?:get|set|remove)Item\(\s*([^,)]+)/g)].map((m) => m[1].trim());
-  const allowed = ['GUEST_SEEN_KEY', "'nb_household'", "'nb_lang'"];
-  const bad = keys.filter((k) => !allowed.includes(k));
+  const bad = keys.filter((k) => !['GUEST_SEEN_KEY', "'nb_household'", "'nb_lang'"].includes(k));
   assert.deepStrictEqual(bad, [], 'unexpected storage keys: ' + bad.join(', '));
   assert(/const GUEST_SEEN_KEY = 'nb_seen_auth'/.test(code));
+  assert(!/localStorage\.setItem\(\s*'nb_(?!lang)/.test(code));
 });
-test('guest mode never writes the demo entries anywhere', () => {
-  assert(!/localStorage\.setItem\(\s*'nb_(?!lang)/.test(code), 'only nb_lang may be written by name');
-  assert(!/guestEntries[^;\n]*localStorage|localStorage[^;\n]*guestEntries/.test(code));
+test('switching person in the demo does not write nb_uid to the phone', () => {
+  assert(/function setU\(id\)\s*\{\s*if\(isGuestMode\)/.test(read('js/07-render.js')), 'setU must check isGuestMode before writing nb_uid');
+  assert(/function swU\(id\)\s*\{\s*if\(isGuestMode\)/.test(read('js/09-settings.js')), 'swU must check isGuestMode before writing nb_uid');
+  assert(/function actU\(\)\s*\{\s*const id=isGuestMode\?_guestUid:/.test(read('js/02-helpers.js')));
+});
+
+const blockedSrc = /const GUEST_BLOCKED = \{([\s\S]*?)\n\};/.exec(guest)[1];
+const blocked = [...blockedSrc.matchAll(/'(\w+)'/g)].map((m) => m[1]);
+
+// ── Entries: the one door to the household's purchases ──────────────────────
+test('_pxCol() hands out the in-memory stand-in in guest mode, before it can touch db', () => {
+  const b = body(hh, '_pxCol');
+  assert(b.indexOf('isGuestMode') > -1 && b.indexOf('guestPxCol()') > -1 && b.indexOf('isGuestMode') < b.indexOf('db.collection'));
+});
+test('the household purchases collection is only opened by _pxCol and the two live listeners', () => {
+  const where = [];
+  jsFiles.forEach((f) => { let cur = null; read('js/' + f).split('\n').forEach((l) => {
+    const m = /^(?:async )?function (\w+)/.exec(l); if (m) cur = m[1];
+    if (/collection\('purchases'\)/.test(l)) where.push(f + ':' + cur); }); });
+  const allowed = ['05-household.js:_pxCol', '05-household.js:connectHH', '05-household.js:_pxStartWindow'];
+  const extra = where.filter((w) => !allowed.includes(w) && !blocked.includes(w.split(':')[1]));   // blocked functions (markBillPaid) cannot run in the demo
+  assert.deepStrictEqual(extra, [], 'a new direct purchases path needs a guest check: ' + extra.join(', '));
+});
+test('addPx, updPx and delPx let guest mode through, and saveCfg skips Firestore without a household', () => {
+  assert(/isGuestMode/.test(body(hh, 'addPx')) && /isGuestMode/.test(body(hh, 'updPx')) && /isGuestMode/.test(body(hh, 'delPx')));
+  const s = body(hh, 'saveCfg');
+  assert(s.indexOf('if(!hhId) return Promise.resolve();') > -1 && s.indexOf('if(!hhId) return') < s.indexOf('db.collection'));
+});
+
+// ── Everything that can reach Firebase or the network is either blocked in the demo or reviewed ─
+test('every function listed as blocked in the demo really exists', () => {
+  const all = jsFiles.map((f) => read('js/' + f)).join('\n');
+  const missing = blocked.filter((n) => !new RegExp('^(?:async )?function ' + n + '\\b', 'm').test(all));
+  assert.deepStrictEqual(missing, [], 'GUEST_BLOCKED names that no longer exist: ' + missing.join(', '));
+  assert(blocked.length >= 30);
+});
+// Functions that reach Firebase or the network but are NOT blocked, with why that is fine. A new one fails this test on purpose:
+// decide whether a guest can reach it, then block it in GUEST_BLOCKED or add it here.
+const REVIEWED = [
+  // sign-in, sign-up, PIN and account flows: only run once a real sign-in is under way, or from screens the demo never shows
+  '_confirmDeleteAccount', '_reauthWithoutPassword', '_secPwVerifySubmit', 'pinFgtVerify', '_sendAuthEmail', 'backToLogin', 'checkVerification',
+  'doEmailAuth', 'doGoogle', 'resendVerification', 'bootApp', 'restoreAccount', 'showAccountRestorePrompt', 'startFreshAfterDeletion',
+  // household set-up, joining and live listeners: reached only after sign-in (connectHH is never called by the demo)
+  '_backfillInvite', '_checkApproved', '_claimMembership', '_confirmDeleteHousehold', '_ensureInvite', '_markApproved', '_restoreWaitingScreen',
+  '_pxStartWindow', 'cancelPendingJoin', 'connectHH', 'handleHouseholdDeleted', 'handleRemovedFromHousehold', 'joinHH', 'loadDeletedHouseholds',
+  'restoreHousehold', 'startChipListener',
+  // household-only writes that already do nothing without a household id, which the demo never has
+  'mirrorRecs',
+  // the entry door itself: guest mode swaps in the in-memory stand-in (tested above)
+  '_pxCol', 'addPx', 'saveCfg',
+  // Chipereganyu actions: the circle screens cannot be opened in the demo (openChipView / openChipEntry / openChipCreate / openChipJoin are blocked)
+  'chipCloseCircle', 'chipConfirmPayout', 'chipCycleUpdate', 'chipDeleteGroup', 'chipLeaveGroup', 'chipMakeAdmin', 'chipMoveUp', 'chipRemoveMember',
+  'chipStartNewLap', 'joinChipGroup', 'saveChipCreate', 'startChipRotation',
+  // Settings member list: its live listener only starts for a signed-in owner (needs curUser)
+  'stgOpenSection',
+  // the app's own same-site update check (version.json), which runs for everyone
+  'openFAQ', 'fetchT',
+  // Premium internals: only reached from the Premium screens (blocked) or from connectHH; the sign-in token check below stops any request
+  '_checkNotices', '_paymentsCall', '_authHeaders', 'setupFCMToken', 'convosRef'
+];
+test('every function that can reach Firebase or the network is blocked in the demo or has been reviewed', () => {
+  const found = new Set();
+  jsFiles.forEach((f) => { let cur = null; read('js/' + f).split('\n').forEach((l) => {
+    const m = /^(?:async )?function (\w+)/.exec(l); if (m) cur = m[1];
+    if (cur && /\bdb\.(collection|batch|runTransaction)|\bfetch\(|fetchT\(|\bauth\.|firebase\.messaging\(\)|signOut|\.getIdToken/.test(strip(l))) found.add(cur); }); });
+  const unknown = [...found].filter((n) => !blocked.includes(n) && !REVIEWED.includes(n));
+  assert.deepStrictEqual(unknown, [], 'new function(s) can reach Firebase or the network: ' + unknown.join(', ') + '. Block them in GUEST_BLOCKED (js/12a-guest.js) or add them to REVIEWED in this test.');
+});
+test('AI and payment calls refuse to run without a real sign-in, so the demo cannot send them', () => {
+  const b = body(read('js/13-actions-boot.js'), '_authHeaders');
+  assert(/if\(!\(auth && auth\.currentUser\)\) throw/.test(b));
 });
 
 // ── Wiring ──────────────────────────────────────────────────────────────────
-test('both guest screens exist and the splash script knows about them', () => {
-  assert(html.includes('id="scr-guest-entry"') && html.includes('id="scr-guest"'));
+test('the guest entry screen exists, the old separate demo screen is gone, and the splash script knows the entry screen', () => {
+  assert(html.includes('id="scr-guest-entry"'));
+  assert(!html.includes('id="scr-guest"') && !html.includes('gs-nav') && !html.includes('gs-body'), 'the old demo screen must be gone');
   const ids = /var ids = \[([^\]]*)\]/.exec(html);
-  assert(ids && ids[1].includes("'scr-guest-entry'") && ids[1].includes("'scr-guest'"), 'splash id list is missing a guest screen');
+  assert(ids && ids[1].includes("'scr-guest-entry'") && !ids[1].includes("'scr-guest'"));
+});
+test('the demo strip is inside the real #app and the account sheet is at page level', () => {
+  const app = html.indexOf('<div id="app"'), view = html.indexOf('<div id="view">'), strip = html.indexOf('id="guest-strip"');
+  assert(app > -1 && strip > app && strip < view, 'guest-strip must sit between the top bar and the screen inside #app');
+  assert(html.includes('id="gs-sheet"') && html.indexOf('id="gs-sheet"') > html.indexOf('id="toast"'));
 });
 test('the guest script is in APP_SHELL and loads before the boot script', () => {
   assert(sw.includes('"./js/12a-guest.js"'));
@@ -43,43 +126,55 @@ test('bootApp asks guestRoute() before showing sign-in, and tells guest mode whe
   const sign = hh.indexOf("if(typeof guestNoteSignedIn==='function') guestNoteSignedIn();");
   const user = hh.indexOf('curUser=user;');
   assert(sign > user && sign - user < 200, 'guestNoteSignedIn must be the first thing the signed-in branch does');
-  const route = hh.indexOf("guestRoute()) return;"), authShow = hh.indexOf("hide('scr-pin');\n      // First-time visitors");
+  const route = hh.indexOf('guestRoute()) return;'), authShow = hh.indexOf("hide('scr-pin');\n      // First-time visitors");
   assert(route > -1 && authShow > -1 && hh.indexOf("show('scr-auth');", route) > route, 'sign-in must stay as the fallback after guestRoute()');
 });
 test('the other places that show sign-in directly are untouched (sign-out, deletion, back-to-login)', () => {
   assert(!/guestRoute/.test(read('js/03-pin.js')) && !/guestRoute/.test(read('js/04-auth.js')) && !/guestRoute/.test(read('js/11-premium.js')));
 });
-test('every icon the account gates name exists in the icon file', () => {
+test('every icon the account sheets name exists in the icon file', () => {
   const have = new Set([...read('vendor/icons.min.js').matchAll(/"([a-z0-9-]+)":\[\[/g)].map((m) => m[1]));
   const names = [...code.matchAll(/icon:'([a-z0-9-]+)'/g)].map((m) => m[1]);
-  assert(names.length >= 5);
+  assert(names.length >= 7);
   const miss = names.filter((n) => !have.has(n));
   assert.deepStrictEqual(miss, [], 'missing icons: ' + miss.join(', '));
 });
 
 // ── Behaviour, run against stand-ins for the page ───────────────────────────
+const defItems = [...read('js/01-constants.js').matchAll(/\{name:'([^']+)'(?:,budget:\d+)?\}/g)].map((m) => m[1]);
+const itemSrc = /const DEF_ITEMS = \[([\s\S]*?)\];/.exec(read('js/01-constants.js'))[1];
+const DEF_ITEM_NAMES = [...itemSrc.matchAll(/name:'([^']+)'/g)].map((m) => m[1]);
 function world(opts) {
   opts = opts || {};
   const store = Object.assign({}, opts.ls || {});
   const els = {};
   const el = (id, hidden) => (els[id] = els[id] || { id, innerHTML: '', textContent: '', value: '', querySelector: () => null, classList: {
     _h: !!hidden, contains(c) { return c === 'hide' && this._h; }, add(c) { if (c === 'hide') this._h = true; }, remove(c) { if (c === 'hide') this._h = false; } } });
-  ['scr-guest-entry', 'scr-guest', 'scr-auth', 'gs-sheet'].forEach((id) => el(id, true));
-  ['gs-body', 'gs-nav', 'gs-desc', 'gs-amt', 'gs-err', 'gs-cat', 'a-guest-back'].forEach((id) => el(id, id === 'a-guest-back'));
+  ['scr-guest-entry', 'scr-auth', 'app', 'guest-strip', 'gs-sheet'].forEach((id) => el(id, true));
+  el('a-guest-back', true);
   const calls = [];
   const ctx = {
     g: (id) => els[id] || null, hide: (id) => els[id] && els[id].classList.add('hide'), show: (id) => els[id] && els[id].classList.remove('hide'),
-    L: (en) => en, esc: (s) => String(s).replace(/[&<>"']/g, '_'), MK: (n) => 'MK ' + n.toLocaleString('en-US'), _ic: (n) => '<i data-lucide="' + n + '"></i>',
-    tx: () => ({ income: 'Income', expense: 'Expense', spent: 'Spent', left: 'Left', home: 'Home', log: 'Log', cancel: 'Cancel' }),
-    CAT_COLORS: {}, aTab: (m) => calls.push('aTab:' + m), applyStaticLang() {}, applyLang() {}, toast: (m) => calls.push('toast'),
-    lang: 'en', _pendingJoinCode: opts.join || null, window: {}, console,
+    L: (en) => en, esc: (s) => String(s).replace(/[&<>"']/g, '_'), _ic: (n) => '<i data-lucide="' + n + '"></i>',
+    aTab: (m) => calls.push('aTab:' + m), applyStaticLang() {}, applyLang() {}, go: (t) => { ctx.tab = t; calls.push('go:' + t); }, renderLive() {},
+    ensureRecIds: (cfg) => { ['items', 'goals', 'bills'].forEach((k) => (cfg[k] || []).forEach((r, i) => { r.id = r.id || k[0] + i; })); },
+    localISO: (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+    DEF_CFG: { items: DEF_ITEM_NAMES.map((n) => ({ name: n, budget: 10000 })), users: [{ id: 'u1', name: 'Person 1' }], overallBudget: 400000, goals: [], salaryDay: 0 },
+    _pendingJoinCode: opts.join || null, window: null, console,
     document: { querySelectorAll: () => [], addEventListener() {} },
     localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => delete store[k] },
   };
   if (opts.brokenStorage) ctx.localStorage = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
   vm.createContext(ctx);
-  vm.runInContext(guest + '\n;this.__x={guestRoute,guestNoteSignedIn,guestIsReturning,guestTotals,guestSaveEntry,guestOpenAdd,guestOpenDemo,guestGoAuth,guestBackFromAuth,GUEST_BUDGET,entries:()=>guestEntries};', ctx);
-  return { x: ctx.__x, els, store, calls, vis: (id) => !els[id].classList.contains('hide') };
+  // The app's own state and a few real-app stand-ins (same names as js/01-constants.js and js/05-household.js).
+  vm.runInContext(`this.window = this; let lang='en', isGuestMode=false, _guestUid=null, lCfg={}, lPx=[], lHHDoc={}, _pxMain=[], _pxOlder=[], _pxTrash=[], chipGroups=[],
+    _pxFirst=false, _chipFirst=false, viewMonth=null, tab='home', _stgSection=null, selItem=null, selItemKey=null, fUser='all', logSrch='';
+    function _setPx(){ lPx=[..._pxMain]; } function _invalidateMemo(){}
+    function logout(){ __real.push('logout'); } function showPremiumPage(){ __real.push('premium'); } function sendChat(){ __real.push('chat'); }`, ctx);
+  ctx.__real = [];
+  vm.runInContext(guest + '\n;this.__x={guestRoute,guestNoteSignedIn,guestIsReturning,guestOpenDemo,guestGoAuth,guestBackFromAuth,guestGate,guestPxCol,guestPxFull,' +
+    'guestBuildPx,guestBuildCfg,get:()=>({isGuestMode,lCfg,lPx,_pxMain,tab,lHHDoc,_pxFirst,_chipFirst,_guestUid}),setPx:(a)=>{_pxMain.length=0;a.forEach(x=>_pxMain.push(x));}};', ctx);
+  return { x: ctx.__x, els, store, calls, ctx, real: () => ctx.__real, vis: (id) => !els[id].classList.contains('hide') };
 }
 const FRESH = { ls: {} };
 test('a first-time visitor is shown the guest entry screen', () => {
@@ -97,35 +192,63 @@ test('an invite link goes straight to sign-in', () => {
 test('if storage cannot be read, the person gets sign-in, not a guess', () => {
   const w = world({ brokenStorage: true }); assert.strictEqual(w.x.guestRoute(), false);
 });
+test('the demo opens the real app on Home with sample data in the app\'s own lists', () => {
+  const w = world(FRESH); w.x.guestOpenDemo(); const s = w.x.get();
+  assert(s.isGuestMode && w.vis('app') && w.vis('guest-strip') && !w.vis('scr-guest-entry'));
+  assert.deepStrictEqual(w.calls.filter((c) => c.startsWith('go:')), ['go:home']);
+  assert(s.lPx.length > 40 && s._pxFirst && s._chipFirst && s.lHHDoc && !s.lHHDoc.isPremium);
+  assert(s.lCfg.users.length === 2 && s.lCfg.goals.length === 2 && s.lCfg.items.length > 10);
+});
 test('guestRoute leaves a screen that is already up alone', () => {
-  const w = world(FRESH); w.x.guestOpenDemo(); assert.strictEqual(w.x.guestRoute(), true); assert(w.vis('scr-guest'));
+  const w = world(FRESH); w.x.guestOpenDemo(); assert.strictEqual(w.x.guestRoute(), true); assert(w.vis('app') && !w.vis('scr-guest-entry'));
 });
-test('signing in remembers the phone, closes the demo and throws the demo entries away', () => {
-  const w = world(FRESH); w.x.guestOpenDemo(); w.els['gs-amt'].value = '5000'; w.x.guestOpenAdd('expense'); w.els['gs-amt'].value = '5000'; w.x.guestSaveEntry();
-  assert.strictEqual(w.x.entries().length, 1);
-  w.x.guestNoteSignedIn();
-  assert.strictEqual(w.store.nb_seen_auth, '1'); assert(!w.vis('scr-guest') && !w.vis('scr-guest-entry')); assert.strictEqual(w.x.entries().length, 0);
+test('sample entries use real item names, never fall in the future, and this month has spending and income', () => {
+  const w = world(FRESH), px = w.x.guestBuildPx(), todayStr = w.ctx.localISO(new Date()), ym = todayStr.slice(0, 7);
+  const bad = Array.from(px.filter((p) => !DEF_ITEM_NAMES.includes(p.item) && p.item !== 'Salary/Income').map((p) => p.item));
+  assert.strictEqual(bad.length, 0, 'unknown items: ' + bad.join(', '));
+  assert(px.every((p) => p.date <= todayStr), 'an entry is dated in the future');
+  const mine = px.filter((p) => p.date.startsWith(ym));
+  assert(mine.some((p) => p.type === 'income') && mine.filter((p) => p.type === 'expense').length >= 8);
+  assert(new Set(px.map((p) => p.date.slice(0, 7))).size >= 6, 'needs six months for the trend chart');
+  assert(new Set(px.map((p) => p.id)).size === px.length, 'duplicate ids');
+  assert(px.every((p) => p.amount > 0 && p.timestamp > 0 && /^\d{4}-\d{2}-\d{2}$/.test(p.date)));
 });
-test('Create account and Sign in use the existing sign-in screen', () => {
+test('the stand-in collection adds, edits and deletes entries in memory only', async () => {
+  const w = world(FRESH); w.x.guestOpenDemo(); const col = w.x.guestPxCol(), n = w.x.get()._pxMain.length;
+  const r = await col.add({ item: 'Sugar', amount: 500, createdAt: { _methodName: 'FieldValue.serverTimestamp' } });
+  assert(r.id && w.x.get()._pxMain.length === n + 1);
+  const e = w.x.get()._pxMain.find((p) => p.id === r.id); assert(typeof e.createdAt.toMillis() === 'number');
+  await col.doc(r.id).update({ amount: 900, note: { _methodName: 'FieldValue.delete' } }); assert.strictEqual(e.amount, 900);
+  await col.doc(r.id).update({ deleted: true, deletedAt: 'x' }); assert.strictEqual(e.deleted, true);
+  await col.doc(r.id).delete(); assert.strictEqual(w.x.get()._pxMain.length, n);
+  await assert.rejects(() => col.doc('nope').update({ a: 1 }), (er) => er.code === 'not-found');
+});
+test('the demo is capped, so it cannot grow without limit', async () => {
+  const w = world(FRESH); w.x.guestOpenDemo(); const col = w.x.guestPxCol();
+  for (let i = 0; i < 40; i++) { assert.strictEqual(w.x.guestPxFull(), false); await col.add({ item: 'Sugar', amount: 1 }); }
+  assert.strictEqual(w.x.guestPxFull(), true);
+});
+test('account-only functions open the account sheet in the demo and run normally otherwise', () => {
+  const w = world(FRESH);
+  w.ctx.logout(); w.ctx.showPremiumPage(); w.ctx.sendChat();                 // not a guest: the real functions run
+  assert.deepStrictEqual(w.real(), ['logout', 'premium', 'chat']); assert(!w.vis('gs-sheet'));
+  w.x.guestOpenDemo(); w.ctx.logout(); assert(w.vis('gs-sheet') && /Create your account/.test(w.els['gs-sheet'].innerHTML));
+  w.x.guestGate('premium'); w.ctx.showPremiumPage(); w.ctx.sendChat(); assert.deepStrictEqual(w.real(), ['logout', 'premium', 'chat'], 'a real function ran in guest mode');
+});
+test('Create account and Sign in use the existing sign-in screen, and Back returns to the demo', () => {
   const w = world(FRESH); w.x.guestOpenDemo(); w.x.guestGoAuth('register');
-  assert(w.vis('scr-auth') && !w.vis('scr-guest') && w.vis('a-guest-back')); assert(w.calls.includes('aTab:register'));
-  w.x.guestBackFromAuth(); assert(w.vis('scr-guest') && !w.vis('scr-auth'));
+  assert(w.vis('scr-auth') && !w.vis('app') && w.vis('a-guest-back')); assert(w.calls.includes('aTab:register'));
+  w.x.guestBackFromAuth(); assert(w.vis('app') && !w.vis('scr-auth') && w.x.get().isGuestMode);
 });
-test('sample totals add up (income, spending, balance)', () => {
-  const t = world(FRESH).x.guestTotals();
-  assert.strictEqual(t.income, 250000); assert.strictEqual(t.spent, 173000); assert.strictEqual(t.balance, 77000);
+test('signing in remembers the phone, closes the demo and throws the demo data away', () => {
+  const w = world(FRESH); w.x.guestOpenDemo(); assert(w.x.get().lPx.length > 0);
+  w.x.guestNoteSignedIn(); const s = w.x.get();
+  assert.strictEqual(w.store.nb_seen_auth, '1'); assert(!s.isGuestMode && !w.vis('guest-strip') && !w.vis('scr-guest-entry'));
+  assert.strictEqual(s.lPx.length, 0); assert.strictEqual(s._pxMain.length, 0); assert.strictEqual(s.lCfg.users.length, 1); assert(!s._pxFirst && !s._chipFirst);
 });
-test('a demo entry needs an amount above zero, and is capped', () => {
-  const w = world(FRESH); w.x.guestOpenAdd('expense');
-  ['', '0', '-5', 'abc', '1000000000'].forEach((v) => { w.els['gs-amt'].value = v; assert.strictEqual(w.x.guestSaveEntry(), false, v); });
-  assert.strictEqual(w.x.entries().length, 0);
-  for (let i = 0; i < 30; i++) { w.els['gs-amt'].value = '100'; assert.strictEqual(w.x.guestSaveEntry(), true); }
-  w.els['gs-amt'].value = '100'; assert.strictEqual(w.x.guestSaveEntry(), false);
-});
-test('text typed into the demo is escaped before it is drawn', () => {
-  const w = world(FRESH); w.x.guestOpenDemo(); w.x.guestOpenAdd('expense');
-  w.els['gs-desc'].value = '<img src=x onerror=alert(1)>'; w.els['gs-amt'].value = '100'; w.els['gs-cat'].value = 'Food'; w.x.guestSaveEntry();
-  assert(!/<img/.test(w.els['gs-body'].innerHTML), 'unescaped markup reached the screen');
+test('for an ordinary sign-in (not a guest) guestNoteSignedIn leaves the real data alone', () => {
+  const w = world(FRESH); w.ctx.lPx = [{ id: 'real1' }]; vm.runInContext("lPx=[{id:'real1'}]; _pxMain.push({id:'real1'});", w.ctx);
+  w.x.guestNoteSignedIn(); assert.strictEqual(w.x.get()._pxMain.length, 1); assert.strictEqual(w.store.nb_seen_auth, '1');
 });
 
 console.log(passed + ' passed' + (process.exitCode ? ', some FAILED' : ''));
