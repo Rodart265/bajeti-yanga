@@ -92,6 +92,7 @@ function bootApp(){
   _authUnsubscribe = auth.onAuthStateChanged(user=>{
     if(user){
       curUser=user;
+      if(typeof guestNoteSignedIn==='function') guestNoteSignedIn();   // guest mode: remember this phone has an account, close the demo
       // Gate: if email user has not verified yet, show verify screen
       const isEmailProvider = user.providerData && user.providerData.length > 0 && user.providerData[0].providerId === 'password';
       if(isEmailProvider && !user.emailVerified){
@@ -199,7 +200,10 @@ function bootApp(){
     } else {
       curUser=null;
       stopChipListener();
-      g('app').classList.add('hide'); hide('scr-setup'); hide('scr-pin'); show('scr-auth');
+      g('app').classList.add('hide'); hide('scr-setup'); hide('scr-pin');
+      // First-time visitors get the guest entry screen; everyone else (and invite links) go straight to sign-in as before.
+      if(typeof guestRoute==='function' && guestRoute()) return;
+      show('scr-auth');
     }
   });
 }
