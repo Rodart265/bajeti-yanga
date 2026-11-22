@@ -61,7 +61,7 @@
 
 <!-- BOOT SPLASH: visible immediately (no JS/CSS framework dependency), removed
      automatically once a real screen (#scr-auth, #scr-setup, #scr-pin,
-     #scr-welcome, #scr-verify, #app) becomes visible. If nothing becomes
+     #scr-welcome, #scr-verify, #scr-guest-entry, #scr-guest, #app) becomes visible. If nothing becomes
      visible within ~9s (e.g. first-ever offline visit, no cached session),
      it swaps to an offline/retry message instead of staying blank forever. -->
 <script>
@@ -110,7 +110,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   var splash = document.getElementById('boot-splash');
   var shownAt = Date.now();
   var MIN_DISPLAY_MS = 0; // no forced wait: the splash stays only as long as the app is really loading (was 500)
-  var ids = ['scr-auth','scr-setup','scr-pin','scr-welcome','scr-verify','app'];
+  var ids = ['scr-auth','scr-guest-entry','scr-guest','scr-setup','scr-pin','scr-welcome','scr-verify','app'];
   function els(){ return ids.map(function(id){ return document.getElementById(id); }).filter(Boolean); }
   function anyVisible(){
     return els().some(function(el){ return !el.classList.contains('hide'); });
@@ -215,6 +215,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   <div class="auth-title">Bajeti Yanga</div>
   <div class="auth-sub" id="auth-sub">Know where your Kwacha goes</div>
   <div class="auth-card">
+    <button type="button" class="a-back hide" id="a-guest-back" onclick="guestBackFromAuth()"><i data-lucide="chevron-left" class="ic14"></i> <span data-cw="Bwererani">Back</span></button>
     <div class="auth-tabs">
       <button class="auth-tab on" id="at-login" onclick="aTab(&quot;login&quot;)" data-cw="Takulandiraninso">Welcome Back</button>
       <button class="auth-tab" id="at-reg" onclick="aTab(&quot;register&quot;)" data-cw="Yambani kutsatira ndalama">Start Tracking</button>
@@ -285,6 +286,49 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     and
     <span onclick="openPrivacySheet()" style="color:rgba(255,255,255,.85);text-decoration:underline;cursor:pointer;font-weight:600">Privacy Policy</span>
   </p>
+</div>
+
+<!-- GUEST ENTRY: first-time visitors only (see js/12a-guest.js). Sample data, nothing is saved. -->
+<div id="scr-guest-entry" class="screen hide">
+  <div class="auth-logo">
+    <svg width="72" height="72" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="52" height="52" rx="13" fill="rgba(255,255,255,0.18)"/>
+      <rect x="8" y="34" width="9" height="10" rx="2.5" fill="rgba(255,255,255,0.4)"/>
+      <rect x="21" y="24" width="9" height="20" rx="2.5" fill="rgba(255,255,255,0.65)"/>
+      <rect x="34" y="14" width="9" height="30" rx="2.5" fill="#fff"/>
+      <polygon points="34,18 38.5,9 43,18" fill="#00E5FF"/>
+    </svg>
+  </div>
+  <div class="auth-title">Bajeti Yanga</div>
+  <div class="auth-sub" data-cw="Dziwani komwe Kwacha yanu imapita">Know where your Kwacha goes</div>
+  <div class="auth-card gs-entry-card">
+    <p class="gs-lead" data-cw="Onani momwe pulogalamuyi imagwirira ntchito pogwiritsa ntchito zitsanzo. Simufunika akaunti.">See how it works with sample data. You do not need an account.</p>
+    <button type="button" class="a-btn" onclick="guestOpenDemo()" data-cw="Yesani pulogalamuyi">Explore the app</button>
+    <button type="button" class="g-btn" onclick="guestGoAuth('register')" data-cw="Tsegulani akaunti">Create an account</button>
+    <button type="button" class="g-btn" onclick="guestGoAuth('login')" data-cw="Lowani">Sign in</button>
+  </div>
+  <button type="button" class="gs-lang gs-lang-entry" onclick="guestToggleLang()" aria-label="Language / Chilankhulo">CW</button>
+  <p class="auth-copy">&#169; Rodart Creatives. All Rights Reserved.</p>
+  <p style="text-align:center;font-size:.7rem;color:rgba(255,255,255,.5);margin-top:8px;line-height:1.6;padding:0 16px">
+    <span data-cw="Mukapitiriza, mukuvomereza">By continuing, you agree to our</span>
+    <span onclick="openTerms()" style="color:rgba(255,255,255,.85);text-decoration:underline;cursor:pointer;font-weight:600">Terms of Service</span>
+    &amp;
+    <span onclick="openPrivacySheet()" style="color:rgba(255,255,255,.85);text-decoration:underline;cursor:pointer;font-weight:600">Privacy Policy</span>
+  </p>
+</div>
+
+<!-- GUEST DEMO: sample household, in-memory only. Drawn by js/12a-guest.js. -->
+<div id="scr-guest" class="screen hide">
+  <div class="gs-top">
+    <button type="button" class="gs-icbtn" onclick="guestShowEntry()" aria-label="Back"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></button>
+    <div class="gs-brand">Bajeti Yanga</div>
+    <span class="gs-pill" data-cw="Chitsanzo">Demo</span>
+    <button type="button" class="gs-lang" onclick="guestToggleLang()" aria-label="Language / Chilankhulo">CW</button>
+  </div>
+  <div class="gs-strip" data-cw="Chitsanzo chokhala ndi zitsanzo. Palibe chomwe mungalowetse chimasungidwa.">Demo with sample data. Nothing you enter is saved.</div>
+  <div class="gs-body" id="gs-body"></div>
+  <nav class="gs-nav" id="gs-nav" aria-label="Demo"></nav>
+  <div id="gs-sheet" class="gs-sheet hide" onclick="guestSheetBg(event)"></div>
 </div>
 
 <!-- SETUP -->
@@ -536,6 +580,7 @@ try{
 <script src="./js/10-legal.js"></script>
 <script src="./js/11-premium.js"></script>
 <script src="./js/12-chat.js"></script>
+<script src="./js/12a-guest.js"></script>
 <script src="./js/13-actions-boot.js"></script>
 <script src="./motion.js"></script>
 </body>

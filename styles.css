@@ -1001,3 +1001,68 @@ body.dark .pm-foot{background:#17212C}
 .stg-row:has(.cap-field) .stg-row-right{flex:0 0 auto}
 .cap-field{flex-wrap:nowrap}
 .cap-st{flex-basis:auto}
+
+/* ── Guest mode (js/12a-guest.js) ─────────────────────────────────────────── */
+#scr-guest-entry{background:linear-gradient(155deg,#142F4B,var(--p1) 55%,#1E8793)}
+.gs-lead{color:rgba(255,255,255,.88);font-size:.88rem;line-height:1.55;margin:0 0 16px;text-align:center}
+.gs-entry-card .a-btn,.gs-entry-card .g-btn{margin-bottom:10px;min-height:48px}
+.gs-entry-card .g-btn:last-child{margin-bottom:0}
+.gs-lang{min-width:44px;min-height:44px;border-radius:var(--cr);border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font:800 .78rem Hanken Grotesk,sans-serif;cursor:pointer}
+.gs-lang-entry{margin-top:16px}
+#scr-guest{background:var(--mist);color:var(--ink);padding:0;justify-content:flex-start;align-items:stretch;font-family:Hanken Grotesk,sans-serif}
+.gs-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:linear-gradient(135deg,#142F4B,var(--p1));color:#fff;flex-shrink:0}
+.gs-brand{font-weight:800;font-size:1rem;flex:1}
+.gs-icbtn{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer}
+.gs-pill{font-size:.66rem;font-weight:800;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.2);color:#fff;letter-spacing:.3px}
+.gs-strip{background:var(--p1-bg);color:var(--p1);font-size:.74rem;font-weight:700;text-align:center;padding:8px 14px;flex-shrink:0}
+body.dark .gs-strip{background:#1B3A42;color:#9CCDD3}
+.gs-body{width:100%;max-width:480px;margin:0 auto;padding:14px 14px calc(92px + env(safe-area-inset-bottom,0px))}
+.gs-hero{background:linear-gradient(135deg,#142F4B,var(--p1));color:#fff;border-radius:var(--cr);padding:16px;margin-bottom:12px}
+.gs-hero-top{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:rgba(255,255,255,.8)}
+.gs-big{font-size:1.9rem;font-weight:800;margin:8px 0 14px}
+.gs-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gs-two small{display:block;color:rgba(255,255,255,.7);font-size:.7rem;margin-bottom:3px}
+.gs-two b{font-size:.92rem}
+.gs-actions{display:flex;gap:9px;margin-bottom:6px}
+.gs-btn{border:0;border-radius:var(--cr-md);min-height:46px;padding:0 14px;font:800 .84rem Hanken Grotesk,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;width:100%}
+.gs-actions .gs-btn{flex:1}
+.gs-primary{background:var(--p1);color:#fff}
+.gs-outline{background:var(--white);color:var(--p1);border:1.5px solid var(--border)}
+.gs-h{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.92rem;margin:18px 2px 8px}
+.gs-link{background:none;border:0;color:var(--p1);font:700 .76rem Hanken Grotesk,sans-serif;cursor:pointer;min-height:36px;padding:0 4px}
+.gs-card{background:var(--white);border-radius:var(--cr);box-shadow:var(--sh);padding:6px 14px}
+.gs-line{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.8rem}
+.gs-mut{color:var(--mid)}
+.gs-bar{height:8px;background:var(--border);border-radius:20px;overflow:hidden;margin-top:8px}
+.gs-bar i{display:block;height:100%;border-radius:20px}
+.gs-card>.gs-line{padding:10px 0 0}.gs-card>.gs-bar{margin-bottom:0}.gs-card>.gs-line:last-child{padding-bottom:12px}
+.gs-cat{padding:12px 0}
+.gs-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);width:100%;background:none;border-left:0;border-right:0;border-top:0;color:inherit;font-family:inherit;text-align:left}
+.gs-row:last-child{border-bottom:0}
+.gs-rowbtn{cursor:pointer;min-height:56px}
+.gs-ic{width:38px;height:38px;border-radius:12px;background:var(--p1-bg);color:var(--p1);display:grid;place-items:center;flex-shrink:0}
+.gs-ic.inc{background:var(--g1-bg);color:var(--g1)}
+.gs-ic.big{width:56px;height:56px;border-radius:18px;margin:0 auto 12px}
+body.dark .gs-ic{background:#1E2A37}
+.gs-grow{flex:1;min-width:0}
+.gs-grow b{font-size:.84rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-grow small{display:block;color:var(--mid);font-size:.72rem;margin-top:3px}
+.gs-amt{font-size:.84rem;white-space:nowrap}
+.gs-amt.inc{color:var(--g1)}
+.gs-note{font-size:.74rem;color:var(--mid);text-align:center;line-height:1.5;margin:12px 6px}
+.gs-promo{background:var(--p1-bg);border-radius:var(--cr);padding:16px;margin-top:18px;display:flex;flex-direction:column;gap:8px}
+body.dark .gs-promo{background:#1B3A42}
+.gs-promo p{margin:0;font-size:.78rem;color:var(--mid);line-height:1.5}
+.gs-nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;background:var(--white);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:2}
+.gs-nav button{flex:1;max-width:110px;min-height:52px;border:0;background:none;color:var(--mid);font:700 .66rem Hanken Grotesk,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
+.gs-nav button.on{color:var(--p1)}
+.gs-nav button i{width:20px!important;height:20px!important}
+.gs-sheet{position:fixed;inset:0;background:rgba(16,35,47,.55);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.gs-sheet-in{width:min(480px,100%);max-height:88vh;overflow-y:auto;background:var(--white);color:var(--ink);border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px))}
+.gs-sheet-in h3{margin:0;font-size:1.02rem}
+.gs-sheet-in label{display:block;font-size:.76rem;font-weight:800;margin:10px 0 4px}
+.gs-sheet-in input,.gs-sheet-in select{width:100%;min-height:46px;padding:0 12px;border:1.5px solid var(--border);border-radius:var(--cr-md);background:var(--mist);color:var(--ink);font:600 .9rem Hanken Grotesk,sans-serif}
+.gs-sheet-in .gs-btn{margin-top:10px}
+.gs-err{color:var(--r1);font-size:.76rem;font-weight:700;min-height:18px;margin-top:8px}
+.gs-gate{text-align:center;margin-bottom:6px}
+.gs-gate p{font-size:.84rem;color:var(--mid);line-height:1.55;margin:8px 4px 6px}
