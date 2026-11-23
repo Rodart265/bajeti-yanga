@@ -342,7 +342,7 @@ test('the tour walks through every step, switching tabs, and ends on the trial b
   for (let i = 1; i < n; i++) w.x.guestTourShow(i);
   const goes = w.calls.filter((c) => c.startsWith('go:')).map((c) => c.slice(3));
   assert(goes.includes('log') && goes.includes('insights') && goes.includes('chat') && goes.includes('stg'), 'tabs visited: ' + goes.join(','));
-  assert(/Start free trial/.test(w.els['gs-tour-card'].innerHTML) && /Keep exploring/.test(w.els['gs-tour-card'].innerHTML) && /14-day/.test(w.els['gs-tour-card'].innerHTML));
+  assert(/Create free account/.test(w.els['gs-tour-card'].innerHTML) && /Keep exploring/.test(w.els['gs-tour-card'].innerHTML) && /14-day/.test(w.els['gs-tour-card'].innerHTML) && /No payment needed/.test(w.els['gs-tour-card'].innerHTML) && !/Start free trial/.test(w.els['gs-tour-card'].innerHTML), 'tour ends on a "Create free account" button that says the trial needs no payment');
   w.x.guestTourEnd(); assert(!w.vis('gs-tour') && !w.x.guestTourOn() && w.x.get().isGuestMode, 'ending the tour keeps the demo open');
 });
 test('going to sign-in, or ending the demo, closes the tour; the tour stores nothing on the phone', () => {
@@ -351,13 +351,13 @@ test('going to sign-in, or ending the demo, closes the tour; the tour stores not
   w.x.guestBackFromAuth(); w.x.guestTourStart(); w.x.guestNoteSignedIn(); assert(!w.x.guestTourOn() && !w.vis('gs-tour'));
   assert.deepStrictEqual(Object.keys(w.store), ['nb_seen_auth']);
 });
-test('Premium prompts for a guest say "free for 14 days" and offer "Start free trial"', () => {
+test('Premium prompts for a guest say "free for 14 days" and offer "Create free account" (the trial starts with the first household, not at signup)', () => {
   const w = world(FRESH); w.x.guestOpenDemo();
   ['premium', 'ai', 'bills'].forEach((k) => {
     assert(w.x.GUEST_GATES[k].cta === true && /14/.test(w.x.GUEST_GATES[k].en[0]) && /14/.test(w.x.GUEST_GATES[k].cw[1] + w.x.GUEST_GATES[k].cw[0]), k);
-    w.x.guestGate(k); assert(/Start free trial/.test(w.els['gs-sheet'].innerHTML), k + ' sheet has no trial button');
+    w.x.guestGate(k); assert(/Create free account/.test(w.els['gs-sheet'].innerHTML) && !/Start free trial/.test(w.els['gs-sheet'].innerHTML), k + ' sheet has the wrong button');
   });
-  w.x.guestGate('household'); assert(/Create account/.test(w.els['gs-sheet'].innerHTML) && !/Start free trial/.test(w.els['gs-sheet'].innerHTML));
+  w.x.guestGate('household'); assert(/Create account/.test(w.els['gs-sheet'].innerHTML) && !/Create free account/.test(w.els['gs-sheet'].innerHTML));
   assert(/the first household you create/.test(read('js/10-legal.js')), 'the app FAQ no longer says the trial starts with the first household: update the wording');
   assert(/TRIAL_DAYS = 14/.test(read('js/11-premium.js')), 'trial length changed: update the "14 days" wording');
 });
