@@ -85,4 +85,33 @@ test('the Bajeti AI lock screen does not promise a free trial that may already b
   const t = chat.slice(chat.indexOf('Free households do not get Bajeti AI'), chat.indexOf('Free households do not get Bajeti AI') + 1500);
   assert(!/free trial/i.test(t) && /Upgrade to Premium/.test(t));
 });
+
+// ---- v9.21.8: returning users skip the logo splash ----
+const pinjs = read('js/03-pin.js'), css = read('styles.css'), manifest = JSON.parse(read('manifest.webmanifest'));
+test('returning phone: app frame (no PIN) or PIN screen (PIN set) appears at launch, never real data', () => {
+  const m = /EARLY RETURN[\s\S]*?<\/script>/.exec(html); assert(m, 'early-return script missing');
+  const e = m[0];
+  assert(/nb_household/.test(e) && /nb_pending_join/.test(e) && /join=/.test(e), 'must skip invite links and pending joins');
+  assert(/nb_pin/.test(e) && /_earlyPin/.test(e) && /scr-pin/.test(e) && /_pinQ/.test(e));
+  assert(/_earlyApp/.test(e) && /app-wait/.test(e));
+  assert(html.indexOf('EARLY RETURN') > html.indexOf('<div id="app"'), 'must run after the screens it reveals');
+});
+test('#view starts with grey skeleton shapes, not a spinner', () => {
+  const v = html.slice(html.indexOf('<div id="view">'), html.indexOf('<div id="view">') + 3000);
+  assert(/id="boot-skel"/.test(v) && /class="sk sk-hero/.test(v) && !/class="spinner"/.test(v.slice(0, v.indexOf('</div></div></div>') + 20)));
+  assert(/#app\.app-wait\{pointer-events:none\}/.test(css), 'taps must be off until the household connects');
+});
+test('PIN launch flow: keys typed early are replayed, the PIN is never asked twice, nothing connects before sign-in answers', () => {
+  assert(/window\._earlyPin[\s\S]*showPIN\(true\)[\s\S]*_pinQ/.test(boot), 'boot must set up the PIN screen and replay keys');
+  assert(/_pinPassedEarly = true/.test(pinjs) && /_pinPassedEarly/.test(hh));
+  assert(/hasPIN\(\) && _w\._pinPassedEarly/.test(hh) && /connectHH\(hid\)/.test(hh));
+  assert(/app-wait/.test(hh.slice(hh.indexOf('function connectHH'), hh.indexOf('function connectHH') + 700)), 'connectHH must switch taps back on');
+});
+test('manifest: valid, installable, and the big 512 icon is not offered as a splash candidate', () => {
+  const icons = manifest.icons;
+  assert(icons.some((i) => i.sizes === '192x192' && i.purpose === 'any'), '192 any icon (installability)');
+  assert(icons.some((i) => i.sizes === '512x512' && i.purpose === 'maskable'), '512 maskable icon');
+  assert(!icons.some((i) => i.sizes === '512x512' && i.purpose === 'any'), 'a 512 any icon makes some phones draw an oversized splash logo');
+  assert(manifest.background_color && manifest.name);
+});
 console.log(passed + ' passed');
