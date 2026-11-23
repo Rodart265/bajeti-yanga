@@ -90,6 +90,8 @@ function bootApp(){
   // Unsubscribe any previous listener before attaching a new one
   if(_authUnsubscribe){ _authUnsubscribe(); _authUnsubscribe=null; }
   _authUnsubscribe = auth.onAuthStateChanged(user=>{
+    window._authAnswered = true;                         // the saved-sign-in check has answered (see the boot bar in index.html)
+    try{ g('boot-bar').classList.add('hide'); }catch(e){}
     if(user){
       curUser=user;
       if(typeof guestNoteSignedIn==='function') guestNoteSignedIn();   // guest mode: remember this phone has an account, close the demo
@@ -146,7 +148,17 @@ function bootApp(){
             // the PIN screen when a PIN is set (fingerprint starts there), otherwise straight into the app.
             // Switch Household lives in Profile.
             if(!WELCOME_SCREEN){
-              if(hasPIN()){
+              const _w = (typeof window!=='undefined') ? window : {};   // launch flags set in index.html / js/03-pin.js
+              if(hasPIN() && _w._pinPassedEarly){
+                // The PIN was already entered on the lock screen shown at launch: go straight in, no second prompt.
+                _w._pinPassedEarly = false; _pendingHid = null;
+                hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); g('app').classList.remove('hide'); connectHH(hid);
+              } else if(hasPIN() && _w._earlyPin && g('scr-pin') && !g('scr-pin').classList.contains('hide')){
+                // The lock screen is already up: keep what they have typed, and let the fingerprint start now that we know who it is.
+                _pendingHid = hid; pinMode = 'check';
+                hide('scr-auth'); hide('scr-setup'); hide('scr-welcome');
+                if(typeof hasBio==='function' && hasBio()) setTimeout(triggerBio, 300);
+              } else if(hasPIN()){
                 _pendingHid = hid; pinMode = 'check';
                 hide('scr-auth'); hide('scr-setup'); hide('scr-welcome'); g('app').classList.add('hide'); showPIN();
               } else {
@@ -198,10 +210,10 @@ function bootApp(){
           }
         });
     } else {
-      curUser=null;
+      curUser=null; window._pinPassedEarly=false;
       stopChipListener();
       // If the visitor already opened the sample demo while this check was still running, leave the demo on screen.
-      if(!(typeof isGuestMode!=='undefined' && isGuestMode)) g('app').classList.add('hide');
+      if(!(typeof isGuestMode!=='undefined' && isGuestMode)){ g('app').classList.add('hide'); g('app').classList.remove('app-wait'); }
       hide('scr-setup'); hide('scr-pin');
       // First-time visitors get the guest entry screen; everyone else (and invite links) go straight to sign-in as before.
       if(typeof guestRoute==='function' && guestRoute()) return;
@@ -921,6 +933,7 @@ function connectHH(code){
     return;
   }
   hhId=code; loadChatHistory(); setDot('spin');
+  try{ g('app').classList.remove('app-wait'); }catch(e){}   // taps work again: the household is connecting (frame shown early at launch)
   setTimeout(_resumePaymentCheck, 4000);   // finishes a Premium payment started earlier, if any
   hide('scr-auth'); hide('scr-setup'); hide('scr-pin'); hide('scr-welcome'); hide('scr-verify');
   g('app').classList.remove('hide');

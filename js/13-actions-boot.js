@@ -138,9 +138,16 @@ if(_origRender){
   bootApp();
   // A tap on the welcome screen made before the app finished loading (see the early-welcome script in index.html) runs now.
   try{ if(window._runQueuedTap) window._runQueuedTap(); }catch(e){ try{ window._logErr('error', e && e.message, 'queued tap'); }catch(_){} }
+  // Returning user with a PIN: the PIN screen was shown at launch (index.html). Set it up properly now, then replay any keys tapped while the app was loading.
+  try{
+    if(window._earlyPin){
+      pinMode='check'; showPIN(true);
+      (window._pinQ||[]).splice(0).forEach(function(k){ pinK(k); });
+    }
+  }catch(e){ try{ window._logErr('error', e && e.message, 'early pin'); }catch(_){} }
   // Still on the first loading screen after 12 s: say so, and offer a retry instead of an endless spinner.
   setTimeout(function(){
-    const v=g('view'); const ld=v&&v.querySelector('.loading');
+    const v=g('view'); const ld=v&&(v.querySelector('.loading')||v.querySelector('#boot-skel'));
     if(!ld || g('app').classList.contains('hide')) return;
     const cw=(typeof lang!=='undefined'&&lang==='cw');
     ld.innerHTML='<div style="text-align:center;padding:24px 16px"><div style="font-weight:700;color:var(--ink);margin-bottom:6px">'+(cw?'Zikutenga nthawi yayitali kuposa nthawi zonse':'This is taking longer than usual')+'</div><div style="font-size:.8125rem;color:var(--mid);margin-bottom:14px">'+(cw?'Onani intaneti yanu, kenako yesaninso.':'Check your connection, then try again.')+'</div><button class="btnG" onclick="location.reload()">'+(cw?'Yesaninso':'Try again')+'</button></div>';

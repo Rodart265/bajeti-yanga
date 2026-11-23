@@ -80,7 +80,12 @@ function pinK(k) {
           // the app again — connectHH() already has a live listener running.
           const hid = hhId || _pendingHid;
           if(!hhId && hid){ hhId=hid; _pendingHid=null; connectHH(hid); }
-          else { g('app').classList.remove('hide'); }
+          else {
+            // PIN typed on the launch lock screen before the saved sign-in has answered: show the app frame (skeleton) and
+            // let the sign-in answer carry on without asking for the PIN a second time (see bootApp in js/05-household.js).
+            if(!hhId && window._earlyPin) window._pinPassedEarly = true;
+            g('app').classList.remove('hide');
+          }
         } else { pinEntry=''; updDots(); _pinNoteFail(); toast((lang==='cw'?'PIN yolakwika.':'Wrong PIN.'),'e'); }
       } else if(pinMode==='set'){
         pinTmp=pinEntry; pinEntry=''; pinMode='confirm'; showPIN();
