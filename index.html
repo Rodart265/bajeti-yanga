@@ -128,11 +128,22 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   }
   if(anyVisible()){ removeSplash(); return; }
   var observer = new MutationObserver(function(){ if(anyVisible()) removeSplash(); });
-  els().forEach(function(el){ observer.observe(el, {attributes:true, attributeFilter:['class']}); });
+  // Watch the whole page, not a fixed list of elements: this script runs BEFORE the screens below exist, so a list built now
+  // would be empty and the splash would only leave when the 9 s safety timer fired (the ~9.5 s wait seen on phones).
+  observer.observe(document.body, {attributes:true, attributeFilter:['class'], subtree:true});
   // Safety net: slow/no network and nothing cached yet — don't leave people
   // staring at a spinner forever.
   function showConnectionIssue(){
-    if(anyVisible()){ removeSplash(); return; }
+    if(anyVisible()){
+      removeSplash();
+      // The welcome screen is already showing (see the early-welcome script below): only say something if the app's own files failed to download.
+      var chk = document.getElementById('lp-checking');
+      if(window._earlyWelcome && chk && window._bootPartial){
+        chk.classList.remove('hide');
+        chk.innerHTML = "Part of the app didn't finish loading. Check your connection and <button type=\"button\" class=\"lp-retry\" onclick=\"location.reload()\">tap Retry</button>.";
+      }
+      return;
+    }
     var offline = !navigator.onLine;
     var msgEl = document.getElementById('boot-splash-msg');
     var spinEl = document.getElementById('boot-splash-spin');
@@ -250,15 +261,15 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
         <!-- Password requirements — only shown on register tab, stacked in dark box -->
         <div id="pw-reqs" style="display:none;flex-direction:column;gap:5px;margin:8px 0 10px;background:rgba(0,0,0,.18);border-radius:var(--cr-md);padding:9px 12px">
           <div id="req-len" style="display:flex;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
-            <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-len-ico"></i>
-            <span>At least 6 characters</span>
+            <i data-lucide="circle" style="width:13px;height:13px;flex-shrink:0" id="req-len-ico"></i>
+            <span id="req-len-txt">At least 6 characters</span>
           </div>
           <div id="req-space" style="display:flex;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
-            <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-space-ico"></i>
+            <i data-lucide="circle" style="width:13px;height:13px;flex-shrink:0" id="req-space-ico"></i>
             <span data-cw="Musasiye malo opanda kanthu poyamba kapena pomaliza">No spaces at the start or end</span>
           </div>
           <div id="req-match" style="display:none;align-items:center;gap:7px;font-size:.72rem;color:rgba(255,255,255,.5);transition:color .2s">
-            <i data-lucide="x-circle" style="width:13px;height:13px;flex-shrink:0" id="req-match-ico"></i>
+            <i data-lucide="circle" style="width:13px;height:13px;flex-shrink:0" id="req-match-ico"></i>
             <span data-cw="Mawu achinsinsi akufanana">Passwords match</span>
           </div>
         </div>
@@ -271,6 +282,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
           </div>
         </div>
         <button class="a-btn" id="a-em-btn" onclick="doEmailAuth()">Welcome Back</button>
+        <p id="a-trial" class="hide" data-cw="Nyumba yanu yoyamba imaphatikiza masiku 14 a Premium aulere. Palibe chilipiro chofunika poyamba, ndipo palibe chimene chimachotsedwa zokha." style="margin:8px 2px 0;font-size:.72rem;line-height:1.45;text-align:center;color:rgba(255,255,255,.85)">Your first household includes 14 days of Premium free. No payment needed to start, and nothing is charged automatically.</p>
         <div class="divider"><span>or</span></div>
         <button class="g-btn" onclick="doGoogle()" type="button">
           <svg width="19" height="19" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
@@ -324,6 +336,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     </section>
 
     <section class="lp-main">
+      <p class="lp-checking hide" id="lp-checking" role="status" data-cw="Tikuona ngati mwalowa kale…">Checking for a saved sign-in…</p>
       <button type="button" class="lp-btn lp-primary" onclick="guestOpenDemo()">
         <span data-cw="Yesani ndi zitsanzo">Try it with sample data</span>
         <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -363,6 +376,26 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   </svg>
   </div>
 </div>
+<script>
+// EARLY WELCOME: a brand-new visitor (nothing on this phone says they have signed in before, no invite link) sees the welcome
+// screen at once, while the app's scripts and the saved-session check carry on in the background. If a saved session does
+// turn up, bootApp() closes this screen exactly as it already does (guestNoteSignedIn). Storage unreadable = play safe, no early screen.
+// Taps before the app has loaded are remembered and run as soon as it is ready (see _runQueuedTap in js/13-actions-boot.js).
+(function(){
+  try{
+    var fresh = !localStorage.getItem('nb_seen_auth') && !localStorage.getItem('nb_household') && !/[?&]join=/.test(location.search);
+    var e = document.getElementById('scr-guest-entry'); if(!fresh || !e) return;
+    var q = null;
+    function stub(name){ var f = function(){ q = {n:name, a:[].slice.call(arguments)}; }; f.__stub = true; return f; }
+    window.guestOpenDemo = stub('guestOpenDemo'); window.guestGoAuth = stub('guestGoAuth'); window.guestToggleLang = stub('guestToggleLang');
+    window._runQueuedTap = function(){ var t = q; q = null; if(t && typeof window[t.n] === 'function' && !window[t.n].__stub) window[t.n].apply(null, t.a); };
+    window._earlyWelcome = true;
+    e.classList.remove('hide');
+    var n = document.getElementById('lp-checking'); if(n) n.classList.remove('hide');
+    var s = document.getElementById('boot-splash'); if(s && s.parentNode) s.parentNode.removeChild(s);
+  }catch(x){}
+})();
+</script>
 
 <!-- SETUP -->
 <div id="scr-setup" class="screen hide">

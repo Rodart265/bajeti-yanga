@@ -55,3 +55,7 @@
 .lp-consent{font-size:.7rem;line-height:1.5;color:rgba(255,255,255,.8)}
 .lp-made{margin-top:2px;font-size:.7rem;font-weight:600;letter-spacing:.02em;color:var(--lp-aqua)}
 .lp-copy{margin-top:2px;font-size:.7rem;color:rgba(255,255,255,.7)}
+
+/* Welcome screen: small, non-blocking note while the app checks for a saved sign-in (hidden by script when done) */
+.lp-checking{margin:0;text-align:center;font-size:.74rem;line-height:1.4;opacity:.85}
+.lp-checking .lp-retry{background:none;border:none;padding:6px 2px;font:700 .74rem 'Hanken Grotesk',sans-serif;color:inherit;text-decoration:underline;cursor:pointer}
