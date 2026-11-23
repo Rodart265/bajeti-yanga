@@ -1,5 +1,6 @@
-/* Landing (guest entry) screen, v5. Loaded after styles.css. Everything is scoped to #scr-guest-entry or .lp-*.
-   The photo is ./hero-copy.webp (listed in APP_SHELL in sw.js so it works offline). */
+/* Landing (guest entry) screen, v6. Loaded after styles.css. Everything is scoped to #scr-guest-entry or .lp-*.
+   The photo is ./hero-copy.webp (listed in APP_SHELL in sw.js so it works offline).
+   v6: smaller type and spacing so the whole screen fits on a phone and the photo shows; app logo matches the sign-in screen. */
 #scr-guest-entry.screen{padding:0;align-items:stretch;justify-content:flex-start;background:#0B2B4B}
 .lp{
   position:relative;overflow:hidden;isolation:isolate;color:#fff;
@@ -8,48 +9,49 @@
 }
 
 /* ---------- Hero (photo on the right, text on the left) ---------- */
-.lp-hero{position:relative;flex:1 0 auto;padding:max(16px,env(safe-area-inset-top)) 20px 92px;isolation:isolate}
+.lp-hero{position:relative;flex:1 0 auto;padding:max(14px,env(safe-area-inset-top)) 20px 56px;isolation:isolate}
 .lp-photo{position:absolute;inset:0;z-index:-2;background:url(./hero-copy.webp) 72% 40%/cover no-repeat}
 .lp-hero::before{content:"";position:absolute;inset:0;z-index:-1;
   background:
     linear-gradient(90deg,rgba(11,43,75,.97) 0%,rgba(11,43,75,.82) 38%,rgba(11,43,75,.25) 72%,rgba(11,43,75,.10) 100%),
     linear-gradient(180deg,rgba(11,43,75,.70) 0%,rgba(11,43,75,0) 30%)}
-.lp-wave{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:96px;z-index:0;display:block}
+.lp-wave{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:52px;z-index:0;display:block}
 
 .lp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.lp-brand{display:flex;align-items:center;gap:9px;min-width:0}
-.lp-brand svg{width:34px;height:40px;flex:none}
-.lp-brand b{display:block;font-weight:800;font-size:1.12rem;line-height:1.1}
+.lp-brand{display:flex;align-items:center;gap:8px;min-width:0}
+.lp-brand svg{width:28px;height:28px;flex:none}
+.lp-brand b{display:block;font-weight:800;font-size:.95rem;line-height:1.1}
 .lp-lang{
-  display:flex;align-items:center;gap:7px;min-height:44px;padding:0 12px;border-radius:999px;
+  display:flex;align-items:center;gap:6px;min-height:40px;padding:0 10px;border-radius:999px;
   border:1.5px solid rgba(46,230,214,.55);background:rgba(8,40,66,.72);color:#fff;
-  font:600 .8rem 'Hanken Grotesk',sans-serif;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.lp-lang svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.lp-lang .chev{width:14px;height:14px}
+  font:600 .72rem 'Hanken Grotesk',sans-serif;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.lp-lang svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.lp-lang .chev{width:12px;height:12px}
 
-.lp-h1{margin-top:clamp(26px,5.5vh,48px);font-size:clamp(1.95rem,8.6vw,2.4rem);line-height:1.1;font-weight:800;letter-spacing:-.025em;text-wrap:balance}
-.lp-sub{margin-top:22px;font-size:.98rem;line-height:1.5;color:rgba(255,255,255,.95);max-width:24ch;text-wrap:pretty;text-shadow:0 1px 8px rgba(11,43,75,.55)}
+.lp-h1{margin-top:clamp(16px,3.5vh,28px);font-size:clamp(1.5rem,6.6vw,1.7rem);line-height:1.12;font-weight:800;letter-spacing:-.025em;text-wrap:balance}
+.lp-sub{margin-top:10px;font-size:.84rem;line-height:1.5;color:rgba(255,255,255,.95);max-width:30ch;text-wrap:pretty;text-shadow:0 1px 8px rgba(11,43,75,.55)}
 
 /* ---------- Actions ---------- */
-.lp-main{padding:0 20px;margin-top:-6px;display:grid;gap:10px;position:relative;z-index:1}
-.lp-btn{width:100%;min-height:54px;border-radius:999px;cursor:pointer;
-  font:800 1.02rem 'Hanken Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .1s}
+.lp-main{padding:0 20px;margin-top:-6px;display:grid;gap:8px;position:relative;z-index:1}
+.lp-btn{width:100%;min-height:44px;border-radius:999px;cursor:pointer;
+  font:800 .9rem 'Hanken Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .1s}
 .lp-btn:active{transform:scale(.985)}
-.lp-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.lp-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .lp-primary{border:none;background:#fff;color:var(--lp-teal);box-shadow:0 8px 22px rgba(0,0,0,.28)}
 .lp-secondary{border:2px solid rgba(255,255,255,.9);background:rgba(8,40,66,.55);color:#fff}
-.lp-signin{text-align:center;font-size:.92rem;margin-top:4px}
-.lp-signin button{background:none;border:none;cursor:pointer;font:600 .92rem 'Hanken Grotesk',sans-serif;color:var(--lp-aqua);text-decoration:underline;text-underline-offset:3px;padding:8px 4px;min-height:40px}
+.lp-signin{text-align:center;font-size:.8rem;margin-top:2px}
+.lp-signin button{background:none;border:none;cursor:pointer;font:600 .8rem 'Hanken Grotesk',sans-serif;color:var(--lp-aqua);text-decoration:underline;text-underline-offset:3px;padding:8px 4px;min-height:40px}
 
-.lp-privacy{display:flex;align-items:center;gap:14px;margin:12px 6px 0}
-.lp-privacy svg{width:42px;height:46px;flex:none}
+.lp-privacy{display:flex;align-items:center;gap:12px;margin:8px 6px 0}
+.lp-privacy svg{width:26px;height:29px;flex:none}
 .lp-privacy .vr{width:1.5px;align-self:stretch;background:rgba(46,230,214,.55)}
-.lp-privacy b{display:block;font-size:.9rem;font-weight:600}
-.lp-privacy span{display:block;font-size:.8rem;line-height:1.4;color:rgba(255,255,255,.85);margin-top:2px}
+.lp-privacy b{display:block;font-size:.78rem;font-weight:600}
+.lp-privacy span{display:block;font-size:.7rem;line-height:1.4;color:rgba(255,255,255,.85);margin-top:2px}
 
-.lp-foot{margin:14px 20px 0;padding-top:12px;border-top:1px solid rgba(46,230,214,.35);text-align:center;font-size:.8rem;color:rgba(255,255,255,.8);position:relative;z-index:1}
+.lp-foot{margin:10px 20px 0;padding-top:8px;border-top:1px solid rgba(46,230,214,.35);text-align:center;font-size:.7rem;color:rgba(255,255,255,.8);position:relative;z-index:1}
 .lp-foot button{background:none;border:none;font:inherit;font-weight:600;color:var(--lp-aqua);text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:8px 4px}
-.lp-bwave{margin-top:auto;display:block;width:100%;height:48px;pointer-events:none}
+.lp-bwave{margin-top:auto;display:block;width:100%;height:28px;pointer-events:none}
 .lp button:focus-visible{outline:3px solid var(--lp-aqua);outline-offset:3px}
-.lp-consent{font-size:.8rem;line-height:1.6;color:rgba(255,255,255,.8)}
-.lp-copy{margin-top:2px;font-size:.8rem;color:rgba(255,255,255,.7)}
+.lp-consent{font-size:.7rem;line-height:1.5;color:rgba(255,255,255,.8)}
+.lp-made{margin-top:2px;font-size:.7rem;font-weight:600;letter-spacing:.02em;color:var(--lp-aqua)}
+.lp-copy{margin-top:2px;font-size:.7rem;color:rgba(255,255,255,.7)}
