@@ -1,52 +1,75 @@
-// motion.js: marks the moment a screen is opened, or its content is swapped by a tap, so motion.css can
-// animate it once. Opening a tab goes through go(); Settings pages and Insights tabs redraw #view in place,
-// which is caught by watching #view. Redraws that keep the same layout (a chip tap, new data arriving) are not
-// animated. Nothing in the app is changed, and with reduced motion this file does nothing.
-(function () {
-  'use strict';
-  try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
-  var v = document.getElementById('view');
-  if (!v) return;
-  var ORDER = ['home', 'log', 'insights', 'chat', 'stg'], last = 0, timer, goAt = 0, tapAt = 0, tapBack = false, lastSig = '';
-  var HOLD = 2000;   // how long the animation class stays on; must be longer than the slowest animation
+/* motion.css: small animations for the main app. Loads after glass.css.
+   Only opacity and transform move. Everything is inside prefers-reduced-motion:no-preference,
+   so people who ask their phone for less motion get the app exactly as it was.
+   The screen-change class (.mo-in) is set for a moment by motion.js when a screen is opened or its content is swapped by a tap. */
 
-  function idx(t) { var i = ORDER.indexOf(t === 'hist' || t === 'sum' ? 'insights' : t); return i < 0 ? last : i; }
-  function sig() {
-    var p = v.querySelector('.page') || v.firstElementChild; if (!p) return '';
-    var s = p.className + '#';
-    for (var i = 0; i < p.children.length && i < 12; i++) s += p.children[i].className + '|';
-    return s;
-  }
-  function play(dx) {
-    v.style.setProperty('--mo-dx', dx + 'px');
-    v.classList.remove('mo-in'); void v.offsetWidth; v.classList.add('mo-in');
-    clearTimeout(timer); timer = setTimeout(function () { v.classList.remove('mo-in'); }, HOLD);
-  }
+/* Speed: 1 is the quick version, 1.5 is a bit slower. Change this one number to retune everything. */
+:root{--mo-t:1.5}
 
-  document.addEventListener('click', function (e) {
-    tapAt = Date.now();
-    var el = e.target && e.target.closest ? e.target.closest('button,[onclick]') : null;
-    var oc = el ? ((el.getAttribute('onclick') || '') + ' ' + el.className) : '';
-    tapBack = /back|chevron-left/i.test(oc) || !!(el && el.querySelector && el.querySelector('[data-lucide="chevron-left"],[data-lucide="arrow-left"]'));
-  }, true);
+@keyframes mo-screen{from{opacity:0;transform:translateX(var(--mo-dx,18px))}to{opacity:1;transform:none}}
+@keyframes mo-rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes mo-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes mo-ring{from{stroke-dashoffset:201.06}}
+@keyframes mo-seg{from{stroke-dasharray:0 1000}}
+@keyframes mo-pop{from{opacity:0;transform:scale(.6) rotate(-40deg)}to{opacity:1;transform:none}}
+@keyframes mo-drop{from{opacity:0;transform:translateY(-8px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes mo-bounce{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-5px) scale(1.22)}65%{transform:translateY(1px) scale(.94)}100%{transform:translateY(0) scale(1.08)}}
 
-  new MutationObserver(function () {
-    var s = sig(), changed = s !== lastSig; lastSig = s;
-    if (!changed || Date.now() - goAt < 500) return;       // go() already handled this one
-    if (Date.now() - tapAt > 900) return;                   // not caused by a tap (data arriving, timers)
-    play(tapBack ? -18 : 18);
-  }).observe(v, { childList: true });
+@media (prefers-reduced-motion:no-preference){
 
-  var orig = window.go;
-  if (typeof orig !== 'function') return;
-  window.go = function (t) {
-    try {
-      var i = idx(t); goAt = Date.now();
-      play(i >= last ? 18 : -18);
-      last = i;
-    } catch (e) {}
-    var r = orig.apply(this, arguments);
-    try { lastSig = sig(); } catch (e) {}
-    return r;
-  };
-})();
+  /* 1. Tabs slide and fade in, in the direction you moved */
+  #view.mo-in{animation:mo-screen calc(.28s*var(--mo-t)) cubic-bezier(.2,.8,.2,1)}
+
+  /* 2. Cards arrive one by one; the ring and bars fill from empty */
+  #view.mo-in .page>*{animation:mo-rise calc(.5s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+  #view.mo-in .page>*:nth-child(2){animation-delay:calc(70ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(3){animation-delay:calc(140ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(4){animation-delay:calc(210ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(5){animation-delay:calc(280ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(6){animation-delay:calc(350ms*var(--mo-t))}
+  #view.mo-in .page>*:nth-child(n+7){animation-delay:calc(420ms*var(--mo-t))}
+  #view.mo-in .h2-bar span,#view.mo-in .pf,#view.mo-in .mg-pf,#view.mo-in .goal-fill{transform-origin:left center;animation:mo-fill calc(.85s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(260ms*var(--mo-t)) backwards}
+  #view.mo-in .h2-ring svg circle:nth-child(2){animation:mo-ring calc(.95s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(250ms*var(--mo-t)) backwards}
+
+  /* Rows inside cards come in one after another (first eight only) */
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(-n+8){animation:mo-rise calc(.4s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(1){animation-delay:calc(160ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(2){animation-delay:calc(210ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(3){animation-delay:calc(260ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(4){animation-delay:calc(310ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(5){animation-delay:calc(360ms*var(--mo-t))}
+  #view.mo-in :is(.pri,.mgi,.sumi,.pli):nth-child(n+6){animation-delay:calc(400ms*var(--mo-t))}
+
+  /* The donut chart: each slice grows round the ring, and the middle label fades in */
+  #view.mo-in svg[viewBox="0 0 140 140"] circle[stroke-dasharray]{animation:mo-seg calc(.9s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(200ms*var(--mo-t)) backwards}
+  #view.mo-in svg[viewBox="0 0 140 140"] text{animation:mo-rise calc(.5s*var(--mo-t)) ease calc(600ms*var(--mo-t)) backwards}
+
+  /* Chat: the conversation and the message box arrive */
+  #view.mo-in .chat-msgs .bubble-wrap{animation:mo-rise calc(.45s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(100ms*var(--mo-t)) backwards}
+  #view.mo-in .chat-footer{animation:mo-rise calc(.5s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(180ms*var(--mo-t)) backwards}
+
+  /* 3. Press feedback: buttons dip a little under the finger */
+  :is(.nb,.btnG,.btnM,.bsm,.pk,.setup-btn,.gs-btn,.g-btn,.a-btn,.mnbtn,.auth-tab,.ins-tab,.cg-cta,.magic-btn,.magic-tile,.tt,.sec-link,.stg-row,.pli-more,.chat-send,.chat-attach-btn,.hmenu-btn,.t-close){
+    transition-property:transform,background,background-color,color,opacity,border-color,box-shadow;transition-duration:calc(.12s*var(--mo-t))}
+  :is(.nb,.btnG,.btnM,.bsm,.pk,.setup-btn,.gs-btn,.g-btn,.a-btn,.mnbtn,.auth-tab,.ins-tab,.cg-cta,.magic-btn,.magic-tile,.tt,.sec-link,.stg-row,.pli-more,.chat-send,.chat-attach-btn,.hmenu-btn,.pli,.mgi,.sumi):not(:disabled):active{transform:scale(.96)}
+
+  /* Sign-in, setup, welcome and PIN screens arrive instead of snapping in */
+  .screen:not(.hide){animation:mo-rise calc(.45s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+
+  /* Small things that appear on their own: the history menu, an entry's Edit/Delete row, notices */
+  .hmenu:not(.hide){transform-origin:top right;animation:mo-drop calc(.22s*var(--mo-t)) cubic-bezier(.2,.8,.2,1) backwards}
+  .pli-x.open .plact{animation:mo-drop calc(.25s*var(--mo-t)) cubic-bezier(.2,.8,.2,1) backwards}
+  .nb-notice{animation:mo-rise calc(.4s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+
+  /* 4. Pop-ups ease up with a softer curve, and messages pop in */
+  .mb{transition:transform calc(.38s*var(--mo-t)) cubic-bezier(.2,.85,.25,1)}
+  .ov:not(.open) .mb{transition:transform calc(.26s*var(--mo-t)) cubic-bezier(.4,0,1,1)}
+  .ov.open .mb>*{animation:mo-rise calc(.42s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(120ms*var(--mo-t)) backwards}
+  .toast{transform:translateX(-50%) translateY(16px) scale(.94);transition:opacity calc(.22s*var(--mo-t)) ease,transform calc(.22s*var(--mo-t)) ease}
+  .toast.on{transform:translateX(-50%) translateY(0) scale(1);transition:opacity calc(.2s*var(--mo-t)) ease,transform calc(.42s*var(--mo-t)) cubic-bezier(.2,.9,.3,1.3)}
+  .toast.top{transform:translateX(-50%) translateY(-16px) scale(.94)}
+  .toast.top.on{transform:translateX(-50%) translateY(0) scale(1)}
+
+  /* 5. The tab you tap bounces its icon */
+  .nb.on .ni{animation:mo-bounce calc(.45s*var(--mo-t)) cubic-bezier(.3,.7,.3,1)}
+}
