@@ -26,8 +26,11 @@ let guestDemoStarted = false, _guestSeq = 0;
 
 // Sample household (all made up). Amounts in MWK. Items are names from the app's own default item list.
 // [item, amount, days ago, who (0 = first member, 1 = second), isIncome]
+// "Days ago" is counted back from today, but never earlier than the 1st of THIS month: these are this month's entries.
+// GUEST_FIRST is simply a number big enough to always land on the 1st (rent and salary).
+const GUEST_FIRST = 99;
 const GUEST_NOW = [
-  ['Salary/Income', 250000, 99, 0, true], ['Rent', 78000, 99, 0],
+  ['Salary/Income', 250000, GUEST_FIRST, 0, true], ['Rent', 78000, GUEST_FIRST, 0],
   ['Electricity', 19500, 9, 0], ['School Fees', 30000, 8, 1], ['Maize Flour (Ufa)', 18500, 6, 0], ['Chicken', 12000, 5, 1],
   ['Transport', 17000, 4, 0], ['Cooking Oil', 9500, 3, 1], ['Beans (Nyemba)', 7000, 2, 0], ['Charcoal', 6000, 1, 1],
   ['Airtime / Data', 5000, 1, 0], ['Tomatoes', 4500, 0, 1]
@@ -70,7 +73,12 @@ const GUEST_BLOCKED = {
               'approveJoin', 'declineJoin', 'openDeleteHousehold', 'openDeleteAccount'],
   chip:      ['openChipView', 'openChipEntry', 'openChipCreate', 'openChipJoin'],
   bills:     ['openAddBill', 'markBillPaid', 'offerBillReminders'],
-  account:   ['logout', 'openSetPIN', 'registerBio', 'removeBio', 'openNotifs', 'doPwReset']
+  account:   ['logout', 'openSetPIN', 'registerBio', 'removeBio', 'openNotifs', 'doPwReset'],
+  // Second line of defence (the server rules are the first). These connect to, or build references into, a real household. Only the
+  // normal sign-in path runs them, and by then guestNoteSignedIn() has already turned the demo off. In the demo they quietly do nothing.
+  session:   ['connectHH', 'joinHH', '_ensureInvite', '_backfillInvite', '_markApproved', '_pxStartWindow', 'chipCycleUpdate', 'convosRef',
+              '_checkNotices', 'startChipListener', 'loadDeletedHouseholds', 'restoreHousehold', 'handleHouseholdDeleted',
+              'handleRemovedFromHousehold', '_claimMembership', '_checkApproved', '_restoreWaitingScreen', 'cancelPendingJoin']
 };
 (function(){
   Object.keys(GUEST_BLOCKED).forEach(function(key){
@@ -78,7 +86,7 @@ const GUEST_BLOCKED = {
       const real = window[name];
       if(typeof real !== 'function') return;
       window[name] = function(){
-        if(isGuestMode){ guestGate(key); return; }
+        if(isGuestMode){ if(key !== 'session') guestGate(key); return; }     // 'session' = no popup: nothing a guest taps leads here
         return real.apply(this, arguments);
       };
     });
@@ -124,20 +132,24 @@ function guestBuildCfg(){
 }
 function _guestEntry(item, amount, d, who, isIncome, hour){
   const date = localISO(d);
-  return {id:'gs'+(++_guestSeq), item:item, amount:amount, date:date, timestamp:new Date(date+'T'+String(hour).padStart(2,'0')+':00').getTime(),
+  return {id:'gs'+(++_guestSeq), item:item, amount:amount, date:date, timestamp:Math.min(new Date(date+'T'+String(hour).padStart(2,'0')+':00').getTime(), Date.now()),   // never later than now
     userId:GUEST_MEMBERS[who||0].id, type:isIncome?'income':'expense', notes:'', qty:'', unit:''};
 }
 function guestBuildPx(){
-  const out = [], now = new Date(), dom = now.getDate();
+  const out = [], now = new Date(), y = now.getFullYear(), mo = now.getMonth(), dom = now.getDate();
+  const monthStart = new Date(y, mo, 1);
+  // This month: real date arithmetic back from today, held at the 1st so nothing slips into last month.
   GUEST_NOW.forEach(function(r, i){
-    const day = Math.max(1, dom - r[2]);
-    out.push(_guestEntry(r[0], r[1], new Date(now.getFullYear(), now.getMonth(), day), r[3], r[4], 8 + (i % 12)));
+    let when = new Date(y, mo, dom - r[2]);
+    if(when < monthStart) when = monthStart;
+    out.push(_guestEntry(r[0], r[1], when, r[3], r[4], 8 + (i % 12)));
   });
+  // Earlier months: the same day of month, 1 to 5 months back. new Date() rolls the month and year over correctly (e.g. January -> December).
   GUEST_PAST.forEach(function(r, i){
     GUEST_PAST_SCALE.forEach(function(f, k){
       if(r[0]==='School Fees' && k%2===1) return;       // school fees only some months
       const amt = r[4] ? r[1] : Math.round(r[1]*f/500)*500;
-      out.push(_guestEntry(r[0], amt, new Date(now.getFullYear(), now.getMonth()-(k+1), r[2]), r[3], r[4], 8 + (i % 12)));
+      out.push(_guestEntry(r[0], amt, new Date(y, mo-(k+1), r[2]), r[3], r[4], 8 + (i % 12)));
     });
   });
   return out;
@@ -336,6 +348,17 @@ function guestTourPlace(){
   } else {
     spot.style.cssText = 'left:50%;top:50%;width:0;height:0';
     card.style.top = '28%'; card.style.bottom = 'auto';
+  }
+  // On a short screen (small phone, landscape) keep the whole card, buttons included, inside the visible area.
+  const ch = card.offsetHeight || 0;                       // 0 when it cannot be measured: then leave it as placed
+  if(ch){
+    if(card.style.top !== 'auto'){
+      const t = parseFloat(card.style.top);
+      if(/px$/.test(card.style.top) && t + ch > vh - 8) card.style.top = Math.max(8, vh - ch - 8) + 'px';
+    } else {
+      const b = parseFloat(card.style.bottom);
+      if(b + ch > vh - 8) card.style.bottom = Math.max(8, vh - ch - 8) + 'px';
+    }
   }
 }
 function guestTourEnd(){

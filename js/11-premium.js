@@ -899,6 +899,7 @@ function _pushOnboardScreen(name, from){
 // either way, and if offline persistence never enabled on this device (see the
 // enablePersistence().catch() above), says so plainly instead of failing quietly.
 window.addEventListener('offline', function(){
+  if(isGuestMode) return;   // the demo saves nothing, so there is nothing to sync and no connection warning to give
   const isCW = lang==='cw';
   const persistFailed = window._offlinePersistenceOk===false;
   const msg = isCW
@@ -907,5 +908,6 @@ window.addEventListener('offline', function(){
   toast(msg,'i');
 });
 window.addEventListener('online', function(){
+  if(isGuestMode) return;
   toast(lang==='cw' ? 'Mwalumikizidwanso -- deta ikusungidwa...' : 'Back online -- syncing...','s');
 });
