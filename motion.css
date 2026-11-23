@@ -12,6 +12,7 @@
 @keyframes mo-ring{from{stroke-dashoffset:201.06}}
 @keyframes mo-seg{from{stroke-dasharray:0 1000}}
 @keyframes mo-pop{from{opacity:0;transform:scale(.6) rotate(-40deg)}to{opacity:1;transform:none}}
+@keyframes mo-drop{from{opacity:0;transform:translateY(-8px) scale(.94)}to{opacity:1;transform:none}}
 @keyframes mo-bounce{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-5px) scale(1.22)}65%{transform:translateY(1px) scale(.94)}100%{transform:translateY(0) scale(1.08)}}
 
 @media (prefers-reduced-motion:no-preference){
@@ -48,8 +49,17 @@
   #view.mo-in .chat-footer{animation:mo-rise calc(.5s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) calc(180ms*var(--mo-t)) backwards}
 
   /* 3. Press feedback: buttons dip a little under the finger */
-  .nb,.btn,.chip,.sec-link,.pri,.stg-row,.lbtn{transition-property:transform,background,color,opacity;transition-duration:calc(.12s*var(--mo-t))}
-  .nb:active,.btn:active,.chip:active,.sec-link:active,.pri:active,.stg-row:active,.lbtn:active{transform:scale(.96)}
+  :is(.nb,.btnG,.btnM,.bsm,.pk,.setup-btn,.gs-btn,.g-btn,.a-btn,.mnbtn,.auth-tab,.ins-tab,.cg-cta,.magic-btn,.magic-tile,.tt,.sec-link,.stg-row,.pli-more,.chat-send,.chat-attach-btn,.hmenu-btn,.t-close){
+    transition-property:transform,background,background-color,color,opacity,border-color,box-shadow;transition-duration:calc(.12s*var(--mo-t))}
+  :is(.nb,.btnG,.btnM,.bsm,.pk,.setup-btn,.gs-btn,.g-btn,.a-btn,.mnbtn,.auth-tab,.ins-tab,.cg-cta,.magic-btn,.magic-tile,.tt,.sec-link,.stg-row,.pli-more,.chat-send,.chat-attach-btn,.hmenu-btn,.pli,.mgi,.sumi):not(:disabled):active{transform:scale(.96)}
+
+  /* Sign-in, setup, welcome and PIN screens arrive instead of snapping in */
+  .screen:not(.hide){animation:mo-rise calc(.45s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
+
+  /* Small things that appear on their own: the history menu, an entry's Edit/Delete row, notices */
+  .hmenu:not(.hide){transform-origin:top right;animation:mo-drop calc(.22s*var(--mo-t)) cubic-bezier(.2,.8,.2,1) backwards}
+  .pli-x.open .plact{animation:mo-drop calc(.25s*var(--mo-t)) cubic-bezier(.2,.8,.2,1) backwards}
+  .nb-notice{animation:mo-rise calc(.4s*var(--mo-t)) cubic-bezier(.2,.7,.2,1) backwards}
 
   /* 4. Pop-ups ease up with a softer curve, and messages pop in */
   .mb{transition:transform calc(.38s*var(--mo-t)) cubic-bezier(.2,.85,.25,1)}
