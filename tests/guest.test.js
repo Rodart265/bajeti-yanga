@@ -5,8 +5,14 @@ const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const guest = read('js/12a-guest.js'), html = read('index.html'), hh = read('js/05-household.js'), sw = read('sw.js');
 const jsFiles = fs.readdirSync(path.join(root, 'js')).filter((f) => f.endsWith('.js') && f !== '12a-guest.js');
-let passed = 0;
-function test(name, fn) { try { fn(); passed++; console.log('PASS ' + name); } catch (e) { console.log('FAIL ' + name + ' :: ' + e.message); process.exitCode = 1; } }
+// Tests are collected first and run one at a time at the bottom of the file. Each is AWAITED before its result is recorded, so an
+// async test that fails later cannot be reported as passing, and any failure (sync, async or an unhandled rejection) sets a non-zero exit code.
+let passed = 0, failed = 0;
+const queue = [];
+function test(name, fn) { queue.push({ name, fn }); }
+function markFailed(label, e) { failed++; process.exitCode = 1; console.log('FAIL ' + label + ' :: ' + (e && e.message ? e.message : e)); }
+process.on('unhandledRejection', (e) => markFailed('(unhandled promise rejection)', e));
+process.on('uncaughtException', (e) => markFailed('(uncaught exception)', e));
 
 // Code only: drop comments so the notes at the top of the file do not trip the checks.
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/([^:'"])\/\/[^\n]*$/gm, '$1');
@@ -22,7 +28,7 @@ function body(src, name) {
 // ── Isolation ───────────────────────────────────────────────────────────────
 test('guest code never touches Firebase, Firestore, the Worker or the real app startup', () => {
   const banned = [/\bdb\b/, /\bfirebase\b/, /\bauth\./, /\.collection\(/, /\bfetch\(/, /fetchT\(/, /XMLHttpRequest/, /\bAI_URL\b/,
-    /\baddPx\b/, /\bconnectHH\b/, /\bbootApp\b/, /\bcurUser\b/, /\bhhId\b/, /sessionStorage/, /indexedDB/, /sendBeacon/, /\bsetupFCMToken\b/];
+    /\baddPx\b/, /\bconnectHH\s*\(/, /\bjoinHH\s*\(/, /\bbootApp\s*\(/, /\bcurUser\b/, /\bhhId\b/, /sessionStorage/, /indexedDB/, /sendBeacon/, /\bsetupFCMToken\b/];
   const hit = banned.filter((r) => r.test(code)).map(String);
   assert.deepStrictEqual(hit, [], 'js/12a-guest.js uses: ' + hit.join(', '));
 });
@@ -72,26 +78,24 @@ test('every function listed as blocked in the demo really exists', () => {
 // Functions that reach Firebase or the network but are NOT blocked, with why that is fine. A new one fails this test on purpose:
 // decide whether a guest can reach it, then block it in GUEST_BLOCKED or add it here.
 const REVIEWED = [
-  // sign-in, sign-up, PIN and account flows: only run once a real sign-in is under way, or from screens the demo never shows
+  // sign-in, sign-up, PIN and account flows: they must keep working while the demo is paused on the sign-in screen
   '_confirmDeleteAccount', '_reauthWithoutPassword', '_secPwVerifySubmit', 'pinFgtVerify', '_sendAuthEmail', 'backToLogin', 'checkVerification',
   'doEmailAuth', 'doGoogle', 'resendVerification', 'bootApp', 'restoreAccount', 'showAccountRestorePrompt', 'startFreshAfterDeletion',
-  // household set-up, joining and live listeners: reached only after sign-in (connectHH is never called by the demo)
-  '_backfillInvite', '_checkApproved', '_claimMembership', '_confirmDeleteHousehold', '_ensureInvite', '_markApproved', '_restoreWaitingScreen',
-  '_pxStartWindow', 'cancelPendingJoin', 'connectHH', 'handleHouseholdDeleted', 'handleRemovedFromHousehold', 'joinHH', 'loadDeletedHouseholds',
-  'restoreHousehold', 'startChipListener',
+  // household deletion: only reachable from household settings, which the demo cannot open (openDeleteHousehold is blocked)
+  '_confirmDeleteHousehold',
   // household-only writes that already do nothing without a household id, which the demo never has
   'mirrorRecs',
   // the entry door itself: guest mode swaps in the in-memory stand-in (tested above)
   '_pxCol', 'addPx', 'saveCfg',
   // Chipereganyu actions: the circle screens cannot be opened in the demo (openChipView / openChipEntry / openChipCreate / openChipJoin are blocked)
-  'chipCloseCircle', 'chipConfirmPayout', 'chipCycleUpdate', 'chipDeleteGroup', 'chipLeaveGroup', 'chipMakeAdmin', 'chipMoveUp', 'chipRemoveMember',
+  'chipCloseCircle', 'chipConfirmPayout', 'chipDeleteGroup', 'chipLeaveGroup', 'chipMakeAdmin', 'chipMoveUp', 'chipRemoveMember',
   'chipStartNewLap', 'joinChipGroup', 'saveChipCreate', 'startChipRotation',
   // Settings member list: its live listener only starts for a signed-in owner (needs curUser)
   'stgOpenSection',
   // the app's own same-site update check (version.json), which runs for everyone
   'openFAQ', 'fetchT',
-  // Premium internals: only reached from the Premium screens (blocked) or from connectHH; the sign-in token check below stops any request
-  '_checkNotices', '_paymentsCall', '_authHeaders', 'setupFCMToken', 'convosRef'
+  // Premium internals: only reached from the Premium screens (blocked); the sign-in token check below stops any request
+  '_paymentsCall', '_authHeaders', 'setupFCMToken'
 ];
 test('every function that can reach Firebase or the network is blocked in the demo or has been reviewed', () => {
   const found = new Set();
@@ -167,11 +171,13 @@ function world(opts) {
   };
   if (opts.brokenStorage) ctx.localStorage = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
   vm.createContext(ctx);
+  if (opts.now) vm.runInContext('(function(){ const R = Date, F = ' + opts.now.getTime() + '; class FD extends R { constructor(...a){ if(a.length===0) super(F); else super(...a); } static now(){ return F; } } this.Date = FD; }).call(this);', ctx);
   // The app's own state and a few real-app stand-ins (same names as js/01-constants.js and js/05-household.js).
   vm.runInContext(`this.window = this; let lang='en', isGuestMode=false, _guestUid=null, lCfg={}, lPx=[], lHHDoc={}, _pxMain=[], _pxOlder=[], _pxTrash=[], chipGroups=[],
     _pxFirst=false, _chipFirst=false, viewMonth=null, tab='home', _stgSection=null, selItem=null, selItemKey=null, fUser='all', logSrch='';
     function _setPx(){ lPx=[..._pxMain]; } function _invalidateMemo(){}
-    function logout(){ __real.push('logout'); } function showPremiumPage(){ __real.push('premium'); } function sendChat(){ __real.push('chat'); }`, ctx);
+    function logout(){ __real.push('logout'); } function showPremiumPage(){ __real.push('premium'); } function sendChat(){ __real.push('chat'); }
+    function connectHH(){ __real.push('connectHH'); } function joinHH(){ __real.push('joinHH'); }`, ctx);
   ctx.__real = [];
   vm.runInContext(guest + '\n;this.__x={guestRoute,guestNoteSignedIn,guestIsReturning,guestOpenDemo,guestGoAuth,guestBackFromAuth,guestGate,guestPxCol,guestPxFull,' +
     'guestBuildPx,guestBuildCfg,guestTourOffer,guestTourStart,guestTourShow,guestTourEnd,guestTourOn,GUEST_TOUR,GUEST_GATES,get:()=>({isGuestMode,lCfg,lPx,_pxMain,tab,lHHDoc,_pxFirst,_chipFirst,_guestUid}),setPx:(a)=>{_pxMain.length=0;a.forEach(x=>_pxMain.push(x));}};', ctx);
@@ -252,6 +258,56 @@ test('for an ordinary sign-in (not a guest) guestNoteSignedIn leaves the real da
   w.x.guestNoteSignedIn(); assert.strictEqual(w.x.get()._pxMain.length, 1); assert.strictEqual(w.store.nb_seen_auth, '1');
 });
 
+test('sample entries land in their real months on any day of the year (month ends, year ends, leap day)', () => {
+  // Expectations are written out here from the sample spec, independent of the code under test.
+  const pastBase = [78000, 30000, 12000, 15000, 16000, 10000, 8000, 30000, 17000, 10000], scale = [0.94, 1.06, 0.91, 1.12, 0.97];
+  const pastSpent = (k) => pastBase.filter((_, i) => !(i === 7 && k % 2 === 1)).reduce((s, b) => s + Math.round(b * scale[k] / 500) * 500, 0);
+  const days = [[2026,11,1],[2026,11,2],[2026,11,23],[2026,11,30],[2026,12,31],[2027,1,1],[2027,1,31],[2027,3,1],[2027,3,31],[2028,2,29],[2026,5,31]];
+  days.forEach(([y, m, d]) => {
+    const now = new Date(y, m - 1, d, 12, 0, 0), w = world({ ls: {}, now }), px = Array.from(w.x.guestBuildPx()), tag = y + '-' + m + '-' + d;
+    const ym = (back) => { const x = new Date(y, m - 1 - back, 1); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); };
+    const sum = (month, type) => px.filter((p) => p.date.startsWith(month) && p.type === type).reduce((s, p) => s + p.amount, 0);
+    assert.strictEqual(sum(ym(0), 'expense'), 207000, tag + ': this month spending');
+    assert.strictEqual(sum(ym(0), 'income'), 250000, tag + ': this month income');
+    for (let k = 0; k < 5; k++) {
+      assert.strictEqual(sum(ym(k + 1), 'expense'), pastSpent(k), tag + ': spending ' + (k + 1) + ' month(s) back');
+      assert.strictEqual(sum(ym(k + 1), 'income'), 250000, tag + ': income ' + (k + 1) + ' month(s) back');
+    }
+    const months = new Set([0, 1, 2, 3, 4, 5].map(ym));
+    assert(px.every((p) => months.has(p.date.slice(0, 7))), tag + ': an entry falls outside the six months');
+    const iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    assert(px.every((p) => p.date <= iso(now)), tag + ': an entry is dated after today');
+    assert(px.every((p) => p.timestamp <= now.getTime()), tag + ': an entry has a time later than now');
+  });
+});
+
+test('the household-connection functions do nothing in the demo (no popup), and run normally for a real sign-in', () => {
+  const w = world(FRESH);
+  w.ctx.connectHH(); w.ctx.joinHH();                                           // not a guest: the real ones run
+  assert.deepStrictEqual(w.real(), ['connectHH', 'joinHH']);
+  w.x.guestOpenDemo(); w.els['gs-sheet'].classList._h = true;
+  w.ctx.connectHH('ABC123'); w.ctx.joinHH('ABC123');                           // guest: nothing runs and nothing pops up
+  assert.deepStrictEqual(w.real(), ['connectHH', 'joinHH'], 'a household function ran in guest mode');
+  assert(!w.vis('gs-sheet'), 'session functions must not open a popup');
+  w.x.guestNoteSignedIn(); w.ctx.connectHH('ABC123');                          // after sign-in the demo is off, so the real one runs again
+  assert.deepStrictEqual(w.real(), ['connectHH', 'joinHH', 'connectHH']);
+});
+
+test('the tour card is moved back inside the screen on a short display, and left alone when it fits', () => {
+  const place = (rect, cardH, vh) => {
+    const w = world(FRESH); w.x.guestOpenDemo(); w.ctx.innerHeight = vh;
+    w.ctx.document.querySelector = () => ({ getBoundingClientRect: () => rect });
+    w.els['gs-tour-card'].offsetHeight = cardH; w.x.guestTourStart();
+    return { top: w.els['gs-tour-card'].style.top, bottom: w.els['gs-tour-card'].style.bottom };
+  };
+  const px = (v) => parseFloat(v);
+  // step 1 lights up something near the top, so the card goes under it
+  let c = place({ top: 60, bottom: 300, left: 0, right: 300, width: 300, height: 240 }, 200, 800); assert.strictEqual(c.top, '316px');            // fits: untouched
+  c = place({ top: 60, bottom: 300, left: 0, right: 300, width: 300, height: 240 }, 200, 400); assert.strictEqual(c.top, '192px');               // 316 + 200 > 392: pulled up
+  assert(px(c.top) >= 8 && px(c.top) + 200 <= 400 - 8);
+  c = place({ top: 60, bottom: 300, left: 0, right: 300, width: 300, height: 240 }, 600, 400); assert.strictEqual(c.top, '8px');                // taller than the screen: pinned to the top edge
+});
+
 // ── Tour and trial wording ──────────────────────────────────────────────────
 test('the tour container and the Tour button exist, inside the right places', () => {
   assert(html.includes('id="gs-tour"') && html.includes('id="gs-tour-spot"') && html.includes('id="gs-tour-card"'));
@@ -306,4 +362,11 @@ test('Premium prompts for a guest say "free for 14 days" and offer "Start free t
   assert(/TRIAL_DAYS = 14/.test(read('js/11-premium.js')), 'trial length changed: update the "14 days" wording');
 });
 
-console.log(passed + ' passed' + (process.exitCode ? ', some FAILED' : ''));
+(async function runAll() {
+  for (const t of queue) {
+    try { await t.fn(); passed++; console.log('PASS ' + t.name); }
+    catch (e) { markFailed(t.name, e); }
+  }
+  console.log(passed + ' passed' + (failed ? ', ' + failed + ' FAILED' : '') + ' of ' + queue.length);
+  process.exitCode = failed ? 1 : 0;
+})();
