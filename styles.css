@@ -463,6 +463,11 @@ body.dark .streak-sub{color:#4CAF50}
 .empty .ei{font-size:2.6rem;margin-bottom:8px}
 .empty p{font-size:.82rem;line-height:1.5}
 .loading{display:flex;align-items:center;justify-content:center;padding:30px;gap:9px;color:var(--mid);font-size:.85rem}
+/* Returning user, app frame shown before data: taps off until the household connects. Bar = calm "still connecting" notice. */
+#app.app-wait{pointer-events:none}
+#boot-bar{position:fixed;top:0;left:0;right:0;z-index:99998;padding:8px 12px;text-align:center;font-size:.76rem;line-height:1.4;background:#FFF3E0;color:#5D4037;pointer-events:auto}
+#boot-bar .lp-retry{background:none;border:none;padding:6px 2px;font:700 .76rem 'Hanken Grotesk',sans-serif;color:inherit;text-decoration:underline;cursor:pointer}
+#boot-skel{padding-top:10px}
 /* Loading skeletons: grey shapes shown until the first entries arrive (skHome / skList in js/02-helpers.js) */
 .sk{display:block;border-radius:8px;background:linear-gradient(90deg,var(--border) 25%,var(--mist) 50%,var(--border) 75%);background-size:200% 100%;animation:sk-shimmer 1.4s linear infinite}
 @keyframes sk-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}

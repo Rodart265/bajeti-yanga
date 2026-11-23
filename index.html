@@ -137,6 +137,12 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     if(anyVisible()){
       removeSplash();
       // The welcome screen is already showing (see the early-welcome script below): only say something if the app's own files failed to download.
+      var bar = document.getElementById('boot-bar');
+      if((window._earlyApp || window._earlyPin) && !window._authAnswered && bar){
+        // Returning user, app frame already showing, but the sign-in check has not answered: say so calmly, offer Retry, block nothing.
+        bar.classList.remove('hide');
+        bar.innerHTML = (window._bootPartial ? "Part of the app didn't finish loading. " : 'Still connecting. ') + 'Check your connection and <button type="button" class="lp-retry" onclick="location.reload()">tap Retry</button>.';
+      }
       var chk = document.getElementById('lp-checking');
       if(window._earlyWelcome && chk && window._bootPartial){
         chk.classList.remove('hide');
@@ -569,7 +575,7 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
   </div>
   <!-- Shown only in guest mode (js/12a-guest.js): the demo runs the real screens on sample data. -->
   <div id="guest-strip" class="guest-strip hide" role="status"><span data-cw="Chitsanzo. Palibe chomwe chimasungidwa.">Demo. Nothing is saved.</span><span class="guest-strip-btns"><button type="button" class="guest-tour-btn" onclick="guestTourOffer()" data-cw="Ulendo">Tour</button><button type="button" onclick="guestGate(&quot;account&quot;)" data-cw="Tsegulani akaunti">Create account</button></span></div>
-  <div id="view"><div class="loading" role="status"><div class="spinner"></div><span id="load-txt" data-cw="Chonde dikirani...">Loading...</span></div></div>
+  <div id="view"><!-- Grey shapes the size of Home, drawn before any script runs (same classes as skHome in js/02-helpers.js). setView() replaces them with the real screen. --><div id="boot-skel" class="page" role="status" aria-busy="true" aria-label="Loading"><span class="sk" style="height:34px;width:58%;margin:2px auto 12px"></span><span class="sk sk-hero sk-hero-home"></span><div class="card"><div class="sk-row"><span class="sk sk-circle"></span><div class="sk-grow"><span class="sk sk-line" style="width:48%"></span><span class="sk sk-line sk-sm" style="width:26%"></span></div><span class="sk sk-line sk-amt"></span></div><div class="sk-row"><span class="sk sk-circle"></span><div class="sk-grow"><span class="sk sk-line" style="width:65%"></span><span class="sk sk-line sk-sm" style="width:37%"></span></div><span class="sk sk-line sk-amt"></span></div><div class="sk-row"><span class="sk sk-circle"></span><div class="sk-grow"><span class="sk sk-line" style="width:56%"></span><span class="sk sk-line sk-sm" style="width:28%"></span></div><span class="sk sk-line sk-amt"></span></div><div class="sk-row"><span class="sk sk-circle"></span><div class="sk-grow"><span class="sk sk-line" style="width:73%"></span><span class="sk sk-line sk-sm" style="width:39%"></span></div><span class="sk sk-line sk-amt"></span></div></div><div class="chips chips3"><span class="sk sk-chip"></span><span class="sk sk-chip"></span><span class="sk sk-chip"></span></div></div></div>
   <nav id="nav" role="navigation" aria-label="Main navigation">
     <button class="nb on" onclick="go(&quot;home&quot;)" id="nb-home"><i data-lucide="home" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-h">Home</span></button>
     <button class="nb" onclick="go(&quot;log&quot;)" id="nb-log"><i data-lucide="plus-circle" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-l">Log</span></button>
@@ -578,6 +584,33 @@ html.dk #boot-splash .bs-sub{color:#9E9E9E}
     <button class="nb" onclick="go(&quot;stg&quot;)" id="nb-stg"><i data-lucide="user" class="ni" style="width:20px;height:20px"></i><span class="nl" id="nl-st">Settings</span></button>
   </nav>
 </div>
+
+<div id="boot-bar" class="hide" role="status"></div>
+<script>
+// EARLY RETURN: a phone that has signed in before (it remembers its household) skips the logo splash.
+//  - No PIN: the app frame appears at once with grey skeleton shapes; the real screen replaces them when data arrives.
+//    Taps are switched off (#app.app-wait) until the household connects, so nothing half-loaded can be used.
+//  - PIN set: the PIN screen appears at once (no data is shown before the PIN); keys tapped before the app has loaded are replayed.
+// Nothing here shows anyone's data. If the saved sign-in turns out to be gone, bootApp() hides all this and shows sign-in as before.
+// Pending join requests and invite links keep the normal path.
+(function(){
+  try{
+    var ls = localStorage;
+    var back = ls.getItem('nb_household') && !ls.getItem('nb_pending_join') && !/[?&]join=/.test(location.search);
+    var app = document.getElementById('app'), pin = document.getElementById('scr-pin');
+    if(!back || !app || !pin) return;
+    if(ls.getItem('nb_pin')){
+      window._earlyPin = true; window._pinQ = [];
+      window.pinK = function(k){ window._pinQ.push(k); }; window.pinK.__stub = true;
+      pin.classList.remove('hide');
+    } else {
+      window._earlyApp = true;
+      app.classList.add('app-wait'); app.classList.remove('hide');
+    }
+    var s = document.getElementById('boot-splash'); if(s && s.parentNode) s.parentNode.removeChild(s);
+  }catch(e){}
+})();
+</script>
 
 <!-- MODALS -->
 
