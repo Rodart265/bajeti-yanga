@@ -39,7 +39,7 @@ function rChat(){
     setView('<div style="padding:32px 22px;text-align:center">'
       +'<div style="width:60px;height:60px;border-radius:var(--cr);background:linear-gradient(135deg,#142F4B,#176B78);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><i data-lucide="gem" style="width:28px;height:28px;color:#fff"></i></div>'
       +'<h3 style="font-family:Hanken Grotesk,sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:8px">'+L('Bajeti AI is a Premium feature','Bajeti AI ndi ya Premium')+'</h3>'
-      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:18px">'+L('Ask questions about your budget, scan receipts and get a monthly AI review. Start your free trial or upgrade to use it.','Funsani mafunso pa bajeti yanu, jambulani risiti ndi kupeza chidule cha mwezi. Sandutsani kuti mugwiritse ntchito.')+'</div>'
+      +'<div style="font-size:.8rem;color:var(--mid);line-height:1.6;margin-bottom:18px">'+L('Ask questions about your budget, scan receipts and get a monthly AI review. Upgrade to Premium to use it.','Funsani mafunso pa bajeti yanu, jambulani risiti ndi kupeza chidule cha mwezi. Sandutsani kuti mugwiritse ntchito.')+'</div>'
       +'<button class="btnM" style="width:100%" onclick="showPremiumPage()">'+L('See Premium','Onani Premium')+'</button></div>');
     if(window.lucide) lucide.createIcons();
     return;

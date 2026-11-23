@@ -200,7 +200,9 @@ function bootApp(){
     } else {
       curUser=null;
       stopChipListener();
-      g('app').classList.add('hide'); hide('scr-setup'); hide('scr-pin');
+      // If the visitor already opened the sample demo while this check was still running, leave the demo on screen.
+      if(!(typeof isGuestMode!=='undefined' && isGuestMode)) g('app').classList.add('hide');
+      hide('scr-setup'); hide('scr-pin');
       // First-time visitors get the guest entry screen; everyone else (and invite links) go straight to sign-in as before.
       if(typeof guestRoute==='function' && guestRoute()) return;
       show('scr-auth');

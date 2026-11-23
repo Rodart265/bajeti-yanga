@@ -2,33 +2,48 @@
 // 6. AUTH
 // ===============================================
 
-function validatePwReqs(val, fromPw2){
-  const reqs = g('pw-reqs');
-  if(!reqs || reqs.style.display === 'none') return;
+// Password hints on the sign-up tab. Four states:
+//   untouched  : nothing shown (no box, no warnings)
+//   typing     : the box opens with neutral hints; each turns into a green tick once met
+//   invalid    : after pressing the button with a problem (submitted=true) the unmet rows turn amber with a cross
+//   submitted  : the button shows "Please wait..." while the account is created (see doEmailAuth)
+function pwProblems(pw, pw2, submit){
+  // Plain-language list of what is still missing, in the order a person would fix it. Empty list = the password is fine.
+  const out = [];
+  if(pw.length < 6){ const n = 6 - pw.length; out.push({k:'len', en: n===1 ? 'Add 1 more character (at least 6).' : 'Add '+n+' more characters (at least 6).', cw: 'Onjezani zilembo '+n+' (zosachepera 6).'}); }
+  if(pw.length > 0 && pw !== pw.trim()) out.push({k:'space', en:'Remove the space at the start or end.', cw:'Chotsani malo opanda kanthu poyamba kapena pomaliza.'});
+  if((pw2.length > 0 || submit) && pw !== pw2) out.push(pw2.length===0
+    ? {k:'match', en:'Type your password again in the Confirm box.', cw:'Lembaninso mawu achinsinsi mu bokosi lotsimikizira.'}
+    : {k:'match', en:'The two passwords are not the same yet. Retype the confirmation.', cw:'Mawu achinsinsi awiriwa sakufanana. Lembaninso otsimikizira.'});
+  return out;
+}
+function validatePwReqs(val, fromPw2, submitted){
+  const reqs = g('pw-reqs'), btn = g('a-em-btn');
+  if(!reqs || !btn || btn.dataset.mode !== 'register') return;       // only the sign-up tab has this box
   const pw = String(g('a-pw') ? g('a-pw').value : (val||''));
   const pw2 = String(g('a-pw2') ? g('a-pw2').value : '');
-  if(pw.length === 0 && !fromPw2) return; // Don't show errors before first keypress
+  if(pw.length === 0 && pw2.length === 0 && !submitted){ reqs.style.display = 'none'; return; }   // untouched: no warnings yet
+  reqs.style.display = 'flex';
 
-  function setReq(chipId, icoId, ok){
+  function setReq(chipId, icoId, ok, bad){
     const chip = g(chipId), ico = g(icoId);
-    if(chip){ chip.style.color = ok ? '#A5D6A7' : 'rgba(255,255,255,.5)'; }
-    if(ico){ ico.setAttribute('data-lucide', ok ? 'check-circle' : 'x-circle'); }
+    if(chip){ chip.style.color = ok ? '#A5D6A7' : (bad ? '#FFCC80' : 'rgba(255,255,255,.7)'); }
+    if(ico){ ico.setAttribute('data-lucide', ok ? 'check-circle' : (bad ? 'x-circle' : 'circle')); }
   }
-
-  // Requirement 1: at least 6 characters
-  setReq('req-len', 'req-len-ico', pw.length >= 6);
-
-  // Requirement 2: no leading/trailing spaces
-  setReq('req-space', 'req-space-ico', pw.length > 0 && pw === pw.trim());
-
-  // Requirement 3: passwords match — only show row once confirm field has content
+  const probs = pwProblems(pw, pw2, !!submitted), has = function(k){ return probs.some(function(p){ return p.k === k; }); };
+  const lenTxt = g('req-len-txt');
+  if(lenTxt){
+    const need = 6 - pw.length;
+    lenTxt.textContent = (pw.length > 0 && need > 0) ? L(need===1 ? '1 more character to go (at least 6)' : need+' more characters to go (at least 6)', 'Zilembo '+need+' zikufunika (zosachepera 6)') : L('At least 6 characters', 'Zilembo zosachepera 6');
+  }
+  // A row only turns "bad" after a failed submit; while typing, an unmet row stays neutral.
+  setReq('req-len', 'req-len-ico', pw.length >= 6, !!submitted && has('len'));
+  setReq('req-space', 'req-space-ico', pw.length > 0 && pw === pw.trim(), !!submitted && has('space'));
   const matchRow = g('req-match');
-  if(matchRow && pw2.length > 0){
+  if(matchRow && (pw2.length > 0 || submitted)){
     matchRow.style.display = 'flex';
-    setReq('req-match', 'req-match-ico', pw === pw2 && pw.length > 0);
+    setReq('req-match', 'req-match-ico', pw === pw2 && pw.length > 0, !!submitted && pw2.length > 0 && has('match'));
   }
-
-  // Re-render Lucide icons after updating data-lucide attributes
   if(window.lucide) lucide.createIcons({nodes:[reqs]});
 }
 
@@ -44,20 +59,24 @@ function aTab(mode){
   if(sw)sw.innerHTML=lang==='cw'?(isReg?"Mukulemba kale? <span onclick=\"aTab('login')\">Takulandirani kubwerera</span>":"Ndinu watsopano pa Bajeti Yanga? <span onclick=\"aTab('register')\">Yambani kulemba</span>"):(isReg?"Already tracking? <span onclick=\"aTab('login')\">Welcome back</span>":"New to Bajeti Yanga? <span onclick=\"aTab('register')\">Start tracking</span>");
   // Show/hide password requirements box
   const reqs = g('pw-reqs');
-  if(reqs) reqs.style.display = isReg ? 'flex' : 'none';
+  if(reqs) reqs.style.display = 'none';        // hidden on both tabs until someone types in the password field
   // Reset all requirement indicators when switching tabs
-  // Reset all requirement indicators on tab switch
   {
     ['req-len','req-space'].forEach(function(id){
-      const el=g(id); if(el){ el.style.color='rgba(255,255,255,.5)'; }
+      const el=g(id); if(el){ el.style.color='rgba(255,255,255,.7)'; }
     });
     ['req-len-ico','req-space-ico'].forEach(function(id){
-      const el=g(id); if(el) el.setAttribute('data-lucide','x-circle');
+      const el=g(id); if(el) el.setAttribute('data-lucide','circle');
     });
+    const lt=g('req-len-txt'); if(lt) lt.textContent=L('At least 6 characters','Zilembo zosachepera 6');
     const matchRow=g('req-match'); if(matchRow) matchRow.style.display='none';
-    const matchIco=g('req-match-ico'); if(matchIco) matchIco.setAttribute('data-lucide','x-circle');
-    const matchEl=g('req-match'); if(matchEl) matchEl.style.color='rgba(255,255,255,.5)';
+    const matchIco=g('req-match-ico'); if(matchIco) matchIco.setAttribute('data-lucide','circle');
+    const matchEl=g('req-match'); if(matchEl) matchEl.style.color='rgba(255,255,255,.7)';
   }
+  // Trial note: sign-up tab only. It is the real offer (one 14-day Premium trial per account, started by the first household).
+  const tn=g('a-trial'); if(tn) tn.classList.toggle('hide',!isReg);
+  // Tell the phone's password manager which kind of field this is, so it can suggest a strong password on sign-up.
+  ['a-pw','a-pw2'].forEach(function(id){ const f=g(id); if(f) f.setAttribute('autocomplete', isReg?'new-password':'current-password'); });
   // Clear password fields when switching tabs
   const pwField=g('a-pw'); if(pwField) pwField.value='';
   const pw2Field=g('a-pw2'); if(pw2Field) pw2Field.value='';
@@ -199,14 +218,25 @@ function fmtAErr(code, err){
 function authBtnLabel(isReg){ return lang==='cw'?(isReg?'Yambani Kulemba':'Takulandirani Kubwerera'):(isReg?'Start Tracking':'Welcome Back'); }
 function doEmailAuth(){
   const email=val('a-em').trim(), pass=val('a-pw');
-  if(!email||!pass){ showAErr((lang==='cw'?'Lowetsani imelo ndi mawu achinsinsi.':'Please fill in email and password.')); return; }
   const btn=g('a-em-btn'), isReg=!!(btn&&btn.dataset.mode==='register');
+  if(!email||!pass){
+    showAErr((lang==='cw'?'Lowetsani imelo ndi mawu achinsinsi.':'Please fill in email and password.'));
+    if(isReg && email) validatePwReqs(null,false,true);
+    return;
+  }
   if(btn){btn.disabled=true;btn.textContent=(lang==='cw'?'Chonde dikirani...':'Please wait...');}
   showAErr('');
   if(isReg){
     const p2=val('a-pw2'), nm=val('a-nm').trim();
-    if(pass!==p2){ showAErr((lang==='cw'?'Mawu achinsinsi sakufanana.':'Passwords do not match.')); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} return; }
-    if(pass.length<6){ showAErr((lang==='cw'?'Mawu achinsinsi ayenera kukhala ndi zilembo zosachepera 6.':'Password must be at least 6 characters.')); if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);} return; }
+    // Check in the order a person would fix things, say exactly what to do, and open the hint box with the problem rows marked.
+    const probs = pwProblems(pass, p2, true);
+    if(probs.length){
+      showAErr(lang==='cw' ? probs[0].cw : probs[0].en);
+      validatePwReqs(null,false,true);
+      if(btn){btn.disabled=false;btn.textContent=authBtnLabel(true);}
+      const f=g(probs[0].k==='match'?'a-pw2':'a-pw'); if(f){ try{ f.focus({preventScroll:false}); }catch(e){} }
+      return;
+    }
     auth.createUserWithEmailAndPassword(email,pass)
       .then(cred=>{
         const user=cred.user;

@@ -106,6 +106,7 @@ function guestRoute(){
   if(!g('scr-guest-entry')) return false;
   const open = ['scr-guest-entry','scr-auth'].some(function(id){ return !g(id).classList.contains('hide'); })
     || (isGuestMode && !g('app').classList.contains('hide'));
+  const chk = g('lp-checking'); if(chk) chk.classList.add('hide');     // the saved-session check is finished: nobody is signed in
   if(open) return true;                                  // a screen is already up: leave it alone
   if(typeof _pendingJoinCode !== 'undefined' && _pendingJoinCode) return false;   // came from an invite link: they need an account
   if(guestIsReturning()) return false;
@@ -115,7 +116,7 @@ function guestRoute(){
 // Called by bootApp() when someone is signed in: remember it, close the demo and forget everything in it.
 function guestNoteSignedIn(){
   try{ localStorage.setItem(GUEST_SEEN_KEY,'1'); }catch(e){}
-  hide('scr-guest-entry'); guestCloseSheet();
+  hide('scr-guest-entry'); guestCloseSheet(); hide('lp-checking');
   const b = g('a-guest-back'); if(b) b.classList.add('hide');
   if(isGuestMode) guestEndDemo();
 }
@@ -283,7 +284,7 @@ function guestSheetBg(ev){ if(ev && ev.target && ev.target.id==='gs-sheet') gues
 function guestGate(key){
   const d = GUEST_GATES[key] || GUEST_GATES.account, c = lang==='cw' ? d.cw : d.en;
   guestOpenSheet('<div class="gs-gate"><div class="gs-ic big">'+_ic(d.icon,'currentColor')+'</div><h3>'+esc(c[0])+'</h3><p>'+esc(c[1])+'</p></div>'
-    +'<button type="button" class="gs-btn gs-primary" onclick="guestGoAuth(&quot;register&quot;)">'+(d.cta?L('Start free trial','Yambani kuyesa kwaulere'):L('Create account','Tsegulani akaunti'))+'</button>'
+    +'<button type="button" class="gs-btn gs-primary" onclick="guestGoAuth(&quot;register&quot;)">'+(d.cta?L('Create free account','Tsegulani akaunti yaulere'):L('Create account','Tsegulani akaunti'))+'</button>'
     +'<button type="button" class="gs-btn gs-outline" onclick="guestGoAuth(&quot;login&quot;)">'+L('Sign in','Lowani')+'</button>'
     +'<button type="button" class="gs-link" style="display:block;margin:12px auto 0" onclick="guestCloseSheet()">'+L('Keep exploring','Pitirizani kuyesa')+'</button>');
 }
@@ -302,8 +303,8 @@ const GUEST_TOUR = [
     cw:['Bajeti AI (Premium)','Funsani za ndalama zanu, jambulani ma risiti ndi kupeza ndemanga ya mwezi. Yaulere masiku 14 mukapanga nyumba yanu yoyamba.']},
   {tab:'stg', sel:'#nb-stg', en:['Make it yours','Set a budget for each item, add savings goals, invite family and switch language here.'],
     cw:['Isintheni kukhala yanu','Ikani bajeti ya chinthu chilichonse, zolinga zosungira, itanani banja lanu ndi kusintha chinenero pano.']},
-  {tab:'home', sel:null, last:true, en:['Ready to keep your own records?','Create an account and your first household starts a 14-day free trial of Premium.'],
-    cw:['Mwakonzeka kusunga zolemba zanu?','Tsegulani akaunti ndipo nyumba yanu yoyamba iyamba nthawi yoyesera ya Premium ya masiku 14.']}
+  {tab:'home', sel:null, last:true, en:['Ready to keep your own records?','Create an account and your first household starts a 14-day free trial of Premium. No payment needed to start.'],
+    cw:['Mwakonzeka kusunga zolemba zanu?','Tsegulani akaunti ndipo nyumba yanu yoyamba iyamba nthawi yoyesera ya Premium ya masiku 14. Palibe chilipiro chofunika poyamba.']}
 ];
 let guestTourStep = -1;
 function guestTourOn(){ return guestTourStep > -1; }
@@ -324,7 +325,7 @@ function guestTourShow(i){
   const c = lang==='cw' ? s.cw : s.en, n = GUEST_TOUR.length, card = g('gs-tour-card'); if(!card) return;
   let h = '<div class="gs-tour-count">'+(i+1)+' / '+n+'</div><h3>'+esc(c[0])+'</h3><p>'+esc(c[1])+'</p>';
   if(s.last){
-    h += '<button type="button" class="gs-btn gs-primary" onclick="guestTourEnd();guestGoAuth(&quot;register&quot;)">'+L('Start free trial','Yambani kuyesa kwaulere')+'</button>'
+    h += '<button type="button" class="gs-btn gs-primary" onclick="guestTourEnd();guestGoAuth(&quot;register&quot;)">'+L('Create free account','Tsegulani akaunti yaulere')+'</button>'
       +'<button type="button" class="gs-btn gs-outline" style="margin-top:8px" onclick="guestTourEnd()">'+L('Keep exploring','Pitirizani kuyesa')+'</button>';
   } else {
     h += '<div class="gs-tour-row">'+(i>0?'<button type="button" class="gs-btn gs-outline" onclick="guestTourShow('+(i-1)+')">'+L('Back','Bwererani')+'</button>':'')

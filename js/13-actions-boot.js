@@ -136,6 +136,8 @@ if(_origRender){
   // Privacy gate removed — auth screen has policy links
   try{ applyStaticLang(); }catch(e){}
   bootApp();
+  // A tap on the welcome screen made before the app finished loading (see the early-welcome script in index.html) runs now.
+  try{ if(window._runQueuedTap) window._runQueuedTap(); }catch(e){ try{ window._logErr('error', e && e.message, 'queued tap'); }catch(_){} }
   // Still on the first loading screen after 12 s: say so, and offer a retry instead of an endless spinner.
   setTimeout(function(){
     const v=g('view'); const ld=v&&v.querySelector('.loading');
