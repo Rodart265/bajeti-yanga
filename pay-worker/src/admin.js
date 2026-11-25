@@ -18,12 +18,13 @@
 
 import * as logic from './logic.js';
 import { DELETE, tsFromMillis, randomId } from './firestore.js';
+import { growthCounts, adminEmailSet, describedDay, dayStartMs, ymdOf } from './snapshot.js';
 
 const DAY = 86400000, HOUR = 3600000, TRIAL_DAYS = 14, FRESH_SECONDS = 30 * 60;
 
 // ── who may do what ──────────────────────────────────────────────────────────
 export const READ_ACTIONS = ['whoami', 'overview', 'attention', 'households', 'household', 'users', 'payments', 'premium',
-  'chipereganyu', 'announcements', 'settings', 'log'];
+  'chipereganyu', 'announcements', 'settings', 'log', 'growth_history'];
 export const WRITE_ROLES = {
   recheck_payment: ['owner', 'support'], payment_note: ['owner', 'support'],
   premium_set: ['owner'], user_disable: ['owner'], announcement_save: ['owner'], announcement_delete: ['owner'], settings_save: ['owner'],
@@ -81,7 +82,7 @@ const asInt = (v, lo, hi) => { const n = Number(v); return Number.isInteger(n) &
 // ── reading the database (field lists keep budgets and purchases out of every request) ─────────────
 const HH_FIELDS = ['name', 'owner', 'memberUids', 'isPremium', 'premiumExpiry', 'premiumActivatedAt', 'trialStarted', 'deletedAt',
   'premiumAdminAt', 'premiumAdminBy', 'config.isPremium', 'config.premiumExpiry', 'config.premiumActivatedAt', 'config.trialStarted'];
-const USER_FIELDS = ['displayName', 'email', 'householdId', 'ownedHouseholds', 'premiumUntil', 'pendingDeletion', 'trialClaimedAt'];
+const USER_FIELDS = ['displayName', 'email', 'householdId', 'ownedHouseholds', 'premiumUntil', 'pendingDeletion', 'trialClaimedAt', 'lastActiveAt', 'firstEntryAt'];
 const PAY_FIELDS = ['uid', 'householdId', 'months', 'amount', 'currency', 'status', 'createdAtMs', 'paidAtMs', 'premiumExpiry', 'source',
   'note', 'adminNote', 'adminResolved', 'paidAmount', 'by'];
 const GROUP_FIELDS = ['name', 'status', 'createdBy', 'createdAt', 'frequency', 'contributionAmount', 'dueDay', 'memberUids',
@@ -216,13 +217,8 @@ async function whoami(ctx) {
   return ok({ email: ctx.admin.email, role: ctx.admin.role, canWrite: ctx.admin.role === 'owner', canRecheck: ctx.admin.role !== 'analyst', freshSeconds: FRESH_SECONDS });
 }
 
-async function overview(ctx) {
-  const { now } = ctx;
-  const [hhs, auth, userDocs, pays, log] = await Promise.all([loadHouseholds(ctx), loadAuth(ctx), loadUserDocs(ctx), loadPayments(ctx, 1000),
-    cached(ctx, 'log8', async () => (await ctx.deps.db.collection('adminLog').orderBy('atMs', 'desc').limit(8).get()).docs.map(d => ({ id: d.id, ...d.data() })))]);
-  const people = peopleMap(auth, userDocs), agg = aggregatePayments(pays);
-  const live = hhs.filter(h => !h.deletedAt), infos = new Map(live.map(h => [h.id, premiumInfo(h, now)]));
-
+// The Premium counts, in one place: Overview and the daily snapshot both use this, so they cannot disagree.
+function premiumTally(live, infos, agg) {
   const states = { premium: 0, premium_expired: 0, trial: 0, trial_ended: 0, free: 0 };
   let expiring7 = 0, expiring30 = 0, unlimited = 0, legacy = 0, trialed = 0, converted = 0;
   for (const h of live) {
@@ -231,6 +227,17 @@ async function overview(ctx) {
     if (i.legacyOnly) legacy++;
     if (i.trialStarted !== null) { trialed++; if (agg.get(h.id) && agg.get(h.id).paidCount > 0) converted++; }
   }
+  return { states, expiring7, expiring30, unlimited, legacy, trialed, converted };
+}
+
+async function overview(ctx) {
+  const { now } = ctx;
+  const [hhs, auth, userDocs, pays, log] = await Promise.all([loadHouseholds(ctx), loadAuth(ctx), loadUserDocs(ctx), loadPayments(ctx, 1000),
+    cached(ctx, 'log8', async () => (await ctx.deps.db.collection('adminLog').orderBy('atMs', 'desc').limit(8).get()).docs.map(d => ({ id: d.id, ...d.data() })))]);
+  const people = peopleMap(auth, userDocs), agg = aggregatePayments(pays);
+  const live = hhs.filter(h => !h.deletedAt), infos = new Map(live.map(h => [h.id, premiumInfo(h, now)]));
+
+  const { states, expiring7, expiring30, unlimited, legacy, trialed, converted } = premiumTally(live, infos, agg);
 
   const days = []; for (let k = 29; k >= 0; k--) days.push(ymd(now - k * DAY));
   const at = new Map(days.map((d, k) => [d, k]));
@@ -274,7 +281,14 @@ async function overview(ctx) {
     revenue, payments: { byStatus },
     attention: { total: attention.length, high: attention.filter(x => x.severity === 'high').length, items: attention.slice(0, 6) },
     recentSignups, recentLog: log,
+    activation: activationTile({ auth, userDocs, hhs, now, env: ctx.env }),
   });
+}
+
+// "Activated: X of Y registered since tracking began" (same counting as the daily snapshot).
+function activationTile({ auth, userDocs, hhs, now, env }) {
+  const u = growthCounts({ auth, userDocs, hhs, now, day: describedDay(now), adminEmails: adminEmailSet(adminLists(env)) }).users;
+  return { trackingStartMs: u.trackingStartMs, registered: u.cohortRegistered, activated: u.cohortActivated, activeToday: u.active1, stampedUsers: u.stampedUsers, withFirstEntry: u.withFirstEntry };
 }
 
 async function attention(ctx) {
@@ -557,7 +571,56 @@ async function actSettingsSave(ctx, p) {
   return ok({ ok: true });
 }
 
-const HANDLERS = { whoami, overview, attention, households, household, users, payments, premium, chipereganyu, announcements, settings, log };
+// ── daily growth history ─────────────────────────────────────────────────────
+// One small document per Malawi day in growthDaily, written by the Worker only (browsers have no rule for it, so no access).
+// The console reads these instead of counting everything again, which keeps reads cheap and keeps history that the live
+// numbers cannot give (the live numbers only know "now").
+async function growthHistory(ctx, p) {
+  const n = Math.min(90, Math.max(1, Math.floor(Number(p && p.days)) || 30));
+  const rows = await cached(ctx, 'growth' + n, async () =>
+    (await ctx.deps.db.collection('growthDaily').orderBy('day', 'desc').limit(n).get()).docs.map(d => d.data()));
+  return ok({ rows: [...rows].sort((a, b) => (a.day < b.day ? -1 : 1)), days: n });
+}
+
+// Everything one snapshot holds, for the Malawi day `day`. Counts only.
+async function buildSnapshotDoc(ctx, day) {
+  const { now } = ctx;
+  const [hhs, auth, userDocs, pays] = await Promise.all([loadHouseholds(ctx), loadAuth(ctx), loadUserDocs(ctx), loadPayments(ctx, 1000)]);
+  const g = growthCounts({ auth, userDocs, hhs, now, day, adminEmails: adminEmailSet(adminLists(ctx.env)) });
+  const live = hhs.filter(h => !h.deletedAt), infos = new Map(live.map(h => [h.id, premiumInfo(h, now)])), agg = aggregatePayments(pays);
+  const t = premiumTally(live, infos, agg), payers = [...agg.values()].filter(a => a.paidCount > 0).length;
+  const start = dayStartMs(day), end = start + DAY, monthStart = dayStartMs(day.slice(0, 8) + '01');
+  const paid = pays.filter(x => x.status === 'paid'), when = x => x.paidAtMs || x.createdAtMs || 0;
+  const sum = (a, b) => paid.filter(x => when(x) >= a && when(x) < b).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  return {
+    day, schema: 1, builtAtMs: now, authOk: auth.ok,
+    users: g.users, households: g.households,
+    premium: { premium: t.states.premium, premiumExpired: t.states.premium_expired, trial: t.states.trial, trialEnded: t.states.trial_ended, free: t.states.free,
+      expiring7: t.expiring7, payingHouseholds: payers, trialed: t.trialed, converted: t.converted },
+    revenue: { currency: logic.CURRENCY, dayTotal: sum(start, end), monthToDate: sum(monthStart, end), truncated: pays.length >= 1000 },
+  };
+}
+
+// Run by the two-hourly timer (housekeeping.js). The first run after midnight Malawi time builds the day that just ended; later
+// runs find it there and stop after one read. Create-if-absent, so a repeat can never double anything. A whole day that was
+// missed stays missing: nothing is invented for it.
+export async function runGrowthSnapshot({ deps, env, identity, budget, log = () => {} }) {
+  if (budget && budget.left < 12) return { skipped: true };
+  const day = describedDay(deps.now());
+  const ref = deps.db.collection('growthDaily').doc(day);
+  if (budget) budget.left -= 1;
+  const have = await ref.get(['day']);
+  if (have.exists) return { day, exists: true };
+  if (budget) budget.left -= 8;                                     // households, users, payments, sign-in list pages and tokens
+  const ctx = { deps, env, identity, now: deps.now(), fresh: true };
+  const doc = await buildSnapshotDoc(ctx, day);
+  try { await ref.create(doc); }
+  catch (e) { if (e && e.status === 409) return { day, exists: true }; throw e; }
+  log('growth: saved snapshot for ' + day);
+  return { day, created: true };
+}
+
+const HANDLERS = { whoami, overview, attention, households, household, users, payments, premium, chipereganyu, announcements, settings, log, growth_history: growthHistory };
 const WRITERS = {
   premium_set: actPremium, recheck_payment: actRecheck, payment_note: actPaymentNote, user_disable: actUserDisable,
   announcement_save: actAnnouncementSave, announcement_delete: actAnnouncementDelete, settings_save: actSettingsSave,

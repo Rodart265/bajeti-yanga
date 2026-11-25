@@ -15,6 +15,7 @@
 
 import { catDate } from './ai.js';
 import { syncBills } from './billsync.js';
+import { runGrowthSnapshot } from './admin.js';
 
 const DAY = 86400000;
 const HOUSEHOLD_SUBCOLLECTIONS = ['purchases', 'items', 'bills', 'goals', '_usage', '_conversations', 'joinRequests'];
@@ -126,11 +127,12 @@ export async function purgeCounters({ deps, env, budget, log }) {
   return out;
 }
 
-// Runs the four jobs in order; one failing never stops the others.
+// Runs the jobs in order; one failing never stops the others. The daily growth snapshot goes last so it can never use up the
+// budget the clean-up jobs need (it needs about ten requests and simply tries again two hours later if there are too few).
 export async function runHousekeeping({ deps, env, identity, budget = { left: 38 } }) {
   const lines = [], log = s => { lines.push(s); console.log(s); };
   const result = { mode: purgeLive(env) ? 'delete' : 'dry-run' };
-  for (const [name, fn] of [['trash', purgeTrash], ['households', purgeHouseholds], ['accounts', purgeAccounts], ['counters', purgeCounters], ['bills', a => syncBills({ ...a, live: purgeLive(env) })]]) {
+  for (const [name, fn] of [['trash', purgeTrash], ['households', purgeHouseholds], ['accounts', purgeAccounts], ['counters', purgeCounters], ['bills', a => syncBills({ ...a, live: purgeLive(env) })], ['growth', runGrowthSnapshot]]) {
     try { result[name] = await fn({ deps, env, identity, budget, log }); }
     catch (e) { result[name] = { error: String(e && e.message).slice(0, 200) }; console.error('housekeeping ' + name + ' failed', e && e.message); }
   }
