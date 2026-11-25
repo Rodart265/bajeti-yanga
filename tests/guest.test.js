@@ -95,7 +95,9 @@ const REVIEWED = [
   // the app's own same-site update check (version.json), which runs for everyone
   'openFAQ', 'fetchT',
   // Premium internals: only reached from the Premium screens (blocked); the sign-in token check below stops any request
-  '_paymentsCall', '_authHeaders', 'setupFCMToken'
+  '_paymentsCall', '_authHeaders', 'setupFCMToken',
+  // admin-console growth stamps: both return at once in the demo (isGuestMode) and without a signed-in person; checked in tests/growth.test.js
+  'growthStampActive', 'growthStampFirstEntry'
 ];
 test('every function that can reach Firebase or the network is blocked in the demo or has been reviewed', () => {
   const found = new Set();
