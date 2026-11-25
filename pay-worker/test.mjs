@@ -1282,5 +1282,115 @@ section('regression: fetch must not be called as a method (Cloudflare "Illegal i
   eq('Firestore client calls fetch without a `this`', snap.exists, true);
 }
 
+import { runGrowthSnapshot } from './src/admin.js';
+import { describedDay, dayStartMs, growthCounts } from './src/snapshot.js';
+
+section('growth: the daily snapshot');
+{
+  // 25 Nov 2026, 00:10 in Malawi (22:10 UTC the evening before): the first two-hourly run after midnight.
+  const NOW = Date.UTC(2026, 10, 24, 22, 10, 0), H = 3600000;
+  eq('a snapshot built just after midnight describes the day that just ended', describedDay(NOW), '2026-11-24');
+  eq('that day starts at 00:00 Malawi time (22:00 UTC the evening before)', dayStartMs('2026-11-24'), Date.UTC(2026, 10, 23, 22, 0, 0));
+
+  const build = () => {
+    world.fs = miniFirestore(); world.idt = fakeIdentity(); const fs = world.fs;
+    fs.seed('households/HH1', { owner: 'a', memberUids: ['a'], isPremium: true, premiumExpiry: '2026-12-01', config: {} }, NOW - 30 * DAY);
+    fs.seed('households/HH2', { owner: 'b', memberUids: ['b'], trialStarted: tsFromMillis(NOW - 2 * DAY), config: {} }, NOW - 5 * H);
+    fs.seed('households/HH3', { owner: 'c', memberUids: ['c'], deletedAt: tsFromMillis(NOW - DAY), config: {} }, NOW - 3 * DAY);
+    // a: old account, active, entered before tracking. b: registered yesterday, active, first entry. c: older, not activated. d: registered yesterday, never stamped.
+    fs.seed('users/a', { email: 'a@x.com', lastActiveAt: tsFromMillis(NOW - 3 * H), firstEntryAt: tsFromMillis(NOW - 8 * DAY) });
+    fs.seed('users/b', { email: 'b@x.com', lastActiveAt: tsFromMillis(NOW - 8 * H), firstEntryAt: tsFromMillis(NOW - 8 * H) });
+    fs.seed('users/c', { email: 'c@x.com', lastActiveAt: tsFromMillis(NOW - 6 * DAY) });
+    fs.seed('users/d', { email: 'd@x.com' });
+    fs.seed('users/adm-boss', { email: 'boss@x.com', lastActiveAt: tsFromMillis(NOW - 9 * DAY), firstEntryAt: tsFromMillis(NOW - 9 * DAY) });
+    world.idt.users = [
+      { localId: 'a', email: 'a@x.com', created: NOW - 40 * DAY, last: NOW - 1 * DAY }, { localId: 'b', email: 'b@x.com', created: NOW - 10 * H, last: NOW - 8 * H },
+      { localId: 'c', email: 'c@x.com', created: NOW - 5 * DAY, last: NOW - 20 * DAY }, { localId: 'd', email: 'd@x.com', created: NOW - 2 * H },
+      { localId: 'adm-boss', email: 'boss@x.com', created: NOW - 100 * DAY, last: NOW - H },
+    ];
+    fs.seed('payments/p1', { currency: 'MWK', householdId: 'HH1', uid: 'a', months: 1, amount: 1500, status: 'paid', createdAtMs: NOW - 5 * H, paidAtMs: NOW - 5 * H, premiumExpiry: '2026-12-01' });
+    fs.seed('payments/p2', { currency: 'MWK', householdId: 'HH1', uid: 'a', months: 3, amount: 4000, status: 'paid', createdAtMs: NOW - 3 * DAY, paidAtMs: NOW - 3 * DAY, premiumExpiry: '2026-11-20' });
+    const db = new FirestoreRest({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.fs.fetch });
+    const identity = makeIdentity({ projectId: 'bajeti-yanga', getToken: async () => 'tok', fetchImpl: world.idt.fetch });
+    return { db, identity, deps: { db, now: () => NOW, tsFromMillis } };
+  };
+
+  let w = build();
+  const r1 = await runGrowthSnapshot({ ...w, env: ENV, budget: { left: 38 } });
+  eq('first run builds the day', r1, { day: '2026-11-24', created: true });
+  const doc = world.fs.peek('growthDaily/2026-11-24');
+  eq('users: total, new in the day, admin accounts', [doc.users.total, doc.users.newInDay, doc.users.adminAccounts], [5, 2, 1]);
+  eq('active (opened the app): 1, 7 and 30 days; admin left out', [doc.users.active1, doc.users.active7, doc.users.active30, doc.users.stampedUsers], [2, 3, 3, 3]);
+  eq('active by last sign-in sits beside it', [doc.users.active7Signin, doc.users.active30Signin], [2, 3]);
+  eq('activated: everyone with a first entry, and new in the day (admin left out)', [doc.users.withFirstEntry, doc.users.newWithFirstEntry], [2, 1]);
+  eq('tracking began when the first phone reported in', doc.users.trackingStartMs, NOW - 9 * DAY);
+  eq('since tracking began: 3 registered (b, c, d), 1 activated; the old account is not counted as "not activated"', [doc.users.cohortRegistered, doc.users.cohortActivated], [3, 1]);
+  eq('households: live and new in the day', [doc.households.live, doc.households.newInDay], [2, 1]);
+  eq('Premium counts come from the same tally as Overview', [doc.premium.premium, doc.premium.trial, doc.premium.free, doc.premium.payingHouseholds, doc.premium.trialed, doc.premium.converted], [1, 1, 0, 1, 1, 0]);
+  eq('revenue for the day and the month so far', [doc.revenue.dayTotal, doc.revenue.monthToDate, doc.revenue.currency], [1500, 5500, 'MWK']);
+  eq('says whether the sign-in list was readable', doc.authOk, true);
+  const raw = JSON.stringify(doc);
+  ok('counts only: no email, name or account id anywhere in it', !/@x\.com|adm-boss|"a"|"b"/.test(raw) && !raw.includes('boss'));
+
+  const writes = world.fs.calls.filter(c => c.method !== 'GET' && !c.url.endsWith(':runQuery')).length;
+  const again = await runGrowthSnapshot({ ...w, env: ENV, budget: { left: 38 } });
+  eq('a second run the same night finds it and stops', again, { day: '2026-11-24', exists: true });
+  eq('and writes nothing', world.fs.calls.filter(c => c.method !== 'GET' && !c.url.endsWith(':runQuery')).length, writes);
+  eq('and nothing is overwritten', world.fs.peek('growthDaily/2026-11-24').builtAtMs, NOW);
+
+  const later = { ...w.deps, now: () => NOW + 4 * H };
+  eq('a later run on the same Malawi day still finds the same day', (await runGrowthSnapshot({ ...w, deps: later, env: ENV, budget: { left: 38 } })).exists, true);
+
+  w = build();
+  const low = await runGrowthSnapshot({ ...w, env: ENV, budget: { left: 5 } });
+  eq('too few requests left: skipped, tries again later', [low, world.fs.peek('growthDaily/2026-11-24')], [{ skipped: true }, undefined]);
+
+  w = build(); world.idt.status = 403;
+  const noAuth = await runGrowthSnapshot({ ...w, env: ENV, budget: { left: 38 } });
+  const d2 = world.fs.peek('growthDaily/2026-11-24');
+  eq('sign-in list unreadable: still saved, and honest about what it could not measure', [noAuth.created, d2.authOk, d2.users.newInDay, d2.users.active7Signin, d2.users.cohortRegistered], [true, false, null, null, null]);
+  eq('the profile-based numbers still work without it', [d2.users.stampedUsers, d2.users.withFirstEntry, d2.users.active7], [3, 2, 3]);
+
+  // before any phone has reported in
+  const none = growthCounts({ auth: { ok: true, list: [{ uid: 'q', email: 'q@x.com', created: NOW - DAY }] }, userDocs: [{ id: 'q', email: 'q@x.com' }], hhs: [], now: NOW, day: '2026-11-24', adminEmails: new Set() });
+  eq('nothing stamped yet: no tracking start and no cohort, never a made-up zero percent', [none.users.trackingStartMs, none.users.cohortRegistered, none.users.cohortActivated, none.users.stampedUsers], [null, null, null, 0]);
+
+  // whole-day gaps stay gaps
+  w = build();
+  await runGrowthSnapshot({ ...w, env: ENV, budget: { left: 38 } });
+  eq('only the one described day exists (nothing is back-filled or invented)', world.fs.list('growthDaily').map(x => x.day), ['2026-11-24']);
+}
+
+section('growth: the console reads it');
+{
+  const NOW2 = Date.UTC(2026, 10, 24, 22, 10, 0);
+  const w = (() => { world.fs = miniFirestore(); world.idt = fakeIdentity(); return world.fs; })();
+  for (const day of ['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23', '2026-11-24']) w.seed('growthDaily/' + day, { day, schema: 1, builtAtMs: NOW2, users: { total: 10, active7: 4 } });
+  eq('no sign-in: refused', (await call('/admin', { method: 'POST', body: JSON.stringify({ action: 'growth_history' }) })).status, 401);
+  eq('someone not on the list: refused', (await adm('growth_history', {}, 'stranger@x.com')).status, 403);
+  const owner = await adm('growth_history', { days: 3 });
+  eq('owner reads the latest days, oldest first', [owner.status, owner.body.rows.map(r => r.day)], [200, ['2026-11-22', '2026-11-23', '2026-11-24']]);
+  eq('read-only role can look', (await adm('growth_history', {}, 'look@x.com')).status, 200);
+  eq('support can look', (await adm('growth_history', {}, 'help@x.com')).status, 200);
+  eq('the number of days is limited to 90 and at least 1', [(await adm('growth_history', { days: 5000 })).body.days, (await adm('growth_history', { days: -4 })).body.days, (await adm('growth_history', { days: 'x' })).body.days], [90, 1, 30]);
+  eq('empty history is an empty list, not an error', (await (async () => { world.fs = miniFirestore(); const r = await adm('growth_history'); return [r.status, r.body.rows]; })()), [200, []]);
+  eq('the app cannot ask for it through the old action list by accident', (await adm('growth_history_x')).status, 400);
+}
+
+section('growth: Overview tile and who is left out');
+{
+  adminWorld(); const fs = world.fs, now = Date.now();
+  eq('before any phone reports in, the tile has no cohort', (await adm('overview')).body.activation.registered, null);
+  fs.seed('users/adm-boss', { email: 'boss@x.com', lastActiveAt: tsFromMillis(now - 4 * DAY), firstEntryAt: tsFromMillis(now - 4 * DAY) });
+  fs.seed('users/u5', { displayName: 'Eve', email: 'eve@x.com', lastActiveAt: tsFromMillis(now - 2 * H3()), firstEntryAt: tsFromMillis(now - H3()) });
+  fs.seed('users/u4', { displayName: 'Dan', email: 'dan@x.com', lastActiveAt: tsFromMillis(now - 2 * DAY) });
+  const a = (await adm('overview')).body.activation;
+  eq('tile: tracking began with the first stamp, 1 registered since (Eve), 1 activated', [a.trackingStartMs, a.registered, a.activated], [now - 4 * DAY, 1, 1]);
+  eq('the admin\'s own activity is not counted as active or activated', [a.stampedUsers, a.withFirstEntry], [2, 1]);
+  const o = (await adm('overview')).body;
+  eq('existing Overview numbers did not move', [o.users.total, o.users.active7, o.premium.payingHouseholds, o.premium.states], [8, 6, 2, { premium: 2, premium_expired: 0, trial: 1, trial_ended: 0, free: 2 }]);
+  function H3() { return 3600000; }
+}
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
