@@ -628,9 +628,102 @@ async function verifyFirebaseTokenFull(token, env, fetchImpl = fetch, nowMs = Da
   };
 }
 
-// src/admin.js
+// src/snapshot.js
 var DAY = 864e5;
 var HOUR = 36e5;
+var CAT_OFFSET_MS2 = 2 * HOUR;
+var pad2 = (n) => String(n).padStart(2, "0");
+var ymdOf = (ms) => {
+  const [y, m, d] = catYMD(ms);
+  return y + "-" + pad2(m) + "-" + pad2(d);
+};
+var dayStartMs = (day) => {
+  const [y, m, d] = day.split("-").map(Number);
+  return Date.UTC(y, m - 1, d) - CAT_OFFSET_MS2;
+};
+var describedDay = (now) => ymdOf(now - DAY);
+var msOf = (v) => {
+  if (v === null || v === void 0 || v === "") return null;
+  if (typeof v.toMillis === "function") return v.toMillis();
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const t = new Date(v).getTime();
+  return Number.isNaN(t) ? null : t;
+};
+var lower = (s) => String(s || "").trim().toLowerCase();
+function adminEmailSet(lists) {
+  const s = /* @__PURE__ */ new Set();
+  for (const k of ["owner", "support", "analyst"]) (lists[k] || []).forEach((e) => s.add(e));
+  return s;
+}
+function growthCounts({ auth, userDocs, hhs, now, day, adminEmails }) {
+  const start = dayStartMs(day), end = start + DAY;
+  const inDay = (ms) => ms !== null && ms >= start && ms < end;
+  const people = /* @__PURE__ */ new Map();
+  if (auth.ok) auth.list.forEach((u2) => people.set(u2.uid, { email: lower(u2.email), created: u2.created || null, lastSignIn: u2.lastSignIn || null }));
+  const docOf = /* @__PURE__ */ new Map();
+  userDocs.forEach((d) => {
+    docOf.set(d.id, d);
+    const p = people.get(d.id);
+    if (!p) people.set(d.id, { email: lower(d.email), created: null, lastSignIn: null });
+    else if (!p.email) p.email = lower(d.email);
+  });
+  let trackingStartMs = null;
+  userDocs.forEach((d) => {
+    const t = msOf(d.lastActiveAt);
+    if (t !== null && (trackingStartMs === null || t < trackingStartMs)) trackingStartMs = t;
+  });
+  const u = {
+    total: people.size,
+    newInDay: auth.ok ? 0 : null,
+    adminAccounts: 0,
+    active1: 0,
+    active7: 0,
+    active30: 0,
+    active7Signin: auth.ok ? 0 : null,
+    active30Signin: auth.ok ? 0 : null,
+    stampedUsers: 0,
+    withFirstEntry: 0,
+    newWithFirstEntry: 0,
+    trackingStartMs,
+    cohortRegistered: auth.ok && trackingStartMs !== null ? 0 : null,
+    cohortActivated: auth.ok && trackingStartMs !== null ? 0 : null
+  };
+  for (const [uid, p] of people) {
+    if (auth.ok && inDay(p.created)) u.newInDay++;
+    if (p.email && adminEmails.has(p.email)) {
+      u.adminAccounts++;
+      continue;
+    }
+    const d = docOf.get(uid) || {}, act = msOf(d.lastActiveAt), first = msOf(d.firstEntryAt);
+    if (act !== null) {
+      u.stampedUsers++;
+      if (act >= end - DAY) u.active1++;
+      if (act >= end - 7 * DAY) u.active7++;
+      if (act >= end - 30 * DAY) u.active30++;
+    }
+    if (auth.ok && p.lastSignIn) {
+      if (p.lastSignIn >= end - 7 * DAY) u.active7Signin++;
+      if (p.lastSignIn >= end - 30 * DAY) u.active30Signin++;
+    }
+    if (first !== null) {
+      u.withFirstEntry++;
+      if (inDay(first)) u.newWithFirstEntry++;
+    }
+    if (u.cohortRegistered !== null && p.created !== null && p.created >= trackingStartMs) {
+      u.cohortRegistered++;
+      if (first !== null) u.cohortActivated++;
+    }
+  }
+  const h = {
+    live: hhs.filter((x) => !x.deletedAt).length,
+    newInDay: hhs.filter((x) => x.created && x.created >= start && x.created < end).length
+  };
+  return { users: u, households: h };
+}
+
+// src/admin.js
+var DAY2 = 864e5;
+var HOUR2 = 36e5;
 var TRIAL_DAYS = 14;
 var FRESH_SECONDS = 30 * 60;
 var READ_ACTIONS = [
@@ -645,7 +738,8 @@ var READ_ACTIONS = [
   "chipereganyu",
   "announcements",
   "settings",
-  "log"
+  "log",
+  "growth_history"
 ];
 var WRITE_ROLES = {
   recheck_payment: ["owner", "support"],
@@ -687,10 +781,10 @@ var Fail = class extends Error {
     this.code = code;
   }
 };
-var pad2 = (n) => String(n).padStart(2, "0");
+var pad22 = (n) => String(n).padStart(2, "0");
 var ymd = (ms) => {
   const [y, m, d] = catYMD(ms);
-  return `${y}-${pad2(m)}-${pad2(d)}`;
+  return `${y}-${pad22(m)}-${pad22(d)}`;
 };
 var isYMD = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
 var realYMD = (s) => {
@@ -703,7 +797,7 @@ var ymdMs = (s) => {
   const [y, m, d] = s.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
 };
-var daysBetween = (a, b) => Math.round((ymdMs(b) - ymdMs(a)) / DAY);
+var daysBetween = (a, b) => Math.round((ymdMs(b) - ymdMs(a)) / DAY2);
 var tsMs = (v) => {
   if (v === null || v === void 0 || v === "") return null;
   if (typeof v.toMillis === "function") return v.toMillis();
@@ -736,7 +830,7 @@ var HH_FIELDS = [
   "config.premiumActivatedAt",
   "config.trialStarted"
 ];
-var USER_FIELDS = ["displayName", "email", "householdId", "ownedHouseholds", "premiumUntil", "pendingDeletion", "trialClaimedAt"];
+var USER_FIELDS = ["displayName", "email", "householdId", "ownedHouseholds", "premiumUntil", "pendingDeletion", "trialClaimedAt", "lastActiveAt", "firstEntryAt"];
 var PAY_FIELDS = [
   "uid",
   "householdId",
@@ -811,7 +905,7 @@ function premiumInfo(h, now) {
   const trialStarted = tsMs(h.trialStarted) !== null ? tsMs(h.trialStarted) : tsMs(cfg.trialStarted);
   let state;
   if (cur.active) state = cur.unlimited || eMs === null || eMs >= now ? "premium" : "premium_expired";
-  else if (trialStarted !== null) state = now - trialStarted < TRIAL_DAYS * DAY ? "trial" : "trial_ended";
+  else if (trialStarted !== null) state = now - trialStarted < TRIAL_DAYS * DAY2 ? "trial" : "trial_ended";
   else state = "free";
   return {
     state,
@@ -819,9 +913,9 @@ function premiumInfo(h, now) {
     unlimited: cur.unlimited,
     expiry: cur.expiry ? asDate(cur.expiry) : null,
     expiryMs: eMs,
-    daysLeft: state === "premium" && eMs !== null ? Math.ceil((eMs - now) / DAY) : null,
+    daysLeft: state === "premium" && eMs !== null ? Math.ceil((eMs - now) / DAY2) : null,
     trialStarted,
-    trialDaysLeft: state === "trial" ? Math.max(0, TRIAL_DAYS - Math.floor((now - trialStarted) / DAY)) : null,
+    trialDaysLeft: state === "trial" ? Math.max(0, TRIAL_DAYS - Math.floor((now - trialStarted) / DAY2)) : null,
     legacyOnly: cfg.isPremium === true && h.isPremium !== true,
     rootActive: h.isPremium === true,
     rootExpiry: asDate(h.premiumExpiry),
@@ -854,7 +948,7 @@ function aggregatePayments(pays) {
 function lookReason(p, now) {
   if (p.adminResolved === true) return null;
   const age = now - (p.createdAtMs || 0);
-  if (p.status === "pending" && age > HOUR && age < 3 * DAY) return "Still pending after an hour";
+  if (p.status === "pending" && age > HOUR2 && age < 3 * DAY2) return "Still pending after an hour";
   if (p.status === "mismatch") return "Amount paid did not match the price";
   if (p.status === "paid_no_household") return "Paid, but the household no longer exists";
   if (p.status === "init_failed") return "Could not be started at PayChangu";
@@ -938,7 +1032,7 @@ function buildAttention({ hhs, pays, now, people }) {
     });
     if (a && a.maxExpiryMs && !i.unlimited && (tsMs(h.premiumAdminAt) || 0) < a.lastPaidAt) {
       const cur = i.active && i.expiryMs ? i.expiryMs : 0;
-      if (cur < a.maxExpiryMs - DAY / 2) items.push({
+      if (cur < a.maxExpiryMs - DAY2 / 2) items.push({
         id: "short:" + h.id,
         kind: "household",
         severity: "high",
@@ -956,17 +1050,7 @@ var authNote = (a) => a.ok ? null : a.status === 403 ? 'The robot account needs 
 async function whoami(ctx) {
   return ok({ email: ctx.admin.email, role: ctx.admin.role, canWrite: ctx.admin.role === "owner", canRecheck: ctx.admin.role !== "analyst", freshSeconds: FRESH_SECONDS });
 }
-async function overview(ctx) {
-  const { now } = ctx;
-  const [hhs, auth, userDocs, pays, log2] = await Promise.all([
-    loadHouseholds(ctx),
-    loadAuth(ctx),
-    loadUserDocs(ctx),
-    loadPayments(ctx, 1e3),
-    cached(ctx, "log8", async () => (await ctx.deps.db.collection("adminLog").orderBy("atMs", "desc").limit(8).get()).docs.map((d) => ({ id: d.id, ...d.data() })))
-  ]);
-  const people = peopleMap(auth, userDocs), agg = aggregatePayments(pays);
-  const live = hhs.filter((h) => !h.deletedAt), infos = new Map(live.map((h) => [h.id, premiumInfo(h, now)]));
+function premiumTally(live, infos, agg) {
   const states = { premium: 0, premium_expired: 0, trial: 0, trial_ended: 0, free: 0 };
   let expiring7 = 0, expiring30 = 0, unlimited = 0, legacy = 0, trialed = 0, converted = 0;
   for (const h of live) {
@@ -985,8 +1069,22 @@ async function overview(ctx) {
       if (agg.get(h.id) && agg.get(h.id).paidCount > 0) converted++;
     }
   }
+  return { states, expiring7, expiring30, unlimited, legacy, trialed, converted };
+}
+async function overview(ctx) {
+  const { now } = ctx;
+  const [hhs, auth, userDocs, pays, log2] = await Promise.all([
+    loadHouseholds(ctx),
+    loadAuth(ctx),
+    loadUserDocs(ctx),
+    loadPayments(ctx, 1e3),
+    cached(ctx, "log8", async () => (await ctx.deps.db.collection("adminLog").orderBy("atMs", "desc").limit(8).get()).docs.map((d) => ({ id: d.id, ...d.data() })))
+  ]);
+  const people = peopleMap(auth, userDocs), agg = aggregatePayments(pays);
+  const live = hhs.filter((h) => !h.deletedAt), infos = new Map(live.map((h) => [h.id, premiumInfo(h, now)]));
+  const { states, expiring7, expiring30, unlimited, legacy, trialed, converted } = premiumTally(live, infos, agg);
   const days = [];
-  for (let k = 29; k >= 0; k--) days.push(ymd(now - k * DAY));
+  for (let k = 29; k >= 0; k--) days.push(ymd(now - k * DAY2));
   const at = new Map(days.map((d, k) => [d, k]));
   const signups = days.map((d) => ({ d, n: 0 })), newHouseholds = days.map((d) => ({ d, n: 0 }));
   hhs.forEach((h) => {
@@ -999,15 +1097,15 @@ async function overview(ctx) {
       const k = u.created ? at.get(ymd(u.created)) : void 0;
       if (k !== void 0) signups[k].n++;
     });
-    const cohort = auth.list.filter((u) => u.created && u.created <= now - 30 * DAY);
-    const kept = cohort.filter((u) => u.lastSignIn && u.lastSignIn >= now - 30 * DAY).length;
+    const cohort = auth.list.filter((u) => u.created && u.created <= now - 30 * DAY2);
+    const kept = cohort.filter((u) => u.lastSignIn && u.lastSignIn >= now - 30 * DAY2).length;
     users2 = {
       total: auth.list.length,
-      last7: auth.list.filter((u) => u.created && now - u.created < 7 * DAY).length,
-      last30: auth.list.filter((u) => u.created && now - u.created < 30 * DAY).length,
-      active7: auth.list.filter((u) => u.lastSignIn && now - u.lastSignIn < 7 * DAY).length,
-      active30: auth.list.filter((u) => u.lastSignIn && now - u.lastSignIn < 30 * DAY).length,
-      inactive30: auth.list.filter((u) => !u.lastSignIn || now - u.lastSignIn >= 30 * DAY).length,
+      last7: auth.list.filter((u) => u.created && now - u.created < 7 * DAY2).length,
+      last30: auth.list.filter((u) => u.created && now - u.created < 30 * DAY2).length,
+      active7: auth.list.filter((u) => u.lastSignIn && now - u.lastSignIn < 7 * DAY2).length,
+      active30: auth.list.filter((u) => u.lastSignIn && now - u.lastSignIn < 30 * DAY2).length,
+      inactive30: auth.list.filter((u) => !u.lastSignIn || now - u.lastSignIn >= 30 * DAY2).length,
       disabled: auth.list.filter((u) => u.disabled).length,
       retention30: cohort.length ? Math.round(kept / cohort.length * 1e3) / 10 : null,
       retentionCohort: cohort.length
@@ -1017,7 +1115,7 @@ async function overview(ctx) {
   const [cy, cm] = catYMD(now), months = [];
   for (let k = 11; k >= 0; k--) {
     const idx = cm - 1 - k;
-    months.push({ m: `${cy + Math.floor(idx / 12)}-${pad2((idx % 12 + 12) % 12 + 1)}`, amount: 0, count: 0 });
+    months.push({ m: `${cy + Math.floor(idx / 12)}-${pad22((idx % 12 + 12) % 12 + 1)}`, amount: 0, count: 0 });
   }
   const mAt = new Map(months.map((x, k) => [x.m, k]));
   paid.forEach((p) => {
@@ -1050,7 +1148,7 @@ async function overview(ctx) {
     users: users2,
     signupsByDay: auth.ok ? signups : null,
     newHouseholdsByDay: newHouseholds,
-    households: { live: live.length, deleted: hhs.length - live.length, last7: hhs.filter((h) => h.created && now - h.created < 7 * DAY).length, last30: hhs.filter((h) => h.created && now - h.created < 30 * DAY).length },
+    households: { live: live.length, deleted: hhs.length - live.length, last7: hhs.filter((h) => h.created && now - h.created < 7 * DAY2).length, last30: hhs.filter((h) => h.created && now - h.created < 30 * DAY2).length },
     premium: {
       states,
       expiring7,
@@ -1067,8 +1165,13 @@ async function overview(ctx) {
     payments: { byStatus },
     attention: { total: attention2.length, high: attention2.filter((x) => x.severity === "high").length, items: attention2.slice(0, 6) },
     recentSignups,
-    recentLog: log2
+    recentLog: log2,
+    activation: activationTile({ auth, userDocs, hhs, now, env: ctx.env })
   });
+}
+function activationTile({ auth, userDocs, hhs, now, env }) {
+  const u = growthCounts({ auth, userDocs, hhs, now, day: describedDay(now), adminEmails: adminEmailSet(adminLists(env)) }).users;
+  return { trackingStartMs: u.trackingStartMs, registered: u.cohortRegistered, activated: u.cohortActivated, activeToday: u.active1, stampedUsers: u.stampedUsers, withFirstEntry: u.withFirstEntry };
 }
 async function attention(ctx) {
   const [hhs, auth, userDocs, pays] = await Promise.all([loadHouseholds(ctx), loadAuth(ctx), loadUserDocs(ctx), loadPayments(ctx, 1e3)]);
@@ -1182,7 +1285,7 @@ async function chipereganyu(ctx) {
     const cc = g.currentCycle || null, c = cc && cc.contributions && typeof cc.contributions === "object" ? Object.values(cc.contributions) : [];
     const paid = c.filter((x) => x && x.paid === true).length;
     const sent = c.filter((x) => x && x.sent === true && x.paid !== true);
-    const stuck = sent.filter((x) => tsMs(x.sentAt) !== null && ctx.now - tsMs(x.sentAt) > 3 * DAY).length;
+    const stuck = sent.filter((x) => tsMs(x.sentAt) !== null && ctx.now - tsMs(x.sentAt) > 3 * DAY2).length;
     const overdueDays = cc && isYMD(cc.dueDate) ? Math.max(0, daysBetween(cc.dueDate, today)) : 0;
     return {
       id: g.id,
@@ -1252,7 +1355,7 @@ async function actPremium(ctx, p) {
   }
   if (mode === "set_expiry") {
     if (!realYMD(p.expiry)) throw new Fail(400, "Enter the end date as YYYY-MM-DD.");
-    if (p.expiry < "2024-01-01" || p.expiry > ymd(now + 5 * 365 * DAY)) throw new Fail(400, "That end date is out of range (up to 5 years ahead).");
+    if (p.expiry < "2024-01-01" || p.expiry > ymd(now + 5 * 365 * DAY2)) throw new Fail(400, "That end date is out of range (up to 5 years ahead).");
   }
   let rec = null;
   if (p.recordPayment) {
@@ -1418,7 +1521,62 @@ async function actSettingsSave(ctx, p) {
   await writeLog(ctx, "settings_save", "maintenance", { before: { on: prev.maintenanceOn === true, message: prev.maintenanceMessage || "" }, after: { on, message: msg } });
   return ok({ ok: true });
 }
-var HANDLERS = { whoami, overview, attention, households, household, users, payments, premium, chipereganyu, announcements, settings, log };
+async function growthHistory(ctx, p) {
+  const n = Math.min(90, Math.max(1, Math.floor(Number(p && p.days)) || 30));
+  const rows = await cached(ctx, "growth" + n, async () => (await ctx.deps.db.collection("growthDaily").orderBy("day", "desc").limit(n).get()).docs.map((d) => d.data()));
+  return ok({ rows: [...rows].sort((a, b) => a.day < b.day ? -1 : 1), days: n });
+}
+async function buildSnapshotDoc(ctx, day) {
+  const { now } = ctx;
+  const [hhs, auth, userDocs, pays] = await Promise.all([loadHouseholds(ctx), loadAuth(ctx), loadUserDocs(ctx), loadPayments(ctx, 1e3)]);
+  const g = growthCounts({ auth, userDocs, hhs, now, day, adminEmails: adminEmailSet(adminLists(ctx.env)) });
+  const live = hhs.filter((h) => !h.deletedAt), infos = new Map(live.map((h) => [h.id, premiumInfo(h, now)])), agg = aggregatePayments(pays);
+  const t = premiumTally(live, infos, agg), payers = [...agg.values()].filter((a) => a.paidCount > 0).length;
+  const start = dayStartMs(day), end = start + DAY2, monthStart = dayStartMs(day.slice(0, 8) + "01");
+  const paid = pays.filter((x) => x.status === "paid"), when = (x) => x.paidAtMs || x.createdAtMs || 0;
+  const sum = (a, b) => paid.filter((x) => when(x) >= a && when(x) < b).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  return {
+    day,
+    schema: 1,
+    builtAtMs: now,
+    authOk: auth.ok,
+    users: g.users,
+    households: g.households,
+    premium: {
+      premium: t.states.premium,
+      premiumExpired: t.states.premium_expired,
+      trial: t.states.trial,
+      trialEnded: t.states.trial_ended,
+      free: t.states.free,
+      expiring7: t.expiring7,
+      payingHouseholds: payers,
+      trialed: t.trialed,
+      converted: t.converted
+    },
+    revenue: { currency: CURRENCY, dayTotal: sum(start, end), monthToDate: sum(monthStart, end), truncated: pays.length >= 1e3 }
+  };
+}
+async function runGrowthSnapshot({ deps, env, identity, budget, log: log2 = () => {
+} }) {
+  if (budget && budget.left < 12) return { skipped: true };
+  const day = describedDay(deps.now());
+  const ref = deps.db.collection("growthDaily").doc(day);
+  if (budget) budget.left -= 1;
+  const have = await ref.get(["day"]);
+  if (have.exists) return { day, exists: true };
+  if (budget) budget.left -= 8;
+  const ctx = { deps, env, identity, now: deps.now(), fresh: true };
+  const doc = await buildSnapshotDoc(ctx, day);
+  try {
+    await ref.create(doc);
+  } catch (e) {
+    if (e && e.status === 409) return { day, exists: true };
+    throw e;
+  }
+  log2("growth: saved snapshot for " + day);
+  return { day, created: true };
+}
+var HANDLERS = { whoami, overview, attention, households, household, users, payments, premium, chipereganyu, announcements, settings, log, growth_history: growthHistory };
 var WRITERS = {
   premium_set: actPremium,
   recheck_payment: actRecheck,
@@ -1432,7 +1590,7 @@ var run = (action) => HANDLERS[action] || WRITERS[action];
 var denied = { seen: /* @__PURE__ */ new Map(), hourStart: 0, count: 0 };
 async function logDenied(deps, user, action) {
   const now = deps.now();
-  if (now - denied.hourStart > HOUR) {
+  if (now - denied.hourStart > HOUR2) {
     denied.hourStart = now;
     denied.count = 0;
     denied.seen.clear();
@@ -1557,22 +1715,22 @@ var MAX_CONTENTS = 80;
 var FEATURES = ["msg", "magic", "scan", "summ"];
 var ALLOWED_GEN_KEYS = ["temperature", "topP", "topK", "maxOutputTokens", "responseMimeType"];
 var ALLOWED_MIME = /^image\/(jpeg|png|webp|heic|heif)$/;
-var CAT_OFFSET_MS2 = 2 * 3600 * 1e3;
+var CAT_OFFSET_MS3 = 2 * 3600 * 1e3;
 var num = (v, d) => {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? n : d;
 };
 function catDate(now = Date.now()) {
-  return new Date(now + CAT_OFFSET_MS2).toISOString().slice(0, 10);
+  return new Date(now + CAT_OFFSET_MS3).toISOString().slice(0, 10);
 }
 function expiryEndMs(e) {
   const s = String(e || "");
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], 23, 59, 59) - CAT_OFFSET_MS2;
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], 23, 59, 59) - CAT_OFFSET_MS3;
   const t = new Date(s).getTime();
   return Number.isNaN(t) ? NaN : t;
 }
-var msOf = (v) => v && typeof v.toMillis === "function" ? v.toMillis() : v ? new Date(v).getTime() : NaN;
+var msOf2 = (v) => v && typeof v.toMillis === "function" ? v.toMillis() : v ? new Date(v).getTime() : NaN;
 function computePremium(root, uid, env, now = Date.now()) {
   if (!root || !Array.isArray(root.memberUids) || !root.memberUids.includes(uid)) return null;
   const trustCfg = String(env && env.TRUST_CONFIG_PREMIUM || "true") !== "false";
@@ -1586,7 +1744,7 @@ function computePremium(root, uid, env, now = Date.now()) {
   }
   const started = root.trialStarted || cfg.trialStarted || null;
   if (!started) return false;
-  const startMs = msOf(started);
+  const startMs = msOf2(started);
   if (Number.isNaN(startMs)) return false;
   return Math.floor((now - startMs) / 864e5) < num(env && env.TRIAL_DAYS, 14);
 }
@@ -2108,7 +2266,7 @@ async function syncBills({ deps, budget, log: log2, live }) {
 }
 
 // src/housekeeping.js
-var DAY2 = 864e5;
+var DAY3 = 864e5;
 var HOUSEHOLD_SUBCOLLECTIONS = ["purchases", "items", "bills", "goals", "_usage", "_conversations", "joinRequests"];
 var ID = /^[A-Za-z0-9_-]{3,128}$/;
 var purgeDays = (env) => Math.max(30, Number(env && env.PURGE_DAYS) || 30);
@@ -2116,7 +2274,7 @@ var purgeLive = (env) => String(env && env.PURGE_MODE || "").toLowerCase() === "
 var fullName = (db, path) => db.root + "/" + path;
 async function purgeTrash({ deps, env, budget, log: log2 }) {
   if (budget.left < 4) return { skipped: true };
-  const cutoffMs = deps.now() - purgeDays(env) * DAY2;
+  const cutoffMs = deps.now() - purgeDays(env) * DAY3;
   const cutoff = new Date(cutoffMs).toISOString();
   budget.left -= 1;
   const res = await deps.db.collectionGroup("purchases").where("deletedAt", "<", cutoff).select("__name__").limit(400).get();
@@ -2157,7 +2315,7 @@ async function eraseHousehold({ deps, budget, id }) {
 }
 async function purgeHouseholds({ deps, env, budget, log: log2 }) {
   if (budget.left < 8) return { skipped: true };
-  const cutoff = deps.now() - purgeDays(env) * DAY2;
+  const cutoff = deps.now() - purgeDays(env) * DAY3;
   budget.left -= 1;
   const res = await deps.db.collection("households").where("deletedAt", "<", deps.tsFromMillis(cutoff)).select("deletedAt").limit(5).get();
   const due = res.docs.filter((d) => ID.test(d.id) && d.data().deletedAt && typeof d.data().deletedAt.toMillis === "function" && d.data().deletedAt.toMillis() < cutoff);
@@ -2179,7 +2337,7 @@ async function purgeHouseholds({ deps, env, budget, log: log2 }) {
 }
 async function purgeAccounts({ deps, env, identity, budget, log: log2 }) {
   if (budget.left < 8) return { skipped: true };
-  const cutoff = deps.now() - purgeDays(env) * DAY2;
+  const cutoff = deps.now() - purgeDays(env) * DAY3;
   budget.left -= 1;
   const res = await deps.db.collection("users").where("deletedAt", "<", deps.tsFromMillis(cutoff)).select("deletedAt", "pendingDeletion").limit(10).get();
   const due = res.docs.filter((d) => ID.test(d.id) && d.data().pendingDeletion === true && d.data().deletedAt && typeof d.data().deletedAt.toMillis === "function" && d.data().deletedAt.toMillis() < cutoff);
@@ -2208,10 +2366,10 @@ async function purgeCounters({ deps, env, budget, log: log2 }) {
   const live = purgeLive(env);
   const out = { aiUsage: 0, pushLog: 0 };
   budget.left -= 1;
-  const oldDay = catDate(deps.now() - 14 * DAY2);
+  const oldDay = catDate(deps.now() - 14 * DAY3);
   const ai = await deps.db.collection("aiUsage").where("day", "<", oldDay).select("__name__").limit(200).get();
   budget.left -= 1;
-  const logs = await deps.db.collection("pushLog").where("at", "<", deps.tsFromMillis(deps.now() - 7 * DAY2)).select("__name__").limit(200).get();
+  const logs = await deps.db.collection("pushLog").where("at", "<", deps.tsFromMillis(deps.now() - 7 * DAY3)).select("__name__").limit(200).get();
   const jobs = [["aiUsage", ai.docs.map((d) => "aiUsage/" + d.id)], ["pushLog", logs.docs.map((d) => "pushLog/" + d.id)]];
   for (const [name, paths] of jobs) {
     if (!paths.length) continue;
@@ -2229,7 +2387,7 @@ async function runHousekeeping({ deps, env, identity, budget = { left: 38 } }) {
     console.log(s);
   };
   const result = { mode: purgeLive(env) ? "delete" : "dry-run" };
-  for (const [name, fn] of [["trash", purgeTrash], ["households", purgeHouseholds], ["accounts", purgeAccounts], ["counters", purgeCounters], ["bills", (a) => syncBills({ ...a, live: purgeLive(env) })]]) {
+  for (const [name, fn] of [["trash", purgeTrash], ["households", purgeHouseholds], ["accounts", purgeAccounts], ["counters", purgeCounters], ["bills", (a) => syncBills({ ...a, live: purgeLive(env) })], ["growth", runGrowthSnapshot]]) {
     try {
       result[name] = await fn({ deps, env, identity, budget, log: log2 });
     } catch (e) {
