@@ -94,6 +94,7 @@ function bootApp(){
     try{ g('boot-bar').classList.add('hide'); }catch(e){}
     if(user){
       curUser=user;
+      growthStampActive();                                                // admin console numbers only (see the growth stamps below)
       if(typeof guestNoteSignedIn==='function') guestNoteSignedIn();   // guest mode: remember this phone has an account, close the demo
       // Gate: if email user has not verified yet, show verify screen
       const isEmailProvider = user.providerData && user.providerData.length > 0 && user.providerData[0].providerId === 'password';
@@ -1282,6 +1283,31 @@ function saveCfg(cfg){
     return false;
   });
 }
+// ── Growth stamps (they only feed the admin console's numbers; they never change what the app does) ─────────────────
+// Two timestamps on the person's own profile document. Both are silent: a failed stamp never shows an error and never blocks anything.
+// lastActiveAt : the last time the person opened the app while signed in. Written at most once a day per phone (nb_lastact).
+// firstEntryAt : when the person added their first real entry by hand. Written once per phone (nb_fe). Automatic recurring entries
+//                (they are written with a docId) do not count. The demo never writes either.
+function _growthDay(){ return new Date(Date.now()+2*3600*1000).toISOString().slice(0,10); }   // the Malawi date (UTC+2)
+function growthStampActive(){
+  try{
+    if(isGuestMode||!curUser||!curUser.uid) return;
+    const mark=curUser.uid+':'+_growthDay();
+    let seen=null; try{ seen=localStorage.getItem('nb_lastact'); }catch(_){}
+    if(seen===mark) return;
+    db.collection('users').doc(curUser.uid).set({lastActiveAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})
+      .then(function(){ try{ localStorage.setItem('nb_lastact',mark); }catch(_){} }).catch(function(){});
+  }catch(_){}
+}
+function growthStampFirstEntry(){
+  try{
+    if(isGuestMode||!curUser||!curUser.uid) return;
+    let seen=null; try{ seen=localStorage.getItem('nb_fe'); }catch(_){}
+    if(seen===curUser.uid) return;
+    db.collection('users').doc(curUser.uid).set({firstEntryAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})
+      .then(function(){ try{ localStorage.setItem('nb_fe',curUser.uid); }catch(_){} }).catch(function(){});
+  }catch(_){}
+}
 // Returns a Promise<boolean> (true = saved) so callers that chain several writes can tell whether this one worked.
 // opts.docId makes the write idempotent (same id => same document), used to stop two devices both adding the same recurring entry.
 function addPx(p,opts){
@@ -1297,7 +1323,7 @@ function addPx(p,opts){
   // store the validated number (not whatever string/fraction the caller passed), rounded to 2dp to avoid float drift
   const data={...p,item:itemName,amount:Math.round(amt*100)/100,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   const op=opts.docId?col.doc(opts.docId).set(data):col.add(data);
-  return op.then(r=>{setDot(''); try{ if(opts.onRef&&r&&r.id) opts.onRef(r); }catch(_){} return true;}).catch(e=>{
+  return op.then(r=>{setDot(''); try{ if(opts.onRef&&r&&r.id) opts.onRef(r); }catch(_){} if(!opts.docId) growthStampFirstEntry(); return true;}).catch(e=>{
     if(opts.quiet){ setDot(''); return false; }
     if(opts.onFail){ setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{}); opts.onFail(e); return false; }
     const msg=fsErrMsg(e); toast(msg,'e'); setDot('off'); if(e&&e.code==='permission-denied'&&curUser)curUser.getIdToken(true).catch(()=>{});
